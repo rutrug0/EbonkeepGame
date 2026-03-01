@@ -226,6 +226,93 @@ const CONTRACT_AVAILABILITY_WINDOWS: Record<ContractDifficulty, { minMs: number;
   hard: { minMs: 20 * 60 * 1000, maxMs: 60 * 60 * 1000 }
 };
 
+function renderMenuIcon(tab: LandingTab) {
+  const iconProps = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2.1,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const
+  };
+
+  switch (tab) {
+    case "inventory":
+      return (
+        <svg {...iconProps}>
+          <path d="M4 9h16v10H4z" />
+          <path d="M4 13h16M10 9V7h4v2M11 13h2" />
+        </svg>
+      );
+    case "contracts":
+      return (
+        <svg {...iconProps}>
+          <path d="M7 4h10v16H7z" />
+          <path d="M10 8h4M9.5 12h5M9.5 15h3" />
+          <circle cx="16" cy="17" r="2" />
+        </svg>
+      );
+    case "missions":
+      return (
+        <svg {...iconProps}>
+          <circle cx="12" cy="12" r="8" />
+          <path d="m12 8 3 3-3 5-3-3z" />
+        </svg>
+      );
+    case "arena":
+      return (
+        <svg {...iconProps}>
+          <path d="m8 5 3 3-5 5-2 1 1-2 5-5" />
+          <path d="m16 5-3 3 5 5 2 1-1-2-5-5" />
+          <path d="M9 19h6" />
+        </svg>
+      );
+    case "guild":
+      return (
+        <svg {...iconProps}>
+          <path d="M6 20V5l8 2 4-2v9l-4 2-8-2" />
+          <path d="M10 10h4M10 14h2" />
+        </svg>
+      );
+    case "castles":
+      return (
+        <svg {...iconProps}>
+          <path d="M5 20h14V8h-2V5h-2v3h-2V5h-2v3H9V5H7v3H5z" />
+          <path d="M11 20v-4h2v4" />
+        </svg>
+      );
+    case "auctionHouse":
+      return (
+        <svg {...iconProps}>
+          <circle cx="9" cy="9" r="3" />
+          <path d="m13 13 6 6M15 10l3-3 2 2-3 3z" />
+        </svg>
+      );
+    case "merchant":
+      return (
+        <svg {...iconProps}>
+          <path d="M12 6v12M8 6h8M5 10h6l-3 4zM13 10h6l-3 4zM8 20h8" />
+        </svg>
+      );
+    case "leaderboards":
+      return (
+        <svg {...iconProps}>
+          <path d="M6 19V11M12 19V8M18 19V13M4 19h16" />
+          <path d="M7 6c-1 1-2 3-2 5M17 6c1 1 2 3 2 5" />
+        </svg>
+      );
+    case "settings":
+      return (
+        <svg {...iconProps}>
+          <path d="M12 3 14 6 18 6 19 10 22 12 19 14 18 18 14 18 12 21 10 18 6 18 5 14 2 12 5 10 6 6 10 6z" />
+          <circle cx="12" cy="12" r="2.5" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 function formatClassLabel(playerClass: PlayerState["class"]): string {
   return playerClass.charAt(0).toUpperCase() + playerClass.slice(1);
 }
@@ -1209,7 +1296,10 @@ export function App() {
                   className={`menuButton${activeTab === menuItem.id ? " active" : ""}`}
                   onClick={() => setActiveTab(menuItem.id)}
                 >
-                  {menuItem.label}
+                  <span className="menuButtonIcon" aria-hidden="true">
+                    {renderMenuIcon(menuItem.id)}
+                  </span>
+                  <span className="menuButtonLabel">{menuItem.label}</span>
                 </button>
               ))}
             </nav>

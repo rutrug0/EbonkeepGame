@@ -215,15 +215,46 @@ button:active {
 }
 
 .menuButton {
+  position: relative;
+  display: block;
   text-align: center;
-  display: flex;
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.menuButtonIcon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: #d7c39c;
+  pointer-events: none;
+}
+
+.menuButtonIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.menuButtonLabel {
+  display: block;
+  width: 100%;
+  padding: 0 42px;
+  text-align: center;
 }
 
 .menuButton.active {
   border-color: rgba(224, 192, 147, 0.4);
   background: linear-gradient(180deg, rgba(95, 75, 48, 0.9), rgba(67, 53, 34, 0.95));
+}
+
+.menuButton.active .menuButtonIcon {
+  color: #f5e2be;
 }
 
 .logoutButton {
