@@ -13,7 +13,7 @@
   --rare: #5b88be;
   --epic: #b07fce;
   --soft-radius: 4px;
-  --inventory-cell-size: clamp(22px, 2.2vw, 28px);
+  --equip-slot-size: 104px;
 
   color: var(--text-main);
   font-family: "Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif;
@@ -240,16 +240,149 @@ button:active {
   width: min(100%, 1080px);
 }
 
+.panelViewportGroup {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 648px) minmax(260px, 360px);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.panelViewportProfileMain {
+  width: 100%;
+  max-width: 648px;
+  display: flex;
+}
+
+.panelViewportStats {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+}
+
+.panelViewportProfileMain .contentShell,
+.panelViewportStats .contentShell {
+  width: 100%;
+}
+
+.panelViewportStats .contentShell {
+  height: 100%;
+}
+
+.statsViewportShell {
+  height: 100%;
+}
+
+.statsViewportStack {
+  min-height: 100%;
+}
+
+.statsViewportBody {
+  min-height: 100%;
+  align-content: start;
+}
+
+.contentShell {
+  width: 100%;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius);
+  overflow: hidden;
+}
+
 .contentStack {
   display: grid;
-  gap: 12px;
+  gap: 0;
   width: 100%;
 }
 
 .contentCard {
   display: grid;
   gap: 10px;
-  border-color: rgba(204, 214, 225, 0.09);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 14px;
+}
+
+.contentStack > .contentCard:last-child {
+  border-bottom: none;
+}
+
+.profileSwitchBar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.profileSwitchButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.profileSwitchButton {
+  min-width: 112px;
+  text-align: center;
+}
+
+.profileSwitchButton.active {
+  border-color: rgba(224, 192, 147, 0.42);
+  background: linear-gradient(180deg, rgba(95, 75, 48, 0.9), rgba(67, 53, 34, 0.95));
+}
+
+.profileMeta {
+  display: grid;
+  gap: 4px;
+}
+
+.statsGroups {
+  display: grid;
+  gap: 10px;
+}
+
+.statsGroup {
+  border: 1px solid rgba(214, 221, 230, 0.1);
+  border-radius: var(--soft-radius);
+  background: rgba(18, 24, 30, 0.55);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.statsGroupTitle {
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #dbe4ec;
+}
+
+.statsRows {
+  display: grid;
+}
+
+.statsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(214, 221, 230, 0.08);
+}
+
+.statsRows .statsRow:last-child {
+  border-bottom: none;
+}
+
+.statsRowLabel {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.statsRowValue {
+  color: #f4f7f9;
+  font-weight: 700;
 }
 
 .statsGrid {
@@ -277,10 +410,23 @@ button:active {
   font-weight: 700;
 }
 
-.equipmentGrid {
+.equipmentBoard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.equipmentColumn {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-rows: repeat(5, var(--equip-slot-size));
+}
+
+.equipmentCenterColumn {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-height: calc((var(--equip-slot-size) * 5) + 32px);
 }
 
 .equipmentCell {
@@ -290,6 +436,70 @@ button:active {
   padding: 8px;
   display: grid;
   gap: 5px;
+  text-align: center;
+  align-content: start;
+}
+
+.equipmentColumn .equipmentCell,
+.equipmentWeaponCell {
+  width: var(--equip-slot-size);
+  height: var(--equip-slot-size);
+}
+
+.equipmentColumn .equipmentCell {
+  justify-self: center;
+}
+
+.equipmentWeaponCell {
+  justify-self: center;
+}
+
+.equipmentWeaponOverlay {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  z-index: 3;
+  transform: translateX(-50%);
+}
+
+.characterVisual {
+  min-height: 0;
+  border: 1px solid rgba(214, 221, 230, 0.1);
+  border-radius: var(--soft-radius);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(198, 142, 69, 0.12), transparent 44%),
+    linear-gradient(180deg, rgba(19, 26, 34, 0.78), rgba(12, 17, 23, 0.94));
+  padding: 10px;
+}
+
+.characterVisualFrame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: calc((var(--equip-slot-size) * 4) + 24px);
+  border: 1px solid rgba(214, 221, 230, 0.08);
+  background: rgba(10, 14, 19, 0.76);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.characterSilhouette {
+  width: clamp(110px, 38%, 170px);
+  aspect-ratio: 2 / 3;
+  border: 1px solid rgba(239, 243, 247, 0.18);
+  background:
+    radial-gradient(circle at 55% 22%, rgba(226, 232, 238, 0.25), transparent 34%),
+    linear-gradient(170deg, rgba(103, 117, 132, 0.36), rgba(43, 51, 61, 0.88));
+  clip-path: polygon(48% 0%, 66% 8%, 74% 28%, 92% 62%, 82% 100%, 18% 100%, 8% 62%, 26% 28%, 34% 8%);
+}
+
+.characterVisualLabel {
+  font-size: 0.85rem;
+  color: #d4dde5;
+  letter-spacing: 0.03em;
 }
 
 .equipmentSlot {
@@ -333,21 +543,17 @@ button:active {
 .inventoryGrid {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(12, var(--inventory-cell-size));
-  grid-template-rows: repeat(8, var(--inventory-cell-size));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 0;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
   border: 1px solid rgba(214, 221, 230, 0.11);
   background: rgba(7, 10, 14, 0.95);
 }
 
 .inventoryCell {
   position: relative;
-  width: var(--inventory-cell-size);
-  height: var(--inventory-cell-size);
-  min-width: 0;
-  min-height: 0;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-right: 1px solid rgba(214, 221, 230, 0.08);
   border-bottom: 1px solid rgba(214, 221, 230, 0.08);
   background: rgba(15, 21, 28, 0.94);
@@ -418,7 +624,7 @@ button:active {
 }
 
 .inventoryItemIcon {
-  width: min(24px, 62%);
+  width: min(34px, 58%);
   aspect-ratio: 1 / 1;
   border: 1px solid rgba(240, 244, 248, 0.35);
   background:
@@ -493,6 +699,17 @@ button:active {
   }
 }
 
+@media (max-width: 1320px) {
+  .panelViewportGroup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panelViewportProfileMain,
+  .panelViewportStats {
+    max-width: none;
+  }
+}
+
 @media (max-width: 960px) {
   .landingPage {
     grid-template-columns: 1fr;
@@ -501,11 +718,33 @@ button:active {
   .leftPanel {
     grid-template-columns: 1fr;
   }
+
+  .equipmentBoard {
+    --equip-slot-size: 90px;
+    gap: 6px;
+  }
+
+  .equipmentColumn,
+  .equipmentCenterColumn {
+    gap: 6px;
+  }
+
+  .equipmentCenterColumn {
+    min-height: calc((var(--equip-slot-size) * 5) + 24px);
+  }
 }
 
 @media (max-width: 620px) {
   .landingPage {
     padding: 12px;
     gap: 12px;
+  }
+
+  .equipmentBoard {
+    --equip-slot-size: 76px;
+  }
+
+  .characterVisualLabel {
+    font-size: 0.78rem;
   }
 }

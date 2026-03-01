@@ -13,8 +13,21 @@ import { devGuestLogin, fetchPlayerState, moveInventoryItem } from "./api";
 type LandingTab = "profile" | "contract" | "guilds" | "auctionHouse" | "settings";
 type Rarity = "common" | "uncommon" | "rare" | "epic";
 
+type EquipmentSlotId =
+  | "helmet"
+  | "necklace"
+  | "upperArmor"
+  | "belt"
+  | "ringLeft"
+  | "weapon"
+  | "pauldrons"
+  | "gloves"
+  | "lowerArmor"
+  | "boots"
+  | "ringRight";
+
 type EquipmentSlot = {
-  slot: string;
+  label: string;
   itemName: string | null;
   rarity?: Rarity;
 };
@@ -46,17 +59,34 @@ const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
   { id: "settings", label: "Settings" }
 ];
 
-const MOCK_EQUIPMENT: EquipmentSlot[] = [
-  { slot: "Weapon", itemName: "Initiate Iron Blade", rarity: "common" },
-  { slot: "Offhand", itemName: null },
-  { slot: "Helm", itemName: "Scout Hood", rarity: "uncommon" },
-  { slot: "Chest", itemName: "Riveted Vest", rarity: "common" },
-  { slot: "Gloves", itemName: null },
-  { slot: "Boots", itemName: "Dustwalker Boots", rarity: "rare" },
-  { slot: "Amulet", itemName: null },
-  { slot: "Ring 1", itemName: "Band of Aim", rarity: "uncommon" },
-  { slot: "Ring 2", itemName: null }
+const EQUIPMENT_LEFT_SLOTS: EquipmentSlotId[] = [
+  "helmet",
+  "necklace",
+  "upperArmor",
+  "belt",
+  "ringLeft"
 ];
+const EQUIPMENT_RIGHT_SLOTS: EquipmentSlotId[] = [
+  "pauldrons",
+  "gloves",
+  "lowerArmor",
+  "boots",
+  "ringRight"
+];
+
+const MOCK_EQUIPMENT: Record<EquipmentSlotId, EquipmentSlot> = {
+  helmet: { label: "Helmet", itemName: "Scout Hood", rarity: "uncommon" },
+  necklace: { label: "Necklace", itemName: null },
+  upperArmor: { label: "Upper Armor", itemName: "Riveted Vest", rarity: "common" },
+  belt: { label: "Belt", itemName: null },
+  ringLeft: { label: "Ring", itemName: "Band of Aim", rarity: "uncommon" },
+  weapon: { label: "Weapon", itemName: "Initiate Iron Blade", rarity: "common" },
+  pauldrons: { label: "Pauldrons", itemName: null },
+  gloves: { label: "Gloves", itemName: null },
+  lowerArmor: { label: "Lower Armor", itemName: "Braced Legguards", rarity: "common" },
+  boots: { label: "Boots", itemName: "Dustwalker Boots", rarity: "rare" },
+  ringRight: { label: "Ring", itemName: null }
+};
 
 const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
   { id: "itm_brigandine_plate", slot: 1, itemName: "Brigandine Plate", rarity: "rare", width: 2, height: 3 },
@@ -430,151 +460,293 @@ export function App() {
   function renderProfilePanel() {
     if (isLoadingState) {
       return (
-        <section className="contentCard">
-          <h2>Profile</h2>
-          <p>Loading player state...</p>
+        <section className="contentShell">
+          <section className="contentStack">
+            <article className="contentCard">
+              <h2>Profile</h2>
+              <p>Loading player state...</p>
+            </article>
+          </section>
         </section>
       );
     }
 
     if (!playerState) {
       return (
-        <section className="contentCard">
-          <h2>Profile</h2>
-          <p>Player state unavailable. Login again to refresh your data.</p>
+        <section className="contentShell">
+          <section className="contentStack">
+            <article className="contentCard">
+              <h2>Profile</h2>
+              <p>Player state unavailable. Login again to refresh your data.</p>
+            </article>
+          </section>
         </section>
       );
     }
 
-    const statRows: Array<{ label: string; value: number }> = [
-      { label: "Strength", value: playerState.stats.strength },
-      { label: "Intelligence", value: playerState.stats.intelligence },
-      { label: "Dexterity", value: playerState.stats.dexterity },
-      { label: "Vitality", value: playerState.stats.vitality },
-      { label: "Initiative", value: playerState.stats.initiative },
-      { label: "Luck", value: playerState.stats.luck }
-    ];
-
     return (
-      <section className="contentStack">
-        <article className="contentCard">
-          <h2>Profile</h2>
-          <p>
-            Class: <strong>{formatClassLabel(playerState.class)}</strong>
-          </p>
-          <p>
-            Level: <strong>{playerState.level}</strong> | Gear Score: <strong>{playerState.gearScore}</strong>
-          </p>
-          <p>
-            Currencies: <strong>{playerState.currency.ducats}</strong> ducats,{" "}
-            <strong>{playerState.currency.imperials}</strong> imperials
-          </p>
-        </article>
+      <section className="contentShell">
+        <section className="contentStack">
+          <article className="contentCard">
+            <h2>Profile</h2>
+          </article>
 
-        <article className="contentCard">
-          <h3>Player Stats</h3>
-          <div className="statsGrid">
-            {statRows.map((stat) => (
-              <div key={stat.label} className="statCell">
-                <span className="statLabel">{stat.label}</span>
-                <span className="statValue">{stat.value}</span>
+          <article className="contentCard">
+            <h3>Equipment Slots</h3>
+            <div className="equipmentBoard">
+              <div className="equipmentColumn equipmentColumnLeft">
+                {EQUIPMENT_LEFT_SLOTS.map((slotId) => {
+                  const slot = MOCK_EQUIPMENT[slotId];
+                  const rarityClass = slot.rarity ? ` rarity-${slot.rarity}` : "";
+                  return (
+                    <div key={slotId} className="equipmentCell">
+                      <span className="equipmentSlot">{slot.label}</span>
+                      {slot.itemName ? (
+                        <span className={`equipmentItem${rarityClass}`}>{slot.itemName}</span>
+                      ) : (
+                        <span className="equipmentEmpty">Empty</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
-        </article>
 
-        <article className="contentCard">
-          <h3>Equipment Slots</h3>
-          <div className="equipmentGrid">
-            {MOCK_EQUIPMENT.map((slot) => (
-              <div key={slot.slot} className="equipmentCell">
-                <span className="equipmentSlot">{slot.slot}</span>
-                {slot.itemName ? (
-                  <span className={`equipmentItem rarity-${slot.rarity}`}>{slot.itemName}</span>
-                ) : (
-                  <span className="equipmentEmpty">Empty</span>
-                )}
+              <div className="equipmentCenterColumn">
+                <div className="characterVisual">
+                  <div className="characterVisualFrame">
+                    <div className="characterSilhouette" aria-hidden="true" />
+                    <p className="characterVisualLabel">{profileName}</p>
+                    <div className="equipmentCell equipmentWeaponCell equipmentWeaponOverlay">
+                      <span className="equipmentSlot">{MOCK_EQUIPMENT.weapon.label}</span>
+                      {MOCK_EQUIPMENT.weapon.itemName ? (
+                        <span className={`equipmentItem rarity-${MOCK_EQUIPMENT.weapon.rarity}`}>
+                          {MOCK_EQUIPMENT.weapon.itemName}
+                        </span>
+                      ) : (
+                        <span className="equipmentEmpty">Empty</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-        </article>
 
-        <article className="contentCard">
-          <div className="inventoryHeader">
-            <h3>Inventory Slots</h3>
-            <p>
-              Occupied: {occupiedInventorySlots.size}/{INVENTORY_SLOT_COUNT}
-            </p>
-          </div>
-          <div className={`inventoryGrid${draggingItemId ? " draggingMode" : ""}`}>
-            {Array.from({ length: INVENTORY_SLOT_COUNT }, (_, index) => {
-              const slotNumber = index + 1;
-              const occupiedClass = occupiedInventorySlots.has(slotNumber) ? " occupiedCell" : "";
-              const previewClass = dragPreview?.slots.has(slotNumber)
-                ? dragPreview.isValid
-                  ? " dropTargetValid"
-                  : " dropTargetInvalid"
-                : "";
+              <div className="equipmentColumn equipmentColumnRight">
+                {EQUIPMENT_RIGHT_SLOTS.map((slotId) => {
+                  const slot = MOCK_EQUIPMENT[slotId];
+                  const rarityClass = slot.rarity ? ` rarity-${slot.rarity}` : "";
+                  return (
+                    <div key={slotId} className="equipmentCell">
+                      <span className="equipmentSlot">{slot.label}</span>
+                      {slot.itemName ? (
+                        <span className={`equipmentItem${rarityClass}`}>{slot.itemName}</span>
+                      ) : (
+                        <span className="equipmentEmpty">Empty</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </article>
 
-              return (
-                <div
-                  key={slotNumber}
-                  className={`inventoryCell${occupiedClass}${previewClass}`}
-                  onDragEnter={(event) => handleInventoryCellDragEnter(event, slotNumber)}
-                  onDragOver={(event) => handleInventoryCellDragOver(event, slotNumber)}
-                  onDrop={(event) => handleInventoryCellDrop(event, slotNumber)}
-                />
-              );
-            })}
-            <div className="inventoryItemsLayer">
-              {inventoryItems.map((item) => {
-                const anchor = slotToCoord(item.slot);
-                const rarityClass = ` rarity-${item.rarity}`;
-                const draggingClass = draggingItemId === item.id ? " isDragging" : "";
+          <article className="contentCard">
+            <div className="inventoryHeader">
+              <h3>Inventory Slots</h3>
+              <p>
+                Occupied: {occupiedInventorySlots.size}/{INVENTORY_SLOT_COUNT}
+              </p>
+            </div>
+            <div className={`inventoryGrid${draggingItemId ? " draggingMode" : ""}`}>
+              {Array.from({ length: INVENTORY_SLOT_COUNT }, (_, index) => {
+                const slotNumber = index + 1;
+                const occupiedClass = occupiedInventorySlots.has(slotNumber) ? " occupiedCell" : "";
+                const previewClass = dragPreview?.slots.has(slotNumber)
+                  ? dragPreview.isValid
+                    ? " dropTargetValid"
+                    : " dropTargetInvalid"
+                  : "";
 
                 return (
                   <div
-                    key={item.id}
-                    className={`inventoryItemOverlay${rarityClass}${draggingClass}`}
-                    style={{
-                      left: `calc(${anchor.col} * var(--inventory-cell-size))`,
-                      top: `calc(${anchor.row} * var(--inventory-cell-size))`,
-                      width: `calc(${item.width} * var(--inventory-cell-size))`,
-                      height: `calc(${item.height} * var(--inventory-cell-size))`
-                    }}
-                    draggable
-                    role="img"
-                    aria-label={`${item.itemName} (${formatRarityLabel(item.rarity)} ${item.width}x${item.height})`}
-                    onDragStart={(event) => handleInventoryItemDragStart(event, item.id)}
-                    onDragEnd={handleInventoryItemDragEnd}
-                    onMouseEnter={(event) => {
-                      if (!draggingItemId) {
-                        showInventoryTooltip(event, item);
-                      }
-                    }}
-                    onMouseMove={(event) => {
-                      if (!draggingItemId) {
-                        updateInventoryTooltip(event, item);
-                      }
-                    }}
-                    onMouseLeave={hideInventoryTooltip}
-                  >
-                    <span className="inventoryItemIcon" aria-hidden="true" />
-                  </div>
+                    key={slotNumber}
+                    className={`inventoryCell${occupiedClass}${previewClass}`}
+                    onDragEnter={(event) => handleInventoryCellDragEnter(event, slotNumber)}
+                    onDragOver={(event) => handleInventoryCellDragOver(event, slotNumber)}
+                    onDrop={(event) => handleInventoryCellDrop(event, slotNumber)}
+                  />
                 );
               })}
+              <div className="inventoryItemsLayer">
+                {inventoryItems.map((item) => {
+                  const anchor = slotToCoord(item.slot);
+                  const rarityClass = ` rarity-${item.rarity}`;
+                  const draggingClass = draggingItemId === item.id ? " isDragging" : "";
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`inventoryItemOverlay${rarityClass}${draggingClass}`}
+                      style={{
+                        left: `${(anchor.col / INVENTORY_COLUMNS) * 100}%`,
+                        top: `${(anchor.row / INVENTORY_ROWS) * 100}%`,
+                        width: `${(item.width / INVENTORY_COLUMNS) * 100}%`,
+                        height: `${(item.height / INVENTORY_ROWS) * 100}%`
+                      }}
+                      draggable
+                      role="img"
+                      aria-label={`${item.itemName} (${formatRarityLabel(item.rarity)} ${item.width}x${item.height})`}
+                      onDragStart={(event) => handleInventoryItemDragStart(event, item.id)}
+                      onDragEnd={handleInventoryItemDragEnd}
+                      onMouseEnter={(event) => {
+                        if (!draggingItemId) {
+                          showInventoryTooltip(event, item);
+                        }
+                      }}
+                      onMouseMove={(event) => {
+                        if (!draggingItemId) {
+                          updateInventoryTooltip(event, item);
+                        }
+                      }}
+                      onMouseLeave={hideInventoryTooltip}
+                    >
+                      <span className="inventoryItemIcon" aria-hidden="true" />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </article>
+          </article>
+        </section>
+      </section>
+    );
+  }
+
+  function renderProfileStatsPanel() {
+    if (isLoadingState) {
+      return (
+        <section className="contentShell">
+          <section className="contentStack">
+            <article className="contentCard">
+              <h2>Stats</h2>
+              <p>Loading player stats...</p>
+            </article>
+          </section>
+        </section>
+      );
+    }
+
+    if (!playerState) {
+      return (
+        <section className="contentShell">
+          <section className="contentStack">
+            <article className="contentCard">
+              <h2>Stats</h2>
+              <p>Player state unavailable. Login again to refresh your data.</p>
+            </article>
+          </section>
+        </section>
+      );
+    }
+
+    const unavailableLabel = "Defined in docs (API pending)";
+    const mainOffenseStat =
+      playerState.class === "wizard"
+        ? playerState.stats.intelligence
+        : playerState.class === "archer"
+          ? playerState.stats.dexterity
+          : playerState.stats.strength;
+    const mainOffenseTypeLabel =
+      playerState.class === "wizard"
+        ? "Spell Damage"
+        : playerState.class === "archer"
+          ? "Ranged Attack Damage"
+          : "Melee Damage";
+    const flatBonusDamage = (mainOffenseStat * 0.1).toFixed(1);
+
+    const groupedStats: Array<{
+      title: string;
+      rows: Array<{ label: string; value: string | number }>;
+    }> = [
+      {
+        title: "Main Stats",
+        rows: [
+          { label: "Strength", value: playerState.stats.strength },
+          { label: "Intelligence", value: playerState.stats.intelligence },
+          { label: "Dexterity", value: playerState.stats.dexterity },
+          { label: "Vitality", value: playerState.stats.vitality },
+          { label: "Initiative", value: playerState.stats.initiative },
+          { label: "Luck", value: playerState.stats.luck }
+        ]
+      },
+      {
+        title: "Defensive",
+        rows: [
+          { label: "Armor", value: unavailableLabel },
+          { label: "Spell Shield", value: unavailableLabel },
+          { label: "Missile Resistance", value: unavailableLabel },
+          { label: "Max Hitpoints", value: unavailableLabel }
+        ]
+      },
+      {
+        title: "Offensive",
+        rows: [
+          { label: mainOffenseTypeLabel, value: unavailableLabel },
+          { label: "Crit Chance", value: unavailableLabel },
+          { label: "Crit Damage", value: unavailableLabel },
+          { label: "Combat Speed", value: unavailableLabel },
+          { label: "Chance to Extra Attack", value: unavailableLabel },
+          { label: "Flat Bonus Damage (Main Stat x 0.10)", value: flatBonusDamage }
+        ]
+      }
+    ];
+
+    return (
+      <section className="contentShell statsViewportShell">
+        <section className="contentStack statsViewportStack">
+          <article className="contentCard statsViewportBody">
+            <div className="profileMeta">
+              <p>
+                Class: <strong>{formatClassLabel(playerState.class)}</strong>
+              </p>
+              <p>
+                Level: <strong>{playerState.level}</strong> | Gear Score:{" "}
+                <strong>{playerState.gearScore}</strong>
+              </p>
+              <p>
+                Currencies: <strong>{playerState.currency.ducats}</strong> ducats,{" "}
+                <strong>{playerState.currency.imperials}</strong> imperials
+              </p>
+            </div>
+            <div className="statsGroups">
+              {groupedStats.map((group) => (
+                <section key={group.title} className="statsGroup">
+                  <h3 className="statsGroupTitle">{group.title}</h3>
+                  <div className="statsRows">
+                    {group.rows.map((row) => (
+                      <div key={row.label} className="statsRow">
+                        <span className="statsRowLabel">{row.label}</span>
+                        <span className="statsRowValue">{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </article>
+        </section>
       </section>
     );
   }
 
   function renderPlaceholderPanel(title: string, description: string) {
     return (
-      <section className="contentCard">
-        <h2>{title}</h2>
-        <p>{description}</p>
+      <section className="contentShell">
+        <section className="contentStack">
+          <article className="contentCard">
+            <h2>{title}</h2>
+            <p>{description}</p>
+          </article>
+        </section>
       </section>
     );
   }
@@ -673,7 +845,14 @@ export function App() {
       </aside>
 
       <section className="rightPanel">
-        <div className="panelViewport">{renderActivePanel()}</div>
+        {activeTab === "profile" ? (
+          <div className="panelViewportGroup">
+            <div className="panelViewportProfileMain">{renderProfilePanel()}</div>
+            <div className="panelViewportStats">{renderProfileStatsPanel()}</div>
+          </div>
+        ) : (
+          <div className="panelViewport">{renderActivePanel()}</div>
+        )}
       </section>
 
       {error ? <div className="error floatingError">Error: {error}</div> : null}
