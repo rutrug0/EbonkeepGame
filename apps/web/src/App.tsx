@@ -307,6 +307,17 @@ export function App() {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", itemId);
     event.dataTransfer.setData("application/x-ebonkeep-item-id", itemId);
+    const dragImage = event.currentTarget.cloneNode(true) as HTMLDivElement;
+    const { width, height } = event.currentTarget.getBoundingClientRect();
+    dragImage.style.position = "fixed";
+    dragImage.style.top = "-9999px";
+    dragImage.style.left = "-9999px";
+    dragImage.style.pointerEvents = "none";
+    document.body.appendChild(dragImage);
+    event.dataTransfer.setDragImage(dragImage, width / 2, height / 2);
+    window.setTimeout(() => {
+      dragImage.remove();
+    }, 0);
     window.setTimeout(() => {
       setDraggingItemId(itemId);
     }, 0);
