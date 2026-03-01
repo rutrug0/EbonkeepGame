@@ -1,6 +1,11 @@
-import type { DevGuestLoginResponse, PlayerState } from "@ebonkeep/shared";
+import type {
+  DevGuestLoginResponse,
+  InventoryMoveResponse,
+  PlayerState
+} from "@ebonkeep/shared";
 import {
   devGuestLoginResponseSchema,
+  inventoryMoveResponseSchema,
   playerStateSchema
 } from "@ebonkeep/shared";
 
@@ -42,6 +47,31 @@ export async function fetchPlayerState(token: string): Promise<PlayerState> {
   }
   const data = await response.json();
   return playerStateSchema.parse(data);
+}
+
+export async function moveInventoryItem(
+  token: string,
+  itemId: string,
+  fromSlot: string,
+  toSlot: string
+): Promise<InventoryMoveResponse> {
+  const response = await fetch(`${API_URL}/v1/inventory/move-item`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({
+      itemId,
+      fromSlot,
+      toSlot
+    })
+  });
+  if (!response.ok) {
+    throw new Error(`Move item failed (${response.status})`);
+  }
+  const data = await response.json();
+  return inventoryMoveResponseSchema.parse(data);
 }
 
 export async function fetchReady(): Promise<Record<string, string>> {

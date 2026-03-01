@@ -1,8 +1,14 @@
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type DragEvent,
+  type MouseEvent
+} from "react";
 
 import type { PlayerState } from "@ebonkeep/shared";
 
-import { devGuestLogin, fetchPlayerState } from "./api.js";
+import { devGuestLogin, fetchPlayerState, moveInventoryItem } from "./api";
 
 type LandingTab = "profile" | "contract" | "guilds" | "auctionHouse" | "settings";
 type Rarity = "common" | "uncommon" | "rare" | "epic";
@@ -14,9 +20,12 @@ type EquipmentSlot = {
 };
 
 type InventoryItem = {
+  id: string;
   slot: number;
   itemName: string;
   rarity: Rarity;
+  width: number;
+  height: number;
 };
 
 type InventoryTooltip = {
@@ -25,7 +34,9 @@ type InventoryTooltip = {
   y: number;
 };
 
-const INVENTORY_SLOT_COUNT = 48;
+const INVENTORY_COLUMNS = 12;
+const INVENTORY_ROWS = 8;
+const INVENTORY_SLOT_COUNT = INVENTORY_COLUMNS * INVENTORY_ROWS;
 
 const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
   { id: "profile", label: "Profile" },
@@ -48,15 +59,16 @@ const MOCK_EQUIPMENT: EquipmentSlot[] = [
 ];
 
 const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
-  { slot: 1, itemName: "Cracked Potion", rarity: "common" },
-  { slot: 2, itemName: "Minor Stamina Draught", rarity: "common" },
-  { slot: 3, itemName: "Ashen Wand Core", rarity: "uncommon" },
-  { slot: 5, itemName: "Tarnished Coin Purse", rarity: "common" },
-  { slot: 9, itemName: "Bandit Emblem", rarity: "uncommon" },
-  { slot: 10, itemName: "Rune Fragment", rarity: "rare" },
-  { slot: 11, itemName: "Traveler Rations", rarity: "common" },
-  { slot: 18, itemName: "Warden Signet", rarity: "rare" },
-  { slot: 24, itemName: "Phoenix Feather", rarity: "epic" }
+  { id: "itm_brigandine_plate", slot: 1, itemName: "Brigandine Plate", rarity: "rare", width: 2, height: 3 },
+  { id: "itm_steel_coffer", slot: 3, itemName: "Steel Coffer", rarity: "uncommon", width: 2, height: 2 },
+  { id: "itm_stamina_minor", slot: 5, itemName: "Minor Stamina Draught", rarity: "common", width: 1, height: 1 },
+  { id: "itm_rune_fragment", slot: 6, itemName: "Rune Fragment", rarity: "rare", width: 1, height: 1 },
+  { id: "itm_worn_satchel", slot: 7, itemName: "Worn Satchel", rarity: "common", width: 2, height: 2 },
+  { id: "itm_warden_signet", slot: 9, itemName: "Warden Signet", rarity: "rare", width: 1, height: 1 },
+  { id: "itm_ashen_relic", slot: 10, itemName: "Ashen Relic", rarity: "uncommon", width: 2, height: 2 },
+  { id: "itm_phoenix_feather", slot: 12, itemName: "Phoenix Feather", rarity: "epic", width: 1, height: 1 },
+  { id: "itm_potion_cracked", slot: 27, itemName: "Cracked Potion", rarity: "common", width: 1, height: 1 },
+  { id: "itm_bandit_emblem", slot: 28, itemName: "Bandit Emblem", rarity: "uncommon", width: 1, height: 1 }
 ];
 
 function formatClassLabel(playerClass: PlayerState["class"]): string {
@@ -72,6 +84,81 @@ function getDisplayName(playerState: PlayerState): string {
   return `Warden ${idSuffix}`;
 }
 
+function slotToCoord(slot: number): { col: number; row: number } {
+  const zeroBased = slot - 1;
+  return {
+    col: zeroBased % INVENTORY_COLUMNS,
+    row: Math.floor(zeroBased / INVENTORY_COLUMNS)
+  };
+}
+
+function coordToSlot(col: number, row: number): number {
+  return row * INVENTORY_COLUMNS + col + 1;
+}
+
+function getItemSlots(item: InventoryItem, anchorSlot: number): number[] {
+  const anchor = slotToCoord(anchorSlot);
+  const slots: number[] = [];
+
+  for (let rowOffset = 0; rowOffset < item.height; rowOffset += 1) {
+    for (let colOffset = 0; colOffset < item.width; colOffset += 1) {
+      const col = anchor.col + colOffset;
+      const row = anchor.row + rowOffset;
+      slots.push(coordToSlot(col, row));
+    }
+  }
+
+  return slots;
+}
+
+function itemFitsWithinGrid(item: InventoryItem, anchorSlot: number): boolean {
+  const anchor = slotToCoord(anchorSlot);
+  return (
+    anchor.col + item.width <= INVENTORY_COLUMNS &&
+    anchor.row + item.height <= INVENTORY_ROWS
+  );
+}
+
+function canPlaceItemAtSlot(
+  items: InventoryItem[],
+  itemToMove: InventoryItem,
+  targetSlot: number
+): boolean {
+  if (!itemFitsWithinGrid(itemToMove, targetSlot)) {
+    return false;
+  }
+
+  const targetSlots = new Set(getItemSlots(itemToMove, targetSlot));
+  for (const existingItem of items) {
+    if (existingItem.id === itemToMove.id) {
+      continue;
+    }
+    const occupiedByExisting = getItemSlots(existingItem, existingItem.slot);
+    if (occupiedByExisting.some((slot) => targetSlots.has(slot))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function getPlacementPreviewSlots(item: InventoryItem, targetSlot: number): Set<number> {
+  const anchor = slotToCoord(targetSlot);
+  const previewSlots = new Set<number>();
+
+  for (let rowOffset = 0; rowOffset < item.height; rowOffset += 1) {
+    for (let colOffset = 0; colOffset < item.width; colOffset += 1) {
+      const col = anchor.col + colOffset;
+      const row = anchor.row + rowOffset;
+      if (col < INVENTORY_COLUMNS && row < INVENTORY_ROWS) {
+        previewSlots.add(coordToSlot(col, row));
+      }
+    }
+  }
+
+  return previewSlots;
+}
+
 export function App() {
   const [token, setToken] = useState<string | null>(
     () => window.localStorage.getItem("ebonkeep.dev.token")
@@ -81,10 +168,38 @@ export function App() {
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inventoryTooltip, setInventoryTooltip] = useState<InventoryTooltip | null>(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() => MOCK_INVENTORY_ITEMS);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [activeDropSlot, setActiveDropSlot] = useState<number | null>(null);
 
-  const inventoryBySlot = useMemo(() => {
-    return new Map(MOCK_INVENTORY_ITEMS.map((item) => [item.slot, item]));
-  }, []);
+  const occupiedInventorySlots = useMemo(() => {
+    const occupied = new Set<number>();
+    for (const item of inventoryItems) {
+      for (const slot of getItemSlots(item, item.slot)) {
+        occupied.add(slot);
+      }
+    }
+    return occupied;
+  }, [inventoryItems]);
+
+  const inventoryItemsById = useMemo(() => {
+    return new Map(inventoryItems.map((item) => [item.id, item]));
+  }, [inventoryItems]);
+
+  const dragPreview = useMemo(() => {
+    if (!draggingItemId || !activeDropSlot) {
+      return null;
+    }
+    const draggedItem = inventoryItemsById.get(draggingItemId);
+    if (!draggedItem) {
+      return null;
+    }
+
+    return {
+      slots: getPlacementPreviewSlots(draggedItem, activeDropSlot),
+      isValid: canPlaceItemAtSlot(inventoryItems, draggedItem, activeDropSlot)
+    };
+  }, [activeDropSlot, draggingItemId, inventoryItems, inventoryItemsById]);
 
   const profileName = playerState ? getDisplayName(playerState) : "Warden";
   const avatarInitial = profileName.charAt(0);
@@ -93,7 +208,6 @@ export function App() {
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
     : 0;
   const xpPercent = playerState ? Math.max(6, (playerState.level * 13) % 100) : 0;
-  const occupiedInventorySlots = MOCK_INVENTORY_ITEMS.length;
 
   useEffect(() => {
     let active = true;
@@ -134,6 +248,8 @@ export function App() {
 
   useEffect(() => {
     setInventoryTooltip(null);
+    setDraggingItemId(null);
+    setActiveDropSlot(null);
   }, [activeTab]);
 
   async function handleGuestLogin() {
@@ -155,6 +271,9 @@ export function App() {
     setActiveTab("profile");
     setError(null);
     setInventoryTooltip(null);
+    setInventoryItems(MOCK_INVENTORY_ITEMS);
+    setDraggingItemId(null);
+    setActiveDropSlot(null);
   }
 
   function showInventoryTooltip(event: MouseEvent<HTMLDivElement>, item: InventoryItem) {
@@ -175,6 +294,126 @@ export function App() {
 
   function hideInventoryTooltip() {
     setInventoryTooltip(null);
+  }
+
+  function toInventorySlotKey(slotNumber: number): string {
+    return `inventory-${slotNumber}`;
+  }
+
+  function handleInventoryItemDragStart(
+    event: DragEvent<HTMLDivElement>,
+    itemId: string
+  ) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", itemId);
+    event.dataTransfer.setData("application/x-ebonkeep-item-id", itemId);
+    window.setTimeout(() => {
+      setDraggingItemId(itemId);
+    }, 0);
+    setInventoryTooltip(null);
+    setError(null);
+  }
+
+  function handleInventoryItemDragEnd() {
+    setDraggingItemId(null);
+    setActiveDropSlot(null);
+  }
+
+  function handleInventoryCellDragOver(
+    event: DragEvent<HTMLDivElement>,
+    slotNumber: number
+  ) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (!draggingItemId) {
+      return;
+    }
+    if (activeDropSlot !== slotNumber) {
+      setActiveDropSlot(slotNumber);
+    }
+  }
+
+  function handleInventoryCellDragEnter(
+    event: DragEvent<HTMLDivElement>,
+    slotNumber: number
+  ) {
+    event.preventDefault();
+    if (!draggingItemId) {
+      return;
+    }
+    if (activeDropSlot !== slotNumber) {
+      setActiveDropSlot(slotNumber);
+    }
+  }
+
+  async function moveDraggedItemToSlot(targetSlot: number, explicitItemId?: string) {
+    const draggedId = explicitItemId ?? draggingItemId;
+    if (!draggedId || !token) {
+      setDraggingItemId(null);
+      setActiveDropSlot(null);
+      return;
+    }
+
+    const draggedItem = inventoryItemsById.get(draggedId);
+    if (!draggedItem) {
+      setDraggingItemId(null);
+      setActiveDropSlot(null);
+      return;
+    }
+
+    const fromSlot = draggedItem.slot;
+    if (fromSlot === targetSlot) {
+      setDraggingItemId(null);
+      setActiveDropSlot(null);
+      return;
+    }
+
+    if (!canPlaceItemAtSlot(inventoryItems, draggedItem, targetSlot)) {
+      setDraggingItemId(null);
+      setActiveDropSlot(null);
+      return;
+    }
+
+    const previousItems = inventoryItems.map((item) => ({ ...item }));
+    const nextItems = inventoryItems.map((item) => {
+      if (item.id === draggedId) {
+        return { ...item, slot: targetSlot };
+      }
+      return item;
+    });
+
+    setInventoryItems(nextItems);
+    setDraggingItemId(null);
+    setActiveDropSlot(null);
+    setInventoryTooltip(null);
+
+    try {
+      await moveInventoryItem(
+        token,
+        draggedItem.id,
+        toInventorySlotKey(fromSlot),
+        toInventorySlotKey(targetSlot)
+      );
+    } catch (err: unknown) {
+      setInventoryItems(previousItems);
+      setError(err instanceof Error ? err.message : "Failed to move inventory item.");
+    }
+  }
+
+  function handleInventoryCellDrop(
+    event: DragEvent<HTMLDivElement>,
+    slotNumber: number
+  ) {
+    event.preventDefault();
+    const draggedId =
+      event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
+      event.dataTransfer.getData("text/plain");
+    if (!draggedId) {
+      setDraggingItemId(null);
+      setActiveDropSlot(null);
+      return;
+    }
+    void moveDraggedItemToSlot(slotNumber, draggedId);
   }
 
   function renderProfilePanel() {
@@ -253,32 +492,67 @@ export function App() {
           <div className="inventoryHeader">
             <h3>Inventory Slots</h3>
             <p>
-              Occupied: {occupiedInventorySlots}/{INVENTORY_SLOT_COUNT}
+              Occupied: {occupiedInventorySlots.size}/{INVENTORY_SLOT_COUNT}
             </p>
           </div>
-          <div className="inventoryGrid">
+          <div className={`inventoryGrid${draggingItemId ? " draggingMode" : ""}`}>
             {Array.from({ length: INVENTORY_SLOT_COUNT }, (_, index) => {
               const slotNumber = index + 1;
-              const item = inventoryBySlot.get(slotNumber);
-              const rarityClass = item ? ` rarity-${item.rarity}` : "";
+              const occupiedClass = occupiedInventorySlots.has(slotNumber) ? " occupiedCell" : "";
+              const previewClass = dragPreview?.slots.has(slotNumber)
+                ? dragPreview.isValid
+                  ? " dropTargetValid"
+                  : " dropTargetInvalid"
+                : "";
 
               return (
-                <div key={slotNumber} className={`inventoryCell${item ? " hasItem" : ""}`}>
-                  {item ? (
-                    <div
-                      className={`inventoryItemOverlay${rarityClass}`}
-                      role="img"
-                      aria-label={`${item.itemName} (${formatRarityLabel(item.rarity)})`}
-                      onMouseEnter={(event) => showInventoryTooltip(event, item)}
-                      onMouseMove={(event) => updateInventoryTooltip(event, item)}
-                      onMouseLeave={hideInventoryTooltip}
-                    >
-                      <span className="inventoryItemIcon" aria-hidden="true" />
-                    </div>
-                  ) : null}
-                </div>
+                <div
+                  key={slotNumber}
+                  className={`inventoryCell${occupiedClass}${previewClass}`}
+                  onDragEnter={(event) => handleInventoryCellDragEnter(event, slotNumber)}
+                  onDragOver={(event) => handleInventoryCellDragOver(event, slotNumber)}
+                  onDrop={(event) => handleInventoryCellDrop(event, slotNumber)}
+                />
               );
             })}
+            <div className="inventoryItemsLayer">
+              {inventoryItems.map((item) => {
+                const anchor = slotToCoord(item.slot);
+                const rarityClass = ` rarity-${item.rarity}`;
+                const draggingClass = draggingItemId === item.id ? " isDragging" : "";
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`inventoryItemOverlay${rarityClass}${draggingClass}`}
+                    style={{
+                      left: `calc(${anchor.col} * var(--inventory-cell-size))`,
+                      top: `calc(${anchor.row} * var(--inventory-cell-size))`,
+                      width: `calc(${item.width} * var(--inventory-cell-size))`,
+                      height: `calc(${item.height} * var(--inventory-cell-size))`
+                    }}
+                    draggable
+                    role="img"
+                    aria-label={`${item.itemName} (${formatRarityLabel(item.rarity)} ${item.width}x${item.height})`}
+                    onDragStart={(event) => handleInventoryItemDragStart(event, item.id)}
+                    onDragEnd={handleInventoryItemDragEnd}
+                    onMouseEnter={(event) => {
+                      if (!draggingItemId) {
+                        showInventoryTooltip(event, item);
+                      }
+                    }}
+                    onMouseMove={(event) => {
+                      if (!draggingItemId) {
+                        updateInventoryTooltip(event, item);
+                      }
+                    }}
+                    onMouseLeave={hideInventoryTooltip}
+                  >
+                    <span className="inventoryItemIcon" aria-hidden="true" />
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </article>
       </section>
@@ -396,6 +670,9 @@ export function App() {
         <div className="inventoryTooltip" style={{ left: inventoryTooltip.x, top: inventoryTooltip.y }}>
           <p className="tooltipName">{inventoryTooltip.item.itemName}</p>
           <p>Rarity: {formatRarityLabel(inventoryTooltip.item.rarity)}</p>
+          <p>
+            Size: {inventoryTooltip.item.width}x{inventoryTooltip.item.height}
+          </p>
           <p>Slot: {inventoryTooltip.item.slot}</p>
         </div>
       ) : null}
