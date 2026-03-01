@@ -54,12 +54,17 @@ Sample table:
 | PvE mission cost | 8-20 |
 | Daily passive refill cap | 240 regained |
 
-## Jobs (Timed Idle Activities)
+## Contracts Board (Timed Activities)
 | Job Tier | Duration | Reward Profile |
 |---|---|---|
 | Short | 30 min | low gold + low XP |
 | Medium | 2 h | moderate gold + XP |
 | Long | 8 h | high gold + moderate XP + low item chance |
+
+Contracts board defaults:
+- Max available contracts at one time: `6`.
+- Expired contracts are removed from available list.
+- Replenish cooldown after expire/abandon: `1-2 hours`.
 
 ## Shop Refresh Cadence
 | Shop Type | Refresh Interval | Manual Refresh |

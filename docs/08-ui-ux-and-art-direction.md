@@ -17,7 +17,7 @@
 4. Shop (rotating stock, purchase actions).
 5. Missions (selection, stamina cost, rewards preview).
 6. Combat view (turn order, timer, action selection).
-7. Jobs (start/collect timed activities).
+7. Contracts board (available contracts, timers, abandon/replenish states).
 8. Events (biweekly objectives and rewards).
 
 ## Combat UI Principles
@@ -54,4 +54,3 @@ Visual style:
 - Target resolution tiers for desktop/mobile to minimize memory spikes.
 - Icon set prepared as vector-friendly master with raster exports.
 - Reuse frame/panel kits for fast content expansion.
-

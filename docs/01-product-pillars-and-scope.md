@@ -22,7 +22,7 @@ Ebonkeep is a web-first, session-flexible fantasy RPG focused on progression loo
 - PvE combat encounters (solo and group-enemy variants).
 - Inventory grid management and equipment slots.
 - Itemization: base items, rarity, affixes, consumables.
-- Timed jobs (idle progression).
+- Contracts board (timed activity progression).
 - Instanced shops with refresh timers.
 - Hybrid pacing controls: stamina + timer activities.
 - Basic live-ops event framework (biweekly cadence support).
@@ -44,4 +44,3 @@ Ebonkeep is a web-first, session-flexible fantasy RPG focused on progression loo
 - Hyper-casual idle-only gameplay.
 - Action-combat mechanics with direct movement aiming.
 - Heavy cinematic storytelling as a retention driver.
-

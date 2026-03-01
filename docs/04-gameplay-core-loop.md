@@ -1,7 +1,7 @@
 # Gameplay Core Loop
 
 ## Primary Loop
-1. Claim completed timers (jobs/shop refreshes/rewards).
+1. Claim completed timers (contracts board/shop refreshes/rewards).
 2. Prepare loadout (gear, consumables, inventory moves).
 3. Spend stamina on PvE encounters.
 4. Resolve combat, receive loot/currency/XP.
@@ -17,7 +17,7 @@
 - 5-minute session:
   - collect timers, quick inventory cleanup, one short mission.
 - 15-minute session:
-  - multiple missions, shop visit, equipment optimization, restart jobs.
+  - multiple missions, shop visit, equipment optimization, refresh contracts.
 - 30+ minute session:
   - focused grind window with consumables and target farming.
   - stat optimization on gear
@@ -28,10 +28,10 @@
 - Produce XP, currencies, and item drops.
 - Difficulty scaling by level bracket and gear score envelope.
 
-### Idle Jobs
-- Timed activity with fixed completion and rewards.
-- No active combat required.
-- Supports offline progress windows.
+### Contracts Board
+- Timed activity board with up to 6 available contracts at a time.
+- Contracts expire if not accepted before their timer ends.
+- Expired or abandoned contracts replenish after a 1-2 hour cooldown.
 
 ### Instanced Shops
 - Player-personal stock.
@@ -53,4 +53,3 @@
 - Every mission yields at least one meaningful output (XP, item, or currency).
 - Small upgrades should appear frequently.
 - Large power spikes should be rare but visible.
-

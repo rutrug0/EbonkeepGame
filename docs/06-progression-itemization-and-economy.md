@@ -240,7 +240,7 @@ Currencies:
 
 Sources:
 - mission rewards
-- jobs
+- contracts board completions
 - event objectives
 - item selling/salvage outputs
 
@@ -254,7 +254,7 @@ Sinks:
 ## Pacing Gates: Hybrid Timers + Stamina
 - Missions consume stamina.
 - Stamina regenerates over time.
-- Jobs and shop stocks use independent timers.
+- Contracts board and shop stocks use independent timers.
 - Combined system controls burst and return cadence.
 
 ## Monetization Guardrails
