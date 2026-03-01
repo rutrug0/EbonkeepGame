@@ -339,6 +339,8 @@ export function App() {
     event.dataTransfer.setData("application/x-ebonkeep-item-id", itemId);
     const dragImage = event.currentTarget.cloneNode(true) as HTMLDivElement;
     const { width, height } = event.currentTarget.getBoundingClientRect();
+    dragImage.style.width = `${width}px`;
+    dragImage.style.height = `${height}px`;
     dragImage.style.position = "fixed";
     dragImage.style.top = "-9999px";
     dragImage.style.left = "-9999px";
