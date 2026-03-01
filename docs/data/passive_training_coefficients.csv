@@ -1,0 +1,5 @@
+stat_group,aliases,expected_total_base,expected_total_per_level,expected_total_growth_per_level,target_share,gain_per_click,max_click_cap,base_click_cost_ducats,cost_growth_per_click,cost_level_growth_per_level,unit
+strength,strength,20,6.5,1.0104,0.225,0.5,1000,22,1.0055,1.085,flat
+intelligence,intelligence,20,6.5,1.0104,0.225,0.5,1000,22,1.0055,1.085,flat
+agility,agility;dexterity,20,6.5,1.0104,0.225,0.5,1000,22,1.0055,1.085,flat
+vitality,vitality,30,7.5,1.0104,0.225,0.5,1000,20,1.0055,1.085,flat

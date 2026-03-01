@@ -1,0 +1,27 @@
+{
+  "name": "ebonkeep",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm --workspace @ebonkeep/api run dev",
+    "dev:web": "npm --workspace @ebonkeep/web run dev",
+    "dev:desktop": "npm --workspace @ebonkeep/desktop run dev",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:migrate": "npm --workspace @ebonkeep/api run db:migrate",
+    "db:seed": "npm --workspace @ebonkeep/api run db:seed",
+    "db:generate": "npm --workspace @ebonkeep/api run db:generate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

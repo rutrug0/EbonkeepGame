@@ -1,0 +1,30 @@
+# Node/workspaces
+node_modules/
+
+# Build artifacts
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Env files
+.env
+.env.local
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# Runtime logs
+*.log
+
+# Prisma local sqlite leftovers (if any)
+*.db
+
+# TypeScript emits that should not be committed
+apps/web/src/*.js
+apps/web/src/*.d.ts
+!apps/web/src/vite-env.d.ts
+apps/web/vite.config.js
+apps/web/vite.config.d.ts

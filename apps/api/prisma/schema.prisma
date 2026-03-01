@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id             String          @id @default(cuid())
+  provider       String
+  providerUserId String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  profiles       PlayerProfile[]
+
+  @@unique([provider, providerUserId])
+  @@map("accounts")
+}
+
+model PlayerProfile {
+  id               String            @id @default(cuid())
+  accountId        String
+  class            String
+  level            Int               @default(1)
+  gearScore        Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  stats            PlayerStat?
+  currency         CurrencyBalance?
+  inventoryItems   InventoryItem[]
+  inventoryLayouts InventoryLayout[]
+  equipmentSlots   EquipmentSlot[]
+  shopInstances    ShopInstance[]
+  jobRuns          JobRun[]
+  combatSessions   CombatSession[]
+  combatActions    CombatAction[]
+  eventProgress    EventProgress[]
+
+  @@index([accountId])
+  @@map("player_profiles")
+}
+
+model PlayerStat {
+  id           String        @id @default(cuid())
+  playerId     String        @unique
+  strength     Int           @default(10)
+  intelligence Int           @default(10)
+  dexterity    Int           @default(10)
+  vitality     Int           @default(10)
+  initiative   Int           @default(10)
+  luck         Int           @default(10)
+  player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_stats")
+}
+
+model InventoryItem {
+  id        String        @id @default(cuid())
+  playerId  String
+  itemCode  String
+  slotKey   String
+  quantity  Int           @default(1)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("inventory_items")
+}
+
+model InventoryLayout {
+  id        String        @id @default(cuid())
+  playerId  String
+  layoutKey String
+  payload   Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("inventory_layouts")
+}
+
+model EquipmentSlot {
+  id        String        @id @default(cuid())
+  playerId  String
+  slotType  String
+  itemId    String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("equipment_slots")
+}
+
+model ShopInstance {
+  id         String        @id @default(cuid())
+  playerId   String
+  offerCode  String
+  refreshAt  DateTime
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  player     PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("shop_instances")
+}
+
+model JobRun {
+  id         String        @id @default(cuid())
+  playerId   String
+  jobType    String
+  status     String
+  completeAt DateTime
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  player     PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("job_runs")
+}
+
+model CombatSession {
+  id        String         @id @default(cuid())
+  playerId  String
+  mode      String
+  state     String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  player    PlayerProfile  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  actions   CombatAction[]
+
+  @@index([playerId])
+  @@map("combat_sessions")
+}
+
+model CombatAction {
+  id        String         @id @default(cuid())
+  playerId  String
+  sessionId String?
+  action    String
+  targetId  String?
+  skillId   String?
+  createdAt DateTime       @default(now())
+  player    PlayerProfile  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  session   CombatSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([playerId])
+  @@index([sessionId])
+  @@map("combat_actions")
+}
+
+model CurrencyBalance {
+  id        String        @id @default(cuid())
+  playerId  String        @unique
+  ducats    Int           @default(0)
+  imperials Int           @default(0)
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("currencies")
+}
+
+model EventProgress {
+  id        String        @id @default(cuid())
+  playerId  String
+  eventCode String
+  payload   Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("event_progress")
+}

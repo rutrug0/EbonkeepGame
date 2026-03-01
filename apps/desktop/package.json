@@ -1,0 +1,15 @@
+{
+  "name": "@ebonkeep/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.cjs",
+  "scripts": {
+    "dev": "cross-env EBONKEEP_WEB_URL=http://localhost:5173 electron ./src/main.cjs",
+    "start": "electron ./src/main.cjs",
+    "lint": "echo \"No lint configured for @ebonkeep/desktop\""
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^34.2.0"
+  }
+}

@@ -1,0 +1,2 @@
+start_ilvl,end_ilvl,base_avg_common,avg_growth_per_ilvl,strength_template_spread_pct,creation_variance_pct,rarity_common,rarity_uncommon,rarity_rare,rarity_epic,stat_share_cap
+0,100,12,2.1,0.10,0.08,1.00,1.05,1.10,1.15,0.30

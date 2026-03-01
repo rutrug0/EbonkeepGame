@@ -1,0 +1,4 @@
+damage_category,description,template_spread_pct,notes
+strength,Warrior/melee narrow range,0.10,Lowest variance and most stable output
+agility,Ranged medium range,0.16,Middle variance profile
+intelligence,Spell wide range,0.22,Highest variance profile
