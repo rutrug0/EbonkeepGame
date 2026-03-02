@@ -29,8 +29,9 @@ This document set defines the high-level, implementation-ready blueprint for Ebo
 15. [15-contracts-board-and-refresh-mechanics.md](./15-contracts-board-and-refresh-mechanics.md)
 16. [17-armor-name-range-tables.md](./17-armor-name-range-tables.md)
 17. [18-jewelry-name-range-tables.md](./18-jewelry-name-range-tables.md)
-18. [dev-setup.md](./dev-setup.md)
-19. [local-runtime.md](./local-runtime.md)
+18. [19-item-art-generation-pipeline.md](./19-item-art-generation-pipeline.md)
+19. [dev-setup.md](./dev-setup.md)
+20. [local-runtime.md](./local-runtime.md)
 
 ## Decision Log (Locked)
 Date: 2026-02-28

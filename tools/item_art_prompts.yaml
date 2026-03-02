@@ -1,0 +1,94 @@
+{
+  "general_prompt": "Rendering Model (Strict):\n\n2D game asset illustration\n\nhard cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp shadow edges, no gradient blending\n\nno soft lighting\n\nno volumetric light\n\nno bloom outside silhouette\n\nno painterly brush texture\n\nno realistic rendering\n\nno 3D render look\n\nflat color fills\n\nminimal surface noise (subtle 5-10% texture only)\n\nLine & Shape Control:\n\nmedium-weight outer contour line\n\nthinner internal detail lines\n\nclean ink-style linework\n\nbold, readable silhouette\n\nsimplified surface detail\n\nno micro-detail rendering\n\nMaterial Definition:\n\nmetal rendered with flat highlight bands (no soft reflections)\n\nhighlights are graphic shapes, not gradients\n\nsteel tone slightly desaturated\n\nno high-gloss photoreal reflections\n\nColor System:\n\nmuted earthy palette\n\nsaturation restrained (moderate, not vibrant)\n\nselective accent highlight only\n\nglow restricted to thin contained lines\n\nglow does not spill beyond object silhouette\n\nRealism Control:\n\nsemi-realistic proportions (grounded but clearly illustrative)\n\nrealism level 4/10\n\nnot cartoon exaggerated\n\nnot photorealistic\n\nProhibited:\n\nno painterly rendering\n\nno soft gradient shading\n\nno dramatic cinematic lighting\n\nno heavy texture noise\n\nno environmental lighting\n\nno background elements\n\nAsset Presentation Rules (Locked)\n\nsingle isolated weapon\n\ncentered composition\n\ntransparent background (alpha channel)\n\nno environment\n\nno floor\n\nno cast shadow outside silhouette\n\nclean UI-ready presentation\n\nOrientation Rule (Locked)\n\nhilt positioned at bottom of frame\n\nblade angled toward upper-right\n\nshallow upward angle 10-15 degrees only\n\nnot steep diagonal\n\nstable consistent orientation across assets",
+  "render_defaults": {
+    "model": "gpt-image-1.5",
+    "size": "1024x1024",
+    "background": "transparent",
+    "quality": "medium"
+  },
+  "families": {
+    "weapon:melee:sword": "Sword design, straight or slightly curved blade, guard clearly visible, grip readable, tip angled slightly upward toward top-right, balanced proportions.",
+    "weapon:melee:axe": "Axe design, blade edge facing upward and slightly toward the right, haft base at bottom of frame, head clearly readable silhouette, shallow upward angle approximately 10–15 degrees.",
+    "weapon:ranged:bow": "One ranged bow only. Functional bow geometry, believable draw profile, practical fittings, restrained ornament.",
+    "weapon:ranged:sling": "One ranged sling only. Clear sling profile with pouch and cord detail, rugged materials, readable shape.",
+    "weapon:arcane:wand": "One arcane wand only. Compact focus tool, subtle runic inlays, restrained glow, no large particle effects.",
+    "weapon:arcane:staff": "One arcane staff only. Tall channeling focus with practical shaft, controlled magical motifs, restrained luminosity.",
+
+    "armor:heavy:helmet": "One heavy helmet only. Thick forged steel, impact-ready construction, front-facing readability.",
+    "armor:heavy:upper_armor": "One heavy chest armor only. Layered plate mass and rivet details, no character mannequin.",
+    "armor:heavy:pauldrons": "One heavy pauldron set only. Shoulder-dominant silhouette, reinforced edges.",
+    "armor:heavy:gloves": "One heavy gauntlet pair only. Articulated finger plates, rugged wrist locking details.",
+    "armor:heavy:belt": "One heavy combat belt only. Strong buckle geometry, chain/strap support details.",
+    "armor:heavy:lower_armor": "One heavy lower armor piece only. Tassets/leg plate profile, mobility joints visible.",
+    "armor:heavy:boots": "One heavy boot pair only. Armored sabaton-like toe and heel reinforcement.",
+
+    "armor:light:helmet": "One light helmet/hood only. Scout-oriented profile, mobility-first construction.",
+    "armor:light:upper_armor": "One light upper armor piece only. Leather/hide layering, agile silhouette.",
+    "armor:light:pauldrons": "One light shoulder piece only. Flexible protective wraps/guards with low bulk.",
+    "armor:light:gloves": "One light glove pair only. Grip-focused fingers and wrist wraps for precision.",
+    "armor:light:belt": "One light utility belt only. Practical pouches/loops, ranger travel feel.",
+    "armor:light:lower_armor": "One light lower armor piece only. Agile leg protection and fitted movement lines.",
+    "armor:light:boots": "One light boot pair only. Travel-worn mobility boots with practical traction.",
+
+    "armor:robe:helmet": "One robe hood/veil/circlet only. Arcane cloth focus, ritual seam details, restrained glow.",
+    "armor:robe:upper_armor": "One robe upper garment only. Layered magical textile, sigil embroidery, no mannequin.",
+    "armor:robe:pauldrons": "One robe shoulder drape/wrap only. Fabric-driven silhouette with ritual accents.",
+    "armor:robe:gloves": "One robe glove/wrap pair only. Caster hand mobility and subtle ward stitching.",
+    "armor:robe:belt": "One robe sash/cincture only. Arcane utility knots and clasp details.",
+    "armor:robe:lower_armor": "One robe lower garment only. Layered drape geometry with occult textile motifs.",
+    "armor:robe:boots": "One robe footwear pair only. Soft but ritual-grade footwear, restrained ornament.",
+
+    "jewelry:ring": "One ring only. Macro-style object render, clear metalwork, gem/sigil details readable.",
+    "jewelry:necklace": "One necklace/amulet only. Pendant-focused composition, chain/cord craftsmanship clear."
+  },
+  "sources": [
+    {
+      "id": "warrior_melee_manual",
+      "group": "weapons",
+      "path": "docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv",
+      "major_category": "weapon"
+    },
+    {
+      "id": "ranger_ranged_v3",
+      "group": "weapons",
+      "path": "docs/data/ranger_ranged_weapon_name_ranges_v3.csv",
+      "major_category": "weapon"
+    },
+    {
+      "id": "mage_arcane_v3",
+      "group": "weapons",
+      "path": "docs/data/mage_arcane_weapon_name_ranges_v3.csv",
+      "major_category": "weapon"
+    },
+    {
+      "id": "heavy_armor_v1",
+      "group": "armor",
+      "path": "docs/data/heavy_armor_name_ranges_v1.csv",
+      "major_category": "armor"
+    },
+    {
+      "id": "light_armor_v1",
+      "group": "armor",
+      "path": "docs/data/light_armor_name_ranges_v1.csv",
+      "major_category": "armor"
+    },
+    {
+      "id": "robe_armor_v1",
+      "group": "armor",
+      "path": "docs/data/robe_armor_name_ranges_v1.csv",
+      "major_category": "armor"
+    },
+    {
+      "id": "jewelry_ring_v1",
+      "group": "jewelry",
+      "path": "docs/data/jewelry_ring_name_ranges_v1.csv",
+      "major_category": "jewelry"
+    },
+    {
+      "id": "jewelry_necklace_v1",
+      "group": "jewelry",
+      "path": "docs/data/jewelry_necklace_name_ranges_v1.csv",
+      "major_category": "jewelry"
+    }
+  ]
+}

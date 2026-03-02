@@ -66,6 +66,7 @@ type InventoryItem = {
   itemName: string;
   rarity: Rarity;
   category: string;
+  iconAssetPath?: string;
   equipable: boolean;
   archetype?: {
     majorCategory: ItemMajorCategory;
@@ -348,6 +349,13 @@ const MODIFIER_TIER_POWER_PER_LEVEL: Record<ModifierTier, number> = {
 };
 const MOCK_MELEE_RARITY_POOL: Rarity[] = ["uncommon", "rare", "epic"];
 const MOCK_MELEE_WEAPON_LEVELS = [18, 19, 20, 21, 22] as const;
+const GENERATED_WEAPON_ICON_PATHS_BY_NAME: Record<string, string> = {
+  "greyfen blade": "/assets/items/generated/weapon/weapon/melee/sword/warrior_melee_manual_004_greyfen-blade.png",
+  valenmark: "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_012_valenmark.png",
+  "durnholde axe": "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_014_durnholde-axe.png",
+  harthorn: "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_018_harthorn.png",
+  "stormvale axe": "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_020_stormvale-axe.png"
+};
 const MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL: Record<number, Record<Rarity, MeleeDamageRollWindow>> = {
   // Source: docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv
   18: {
@@ -385,31 +393,42 @@ const MOCK_MELEE_WEAPON_TEMPLATES: Array<{
   itemName: string;
   weaponFamily: WeaponFamily;
   description: string;
+  iconAssetPath: string;
 }> = [
   {
-    itemName: "Garrison Blade",
+    itemName: "Greyfen Blade",
     weaponFamily: "sword",
-    description: "Straight sword built for disciplined line engagements."
+    description: "Mud-stained steel that has only tasted petty duels.",
+    iconAssetPath:
+      "/assets/items/generated/weapon/weapon/melee/sword/warrior_melee_manual_004_greyfen-blade.png"
   },
   {
-    itemName: "Rampart Cleaver",
+    itemName: "Valenmark",
     weaponFamily: "axe",
-    description: "Broad axe head designed to split shield formations."
+    description: "A grim standard among wardens of besieged keeps.",
+    iconAssetPath:
+      "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_012_valenmark.png"
   },
   {
-    itemName: "Citadel Longsword",
-    weaponFamily: "sword",
-    description: "Balanced longsword favored by veteran keep wardens."
-  },
-  {
-    itemName: "Siegebreaker Axe",
+    itemName: "Durnholde Axe",
     weaponFamily: "axe",
-    description: "Counterweighted axe that thrives on committed swings."
+    description: "Each notch in its head marks a broken line of men.",
+    iconAssetPath:
+      "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_014_durnholde-axe.png"
   },
   {
-    itemName: "Oathsteel Blade",
-    weaponFamily: "sword",
-    description: "Temple-forged blade tempered for decisive finishing blows."
+    itemName: "Harthorn",
+    weaponFamily: "axe",
+    description: "Its crescent edge howls through plate at full swing.",
+    iconAssetPath:
+      "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_018_harthorn.png"
+  },
+  {
+    itemName: "Stormvale Axe",
+    weaponFamily: "axe",
+    description: "Storm-battered steel that lands like a falling gate.",
+    iconAssetPath:
+      "/assets/items/generated/weapon/weapon/melee/axe/warrior_melee_manual_020_stormvale-axe.png"
   }
 ];
 
@@ -620,6 +639,7 @@ function createMockMeleeWeaponItems(): MockInventoryItemSeed[] {
       itemName: template.itemName,
       rarity,
       category: "Weapon",
+      iconAssetPath: template.iconAssetPath,
       equipable: true,
       archetype: {
         majorCategory: "weapon",
@@ -697,6 +717,17 @@ function getBaseItemNameFromDisplay(
   return baseName.trim() || displayName;
 }
 
+function normalizeItemNameForArtLookup(itemName: string): string {
+  return itemName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getGeneratedWeaponIconPath(baseItemName: string): string | undefined {
+  return GENERATED_WEAPON_ICON_PATHS_BY_NAME[normalizeItemNameForArtLookup(baseItemName)];
+}
+
 function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): InventoryItem {
   const prefixAffix = weapon.affixes.find((affix) => affix.source === "prefix");
   const suffixAffix = weapon.affixes.find((affix) => affix.source === "suffix");
@@ -721,11 +752,14 @@ function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): I
       }
     : undefined;
 
+  const baseItemName = getBaseItemNameFromDisplay(weapon.displayName, prefix?.name, affix?.name);
+
   const itemWithModifiers = {
     id: `itm_dev_weapon_${index}_${weapon.weaponFamily}_${weapon.level}`,
-    itemName: getBaseItemNameFromDisplay(weapon.displayName, prefix?.name, affix?.name),
+    itemName: baseItemName,
     rarity: weapon.rarity,
     category: "Weapon",
+    iconAssetPath: getGeneratedWeaponIconPath(baseItemName),
     equipable: true,
     archetype: {
       majorCategory: "weapon",
@@ -767,23 +801,31 @@ function createMockInventoryItems(devWeapons?: PlayerState["devWeapons"]): Inven
     };
   });
 
+  const previewWeaponItems = createMockMeleeWeaponItems().map((item) => {
+    const modifiers = buildRarityModifiers(item);
+    const itemWithModifiers: InventoryItem = {
+      ...item,
+      ...modifiers,
+      power: 0
+    };
+    return {
+      ...itemWithModifiers,
+      power: computeMockItemPower(itemWithModifiers)
+    };
+  });
+
   const mockWeaponItems =
     devWeapons && devWeapons.length > 0
       ? devWeapons.map((weapon, index) => toInventoryWeaponItem(weapon, index))
-      : createMockMeleeWeaponItems().map((item) => {
-          const modifiers = buildRarityModifiers(item);
-          const itemWithModifiers: InventoryItem = {
-            ...item,
-            ...modifiers,
-            power: 0
-          };
-          return {
-            ...itemWithModifiers,
-            power: computeMockItemPower(itemWithModifiers)
-          };
-        });
+      : previewWeaponItems;
 
-  return [...baseItems, ...mockWeaponItems];
+  const iconWeaponCount = mockWeaponItems.filter((item) => Boolean(item.iconAssetPath)).length;
+  const prioritizedWeaponItems =
+    iconWeaponCount > 0
+      ? [...mockWeaponItems].sort((first, second) => Number(Boolean(second.iconAssetPath)) - Number(Boolean(first.iconAssetPath)))
+      : [...previewWeaponItems, ...mockWeaponItems];
+
+  return [...baseItems, ...prioritizedWeaponItems];
 }
 
 function applyMockPlayerStateOverrides(state: PlayerState): PlayerState {
@@ -1064,6 +1106,7 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
           majorCategory: item.archetype?.majorCategory,
           category: item.category,
           itemName: displayItemName,
+          iconAssetPath: item.iconAssetPath,
           className: `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
         })}
       </div>
@@ -1161,13 +1204,18 @@ function renderItemIcon(args: {
   majorCategory?: ItemMajorCategory;
   category?: string;
   itemName?: string | null;
+  iconAssetPath?: string;
   className?: string;
 }): ReactElement {
   const iconVisual = resolveItemIconVisual(args);
   const extraClass = args.className ? ` ${args.className}` : "";
   return (
     <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`} aria-hidden="true">
-      {iconVisual.label}
+      {args.iconAssetPath ? (
+        <img className="itemVisualImage" src={args.iconAssetPath} alt="" loading="lazy" />
+      ) : (
+        iconVisual.label
+      )}
     </span>
   );
 }
@@ -2177,6 +2225,7 @@ export function App() {
           majorCategory: equippedItem?.archetype?.majorCategory ?? slot.majorCategory,
           category: equippedItem?.category ?? slot.label,
           itemName: displayItemName ?? slot.label,
+          iconAssetPath: equippedItem?.iconAssetPath,
           className: `equipmentItemIcon${hasItem ? "" : " isPlaceholder"}`
         })}
         {equippedItem ? (
