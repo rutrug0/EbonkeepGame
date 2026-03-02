@@ -22,8 +22,8 @@ Configured in `tools/item_art_prompts.yaml` under `sources`.
 
 Current sources include:
 - `docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv`
-- `docs/data/ranger_ranged_weapon_name_ranges_v3.csv`
-- `docs/data/mage_arcane_weapon_name_ranges_v3.csv`
+- `docs/data/ranger_ranged_weapon_name_ranges_v2.csv`
+- `docs/data/mage_arcane_weapon_name_ranges_v2.csv`
 - `docs/data/heavy_armor_name_ranges_v1.csv`
 - `docs/data/light_armor_name_ranges_v1.csv`
 - `docs/data/robe_armor_name_ranges_v1.csv`
@@ -31,6 +31,7 @@ Current sources include:
 - `docs/data/jewelry_necklace_name_ranges_v1.csv`
 
 Rows missing `prompt_item_description` are intentionally skipped.
+Ranger and mage v2 weapon tables now carry handcrafted `prompt_item_description` values.
 
 ## Prompt Layering
 Final prompt is assembled in this order:

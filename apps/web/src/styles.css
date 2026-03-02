@@ -24,9 +24,9 @@
   --left-panel-min: 120px;
   --left-panel-max: 320px;
   --panel-viewport-max: 1080px;
-  --panel-main-max: 648px;
-  --panel-stats-min: 260px;
-  --panel-stats-max: 360px;
+  --panel-main-max: 550px;
+  --panel-stats-min: 310px;
+  --panel-stats-max: 435px;
   --avatar-size: 58px;
   --menu-button-min-height: 52px;
   --menu-icon-size: 34px;
@@ -105,9 +105,9 @@ body {
   --left-panel-min: 160px;
   --left-panel-max: 360px;
   --panel-viewport-max: 1320px;
-  --panel-main-max: 760px;
-  --panel-stats-min: 320px;
-  --panel-stats-max: 420px;
+  --panel-main-max: 645px;
+  --panel-stats-min: 385px;
+  --panel-stats-max: 505px;
   --avatar-size: 64px;
   --menu-button-min-height: 56px;
   --menu-icon-size: 38px;
@@ -1153,6 +1153,13 @@ button:active {
   justify-self: center;
 }
 
+.equipmentSlotVisual {
+  width: 100%;
+  height: 100%;
+  align-self: stretch;
+  justify-self: stretch;
+}
+
 .equipmentItemIcon {
   width: calc(var(--equip-slot-size) * 0.46);
   height: calc(var(--equip-slot-size) * 0.46);
@@ -1347,6 +1354,12 @@ button:active {
   display: block;
 }
 
+.itemVisualImageCard {
+  width: 100%;
+  min-width: 100%;
+  height: 100%;
+}
+
 .itemVisual-armor {
   border-color: rgba(144, 179, 207, 0.45);
   background:
@@ -1411,7 +1424,7 @@ button:active {
     linear-gradient(160deg, rgba(24, 33, 42, 0.9), rgba(14, 20, 28, 0.92));
   padding: var(--space-3);
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-columns: 105px minmax(0, 1fr);
   gap: var(--space-2);
   align-items: stretch;
 }

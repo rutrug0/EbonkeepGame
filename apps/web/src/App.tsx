@@ -334,7 +334,7 @@ function tierIndex(tier: ModifierTier): 0 | 1 | 2 {
 
 const ITEM_POWER_BASE_PER_LEVEL = 8;
 const WEAPON_POWER_MULTIPLIER = 2;
-const MOCK_WARRIOR_LEVEL = 20;
+const MOCK_WARRIOR_LEVEL = 80;
 const MOCK_WARRIOR_CLASS: PlayerState["class"] = "warrior";
 const RARITY_POWER_BONUS_RATE: Record<Rarity, number> = {
   common: 0,
@@ -1098,6 +1098,7 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
   const modifierLines = getItemModifierStatLines(item);
   const weaponDamageSummary = getWeaponDamageSummary(item);
   const displayItemName = getDisplayItemName(item);
+  const useImageOnlyIcon = Boolean(item.iconAssetPath);
 
   return (
     <>
@@ -1107,7 +1108,8 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
           category: item.category,
           itemName: displayItemName,
           iconAssetPath: item.iconAssetPath,
-          className: `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
+          className: useImageOnlyIcon ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`,
+          renderMode: useImageOnlyIcon ? "imageOnly" : "default"
         })}
       </div>
       <div className="inventoryCardContent">
@@ -1206,8 +1208,12 @@ function renderItemIcon(args: {
   itemName?: string | null;
   iconAssetPath?: string;
   className?: string;
+  renderMode?: "default" | "imageOnly";
 }): ReactElement {
   const iconVisual = resolveItemIconVisual(args);
+  if (args.iconAssetPath && args.renderMode === "imageOnly") {
+    return <img className="itemVisualImage itemVisualImageCard" src={args.iconAssetPath} alt="" loading="lazy" />;
+  }
   const extraClass = args.className ? ` ${args.className}` : "";
   return (
     <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`} aria-hidden="true">
@@ -2185,6 +2191,7 @@ export function App() {
     const equippedItem = equippedItems[slotId];
     const displayItemName = equippedItem ? getDisplayItemName(equippedItem) : null;
     const hasItem = equippedItem !== null;
+    const useImageOnlyIcon = Boolean(equippedItem?.iconAssetPath);
     const rarity = equippedItem?.rarity ?? "common";
     const canUseEquippedItem = equippedItem ? canPlayerUseItem(equippedItem, playerState) : true;
     const dropTargetClass =
@@ -2221,13 +2228,18 @@ export function App() {
         onDragEnd={handleInventoryCardDragEnd}
         aria-label={hasItem ? `${slot.label}: ${displayItemName}` : `${slot.label}: Empty`}
       >
-        {renderItemIcon({
-          majorCategory: equippedItem?.archetype?.majorCategory ?? slot.majorCategory,
-          category: equippedItem?.category ?? slot.label,
-          itemName: displayItemName ?? slot.label,
-          iconAssetPath: equippedItem?.iconAssetPath,
-          className: `equipmentItemIcon${hasItem ? "" : " isPlaceholder"}`
-        })}
+        {hasItem ? (
+          <div className="inventoryCardVisual equipmentSlotVisual">
+            {renderItemIcon({
+              majorCategory: equippedItem?.archetype?.majorCategory ?? slot.majorCategory,
+              category: equippedItem?.category ?? slot.label,
+              itemName: displayItemName ?? slot.label,
+              iconAssetPath: equippedItem?.iconAssetPath,
+              className: useImageOnlyIcon ? undefined : "equipmentItemIcon",
+              renderMode: useImageOnlyIcon ? "imageOnly" : "default"
+            })}
+          </div>
+        ) : null}
         {equippedItem ? (
           <div className={`equipmentItemTooltip tooltip-${tooltipPlacement}`} role="tooltip">
             <article className={`inventoryItemCard equipmentTooltipCard rarity-${rarity}`}>
