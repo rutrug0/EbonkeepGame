@@ -5,14 +5,21 @@ Define warrior melee weapon progression with:
 - shared `ilvl` scaling independent of weapon name
 - rarity effects (`+5%` damage per rarity step)
 - nested roll ranges (template -> item creation rolls -> per-hit attack roll)
-- weapon name table with level availability windows
+- weapon name table with level availability windows and flavor metadata
 
 ## Source Files
 - Damage coefficients: `docs/data/warrior_weapon_damage_coefficients_v2.csv`
 - Damage category profiles: `docs/data/weapon_damage_category_profiles.csv`
 - Generated scaling table: `docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv`
-- Generated name/range table: `docs/data/warrior_melee_weapon_name_ranges_v2.csv`
+- Generated name/range table: `docs/data/warrior_melee_weapon_name_ranges_v4.csv`
 - Generator: `tools/generate_warrior_weapon_tables.ps1`
+
+## Name Table Metadata Columns
+`docs/data/warrior_melee_weapon_name_ranges_v4.csv` includes:
+- `weapon_family` (always `melee` for this table)
+- `allowed_class` (always `warrior` for this table)
+- `weapon_type` (`Sword` or `Axe`)
+- `flavor_text` (single dark-fantasy flavor line tuned to the weapon row)
 
 ## Drop Range Rules (Name Table)
 - Weapon sequence base levels increase by `+4`.
@@ -65,8 +72,6 @@ This is uncapped and is not stored per-weapon table row.
 - Strength: narrow (`10%` template spread)
 - Agility: medium (`16%`)
 - Intelligence: wide (`22%`)
-
-Only strength/warrior tables are generated in this phase.
 
 ## Regenerate
 `powershell -ExecutionPolicy Bypass -File .\tools\generate_warrior_weapon_tables.ps1`

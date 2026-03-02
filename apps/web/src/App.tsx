@@ -171,6 +171,7 @@ type StatContributionLine = {
   ratioLabel: string;
   valueLabel: string;
 };
+type DevWeaponInventorySeed = NonNullable<PlayerState["devWeapons"]>[number];
 
 const INVENTORY_ITEM_LIMIT = 20;
 const CONTRACT_SLOT_COUNT = 6;
@@ -417,7 +418,7 @@ type MockInventoryItemSeed = Omit<InventoryItem, "power" | "prefix" | "affix">;
 const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
   {
     id: "itm_mock_ironwall_helm",
-    itemName: "Ironwall Helm",
+    itemName: "Braced Plate",
     rarity: "uncommon",
     category: "Armor",
     equipable: true,
@@ -428,11 +429,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "helmet",
     levelRequirement: 18,
     statBonuses: { strength: 3, vitality: 4 },
-    description: "Frontline helm lined with extra reinforcement plating."
+    description: "Reinforced steel with a practical fit for regular frontline duty."
   },
   {
     id: "itm_mock_bastion_cuirass",
-    itemName: "Bastion Cuirass",
+    itemName: "Guard Plate",
     rarity: "rare",
     category: "Armor",
     equipable: true,
@@ -443,11 +444,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "upperArmor",
     levelRequirement: 20,
     statBonuses: { strength: 4, vitality: 5 },
-    description: "Dense war plate made to hold ground under heavy pressure."
+    description: "Dense field-forged armor built to absorb repeated close impacts."
   },
   {
     id: "itm_mock_legion_girdle",
-    itemName: "Legion Girdle",
+    itemName: "Field Belt",
     rarity: "uncommon",
     category: "Armor",
     equipable: true,
@@ -458,11 +459,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "belt",
     levelRequirement: 19,
     statBonuses: { vitality: 3, initiative: 2 },
-    description: "Stabilized combat belt used in prolonged siege pushes."
+    description: "A stabilized belt that keeps heavy kit settled through long fights."
   },
   {
     id: "itm_mock_bulwark_greaves",
-    itemName: "Bulwark Greaves",
+    itemName: "War Greaves",
     rarity: "rare",
     category: "Armor",
     equipable: true,
@@ -473,11 +474,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "lowerArmor",
     levelRequirement: 21,
     statBonuses: { strength: 3, vitality: 4 },
-    description: "Greaves that favor relentless advance over agility."
+    description: "Weighted leg armor tuned for steady pressure over quick pivots."
   },
   {
     id: "itm_mock_duskstalker_gloves",
-    itemName: "Duskstalker Gloves",
+    itemName: "Trail Gloves",
     rarity: "uncommon",
     category: "Armor",
     equipable: true,
@@ -488,11 +489,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "gloves",
     levelRequirement: 20,
     statBonuses: { dexterity: 4, initiative: 2 },
-    description: "Fine-cut gloves for precision shot setups and quick hands."
+    description: "Light reinforced gloves that keep grip control stable under motion."
   },
   {
     id: "itm_mock_runespun_mantle",
-    itemName: "Runespun Mantle",
+    itemName: "Runed Weave",
     rarity: "epic",
     category: "Armor",
     equipable: true,
@@ -503,11 +504,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "upperArmor",
     levelRequirement: 22,
     statBonuses: { intelligence: 5, vitality: 2, initiative: 2 },
-    description: "Spellthread mantle layered with old ward inscriptions."
+    description: "Arcane-thread cloth layered with stable ward marks for hard casting."
   },
   {
     id: "itm_mock_oath_loop",
-    itemName: "Oath Loop",
+    itemName: "Oath Ring",
     rarity: "rare",
     category: "Jewelry",
     equipable: true,
@@ -517,11 +518,11 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "ringLeft",
     levelRequirement: 19,
     statBonuses: { luck: 3, initiative: 2 },
-    description: "Signet ring carried by captains sworn to first response."
+    description: "A field-forged ring favored by officers trusted with rapid response."
   },
   {
     id: "itm_mock_warden_charm",
-    itemName: "Warden Charm",
+    itemName: "Guard Charm",
     rarity: "uncommon",
     category: "Jewelry",
     equipable: true,
@@ -531,7 +532,7 @@ const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     equipSlotId: "necklace",
     levelRequirement: 20,
     statBonuses: { vitality: 3, luck: 2 },
-    description: "Steel talisman believed to steady resolve in chaotic fights."
+    description: "A simple steel charm that helps keep focus when fights turn chaotic."
   }
 ];
 
@@ -638,8 +639,122 @@ function createMockMeleeWeaponItems(): MockInventoryItemSeed[] {
   });
 }
 
-function createMockInventoryItems(): InventoryItem[] {
-  return [...createMockMeleeWeaponItems(), ...MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS].map((item) => {
+function formatModifierStatLabel(stat: string): string {
+  const knownLabels: Record<string, string> = {
+    melee_damage: "Melee Damage",
+    ranged_damage: "Ranged Damage",
+    spell_damage: "Spell Damage",
+    crit_damage: "Crit Damage",
+    crit_chance: "Crit Chance",
+    extra_attack_chance: "Extra Attack Chance",
+    double_attack_chance: "Extra Attack Chance"
+  };
+  if (knownLabels[stat]) {
+    return knownLabels[stat];
+  }
+  return stat
+    .split("_")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatModifierValue(value: number, unit: "flat" | "basis_points"): string {
+  if (unit === "basis_points") {
+    return `+${formatOneDecimal(value / 100)}%`;
+  }
+  return `+${value}`;
+}
+
+function toWeaponFamily(weaponArchetype: WeaponArchetype): WeaponFamily {
+  if (weaponArchetype === "melee") {
+    return "sword";
+  }
+  if (weaponArchetype === "ranged") {
+    return "bow";
+  }
+  return "wand";
+}
+
+function getBaseItemNameFromDisplay(
+  displayName: string,
+  prefixName?: string,
+  suffixName?: string
+): string {
+  let baseName = displayName;
+  if (prefixName) {
+    const prefixWithSpace = `${prefixName} `;
+    if (baseName.startsWith(prefixWithSpace)) {
+      baseName = baseName.slice(prefixWithSpace.length);
+    }
+  }
+  if (suffixName) {
+    const suffixWithSpace = ` ${suffixName}`;
+    if (baseName.endsWith(suffixWithSpace)) {
+      baseName = baseName.slice(0, -suffixWithSpace.length);
+    }
+  }
+  return baseName.trim() || displayName;
+}
+
+function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): InventoryItem {
+  const prefixAffix = weapon.affixes.find((affix) => affix.source === "prefix");
+  const suffixAffix = weapon.affixes.find((affix) => affix.source === "suffix");
+
+  const prefix: ItemModifier | undefined = prefixAffix
+    ? {
+        kind: "prefix",
+        tier: prefixAffix.tier,
+        name: prefixAffix.name,
+        bonusLabel: formatModifierStatLabel(prefixAffix.stat),
+        bonusValue: formatModifierValue(prefixAffix.value, prefixAffix.unit)
+      }
+    : undefined;
+
+  const affix: ItemModifier | undefined = suffixAffix
+    ? {
+        kind: "affix",
+        tier: suffixAffix.tier,
+        name: suffixAffix.name,
+        bonusLabel: formatModifierStatLabel(suffixAffix.stat),
+        bonusValue: formatModifierValue(suffixAffix.value, suffixAffix.unit)
+      }
+    : undefined;
+
+  const itemWithModifiers = {
+    id: `itm_dev_weapon_${index}_${weapon.weaponFamily}_${weapon.level}`,
+    itemName: getBaseItemNameFromDisplay(weapon.displayName, prefix?.name, affix?.name),
+    rarity: weapon.rarity,
+    category: "Weapon",
+    equipable: true,
+    archetype: {
+      majorCategory: "weapon",
+      weaponArchetype: weapon.weaponFamily,
+      weaponFamily: toWeaponFamily(weapon.weaponFamily)
+    },
+    equipSlotId: "weapon",
+    levelRequirement: weapon.level,
+    damageRoll: {
+      minRollRange: [weapon.minDamage, weapon.minDamage] as [number, number],
+      rolledMin: weapon.minDamage,
+      rolledMax: weapon.maxDamage,
+      maxRollRange: [weapon.maxDamage, weapon.maxDamage] as [number, number],
+      averageDamage: (weapon.minDamage + weapon.maxDamage) / 2
+    },
+    prefix,
+    affix,
+    description: weapon.flavorText,
+    power: 0
+  } satisfies InventoryItem;
+
+  return {
+    ...itemWithModifiers,
+    power: computeMockItemPower(itemWithModifiers)
+  };
+}
+
+function createMockInventoryItems(devWeapons?: PlayerState["devWeapons"]): InventoryItem[] {
+  const baseItems = MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS.map((item) => {
     const modifiers = buildRarityModifiers(item);
     const itemWithModifiers: InventoryItem = {
       ...item,
@@ -651,6 +766,24 @@ function createMockInventoryItems(): InventoryItem[] {
       power: computeMockItemPower(itemWithModifiers)
     };
   });
+
+  const mockWeaponItems =
+    devWeapons && devWeapons.length > 0
+      ? devWeapons.map((weapon, index) => toInventoryWeaponItem(weapon, index))
+      : createMockMeleeWeaponItems().map((item) => {
+          const modifiers = buildRarityModifiers(item);
+          const itemWithModifiers: InventoryItem = {
+            ...item,
+            ...modifiers,
+            power: 0
+          };
+          return {
+            ...itemWithModifiers,
+            power: computeMockItemPower(itemWithModifiers)
+          };
+        });
+
+  return [...baseItems, ...mockWeaponItems];
 }
 
 function applyMockPlayerStateOverrides(state: PlayerState): PlayerState {
@@ -1377,6 +1510,8 @@ export function App() {
       return;
     }
 
+    setInventoryItems(createMockInventoryItems(playerState.devWeapons).slice(0, INVENTORY_ITEM_LIMIT));
+    setEquippedItems(createEmptyEquippedItems());
     setBaseStats({
       strength: playerState.stats.strength,
       intelligence: playerState.stats.intelligence,

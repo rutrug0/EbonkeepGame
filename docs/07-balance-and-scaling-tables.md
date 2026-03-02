@@ -124,11 +124,38 @@ Sanity-check examples:
 
 ## Warrior Melee Weapon Tables
 - ilvl scaling table: `docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv`
-- name/range table: `docs/data/warrior_melee_weapon_name_ranges_v2.csv`
+- name/range table: `docs/data/warrior_melee_weapon_name_ranges_v4.csv`
 - coefficients:
   - `docs/data/warrior_weapon_damage_coefficients_v2.csv`
   - `docs/data/weapon_damage_category_profiles.csv`
 - specification: [14-warrior-melee-weapon-tables.md](./14-warrior-melee-weapon-tables.md)
+
+## Ranger Ranged Weapon Tables
+- ilvl scaling table: `docs/data/ranger_ranged_weapon_ilvl_scaling_v1.csv`
+- name/range table: `docs/data/ranger_ranged_weapon_name_ranges_v3.csv`
+- coefficients:
+  - `docs/data/warrior_weapon_damage_coefficients_v2.csv`
+  - `docs/data/weapon_damage_category_profiles.csv`
+- specification: [15-ranger-ranged-weapon-tables.md](./15-ranger-ranged-weapon-tables.md)
+
+## Mage Arcane Weapon Tables
+- ilvl scaling table: `docs/data/mage_arcane_weapon_ilvl_scaling_v1.csv`
+- name/range table: `docs/data/mage_arcane_weapon_name_ranges_v3.csv`
+- coefficients:
+  - `docs/data/warrior_weapon_damage_coefficients_v2.csv`
+  - `docs/data/weapon_damage_category_profiles.csv`
+- specification: [16-mage-arcane-weapon-tables.md](./16-mage-arcane-weapon-tables.md)
+
+## Armor Name-Range Tables
+- heavy table: `docs/data/heavy_armor_name_ranges_v1.csv`
+- light table: `docs/data/light_armor_name_ranges_v1.csv`
+- robe table: `docs/data/robe_armor_name_ranges_v1.csv`
+- specification: [17-armor-name-range-tables.md](./17-armor-name-range-tables.md)
+
+## Jewelry Name-Range Tables
+- ring table: `docs/data/jewelry_ring_name_ranges_v1.csv`
+- necklace table: `docs/data/jewelry_necklace_name_ranges_v1.csv`
+- specification: [18-jewelry-name-range-tables.md](./18-jewelry-name-range-tables.md)
 
 ## Economy Health Guardrails
 - Target average soft currency sink ratio: 0.85-1.05 of sources.

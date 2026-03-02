@@ -27,8 +27,10 @@ This document set defines the high-level, implementation-ready blueprint for Ebo
 13. [13-experience-requirements-scaling.md](./13-experience-requirements-scaling.md)
 14. [14-warrior-melee-weapon-tables.md](./14-warrior-melee-weapon-tables.md)
 15. [15-contracts-board-and-refresh-mechanics.md](./15-contracts-board-and-refresh-mechanics.md)
-16. [dev-setup.md](./dev-setup.md)
-17. [local-runtime.md](./local-runtime.md)
+16. [17-armor-name-range-tables.md](./17-armor-name-range-tables.md)
+17. [18-jewelry-name-range-tables.md](./18-jewelry-name-range-tables.md)
+18. [dev-setup.md](./dev-setup.md)
+19. [local-runtime.md](./local-runtime.md)
 
 ## Decision Log (Locked)
 Date: 2026-02-28

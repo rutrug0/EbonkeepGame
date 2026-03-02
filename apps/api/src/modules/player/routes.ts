@@ -1,7 +1,7 @@
 import { playerStateSchema } from "@ebonkeep/shared";
 
 import type { FastifyPluginAsync } from "fastify";
-import { getStartupDevMeleeWeapons } from "./dev-weapons.js";
+import { getStartupDevWeapons } from "./dev-weapons.js";
 
 export const playerRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
@@ -42,7 +42,7 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
           ducats: currency.ducats,
           imperials: currency.imperials
         },
-        devMeleeWeapons: getStartupDevMeleeWeapons()
+        devWeapons: getStartupDevWeapons()
       });
 
       return reply.send(payload);

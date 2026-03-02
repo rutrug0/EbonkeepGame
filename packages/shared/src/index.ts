@@ -197,7 +197,7 @@ export const statBlockSchema = z.object({
 });
 export type StatBlock = z.infer<typeof statBlockSchema>;
 
-export const devMeleeWeaponAffixSchema = z.object({
+export const devWeaponAffixSchema = z.object({
   source: z.enum(["prefix", "suffix"]),
   name: z.string(),
   tier: z.enum(["T1", "T2", "T3"]),
@@ -205,19 +205,22 @@ export const devMeleeWeaponAffixSchema = z.object({
   value: z.number(),
   unit: z.enum(["flat", "basis_points"])
 });
-export type DevMeleeWeaponAffix = z.infer<typeof devMeleeWeaponAffixSchema>;
+export type DevWeaponAffix = z.infer<typeof devWeaponAffixSchema>;
 
-export const devMeleeWeaponSchema = z.object({
+export const devWeaponSchema = z.object({
   displayName: z.string(),
   displayLine: z.string(),
   rarity: z.enum(["common", "uncommon", "rare", "epic"]),
   level: z.number().int().min(1).max(100),
+  weaponFamily: weaponArchetypeSchema,
+  allowedClass: playerClassSchema,
   minDamage: z.number().int().min(0),
   maxDamage: z.number().int().min(0),
   affixSummary: z.string(),
-  affixes: z.array(devMeleeWeaponAffixSchema)
+  affixes: z.array(devWeaponAffixSchema),
+  flavorText: z.string()
 });
-export type DevMeleeWeapon = z.infer<typeof devMeleeWeaponSchema>;
+export type DevWeapon = z.infer<typeof devWeaponSchema>;
 
 export const playerStateSchema = z.object({
   playerId: z.string(),
@@ -230,7 +233,7 @@ export const playerStateSchema = z.object({
     ducats: z.number().int().min(0),
     imperials: z.number().int().min(0)
   }),
-  devMeleeWeapons: z.array(devMeleeWeaponSchema).optional()
+  devWeapons: z.array(devWeaponSchema).optional()
 });
 export type PlayerState = z.infer<typeof playerStateSchema>;
 
