@@ -6,10 +6,20 @@
 - Gear score controls encounter viability and upgrade chase.
 
 ## Classes
-- Warrior; Counters archers (bonus damage vs. them)
-- Wizard; Counters warriros (bonus damage vs. them)
-- Archer; Counters wizards (bonus damage vs. them)
-- Each class can wear only items for it's class - armor and weapons
+- Warrior; Counters rangers (bonus damage vs. them)
+- Mage; Counters warriors (bonus damage vs. them)
+- Ranger; Counters mages (bonus damage vs. them)
+- Class-restricted armor archetypes:
+  - Heavy armor: warrior only
+  - Light armor: ranger only
+  - Robes: mage only
+- Class-restricted weapon archetypes:
+  - Melee (`sword`, `axe`): warrior only
+  - Arcane (`wand`, `staff`): mage only
+  - Ranged (`sling`, `bow`): ranger only
+- Universal equipables:
+  - Jewelry: all classes
+  - Vestiges: all classes
 
 ## Core Stats
 - `strength`, `intelligence`, `dexterity`, `vitality`, `initiative`, `luck`.
@@ -18,10 +28,10 @@
 * Melee damage (so this is for warriors only)
 * Armor (flat damage reduction from melee attacks)
 - From intelligence:
-* Spell damage (wizards only)
+* Spell damage (mages only)
 * Spell shield (flat damage reduction from spell damage)
 - From dexterity:
-* Ranged attack damage (archers only)
+* Ranged attack damage (rangers only)
 * Missile resistance (flat damage reduction from ranged attack damage)
 - From luck:
 * Crit chance
@@ -38,14 +48,23 @@
 
 ## Inventory and Equipment
 - Inventory grid baseline: 8 columns x 6 rows.
-- Item sizes: 1x1 (rings, amulets), 1x2, 2x2, 2x3 (staffs, axes, swords, bows).
-- Equip slots: weapon, offhand, helm, chest, gloves, boots, amulet, ring1, ring2.
+- Item sizes: 1x1 (rings, amulets, vestiges), 1x2, 2x2, 2x3 (staves, axes, swords, bows).
+- Equip slots: weapon, offhand, helm, chest, gloves, boots, amulet, ring1, ring2, vestige1, vestige2, vestige3.
+- Vestige equip rule: up to 3 vestiges equipped at once; duplicate vestige names cannot be equipped simultaneously.
 - Stash tabs:
   - Base: 1 tab free.
   - Additional tabs: monetized convenience expansion.
 
 ## Itemization
 - Rarity tiers: Common, Uncommon, Rare, Epic.
+- Major equipable categories:
+  - Armor (`heavy`, `light`, `robe`)
+  - Weapons (`melee`, `arcane`, `ranged`) with families:
+    - melee: sword, axe
+    - arcane: wand, staff
+    - ranged: sling, bow
+  - Jewelry
+  - Vestiges
 - Item fields:
   - item type
   - level requirement (will be same as item level)
@@ -62,6 +81,25 @@
 - Suffix pool rolls are uniform: each eligible suffix has equal chance.
 - Affix scaling key tables (level 1-100) are defined in [11-item-affix-scaling-table.md](./11-item-affix-scaling-table.md).
 - Backend-ready generated table lives at `docs/data/affix_scaling_level_1_100.csv`.
+
+## Vestiges
+- Vestiges are equipable by all classes.
+- Players can equip up to 3 vestiges at once.
+- Current vestige names:
+  - Vestige of the Ashen Sovereign
+  - Vestige of the Hollow Star
+  - Vestige of Silent Judgement
+  - Vestige of the Gilded Seraph
+  - Vestige of the Drowned Oracle
+  - Vestige of Emberwake
+  - Vestige of the Veiled Matron
+  - Vestige of Black Meridian
+  - Vestige of the Iron Revenant
+  - Vestige of Pale Dominion
+  - Vestige of the Umbral Thorn
+  - Vestige of First Light
+- Vestige bonuses are TBD.
+- Planned extension: vestige enchanting to strengthen bonuses later.
 
 ## Prefixes / affixes:
 
@@ -95,7 +133,7 @@ II: of the Bulwark
 III: of Unyielding Stone
 
 INTELLIGENCE-DERIVED
-Spell Damage (Wizards)
+Spell Damage (Mages)
 
 Prefixes
 
@@ -124,7 +162,7 @@ II: of the Barrier
 III: of Arcane Silence
 
 DEXTERITY-DERIVED
-Ranged Attack Damage (Archers)
+Ranged Attack Damage (Rangers)
 
 Prefixes
 

@@ -1,7 +1,191 @@
 import { z } from "zod";
 
-export const playerClassSchema = z.enum(["warrior", "wizard", "archer"]);
+export const playerClassSchema = z.enum(["warrior", "mage", "ranger"]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
+export const allPlayerClasses: readonly PlayerClass[] = playerClassSchema.options;
+
+export const itemMajorCategorySchema = z.enum(["armor", "weapon", "jewelry", "vestige"]);
+export type ItemMajorCategory = z.infer<typeof itemMajorCategorySchema>;
+
+export const armorArchetypeSchema = z.enum(["heavy", "light", "robe"]);
+export type ArmorArchetype = z.infer<typeof armorArchetypeSchema>;
+
+export const weaponArchetypeSchema = z.enum(["melee", "arcane", "ranged"]);
+export type WeaponArchetype = z.infer<typeof weaponArchetypeSchema>;
+
+export const weaponFamilySchema = z.enum(["sword", "axe", "wand", "staff", "sling", "bow"]);
+export type WeaponFamily = z.infer<typeof weaponFamilySchema>;
+
+const vestigeIds = [
+  "ashen-sovereign",
+  "hollow-star",
+  "silent-judgement",
+  "gilded-seraph",
+  "drowned-oracle",
+  "emberwake",
+  "veiled-matron",
+  "black-meridian",
+  "iron-revenant",
+  "pale-dominion",
+  "umbral-thorn",
+  "first-light"
+] as const;
+
+export const vestigeIdSchema = z.enum(vestigeIds);
+export type VestigeId = z.infer<typeof vestigeIdSchema>;
+
+export type VestigeCatalogEntry = {
+  id: VestigeId;
+  name: string;
+  majorCategory: "vestige";
+  equipable: true;
+  bonusesTbd: true;
+};
+
+export const VESTIGE_CATALOG: readonly VestigeCatalogEntry[] = [
+  {
+    id: "ashen-sovereign",
+    name: "Vestige of the Ashen Sovereign",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "hollow-star",
+    name: "Vestige of the Hollow Star",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "silent-judgement",
+    name: "Vestige of Silent Judgement",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "gilded-seraph",
+    name: "Vestige of the Gilded Seraph",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "drowned-oracle",
+    name: "Vestige of the Drowned Oracle",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "emberwake",
+    name: "Vestige of Emberwake",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "veiled-matron",
+    name: "Vestige of the Veiled Matron",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "black-meridian",
+    name: "Vestige of Black Meridian",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "iron-revenant",
+    name: "Vestige of the Iron Revenant",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "pale-dominion",
+    name: "Vestige of Pale Dominion",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "umbral-thorn",
+    name: "Vestige of the Umbral Thorn",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  },
+  {
+    id: "first-light",
+    name: "Vestige of First Light",
+    majorCategory: "vestige",
+    equipable: true,
+    bonusesTbd: true
+  }
+];
+
+export const MAX_EQUIPPED_VESTIGES = 3;
+
+export const armorArchetypeAllowedClasses: Record<ArmorArchetype, readonly PlayerClass[]> = {
+  heavy: ["warrior"],
+  light: ["ranger"],
+  robe: ["mage"]
+};
+
+export const weaponArchetypeAllowedClasses: Record<WeaponArchetype, readonly PlayerClass[]> = {
+  melee: ["warrior"],
+  arcane: ["mage"],
+  ranged: ["ranger"]
+};
+
+export function getAllowedClassesForArchetype(
+  majorCategory: ItemMajorCategory,
+  archetype?: ArmorArchetype | WeaponArchetype
+): readonly PlayerClass[] {
+  if (majorCategory === "jewelry" || majorCategory === "vestige") {
+    return allPlayerClasses;
+  }
+  if (majorCategory === "armor") {
+    if (!archetype || !armorArchetypeSchema.safeParse(archetype).success) {
+      return [];
+    }
+    return armorArchetypeAllowedClasses[archetype as ArmorArchetype];
+  }
+  if (majorCategory === "weapon") {
+    if (!archetype || !weaponArchetypeSchema.safeParse(archetype).success) {
+      return [];
+    }
+    return weaponArchetypeAllowedClasses[archetype as WeaponArchetype];
+  }
+  return [];
+}
+
+export function isItemUsableByClass(
+  playerClass: PlayerClass,
+  majorCategory: ItemMajorCategory,
+  archetype?: ArmorArchetype | WeaponArchetype
+): boolean {
+  return getAllowedClassesForArchetype(majorCategory, archetype).includes(playerClass);
+}
+
+export type VestigeLoadoutValidation =
+  | { valid: true }
+  | { valid: false; reason: "max_vestiges_exceeded" | "duplicate_vestige" };
+
+export function validateVestigeLoadout(vestigeIdsToEquip: readonly VestigeId[]): VestigeLoadoutValidation {
+  if (vestigeIdsToEquip.length > MAX_EQUIPPED_VESTIGES) {
+    return { valid: false, reason: "max_vestiges_exceeded" };
+  }
+  if (new Set(vestigeIdsToEquip).size !== vestigeIdsToEquip.length) {
+    return { valid: false, reason: "duplicate_vestige" };
+  }
+  return { valid: true };
+}
 
 export const statBlockSchema = z.object({
   strength: z.number(),

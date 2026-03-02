@@ -47,10 +47,12 @@ async function main(): Promise<void> {
 
   await prisma.currencyBalance.upsert({
     where: { playerId: profile.id },
-    update: {},
+    update: {
+      ducats: 1000
+    },
     create: {
       playerId: profile.id,
-      ducats: 100,
+      ducats: 1000,
       imperials: 10
     }
   });

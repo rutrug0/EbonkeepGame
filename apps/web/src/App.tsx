@@ -1,14 +1,25 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type DragEvent,
-  type MouseEvent
+  type ReactElement
 } from "react";
 
-import type { PlayerState } from "@ebonkeep/shared";
+import {
+  isItemUsableByClass,
+  mainStatToFlatDamageRatio,
+  type ArmorArchetype,
+  type ItemMajorCategory,
+  type PlayerClass,
+  type PlayerState,
+  type VestigeId,
+  type WeaponArchetype,
+  type WeaponFamily
+} from "@ebonkeep/shared";
 
-import { devGuestLogin, fetchPlayerState, moveInventoryItem } from "./api";
+import { devGuestLogin, fetchPlayerState } from "./api";
 
 type LandingTab =
   | "inventory"
@@ -24,6 +35,10 @@ type LandingTab =
 type Rarity = "common" | "uncommon" | "rare" | "epic";
 type ContractDifficulty = "easy" | "medium" | "hard";
 type ContractRoll = "low" | "medium" | "high";
+type LayoutMode = "compact" | "standard" | "wide";
+type ProfileSideTab = "inventory" | "consumables" | "stats";
+type InventoryInsertPosition = "before" | "after";
+type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
 
 type EquipmentSlotId =
   | "helmet"
@@ -36,27 +51,36 @@ type EquipmentSlotId =
   | "gloves"
   | "lowerArmor"
   | "boots"
-  | "ringRight";
+  | "ringRight"
+  | "vestige1"
+  | "vestige2"
+  | "vestige3";
 
 type EquipmentSlot = {
   label: string;
   itemName: string | null;
   rarity?: Rarity;
+  majorCategory: ItemMajorCategory;
+  category: string;
+  power?: number;
+  description?: string;
 };
 
 type InventoryItem = {
   id: string;
-  slot: number;
   itemName: string;
   rarity: Rarity;
-  width: number;
-  height: number;
-};
-
-type InventoryTooltip = {
-  item: InventoryItem;
-  x: number;
-  y: number;
+  category: string;
+  equipable: boolean;
+  archetype?: {
+    majorCategory: ItemMajorCategory;
+    armorArchetype?: ArmorArchetype;
+    weaponArchetype?: WeaponArchetype;
+    weaponFamily?: WeaponFamily;
+    vestigeId?: VestigeId;
+  };
+  power: number;
+  description: string;
 };
 
 type ContractBand = {
@@ -95,12 +119,24 @@ type ContractSlotState = {
   replenishReadyAt: number | null;
 };
 
-const INVENTORY_COLUMNS = 12;
-const INVENTORY_ROWS = 8;
-const INVENTORY_SLOT_COUNT = INVENTORY_COLUMNS * INVENTORY_ROWS;
+type StatContributionLine = {
+  label: string;
+  ratioLabel: string;
+  valueLabel: string;
+};
+
+const INVENTORY_ITEM_LIMIT = 10;
 const CONTRACT_SLOT_COUNT = 6;
 const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
 const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
+const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
+const TEST_MIN_DUCATS = 1000;
+const MAIN_STAT_DEFENSE_RATIO = 0.2;
+const LUCK_CRIT_CHANCE_PERCENT_PER_POINT = 0.1;
+const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
+const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
+const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
+const VITALITY_MAX_HP_PER_POINT = 10;
 
 const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
   { id: "inventory", label: "Inventory" },
@@ -129,32 +165,211 @@ const EQUIPMENT_RIGHT_SLOTS: EquipmentSlotId[] = [
   "boots",
   "ringRight"
 ];
+const EQUIPMENT_VESTIGE_SLOTS: EquipmentSlotId[] = ["vestige1", "vestige2", "vestige3"];
 
 const MOCK_EQUIPMENT: Record<EquipmentSlotId, EquipmentSlot> = {
-  helmet: { label: "Helmet", itemName: "Scout Hood", rarity: "uncommon" },
-  necklace: { label: "Necklace", itemName: null },
-  upperArmor: { label: "Upper Armor", itemName: "Riveted Vest", rarity: "common" },
-  belt: { label: "Belt", itemName: null },
-  ringLeft: { label: "Ring", itemName: "Band of Aim", rarity: "uncommon" },
-  weapon: { label: "Weapon", itemName: "Initiate Iron Blade", rarity: "common" },
-  pauldrons: { label: "Pauldrons", itemName: null },
-  gloves: { label: "Gloves", itemName: null },
-  lowerArmor: { label: "Lower Armor", itemName: "Braced Legguards", rarity: "common" },
-  boots: { label: "Boots", itemName: "Dustwalker Boots", rarity: "rare" },
-  ringRight: { label: "Ring", itemName: null }
+  helmet: {
+    label: "Helmet",
+    itemName: "Scout Hood",
+    rarity: "uncommon",
+    majorCategory: "armor",
+    category: "Armor",
+    power: 31,
+    description: "Light reconnaissance hood with reinforced stitching."
+  },
+  necklace: { label: "Necklace", itemName: null, majorCategory: "jewelry", category: "Jewelry" },
+  upperArmor: {
+    label: "Upper Armor",
+    itemName: "Riveted Vest",
+    rarity: "common",
+    majorCategory: "armor",
+    category: "Armor",
+    power: 36,
+    description: "Standard issue vest fitted with steel rivets."
+  },
+  belt: { label: "Belt", itemName: null, majorCategory: "armor", category: "Armor" },
+  ringLeft: {
+    label: "Ring",
+    itemName: "Band of Aim",
+    rarity: "uncommon",
+    majorCategory: "jewelry",
+    category: "Jewelry",
+    power: 28,
+    description: "A focus ring that sharpens ranged precision."
+  },
+  weapon: {
+    label: "Weapon",
+    itemName: "Initiate Iron Blade",
+    rarity: "common",
+    majorCategory: "weapon",
+    category: "Weapon",
+    power: 42,
+    description: "Balanced training blade used by newly sworn wardens."
+  },
+  pauldrons: { label: "Pauldrons", itemName: null, majorCategory: "armor", category: "Armor" },
+  gloves: { label: "Gloves", itemName: null, majorCategory: "armor", category: "Armor" },
+  lowerArmor: {
+    label: "Lower Armor",
+    itemName: "Braced Legguards",
+    rarity: "common",
+    majorCategory: "armor",
+    category: "Armor",
+    power: 33,
+    description: "Legguards with articulated plates for steady footing."
+  },
+  boots: {
+    label: "Boots",
+    itemName: "Dustwalker Boots",
+    rarity: "rare",
+    majorCategory: "armor",
+    category: "Armor",
+    power: 39,
+    description: "Hardened soles that hold traction through loose ash."
+  },
+  ringRight: { label: "Ring", itemName: null, majorCategory: "jewelry", category: "Jewelry" },
+  vestige1: {
+    label: "Vestige I",
+    itemName: "Vestige of Emberwake",
+    rarity: "rare",
+    majorCategory: "vestige",
+    category: "Vestige",
+    power: 67,
+    description: "A smoldering relic that responds to resolve and aggression."
+  },
+  vestige2: {
+    label: "Vestige II",
+    itemName: "Vestige of First Light",
+    rarity: "epic",
+    majorCategory: "vestige",
+    category: "Vestige",
+    power: 74,
+    description: "Radiant fragment tied to dawn-forged covenant rites."
+  },
+  vestige3: { label: "Vestige III", itemName: null, majorCategory: "vestige", category: "Vestige" }
+};
+
+const EQUIPMENT_STAT_BONUSES: Record<
+  EquipmentSlotId,
+  Partial<Record<TrainableStatKey, number>>
+> = {
+  helmet: { intelligence: 1, vitality: 1 },
+  necklace: {},
+  upperArmor: { strength: 3, vitality: 2 },
+  belt: {},
+  ringLeft: { dexterity: 2, initiative: 2 },
+  weapon: { strength: 4, dexterity: 1 },
+  pauldrons: {},
+  gloves: {},
+  lowerArmor: { strength: 1, vitality: 2 },
+  boots: { dexterity: 2, initiative: 1 },
+  ringRight: {},
+  vestige1: {},
+  vestige2: {},
+  vestige3: {}
 };
 
 const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
-  { id: "itm_brigandine_plate", slot: 1, itemName: "Brigandine Plate", rarity: "rare", width: 2, height: 3 },
-  { id: "itm_steel_coffer", slot: 3, itemName: "Steel Coffer", rarity: "uncommon", width: 2, height: 2 },
-  { id: "itm_stamina_minor", slot: 5, itemName: "Minor Stamina Draught", rarity: "common", width: 1, height: 1 },
-  { id: "itm_rune_fragment", slot: 6, itemName: "Rune Fragment", rarity: "rare", width: 1, height: 1 },
-  { id: "itm_worn_satchel", slot: 7, itemName: "Worn Satchel", rarity: "common", width: 2, height: 2 },
-  { id: "itm_warden_signet", slot: 9, itemName: "Warden Signet", rarity: "rare", width: 1, height: 1 },
-  { id: "itm_ashen_relic", slot: 10, itemName: "Ashen Relic", rarity: "uncommon", width: 2, height: 2 },
-  { id: "itm_phoenix_feather", slot: 12, itemName: "Phoenix Feather", rarity: "epic", width: 1, height: 1 },
-  { id: "itm_potion_cracked", slot: 27, itemName: "Cracked Potion", rarity: "common", width: 1, height: 1 },
-  { id: "itm_bandit_emblem", slot: 28, itemName: "Bandit Emblem", rarity: "uncommon", width: 1, height: 1 }
+  {
+    id: "itm_brigandine_plate",
+    itemName: "Brigandine Plate",
+    rarity: "rare",
+    category: "Armor",
+    equipable: true,
+    archetype: {
+      majorCategory: "armor",
+      armorArchetype: "heavy"
+    },
+    power: 56,
+    description: "Riveted chestplate favored by vanguard scouts."
+  },
+  {
+    id: "itm_steel_coffer",
+    itemName: "Steel Coffer",
+    rarity: "uncommon",
+    category: "Container",
+    equipable: false,
+    power: 24,
+    description: "Reinforced lockbox used for contract payouts."
+  },
+  {
+    id: "itm_stamina_minor",
+    itemName: "Minor Stamina Draught",
+    rarity: "common",
+    category: "Consumable",
+    equipable: false,
+    power: 12,
+    description: "Restores a small burst of stamina between encounters."
+  },
+  {
+    id: "itm_rune_fragment",
+    itemName: "Rune Fragment",
+    rarity: "rare",
+    category: "Material",
+    equipable: false,
+    power: 33,
+    description: "Etched shard used in relic inscription."
+  },
+  {
+    id: "itm_worn_satchel",
+    itemName: "Worn Satchel",
+    rarity: "common",
+    category: "Utility",
+    equipable: false,
+    power: 10,
+    description: "Field satchel with spare wraps and thread."
+  },
+  {
+    id: "itm_warden_signet",
+    itemName: "Warden Signet",
+    rarity: "rare",
+    category: "Jewelry",
+    equipable: true,
+    archetype: {
+      majorCategory: "jewelry"
+    },
+    power: 41,
+    description: "Old signet ring recognized by keep sentries."
+  },
+  {
+    id: "itm_ashen_relic",
+    itemName: "Ashen Relic",
+    rarity: "uncommon",
+    category: "Vestige",
+    equipable: true,
+    archetype: {
+      majorCategory: "vestige",
+      vestigeId: "ashen-sovereign"
+    },
+    power: 29,
+    description: "Weathered relic that hums near corrupted shrines."
+  },
+  {
+    id: "itm_phoenix_feather",
+    itemName: "Phoenix Feather",
+    rarity: "epic",
+    category: "Rare Material",
+    equipable: false,
+    power: 68,
+    description: "Mythic plume used to temper elite-grade gear."
+  },
+  {
+    id: "itm_potion_cracked",
+    itemName: "Cracked Potion",
+    rarity: "common",
+    category: "Consumable",
+    equipable: false,
+    power: 9,
+    description: "Unstable vial, still useful in low-risk runs."
+  },
+  {
+    id: "itm_bandit_emblem",
+    itemName: "Bandit Emblem",
+    rarity: "uncommon",
+    category: "Trophy",
+    equipable: false,
+    power: 18,
+    description: "Recovered insignia proving local threat clearance."
+  }
 ];
 
 const CONTRACT_TEMPLATES: ContractTemplate[] = [
@@ -225,6 +440,16 @@ const CONTRACT_AVAILABILITY_WINDOWS: Record<ContractDifficulty, { minMs: number;
   medium: { minMs: 25 * 60 * 1000, maxMs: 75 * 60 * 1000 },
   hard: { minMs: 20 * 60 * 1000, maxMs: 60 * 60 * 1000 }
 };
+
+function getLayoutMode(viewportWidth: number): LayoutMode {
+  if (viewportWidth < 900) {
+    return "compact";
+  }
+  if (viewportWidth >= 1400) {
+    return "wide";
+  }
+  return "standard";
+}
 
 function renderMenuIcon(tab: LandingTab) {
   const iconProps = {
@@ -321,84 +546,192 @@ function formatRarityLabel(rarity: Rarity): string {
   return rarity.charAt(0).toUpperCase() + rarity.slice(1);
 }
 
+type ItemIconVariant =
+  | "armor"
+  | "weapon"
+  | "jewelry"
+  | "vestige"
+  | "consumable"
+  | "material"
+  | "container"
+  | "utility"
+  | "generic";
+
+function resolveItemIconVisual(args: {
+  majorCategory?: ItemMajorCategory;
+  category?: string;
+  itemName?: string | null;
+}): { variant: ItemIconVariant; label: string } {
+  if (args.majorCategory) {
+    if (args.majorCategory === "armor") {
+      return { variant: "armor", label: "AR" };
+    }
+    if (args.majorCategory === "weapon") {
+      return { variant: "weapon", label: "WP" };
+    }
+    if (args.majorCategory === "jewelry") {
+      return { variant: "jewelry", label: "JW" };
+    }
+    if (args.majorCategory === "vestige") {
+      return { variant: "vestige", label: "VS" };
+    }
+  }
+
+  const category = (args.category ?? "").toLowerCase();
+  if (category.includes("consumable")) {
+    return { variant: "consumable", label: "CO" };
+  }
+  if (category.includes("material")) {
+    return { variant: "material", label: "MT" };
+  }
+  if (category.includes("container")) {
+    return { variant: "container", label: "CT" };
+  }
+  if (category.includes("utility")) {
+    return { variant: "utility", label: "UT" };
+  }
+
+  const letters = (args.itemName ?? "IT").replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
+  return {
+    variant: "generic",
+    label: letters.length === 2 ? letters : "IT"
+  };
+}
+
+function renderItemIcon(args: {
+  majorCategory?: ItemMajorCategory;
+  category?: string;
+  itemName?: string | null;
+  className?: string;
+}): ReactElement {
+  const iconVisual = resolveItemIconVisual(args);
+  const extraClass = args.className ? ` ${args.className}` : "";
+  return (
+    <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`} aria-hidden="true">
+      {iconVisual.label}
+    </span>
+  );
+}
+
 function getDisplayName(playerState: PlayerState): string {
   const idSuffix = playerState.playerId.slice(-6).toUpperCase();
   return `Warden ${idSuffix}`;
 }
 
-function slotToCoord(slot: number): { col: number; row: number } {
-  const zeroBased = slot - 1;
-  return {
-    col: zeroBased % INVENTORY_COLUMNS,
-    row: Math.floor(zeroBased / INVENTORY_COLUMNS)
-  };
+function getTrainingCost(baseValue: number): number {
+  return 200 + (baseValue * 25);
 }
 
-function coordToSlot(col: number, row: number): number {
-  return row * INVENTORY_COLUMNS + col + 1;
+function formatOneDecimal(value: number): string {
+  return value.toFixed(1).replace(/\.0$/, "");
 }
 
-function getItemSlots(item: InventoryItem, anchorSlot: number): number[] {
-  const anchor = slotToCoord(anchorSlot);
-  const slots: number[] = [];
+function formatPercentRatio(ratio: number): string {
+  return `${formatOneDecimal(ratio * 100)}%`;
+}
 
-  for (let rowOffset = 0; rowOffset < item.height; rowOffset += 1) {
-    for (let colOffset = 0; colOffset < item.width; colOffset += 1) {
-      const col = anchor.col + colOffset;
-      const row = anchor.row + rowOffset;
-      slots.push(coordToSlot(col, row));
-    }
+function formatDerivedFlat(value: number): string {
+  return `+${formatOneDecimal(value)} flat`;
+}
+
+function formatDerivedPercent(value: number): string {
+  return `+${formatOneDecimal(value)}%`;
+}
+
+function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
+  if (playerClass === "mage") {
+    return "intelligence";
   }
-
-  return slots;
+  if (playerClass === "ranger") {
+    return "dexterity";
+  }
+  return "strength";
 }
 
-function itemFitsWithinGrid(item: InventoryItem, anchorSlot: number): boolean {
-  const anchor = slotToCoord(anchorSlot);
-  return (
-    anchor.col + item.width <= INVENTORY_COLUMNS &&
-    anchor.row + item.height <= INVENTORY_ROWS
-  );
-}
+function getStatContributionLines(
+  stat: TrainableStatKey,
+  statValue: number,
+  playerClass: PlayerClass
+): StatContributionLine[] {
+  const mainOffenseStat = getMainOffenseStatKey(playerClass);
 
-function canPlaceItemAtSlot(
-  items: InventoryItem[],
-  itemToMove: InventoryItem,
-  targetSlot: number
-): boolean {
-  if (!itemFitsWithinGrid(itemToMove, targetSlot)) {
-    return false;
+  switch (stat) {
+    case "strength":
+      return [
+        {
+          label: mainOffenseStat === "strength" ? "Main Damage" : "Melee Damage",
+          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
+          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
+        },
+        {
+          label: "Armor",
+          ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
+          valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
+        }
+      ];
+    case "intelligence":
+      return [
+        {
+          label: mainOffenseStat === "intelligence" ? "Main Damage" : "Spell Damage",
+          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
+          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
+        },
+        {
+          label: "Spell Shield",
+          ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
+          valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
+        }
+      ];
+    case "dexterity":
+      return [
+        {
+          label: mainOffenseStat === "dexterity" ? "Main Damage" : "Ranged Damage",
+          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
+          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
+        },
+        {
+          label: "Missile Resistance",
+          ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
+          valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
+        }
+      ];
+    case "luck":
+      return [
+        {
+          label: "Crit Chance",
+          ratioLabel: `${formatOneDecimal(LUCK_CRIT_CHANCE_PERCENT_PER_POINT)}%/pt`,
+          valueLabel: formatDerivedPercent(statValue * LUCK_CRIT_CHANCE_PERCENT_PER_POINT)
+        },
+        {
+          label: "Crit Damage",
+          ratioLabel: `${formatOneDecimal(LUCK_CRIT_DAMAGE_PERCENT_PER_POINT)}%/pt`,
+          valueLabel: formatDerivedPercent(statValue * LUCK_CRIT_DAMAGE_PERCENT_PER_POINT)
+        }
+      ];
+    case "initiative":
+      return [
+        {
+          label: "Combat Speed",
+          ratioLabel: `${formatOneDecimal(INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT)}%/pt`,
+          valueLabel: formatDerivedPercent(statValue * INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT)
+        },
+        {
+          label: "Extra Attack Chance",
+          ratioLabel: `${formatOneDecimal(INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT)}%/pt`,
+          valueLabel: formatDerivedPercent(statValue * INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT)
+        }
+      ];
+    case "vitality":
+      return [
+        {
+          label: "Max Hitpoints",
+          ratioLabel: `${formatOneDecimal(VITALITY_MAX_HP_PER_POINT)}/pt`,
+          valueLabel: `+${Math.round(statValue * VITALITY_MAX_HP_PER_POINT)} HP`
+        }
+      ];
+    default:
+      return [];
   }
-
-  const targetSlots = new Set(getItemSlots(itemToMove, targetSlot));
-  for (const existingItem of items) {
-    if (existingItem.id === itemToMove.id) {
-      continue;
-    }
-    const occupiedByExisting = getItemSlots(existingItem, existingItem.slot);
-    if (occupiedByExisting.some((slot) => targetSlots.has(slot))) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function getPlacementPreviewSlots(item: InventoryItem, targetSlot: number): Set<number> {
-  const anchor = slotToCoord(targetSlot);
-  const previewSlots = new Set<number>();
-
-  for (let rowOffset = 0; rowOffset < item.height; rowOffset += 1) {
-    for (let colOffset = 0; colOffset < item.width; colOffset += 1) {
-      const col = anchor.col + colOffset;
-      const row = anchor.row + rowOffset;
-      if (col < INVENTORY_COLUMNS && row < INVENTORY_ROWS) {
-        previewSlots.add(coordToSlot(col, row));
-      }
-    }
-  }
-
-  return previewSlots;
 }
 
 function randomInRange(min: number, max: number): number {
@@ -455,6 +788,7 @@ function createContractSlots(nowMs: number): ContractSlotState[] {
 
 export function App() {
   const initialContractSlots = useMemo(() => createContractSlots(Date.now()), []);
+  const sidePanelScrollRef = useRef<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | null>(
     () => window.localStorage.getItem("ebonkeep.dev.token")
   );
@@ -462,41 +796,22 @@ export function App() {
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [inventoryTooltip, setInventoryTooltip] = useState<InventoryTooltip | null>(null);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() => MOCK_INVENTORY_ITEMS);
-  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
-  const [activeDropSlot, setActiveDropSlot] = useState<number | null>(null);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
+    MOCK_INVENTORY_ITEMS.slice(0, INVENTORY_ITEM_LIMIT)
+  );
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
-
-  const occupiedInventorySlots = useMemo(() => {
-    const occupied = new Set<number>();
-    for (const item of inventoryItems) {
-      for (const slot of getItemSlots(item, item.slot)) {
-        occupied.add(slot);
-      }
-    }
-    return occupied;
-  }, [inventoryItems]);
-
-  const inventoryItemsById = useMemo(() => {
-    return new Map(inventoryItems.map((item) => [item.id, item]));
-  }, [inventoryItems]);
-
-  const dragPreview = useMemo(() => {
-    if (!draggingItemId || !activeDropSlot) {
-      return null;
-    }
-    const draggedItem = inventoryItemsById.get(draggingItemId);
-    if (!draggedItem) {
-      return null;
-    }
-
-    return {
-      slots: getPlacementPreviewSlots(draggedItem, activeDropSlot),
-      isValid: canPlaceItemAtSlot(inventoryItems, draggedItem, activeDropSlot)
-    };
-  }, [activeDropSlot, draggingItemId, inventoryItems, inventoryItemsById]);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
+  const [profileSideTab, setProfileSideTab] = useState<ProfileSideTab>("inventory");
+  const [draggingInventoryCardId, setDraggingInventoryCardId] = useState<string | null>(null);
+  const [dropTargetInventoryCardId, setDropTargetInventoryCardId] = useState<string | null>(null);
+  const [dropInsertPosition, setDropInsertPosition] = useState<InventoryInsertPosition>("before");
+  const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
+  const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
+  const [activeStatTraining, setActiveStatTraining] = useState<{
+    stat: TrainableStatKey;
+    completesAt: number;
+  } | null>(null);
 
   const profileName = playerState ? getDisplayName(playerState) : "Warden";
   const avatarInitial = profileName.charAt(0);
@@ -515,6 +830,29 @@ export function App() {
     : 0;
   const xpPercent = playerState ? Math.max(6, (playerState.level * 13) % 100) : 0;
 
+  const equipmentStatBonuses = useMemo(() => {
+    const totals: Record<TrainableStatKey, number> = {
+      strength: 0,
+      intelligence: 0,
+      dexterity: 0,
+      vitality: 0,
+      initiative: 0,
+      luck: 0
+    };
+
+    (Object.keys(MOCK_EQUIPMENT) as EquipmentSlotId[]).forEach((slotId) => {
+      if (!MOCK_EQUIPMENT[slotId].itemName) {
+        return;
+      }
+      const bonuses = EQUIPMENT_STAT_BONUSES[slotId];
+      (Object.keys(bonuses) as TrainableStatKey[]).forEach((statKey) => {
+        totals[statKey] += bonuses[statKey] ?? 0;
+      });
+    });
+
+    return totals;
+  }, []);
+
   useEffect(() => {
     const timer = window.setInterval(() => {
       setNowMs(Date.now());
@@ -523,6 +861,32 @@ export function App() {
       window.clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    const updateLayoutMode = () => {
+      setLayoutMode(getLayoutMode(window.innerWidth));
+    };
+
+    updateLayoutMode();
+    window.addEventListener("resize", updateLayoutMode);
+    return () => {
+      window.removeEventListener("resize", updateLayoutMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "inventory") {
+      setDraggingInventoryCardId(null);
+      setDropTargetInventoryCardId(null);
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (profileSideTab !== "inventory") {
+      setDraggingInventoryCardId(null);
+      setDropTargetInventoryCardId(null);
+    }
+  }, [profileSideTab]);
 
   useEffect(() => {
     let active = true;
@@ -562,10 +926,27 @@ export function App() {
   }, [token]);
 
   useEffect(() => {
-    setInventoryTooltip(null);
-    setDraggingItemId(null);
-    setActiveDropSlot(null);
-  }, [activeTab]);
+    if (!playerState) {
+      setBaseStats(null);
+      setCurrencies(null);
+      setActiveStatTraining(null);
+      return;
+    }
+
+    setBaseStats({
+      strength: playerState.stats.strength,
+      intelligence: playerState.stats.intelligence,
+      dexterity: playerState.stats.dexterity,
+      vitality: playerState.stats.vitality,
+      initiative: playerState.stats.initiative,
+      luck: playerState.stats.luck
+    });
+    setCurrencies({
+      ducats: Math.max(playerState.currency.ducats, TEST_MIN_DUCATS),
+      imperials: playerState.currency.imperials
+    });
+    setActiveStatTraining(null);
+  }, [playerState]);
 
   useEffect(() => {
     setContractSlots((previousSlots) => {
@@ -593,6 +974,26 @@ export function App() {
     });
   }, [nowMs]);
 
+  useEffect(() => {
+    if (!activeStatTraining) {
+      return;
+    }
+    if (nowMs < activeStatTraining.completesAt) {
+      return;
+    }
+
+    setBaseStats((previousStats) => {
+      if (!previousStats) {
+        return previousStats;
+      }
+      return {
+        ...previousStats,
+        [activeStatTraining.stat]: previousStats[activeStatTraining.stat] + 1
+      };
+    });
+    setActiveStatTraining(null);
+  }, [activeStatTraining, nowMs]);
+
   async function handleGuestLogin() {
     try {
       setError(null);
@@ -611,164 +1012,162 @@ export function App() {
     setPlayerState(null);
     setActiveTab("inventory");
     setError(null);
-    setInventoryTooltip(null);
-    setInventoryItems(MOCK_INVENTORY_ITEMS);
-    setDraggingItemId(null);
-    setActiveDropSlot(null);
+    setInventoryItems(MOCK_INVENTORY_ITEMS.slice(0, INVENTORY_ITEM_LIMIT));
+    setDraggingInventoryCardId(null);
+    setDropTargetInventoryCardId(null);
+    setBaseStats(null);
+    setCurrencies(null);
+    setActiveStatTraining(null);
     setContractSlots(createContractSlots(Date.now()));
   }
 
-  function showInventoryTooltip(event: MouseEvent<HTMLDivElement>, item: InventoryItem) {
-    setInventoryTooltip({
-      item,
-      x: event.clientX + 14,
-      y: event.clientY + 16
+  function startStatTraining(stat: TrainableStatKey) {
+    if (!baseStats || !currencies) {
+      return;
+    }
+    if (activeStatTraining) {
+      setError("Training already in progress.");
+      return;
+    }
+
+    const trainingCost = getTrainingCost(baseStats[stat]);
+    if (currencies.ducats < trainingCost) {
+      setError("Not enough ducats for training.");
+      return;
+    }
+
+    setCurrencies({
+      ...currencies,
+      ducats: currencies.ducats - trainingCost
     });
-  }
-
-  function updateInventoryTooltip(event: MouseEvent<HTMLDivElement>, item: InventoryItem) {
-    setInventoryTooltip({
-      item,
-      x: event.clientX + 14,
-      y: event.clientY + 16
+    setActiveStatTraining({
+      stat,
+      completesAt: Date.now() + STAT_TRAIN_DURATION_MS
     });
-  }
-
-  function hideInventoryTooltip() {
-    setInventoryTooltip(null);
-  }
-
-  function toInventorySlotKey(slotNumber: number): string {
-    return `inventory-${slotNumber}`;
-  }
-
-  function handleInventoryItemDragStart(
-    event: DragEvent<HTMLDivElement>,
-    itemId: string
-  ) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", itemId);
-    event.dataTransfer.setData("application/x-ebonkeep-item-id", itemId);
-    const dragImage = event.currentTarget.cloneNode(true) as HTMLDivElement;
-    const { width, height } = event.currentTarget.getBoundingClientRect();
-    dragImage.style.width = `${width}px`;
-    dragImage.style.height = `${height}px`;
-    dragImage.style.position = "fixed";
-    dragImage.style.top = "-9999px";
-    dragImage.style.left = "-9999px";
-    dragImage.style.pointerEvents = "none";
-    document.body.appendChild(dragImage);
-    event.dataTransfer.setDragImage(dragImage, width / 2, height / 2);
-    window.setTimeout(() => {
-      dragImage.remove();
-    }, 0);
-    window.setTimeout(() => {
-      setDraggingItemId(itemId);
-    }, 0);
-    setInventoryTooltip(null);
     setError(null);
   }
 
-  function handleInventoryItemDragEnd() {
-    setDraggingItemId(null);
-    setActiveDropSlot(null);
+  function reorderInventoryItems(
+    fromItemId: string,
+    toItemId: string,
+    insertPosition: InventoryInsertPosition
+  ) {
+    if (fromItemId === toItemId) {
+      return;
+    }
+
+    setInventoryItems((previousItems) => {
+      const fromIndex = previousItems.findIndex((item) => item.id === fromItemId);
+      const toIndex = previousItems.findIndex((item) => item.id === toItemId);
+      if (fromIndex < 0 || toIndex < 0) {
+        return previousItems;
+      }
+
+      const nextItems = [...previousItems];
+      const [movedItem] = nextItems.splice(fromIndex, 1);
+      let insertIndex = toIndex;
+      if (fromIndex < toIndex) {
+        insertIndex -= 1;
+      }
+      if (insertPosition === "after") {
+        insertIndex += 1;
+      }
+      nextItems.splice(insertIndex, 0, movedItem);
+      return nextItems;
+    });
   }
 
-  function handleInventoryCellDragOver(
-    event: DragEvent<HTMLDivElement>,
-    slotNumber: number
-  ) {
+  function autoScrollInventoryList(pointerY: number) {
+    const scrollContainer = sidePanelScrollRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const edgeThreshold = 72;
+    const maxStep = 24;
+
+    if (pointerY < containerRect.top + edgeThreshold) {
+      const intensity = (containerRect.top + edgeThreshold - pointerY) / edgeThreshold;
+      scrollContainer.scrollTop -= Math.ceil(maxStep * intensity);
+      return;
+    }
+
+    if (pointerY > containerRect.bottom - edgeThreshold) {
+      const intensity = (pointerY - (containerRect.bottom - edgeThreshold)) / edgeThreshold;
+      scrollContainer.scrollTop += Math.ceil(maxStep * intensity);
+    }
+  }
+
+  function handleInventoryCardDragStart(event: DragEvent<HTMLElement>, itemId: string) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", itemId);
+    event.dataTransfer.setData("application/x-ebonkeep-item-id", itemId);
+    setDraggingInventoryCardId(itemId);
+    setDropTargetInventoryCardId(itemId);
+    setDropInsertPosition("before");
+  }
+
+  function handleInventoryCardDragOver(event: DragEvent<HTMLElement>, targetItemId: string) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    if (!draggingItemId) {
-      return;
+    const cardRect = event.currentTarget.getBoundingClientRect();
+    const insertPosition: InventoryInsertPosition =
+      event.clientY < cardRect.top + cardRect.height / 2 ? "before" : "after";
+    if (dropTargetInventoryCardId !== targetItemId) {
+      setDropTargetInventoryCardId(targetItemId);
     }
-    if (activeDropSlot !== slotNumber) {
-      setActiveDropSlot(slotNumber);
+    if (dropInsertPosition !== insertPosition) {
+      setDropInsertPosition(insertPosition);
     }
+    autoScrollInventoryList(event.clientY);
   }
 
-  function handleInventoryCellDragEnter(
-    event: DragEvent<HTMLDivElement>,
-    slotNumber: number
-  ) {
+  function handleInventoryCardDrop(event: DragEvent<HTMLElement>, targetItemId: string) {
     event.preventDefault();
-    if (!draggingItemId) {
-      return;
-    }
-    if (activeDropSlot !== slotNumber) {
-      setActiveDropSlot(slotNumber);
-    }
-  }
-
-  async function moveDraggedItemToSlot(targetSlot: number, explicitItemId?: string) {
-    const draggedId = explicitItemId ?? draggingItemId;
-    if (!draggedId || !token) {
-      setDraggingItemId(null);
-      setActiveDropSlot(null);
-      return;
-    }
-
-    const draggedItem = inventoryItemsById.get(draggedId);
-    if (!draggedItem) {
-      setDraggingItemId(null);
-      setActiveDropSlot(null);
-      return;
-    }
-
-    const fromSlot = draggedItem.slot;
-    if (fromSlot === targetSlot) {
-      setDraggingItemId(null);
-      setActiveDropSlot(null);
-      return;
-    }
-
-    if (!canPlaceItemAtSlot(inventoryItems, draggedItem, targetSlot)) {
-      setDraggingItemId(null);
-      setActiveDropSlot(null);
-      return;
-    }
-
-    const previousItems = inventoryItems.map((item) => ({ ...item }));
-    const nextItems = inventoryItems.map((item) => {
-      if (item.id === draggedId) {
-        return { ...item, slot: targetSlot };
-      }
-      return item;
-    });
-
-    setInventoryItems(nextItems);
-    setDraggingItemId(null);
-    setActiveDropSlot(null);
-    setInventoryTooltip(null);
-
-    try {
-      await moveInventoryItem(
-        token,
-        draggedItem.id,
-        toInventorySlotKey(fromSlot),
-        toInventorySlotKey(targetSlot)
-      );
-    } catch (err: unknown) {
-      setInventoryItems(previousItems);
-      setError(err instanceof Error ? err.message : "Failed to move inventory item.");
-    }
-  }
-
-  function handleInventoryCellDrop(
-    event: DragEvent<HTMLDivElement>,
-    slotNumber: number
-  ) {
-    event.preventDefault();
-    const draggedId =
+    const sourceItemId =
       event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
-      event.dataTransfer.getData("text/plain");
-    if (!draggedId) {
-      setDraggingItemId(null);
-      setActiveDropSlot(null);
+      event.dataTransfer.getData("text/plain") ||
+      draggingInventoryCardId;
+    if (!sourceItemId) {
       return;
     }
-    void moveDraggedItemToSlot(slotNumber, draggedId);
+    reorderInventoryItems(sourceItemId, targetItemId, dropInsertPosition);
+    setDraggingInventoryCardId(null);
+    setDropTargetInventoryCardId(null);
+  }
+
+  function handleInventoryCardDragEnd() {
+    setDraggingInventoryCardId(null);
+    setDropTargetInventoryCardId(null);
+  }
+
+  function handleInventoryListDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    autoScrollInventoryList(event.clientY);
+  }
+
+  function handleInventoryListDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const sourceItemId =
+      event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
+      event.dataTransfer.getData("text/plain") ||
+      draggingInventoryCardId;
+    if (!sourceItemId || inventoryItems.length === 0) {
+      return;
+    }
+
+    const containerRect = event.currentTarget.getBoundingClientRect();
+    const insertAtEnd = event.clientY >= containerRect.top + containerRect.height / 2;
+    const targetItem = insertAtEnd ? inventoryItems[inventoryItems.length - 1] : inventoryItems[0];
+    const fallbackPosition: InventoryInsertPosition = insertAtEnd ? "after" : "before";
+    const resolvedPosition =
+      dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
+
+    reorderInventoryItems(sourceItemId, targetItem.id, resolvedPosition);
+    setDraggingInventoryCardId(null);
+    setDropTargetInventoryCardId(null);
   }
 
   function formatContractDifficulty(difficulty: ContractDifficulty): string {
@@ -792,6 +1191,64 @@ export function App() {
           replenishReadyAt: startedAt + randomInRange(CONTRACT_REPLENISH_MIN_MS, CONTRACT_REPLENISH_MAX_MS)
         };
       })
+    );
+  }
+
+  function renderEquipmentSlotCell(
+    slotId: EquipmentSlotId,
+    extraClassName = "",
+    tooltipPlacement: "left" | "right" | "top" = "right"
+  ) {
+    const slot = MOCK_EQUIPMENT[slotId];
+    const hasItem = slot.itemName !== null;
+    const rarity = slot.rarity ?? "common";
+    const classNames = [
+      "equipmentCell",
+      "equipmentCellIconOnly",
+      extraClassName,
+      hasItem ? "hasItem" : "isEmpty",
+      hasItem ? `rarity-${rarity}` : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <div key={slotId} className={classNames} aria-label={hasItem ? `${slot.label}: ${slot.itemName}` : `${slot.label}: Empty`}>
+        {renderItemIcon({
+          majorCategory: slot.majorCategory,
+          category: slot.category,
+          itemName: slot.itemName ?? slot.label,
+          className: `equipmentItemIcon${hasItem ? "" : " isPlaceholder"}`
+        })}
+        {hasItem ? (
+          <div className={`equipmentItemTooltip tooltip-${tooltipPlacement}`} role="tooltip">
+            <article className={`inventoryItemCard equipmentTooltipCard rarity-${rarity}`}>
+              <div className="inventoryCardVisual">
+                {renderItemIcon({
+                  majorCategory: slot.majorCategory,
+                  category: slot.category,
+                  itemName: slot.itemName,
+                  className: "inventoryCardIcon"
+                })}
+              </div>
+              <div className="inventoryCardContent">
+                <div className="inventoryCardTop">
+                  <div className="inventoryCardMeta">
+                    <h4>{slot.itemName}</h4>
+                    <p className="inventoryCardCategory">{slot.category}</p>
+                    <p className="inventoryCardCategory">Slot: {slot.label}</p>
+                  </div>
+                  <span className="inventoryCardRarity">{formatRarityLabel(rarity)}</span>
+                </div>
+                <p className="inventoryCardDescription">
+                  {slot.description ?? `${slot.itemName} is equipped in ${slot.label}.`}
+                </p>
+                <p className="inventoryCardPower">Power {slot.power ?? 0}</p>
+              </div>
+            </article>
+          </div>
+        ) : null}
+      </div>
     );
   }
 
@@ -822,6 +1279,27 @@ export function App() {
       );
     }
 
+    const effectiveBaseStats: Record<TrainableStatKey, number> = baseStats ?? {
+      strength: playerState.stats.strength,
+      intelligence: playerState.stats.intelligence,
+      dexterity: playerState.stats.dexterity,
+      vitality: playerState.stats.vitality,
+      initiative: playerState.stats.initiative,
+      luck: playerState.stats.luck
+    };
+    const effectiveCurrencies = currencies ?? {
+      ducats: Math.max(playerState.currency.ducats, TEST_MIN_DUCATS),
+      imperials: playerState.currency.imperials
+    };
+    const mainStatColumns: Array<{ key: TrainableStatKey; label: string }> = [
+      { key: "strength", label: "STR" },
+      { key: "intelligence", label: "INT" },
+      { key: "dexterity", label: "DEX" },
+      { key: "vitality", label: "VIT" },
+      { key: "initiative", label: "INI" },
+      { key: "luck", label: "LCK" }
+    ];
+
     return (
       <section className="contentShell">
         <section className="contentStack">
@@ -830,23 +1308,9 @@ export function App() {
           </article>
 
           <article className="contentCard">
-            <h3>Equipment Slots</h3>
             <div className="equipmentBoard">
               <div className="equipmentColumn equipmentColumnLeft">
-                {EQUIPMENT_LEFT_SLOTS.map((slotId) => {
-                  const slot = MOCK_EQUIPMENT[slotId];
-                  const rarityClass = slot.rarity ? ` rarity-${slot.rarity}` : "";
-                  return (
-                    <div key={slotId} className="equipmentCell">
-                      <span className="equipmentSlot">{slot.label}</span>
-                      {slot.itemName ? (
-                        <span className={`equipmentItem${rarityClass}`}>{slot.itemName}</span>
-                      ) : (
-                        <span className="equipmentEmpty">Empty</span>
-                      )}
-                    </div>
-                  );
-                })}
+                {EQUIPMENT_LEFT_SLOTS.map((slotId) => renderEquipmentSlotCell(slotId, "", "right"))}
               </div>
 
               <div className="equipmentCenterColumn">
@@ -854,14 +1318,10 @@ export function App() {
                   <div className="characterVisualFrame">
                     <div className="characterSilhouette" aria-hidden="true" />
                     <p className="characterVisualLabel">{profileName}</p>
-                    <div className="equipmentCell equipmentWeaponCell equipmentWeaponOverlay">
-                      <span className="equipmentSlot">{MOCK_EQUIPMENT.weapon.label}</span>
-                      {MOCK_EQUIPMENT.weapon.itemName ? (
-                        <span className={`equipmentItem rarity-${MOCK_EQUIPMENT.weapon.rarity}`}>
-                          {MOCK_EQUIPMENT.weapon.itemName}
-                        </span>
-                      ) : (
-                        <span className="equipmentEmpty">Empty</span>
+                    {renderEquipmentSlotCell("weapon", "equipmentWeaponCell equipmentWeaponOverlay", "top")}
+                    <div className="vestigeRack vestigeRackOverlay">
+                      {EQUIPMENT_VESTIGE_SLOTS.map((slotId) =>
+                        renderEquipmentSlotCell(slotId, "vestigeCell", "top")
                       )}
                     </div>
                   </div>
@@ -869,17 +1329,113 @@ export function App() {
               </div>
 
               <div className="equipmentColumn equipmentColumnRight">
-                {EQUIPMENT_RIGHT_SLOTS.map((slotId) => {
-                  const slot = MOCK_EQUIPMENT[slotId];
-                  const rarityClass = slot.rarity ? ` rarity-${slot.rarity}` : "";
+                {EQUIPMENT_RIGHT_SLOTS.map((slotId) => renderEquipmentSlotCell(slotId, "", "left"))}
+              </div>
+            </div>
+
+            <div className="equipmentEconomyBar">
+              <div className="economyItem">
+                <span className="currencyIcon ducatIcon" aria-hidden="true">
+                  ◎
+                </span>
+                <span>Ducats</span>
+                <strong>{effectiveCurrencies.ducats}</strong>
+              </div>
+              <div className="economyItem">
+                <span className="currencyIcon imperialIcon" aria-hidden="true">
+                  ◇
+                </span>
+                <span>Imperials</span>
+                <strong>{effectiveCurrencies.imperials}</strong>
+              </div>
+              <div className="economyItem">
+                <span className="currencyIcon gearScoreIcon" aria-hidden="true">
+                  ⛨
+                </span>
+                <span>Gear Score</span>
+                <strong>{playerState.gearScore}</strong>
+              </div>
+            </div>
+
+            <div className="mainStatsTraining">
+              <div className="statTrainingColumns">
+                {mainStatColumns.map((statColumn) => {
+                  const baseValue = effectiveBaseStats[statColumn.key];
+                  const itemBonus = equipmentStatBonuses[statColumn.key];
+                  const statContributionLines = getStatContributionLines(
+                    statColumn.key,
+                    baseValue,
+                    playerState.class
+                  );
+                  const trainingCost = getTrainingCost(baseValue);
+                  const hasEnoughDucats = effectiveCurrencies.ducats >= trainingCost;
+                  const isTrainingThisStat = activeStatTraining?.stat === statColumn.key;
+                  const isTrainingAnyStat = activeStatTraining !== null;
+                  const trainingCountdown = isTrainingThisStat
+                    ? formatDurationFromMs(activeStatTraining.completesAt - nowMs)
+                    : null;
+                  const trainingProgressPercent = isTrainingThisStat
+                    ? Math.round(
+                        ((STAT_TRAIN_DURATION_MS -
+                          Math.max(0, activeStatTraining.completesAt - nowMs)) /
+                          STAT_TRAIN_DURATION_MS) *
+                          100
+                      )
+                    : 0;
+
                   return (
-                    <div key={slotId} className="equipmentCell">
-                      <span className="equipmentSlot">{slot.label}</span>
-                      {slot.itemName ? (
-                        <span className={`equipmentItem${rarityClass}`}>{slot.itemName}</span>
-                      ) : (
-                        <span className="equipmentEmpty">Empty</span>
-                      )}
+                    <div key={statColumn.key} className="statTrainingColumn">
+                      <span className="statTrainingLabel">{statColumn.label}</span>
+                      <div className="statTrainingTooltip" role="tooltip">
+                        <p className="statTrainingTooltipTitle">Derived Contributions</p>
+                        {statContributionLines.map((line) => (
+                          <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
+                            <span>
+                              {line.label} ({line.ratioLabel})
+                            </span>
+                            <strong>{line.valueLabel}</strong>
+                          </p>
+                        ))}
+                      </div>
+                      <span className="statTrainingValue">
+                        {baseValue}
+                        <span className="itemBonusValue">(+{itemBonus})</span>
+                      </span>
+                      <div className="statTrainingAction">
+                        <span className="statTrainingCost">
+                          {trainingCost}
+                          <span className="currencyIcon ducatIcon" aria-hidden="true">
+                            ◎
+                          </span>
+                        </span>
+                        <button
+                          className="statTrainButton"
+                          onClick={() => startStatTraining(statColumn.key)}
+                          disabled={!hasEnoughDucats || isTrainingAnyStat}
+                        >
+                          {isTrainingThisStat ? "Training" : isTrainingAnyStat ? "Busy" : "Train"}
+                        </button>
+                        {isTrainingThisStat ? (
+                          <>
+                            <div
+                              className="statTrainingProgressTrack"
+                              role="progressbar"
+                              aria-label={`${statColumn.label} training progress`}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={trainingProgressPercent}
+                            >
+                              <span
+                                className="statTrainingProgressFill"
+                                style={{ width: `${Math.max(0, Math.min(100, trainingProgressPercent))}%` }}
+                              />
+                            </div>
+                            <span className="statTrainingTimer">{trainingCountdown}</span>
+                          </>
+                        ) : (
+                          <div className="statTrainingIdleSpacer" aria-hidden="true" />
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -887,86 +1443,84 @@ export function App() {
             </div>
           </article>
 
-          <article className="contentCard">
-            <div className="inventoryHeader">
-              <h3>Inventory Slots</h3>
-              <p>
-                Occupied: {occupiedInventorySlots.size}/{INVENTORY_SLOT_COUNT}
-              </p>
-            </div>
-            <div className={`inventoryGrid${draggingItemId ? " draggingMode" : ""}`}>
-              {Array.from({ length: INVENTORY_SLOT_COUNT }, (_, index) => {
-                const slotNumber = index + 1;
-                const occupiedClass = occupiedInventorySlots.has(slotNumber) ? " occupiedCell" : "";
-                const previewClass = dragPreview?.slots.has(slotNumber)
-                  ? dragPreview.isValid
-                    ? " dropTargetValid"
-                    : " dropTargetInvalid"
-                  : "";
-
-                return (
-                  <div
-                    key={slotNumber}
-                    className={`inventoryCell${occupiedClass}${previewClass}`}
-                    onDragEnter={(event) => handleInventoryCellDragEnter(event, slotNumber)}
-                    onDragOver={(event) => handleInventoryCellDragOver(event, slotNumber)}
-                    onDrop={(event) => handleInventoryCellDrop(event, slotNumber)}
-                  />
-                );
-              })}
-              <div className="inventoryItemsLayer">
-                {inventoryItems.map((item) => {
-                  const anchor = slotToCoord(item.slot);
-                  const rarityClass = ` rarity-${item.rarity}`;
-                  const draggingClass = draggingItemId === item.id ? " isDragging" : "";
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`inventoryItemOverlay${rarityClass}${draggingClass}`}
-                      style={{
-                        left: `${(anchor.col / INVENTORY_COLUMNS) * 100}%`,
-                        top: `${(anchor.row / INVENTORY_ROWS) * 100}%`,
-                        width: `${(item.width / INVENTORY_COLUMNS) * 100}%`,
-                        height: `${(item.height / INVENTORY_ROWS) * 100}%`
-                      }}
-                      draggable
-                      role="img"
-                      aria-label={`${item.itemName} (${formatRarityLabel(item.rarity)} ${item.width}x${item.height})`}
-                      onDragStart={(event) => handleInventoryItemDragStart(event, item.id)}
-                      onDragEnd={handleInventoryItemDragEnd}
-                      onMouseEnter={(event) => {
-                        if (!draggingItemId) {
-                          showInventoryTooltip(event, item);
-                        }
-                      }}
-                      onMouseMove={(event) => {
-                        if (!draggingItemId) {
-                          updateInventoryTooltip(event, item);
-                        }
-                      }}
-                      onMouseLeave={hideInventoryTooltip}
-                    >
-                      <span className="inventoryItemIcon" aria-hidden="true" />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </article>
         </section>
       </section>
     );
   }
 
-  function renderProfileStatsPanel() {
+  function renderInventoryCards(items: InventoryItem[], allowDrag: boolean) {
+    if (items.length === 0) {
+      return <p>No items available.</p>;
+    }
+
+    return (
+      <div className="inventoryCards">
+        {items.map((item) => {
+          const dragSourceClass = draggingInventoryCardId === item.id ? " isDragSource" : "";
+          const dropCueClass =
+            dropTargetInventoryCardId === item.id && draggingInventoryCardId !== item.id
+              ? dropInsertPosition === "before"
+                ? " dropCueBefore"
+                : " dropCueAfter"
+              : "";
+          const archetypeDetail = item.archetype
+            ? `${item.archetype.majorCategory}${
+                item.archetype.weaponFamily ? `:${item.archetype.weaponFamily}` : ""
+              }`
+            : null;
+          const archetypeClassKey = item.archetype?.weaponArchetype ?? item.archetype?.armorArchetype;
+          const isUsableByClass =
+            item.equipable && item.archetype && playerState
+              ? isItemUsableByClass(playerState.class, item.archetype.majorCategory, archetypeClassKey)
+              : null;
+          return (
+            <article
+              key={item.id}
+              className={`inventoryItemCard rarity-${item.rarity}${dragSourceClass}${dropCueClass}`}
+              draggable={allowDrag}
+              onDragStart={allowDrag ? (event) => handleInventoryCardDragStart(event, item.id) : undefined}
+              onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
+              onDrop={allowDrag ? (event) => handleInventoryCardDrop(event, item.id) : undefined}
+              onDragEnd={allowDrag ? handleInventoryCardDragEnd : undefined}
+            >
+              <div className="inventoryCardVisual">
+                {renderItemIcon({
+                  majorCategory: item.archetype?.majorCategory,
+                  category: item.category,
+                  itemName: item.itemName,
+                  className: "inventoryCardIcon"
+                })}
+              </div>
+              <div className="inventoryCardContent">
+                <div className="inventoryCardTop">
+                  <div className="inventoryCardMeta">
+                    <h4>{item.itemName}</h4>
+                    <p className="inventoryCardCategory">{item.category}</p>
+                    {archetypeDetail ? <p className="inventoryCardCategory">Archetype: {archetypeDetail}</p> : null}
+                    {isUsableByClass === false ? (
+                      <p className="inventoryCardCategory">Class Restriction: Not usable by your class</p>
+                    ) : null}
+                  </div>
+                  <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
+                </div>
+                <p className="inventoryCardDescription">{item.description}</p>
+                <p className="inventoryCardPower">Power {item.power}</p>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderProfileSidePanel() {
     if (isLoadingState) {
       return (
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Stats</h2>
-              <p>Loading player stats...</p>
+              <h2>Profile Panel</h2>
+              <p>Loading profile data...</p>
             </article>
           </section>
         </section>
@@ -978,7 +1532,7 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Stats</h2>
+              <h2>Profile Panel</h2>
               <p>Player state unavailable. Login again to refresh your data.</p>
             </article>
           </section>
@@ -988,15 +1542,15 @@ export function App() {
 
     const unavailableLabel = "Defined in docs (API pending)";
     const mainOffenseStat =
-      playerState.class === "wizard"
+      playerState.class === "mage"
         ? playerState.stats.intelligence
-        : playerState.class === "archer"
+        : playerState.class === "ranger"
           ? playerState.stats.dexterity
           : playerState.stats.strength;
     const mainOffenseTypeLabel =
-      playerState.class === "wizard"
+      playerState.class === "mage"
         ? "Spell Damage"
-        : playerState.class === "archer"
+        : playerState.class === "ranger"
           ? "Ranged Attack Damage"
           : "Melee Damage";
     const flatBonusDamage = (mainOffenseStat * 0.1).toFixed(1);
@@ -1005,17 +1559,6 @@ export function App() {
       title: string;
       rows: Array<{ label: string; value: string | number }>;
     }> = [
-      {
-        title: "Main Stats",
-        rows: [
-          { label: "Strength", value: playerState.stats.strength },
-          { label: "Intelligence", value: playerState.stats.intelligence },
-          { label: "Dexterity", value: playerState.stats.dexterity },
-          { label: "Vitality", value: playerState.stats.vitality },
-          { label: "Initiative", value: playerState.stats.initiative },
-          { label: "Luck", value: playerState.stats.luck }
-        ]
-      },
       {
         title: "Defensive",
         rows: [
@@ -1038,37 +1581,91 @@ export function App() {
       }
     ];
 
+    const consumableItems = inventoryItems.filter((item) => item.category === "Consumable");
+
     return (
       <section className="contentShell statsViewportShell">
-        <section className="contentStack statsViewportStack">
-          <article className="contentCard statsViewportBody">
-            <div className="profileMeta">
-              <p>
-                Class: <strong>{formatClassLabel(playerState.class)}</strong>
-              </p>
-              <p>
-                Level: <strong>{playerState.level}</strong> | Gear Score:{" "}
-                <strong>{playerState.gearScore}</strong>
-              </p>
-              <p>
-                Currencies: <strong>{playerState.currency.ducats}</strong> ducats,{" "}
-                <strong>{playerState.currency.imperials}</strong> imperials
-              </p>
+        <section className="contentStack statsViewportStack sidePanelStack">
+          <article className="contentCard sidePanelTabsCard">
+            <div className="profileSideTabs">
+              <button
+                className={`profileSwitchButton${profileSideTab === "inventory" ? " active" : ""}`}
+                onClick={() => setProfileSideTab("inventory")}
+              >
+                Inventory
+              </button>
+              <button
+                className={`profileSwitchButton${profileSideTab === "consumables" ? " active" : ""}`}
+                onClick={() => setProfileSideTab("consumables")}
+              >
+                Consumables
+              </button>
+              <button
+                className={`profileSwitchButton${profileSideTab === "stats" ? " active" : ""}`}
+                onClick={() => setProfileSideTab("stats")}
+              >
+                Stats
+              </button>
             </div>
-            <div className="statsGroups">
-              {groupedStats.map((group) => (
-                <section key={group.title} className="statsGroup">
-                  <h3 className="statsGroupTitle">{group.title}</h3>
-                  <div className="statsRows">
-                    {group.rows.map((row) => (
-                      <div key={row.label} className="statsRow">
-                        <span className="statsRowLabel">{row.label}</span>
-                        <span className="statsRowValue">{row.value}</span>
-                      </div>
+          </article>
+
+          <article className="contentCard statsViewportBody sidePanelBodyCard">
+            <div
+              className="sidePanelScroll"
+              ref={sidePanelScrollRef}
+              onDragOver={profileSideTab === "inventory" ? handleInventoryListDragOver : undefined}
+              onDrop={profileSideTab === "inventory" ? handleInventoryListDrop : undefined}
+            >
+              {profileSideTab === "inventory" ? (
+                <>
+                  <div className="inventoryHeader">
+                    <h3>Inventory Items</h3>
+                    <p>
+                      Stored: {inventoryItems.length}/{INVENTORY_ITEM_LIMIT}
+                    </p>
+                  </div>
+                  <p>Drag and drop cards to reorder your inventory list.</p>
+                  {renderInventoryCards(inventoryItems, true)}
+                </>
+              ) : null}
+
+              {profileSideTab === "consumables" ? (
+                <>
+                  <div className="inventoryHeader">
+                    <h3>Consumables</h3>
+                    <p>{consumableItems.length} items</p>
+                  </div>
+                  {renderInventoryCards(consumableItems, false)}
+                </>
+              ) : null}
+
+              {profileSideTab === "stats" ? (
+                <>
+                  <div className="profileMeta">
+                    <p>
+                      Class: <strong>{formatClassLabel(playerState.class)}</strong>
+                    </p>
+                    <p>
+                      Level: <strong>{playerState.level}</strong>
+                    </p>
+                  </div>
+                  <div className="statsGroups">
+                    {groupedStats.map((group) => (
+                      <section key={group.title} className="statsGroup">
+                        <h3 className="statsGroupTitle">{group.title}</h3>
+                        <div className="statsRows">
+                          {group.rows.map((row) => (
+                            <div key={row.label} className="statsRow">
+                              <span className="statsRowLabel">{row.label}</span>
+                              <span className="statsRowValue">{row.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
                     ))}
                   </div>
-                </section>
-              ))}
+                </>
+              ) : null}
             </div>
           </article>
         </section>
@@ -1245,93 +1842,91 @@ export function App() {
 
   if (!token) {
     return (
-      <main className="authPage">
-        <section className="authCard">
-          <h1>Ebonkeep</h1>
-          <p>Login to open your post-login landing page.</p>
-          <button onClick={handleGuestLogin}>Login as Guest</button>
-          {error ? <div className="error">Error: {error}</div> : null}
-        </section>
+      <main className={`appRoot layout-${layoutMode}`}>
+        <div className="appSurface">
+          <section className="authPage">
+            <section className="authCard">
+              <h1>Ebonkeep</h1>
+              <p>Login to open your post-login landing page.</p>
+              <button onClick={handleGuestLogin}>Login as Guest</button>
+              {error ? <div className="error">Error: {error}</div> : null}
+            </section>
+          </section>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="landingPage">
-      <aside className="leftPanel">
-        <div className="leftPanelShell">
-          <section className="playerCard">
-            <div className="identityRow">
-              <div className="avatar" aria-hidden="true">
-                {avatarInitial}
-              </div>
-              <div className="identityText">
-                <h1>{profileName}</h1>
-                <p>{playerState ? formatClassLabel(playerState.class) : "Class unknown"}</p>
-                <p>Level {playerState?.level ?? "-"}</p>
-              </div>
-            </div>
+    <main className={`appRoot layout-${layoutMode}`}>
+      <div className="appSurface">
+        <div className="landingPage">
+          <aside className="leftPanel">
+            <div className="leftPanelShell">
+              <section className="playerCard">
+                <div className="identityRow">
+                  <div className="avatar" aria-hidden="true">
+                    {avatarInitial}
+                  </div>
+                  <div className="identityText">
+                    <h1>{profileName}</h1>
+                    <p>{playerState ? formatClassLabel(playerState.class) : "Class unknown"}</p>
+                    <p>Level {playerState?.level ?? "-"}</p>
+                  </div>
+                </div>
 
-            <div className="barBlock">
-              <p className="barLabel">Health</p>
-              <div className="barShell">
-                <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
-              </div>
-            </div>
+                <div className="barBlock">
+                  <p className="barLabel">Health</p>
+                  <div className="barShell">
+                    <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
+                  </div>
+                </div>
 
-            <div className="barBlock">
-              <p className="barLabel">Experience</p>
-              <div className="barShell">
-                <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
-              </div>
-            </div>
-          </section>
+                <div className="barBlock">
+                  <p className="barLabel">Experience</p>
+                  <div className="barShell">
+                    <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
+                  </div>
+                </div>
+              </section>
 
-          <section className="menuCard">
-            <h2>Menu</h2>
-            <nav className="menuList">
-              {MENU_ITEMS.map((menuItem) => (
-                <button
-                  key={menuItem.id}
-                  className={`menuButton${activeTab === menuItem.id ? " active" : ""}`}
-                  onClick={() => setActiveTab(menuItem.id)}
-                >
-                  <span className="menuButtonIcon" aria-hidden="true">
-                    {renderMenuIcon(menuItem.id)}
-                  </span>
-                  <span className="menuButtonLabel">{menuItem.label}</span>
+              <section className="menuCard">
+                <h2>Menu</h2>
+                <nav className="menuList">
+                  {MENU_ITEMS.map((menuItem) => (
+                    <button
+                      key={menuItem.id}
+                      className={`menuButton${activeTab === menuItem.id ? " active" : ""}`}
+                      onClick={() => setActiveTab(menuItem.id)}
+                    >
+                      <span className="menuButtonIcon" aria-hidden="true">
+                        {renderMenuIcon(menuItem.id)}
+                      </span>
+                      <span className="menuButtonLabel">{menuItem.label}</span>
+                    </button>
+                  ))}
+                </nav>
+                <button className="logoutButton" onClick={handleLogout}>
+                  Logout
                 </button>
-              ))}
-            </nav>
-            <button className="logoutButton" onClick={handleLogout}>
-              Logout
-            </button>
+              </section>
+            </div>
+          </aside>
+
+          <section className="rightPanel">
+            {activeTab === "inventory" ? (
+              <div className="panelViewportGroup">
+                <div className="panelViewportProfileMain">{renderProfilePanel()}</div>
+                <div className="panelViewportSide">{renderProfileSidePanel()}</div>
+              </div>
+            ) : (
+              <div className="panelViewport">{renderActivePanel()}</div>
+            )}
           </section>
-        </div>
-      </aside>
 
-      <section className="rightPanel">
-        {activeTab === "inventory" ? (
-          <div className="panelViewportGroup">
-            <div className="panelViewportProfileMain">{renderProfilePanel()}</div>
-            <div className="panelViewportStats">{renderProfileStatsPanel()}</div>
-          </div>
-        ) : (
-          <div className="panelViewport">{renderActivePanel()}</div>
-        )}
-      </section>
-
-      {error ? <div className="error floatingError">Error: {error}</div> : null}
-      {inventoryTooltip ? (
-        <div className="inventoryTooltip" style={{ left: inventoryTooltip.x, top: inventoryTooltip.y }}>
-          <p className="tooltipName">{inventoryTooltip.item.itemName}</p>
-          <p>Rarity: {formatRarityLabel(inventoryTooltip.item.rarity)}</p>
-          <p>
-            Size: {inventoryTooltip.item.width}x{inventoryTooltip.item.height}
-          </p>
-          <p>Slot: {inventoryTooltip.item.slot}</p>
+          {error ? <div className="error floatingError">Error: {error}</div> : null}
         </div>
-      ) : null}
+      </div>
     </main>
   );
 }

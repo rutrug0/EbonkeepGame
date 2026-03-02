@@ -27,8 +27,8 @@ Sample table:
 | Class | HP | Attack | Spell | Armor | Initiative |
 |---|---:|---:|---:|---:|---:|
 | Warrior | 130 | 16 | 6 | 14 | 9 |
-| Wizard | 90 | 7 | 19 | 7 | 11 |
-| Archer | 105 | 14 | 9 | 10 | 14 |
+| Mage | 90 | 7 | 19 | 7 | 11 |
+| Ranger | 105 | 14 | 9 | 10 | 14 |
 
 ## Per-Level Baseline Growth (Pre-gear)
 | Stat | Growth/Level |

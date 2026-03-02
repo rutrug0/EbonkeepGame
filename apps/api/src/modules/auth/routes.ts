@@ -9,7 +9,7 @@ import { getEnv } from "../../config/env.js";
 
 const devGuestBodySchema = z.object({
   guestId: z.string().min(1).optional(),
-  class: z.enum(["warrior", "wizard", "archer"]).default("warrior")
+  class: z.enum(["warrior", "mage", "ranger"]).default("warrior")
 });
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
@@ -68,10 +68,12 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
     await fastify.prisma.currencyBalance.upsert({
       where: { playerId: profile.id },
-      update: {},
+      update: {
+        ducats: 1000
+      },
       create: {
         playerId: profile.id,
-        ducats: 100,
+        ducats: 1000,
         imperials: 10
       }
     });

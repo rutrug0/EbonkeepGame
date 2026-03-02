@@ -17,7 +17,7 @@ Ebonkeep is a web-first, session-flexible fantasy RPG focused on progression loo
 
 ## MVP In Scope (v1)
 - Account onboarding via platform login.
-- Classes: Warrior, Wizard, Archer.
+- Classes: Warrior, Mage, Ranger.
 - Level progression + gear score progression.
 - PvE combat encounters (solo and group-enemy variants).
 - Inventory grid management and equipment slots.
