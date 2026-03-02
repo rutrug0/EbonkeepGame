@@ -122,6 +122,14 @@ type DragPayload =
   | { source: "inventory"; itemId: string }
   | { source: "equipment"; slotId: EquipmentSlotId; itemId: string };
 
+type InventoryComparisonHoverState = {
+  targetItemId: string;
+  slotId: EquipmentSlotId;
+  top: number;
+  left: number;
+  width: number;
+};
+
 type ContractBand = {
   low: number;
   medium: number;
@@ -1228,6 +1236,7 @@ export function App() {
   const [dropInsertPosition, setDropInsertPosition] = useState<InventoryInsertPosition>("before");
   const [equipmentDropTargetSlotId, setEquipmentDropTargetSlotId] = useState<EquipmentSlotId | null>(null);
   const [equipmentDropState, setEquipmentDropState] = useState<"valid" | "invalid" | null>(null);
+  const [inventoryComparisonHover, setInventoryComparisonHover] = useState<InventoryComparisonHoverState | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
   const [activeStatTraining, setActiveStatTraining] = useState<{
@@ -1308,6 +1317,7 @@ export function App() {
       setDropTargetInventoryCardId(null);
       setEquipmentDropTargetSlotId(null);
       setEquipmentDropState(null);
+      setInventoryComparisonHover(null);
     }
   }, [activeTab]);
 
@@ -1318,6 +1328,7 @@ export function App() {
       setDropTargetInventoryCardId(null);
       setEquipmentDropTargetSlotId(null);
       setEquipmentDropState(null);
+      setInventoryComparisonHover(null);
     }
   }, [profileSideTab]);
 
@@ -1452,6 +1463,7 @@ export function App() {
     setDropTargetInventoryCardId(null);
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
+    setInventoryComparisonHover(null);
     setBaseStats(null);
     setCurrencies(null);
     setActiveStatTraining(null);
@@ -1573,6 +1585,7 @@ export function App() {
     setDropTargetInventoryCardId(null);
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
+    setInventoryComparisonHover(null);
   }
 
   function getItemById(itemId: string): InventoryItem | null {
@@ -1736,6 +1749,7 @@ export function App() {
     setDropInsertPosition("before");
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
+    setInventoryComparisonHover(null);
   }
 
   function handleEquipmentSlotDragStart(event: DragEvent<HTMLElement>, slotId: EquipmentSlotId) {
@@ -1789,6 +1803,72 @@ export function App() {
 
   function handleInventoryCardDragEnd() {
     clearDragState();
+  }
+
+  function handleInventoryCardMouseEnter(item: InventoryItem, cardElement: HTMLElement) {
+    if (!item.equipable) {
+      setInventoryComparisonHover(null);
+      return;
+    }
+
+    const comparisonItem = equippedItems[item.equipSlotId];
+    if (!comparisonItem) {
+      setInventoryComparisonHover(null);
+      return;
+    }
+
+    const rect = cardElement.getBoundingClientRect();
+    const cardWidth = Math.round(rect.width);
+    const gapPx = 12;
+    const left = Math.max(8, Math.round(rect.left - cardWidth - gapPx));
+    const top = Math.max(8, Math.round(rect.top));
+
+    setInventoryComparisonHover({
+      targetItemId: item.id,
+      slotId: item.equipSlotId,
+      top,
+      left,
+      width: cardWidth
+    });
+  }
+
+  function handleInventoryCardMouseLeave(itemId: string) {
+    setInventoryComparisonHover((previousHover) =>
+      previousHover?.targetItemId === itemId ? null : previousHover
+    );
+  }
+
+  function renderInventoryComparisonOverlay(): ReactElement | null {
+    if (!inventoryComparisonHover || profileSideTab !== "inventory") {
+      return null;
+    }
+
+    const sourceItem = inventoryItems.find((item) => item.id === inventoryComparisonHover.targetItemId);
+    if (!sourceItem || !sourceItem.equipable) {
+      return null;
+    }
+
+    const comparisonItem = equippedItems[inventoryComparisonHover.slotId];
+    if (!comparisonItem) {
+      return null;
+    }
+
+    const canUseComparisonItem = canPlayerUseItem(comparisonItem, playerState);
+
+    return (
+      <div
+        className="inventoryComparisonOverlay"
+        style={{
+          top: inventoryComparisonHover.top,
+          left: inventoryComparisonHover.left,
+          width: inventoryComparisonHover.width
+        }}
+      >
+        <article className={`inventoryItemCard inventoryComparisonCard rarity-${comparisonItem.rarity}`}>
+          {renderInventoryItemCardBody(comparisonItem, canUseComparisonItem)}
+        </article>
+      </div>
+    );
   }
 
   function handleEquipmentSlotDragOver(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
@@ -2196,6 +2276,8 @@ export function App() {
               onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
               onDrop={allowDrag ? (event) => handleInventoryCardDrop(event, item.id) : undefined}
               onDoubleClick={allowDrag ? () => handleInventoryCardDoubleClick(item.id) : undefined}
+              onMouseEnter={allowDrag ? (event) => handleInventoryCardMouseEnter(item, event.currentTarget) : undefined}
+              onMouseLeave={allowDrag ? () => handleInventoryCardMouseLeave(item.id) : undefined}
               onDragEnd={allowDrag ? handleInventoryCardDragEnd : undefined}
             >
               {renderInventoryItemCardBody(item, canUseItem)}
@@ -2306,6 +2388,7 @@ export function App() {
             <div
               className="sidePanelScroll"
               ref={sidePanelScrollRef}
+              onScroll={profileSideTab === "inventory" ? () => setInventoryComparisonHover(null) : undefined}
               onDragOver={profileSideTab === "inventory" ? handleInventoryListDragOver : undefined}
               onDrop={profileSideTab === "inventory" ? handleInventoryListDrop : undefined}
             >
@@ -2359,6 +2442,7 @@ export function App() {
                   </div>
                 </>
               ) : null}
+              {renderInventoryComparisonOverlay()}
             </div>
           </article>
         </section>
