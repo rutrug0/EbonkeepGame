@@ -12,7 +12,7 @@
     "weapon:ranged:bow": "One ranged bow only. Functional bow geometry, believable draw profile, practical fittings, restrained ornament.",
     "weapon:ranged:sling": "One ranged sling only. Clear sling profile with pouch and cord detail, rugged materials, readable shape.",
     "weapon:arcane:wand": "One arcane wand only. Compact focus tool, subtle runic inlays, restrained glow, no large particle effects.",
-    "weapon:arcane:staff": "One arcane staff only. Tall channeling focus with practical shaft, controlled magical motifs, restrained luminosity.",
+    "weapon:arcane:staff": "One arcane staff only. Tall channeling focus with practical shaft, controlled magical motifs, restrained luminosity. Compose the staff diagonally from lower-left to upper-right with a shallow 10-15 degree rise; never perfectly vertical.",
 
     "armor:heavy:helmet": "One heavy helmet only. Thick forged steel, impact-ready construction, front-facing readability.",
     "armor:heavy:upper_armor": "One heavy chest armor only. Layered plate mass and rivet details, no character mannequin.",
@@ -49,15 +49,15 @@
       "major_category": "weapon"
     },
     {
-      "id": "ranger_ranged_v3",
+      "id": "ranger_ranged_v2_manual",
       "group": "weapons",
-      "path": "docs/data/ranger_ranged_weapon_name_ranges_v3.csv",
+      "path": "docs/data/ranger_ranged_weapon_name_ranges_v2.csv",
       "major_category": "weapon"
     },
     {
-      "id": "mage_arcane_v3",
+      "id": "mage_arcane_v2_manual",
       "group": "weapons",
-      "path": "docs/data/mage_arcane_weapon_name_ranges_v3.csv",
+      "path": "docs/data/mage_arcane_weapon_name_ranges_v2.csv",
       "major_category": "weapon"
     },
     {
