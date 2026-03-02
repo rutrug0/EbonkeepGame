@@ -21,7 +21,7 @@
   --soft-radius: 4px;
   --equip-slot-size: 104px;
   --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
-  --left-panel-min: 260px;
+  --left-panel-min: 120px;
   --left-panel-max: 320px;
   --panel-viewport-max: 1080px;
   --panel-main-max: 648px;
@@ -102,7 +102,7 @@ body {
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 28px;
-  --left-panel-min: 300px;
+  --left-panel-min: 160px;
   --left-panel-max: 360px;
   --panel-viewport-max: 1320px;
   --panel-main-max: 760px;
@@ -203,12 +203,14 @@ button:active {
   padding: var(--space-4);
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: minmax(var(--left-panel-min), var(--left-panel-max)) minmax(0, 1fr);
+  grid-template-columns: minmax(var(--left-panel-min), var(--left-panel-max)) max-content;
   align-items: stretch;
+  justify-content: start;
   position: relative;
 }
 
 .leftPanel {
+  min-width: 0;
   min-height: 0;
 }
 
@@ -398,9 +400,10 @@ button:active {
 }
 
 .panelViewportGroup {
-  width: 100%;
+  width: max-content;
+  min-width: calc(var(--panel-main-max) + var(--panel-stats-max) + var(--space-3));
   display: grid;
-  grid-template-columns: minmax(0, var(--panel-main-max)) minmax(var(--panel-stats-min), var(--panel-stats-max));
+  grid-template-columns: var(--panel-main-max) var(--panel-stats-max);
   gap: var(--space-3);
   align-items: stretch;
 }
@@ -422,15 +425,19 @@ button:active {
 .appRoot.layout-compact .panelViewportProfileMain,
 .appRoot.layout-compact .panelViewportSide {
   width: 100%;
+  min-width: 0;
   max-width: none;
 }
 
 .appRoot.layout-compact .panelViewportGroup {
+  width: 100%;
+  min-width: 0;
   grid-template-columns: minmax(0, 1fr);
 }
 
 .panelViewportProfileMain {
-  width: 100%;
+  width: var(--panel-main-max);
+  min-width: var(--panel-main-max);
   max-width: var(--panel-main-max);
   display: flex;
 }
@@ -442,7 +449,8 @@ button:active {
 }
 
 .panelViewportSide {
-  width: 100%;
+  width: var(--panel-stats-max);
+  min-width: var(--panel-stats-max);
   max-width: var(--panel-stats-max);
   display: flex;
   min-height: 0;
