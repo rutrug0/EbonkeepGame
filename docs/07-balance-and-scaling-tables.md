@@ -85,6 +85,30 @@ Contracts board defaults:
 - Coefficients source: `docs/data/affix_scaling_coefficients.csv`
 - Specification and caps: [11-item-affix-scaling-table.md](./11-item-affix-scaling-table.md)
 
+## Item Power Score (Level 1-100)
+- Canonical specification owner: [06-progression-itemization-and-economy.md](./06-progression-itemization-and-economy.md) (`Item Power Score Formula` section).
+- Formula summary:
+  - `base_power = item_level * 8`
+  - `rarity_bonus = base_power * rarity_bonus_rate`
+  - `roll_bonus = prefix_tier_bonus + suffix_tier_bonus`
+  - `total_item_power = round_nearest((base_power + rarity_bonus + roll_bonus) * category_power_multiplier)`
+- Base rarity bonus rates:
+  - Common `0.00`, Uncommon `0.10`, Rare `0.20`, Epic `0.30`
+- Category power multipliers:
+  - Armor `1.0`, Jewelry `1.0`, Weapon `2.0`
+- Roll-tier bonus formulas (per present roll):
+  - T1 `item_level * 0.25`
+  - T2 `item_level * 0.50`
+  - T3 `item_level * 0.75`
+
+Sanity-check examples:
+
+| Case | Expected item power |
+|---|---:|
+| Level 100 Common Armor (no rolls) | 800 |
+| Level 100 Rare Weapon + T3 prefix + T3 suffix | 2220 |
+| Level 57 Rare Weapon + T1 prefix + T2 suffix | 1180 |
+
 ## Passive Training and Ducat Rewards (Level 1-100)
 - Passive training table: `docs/data/passive_training_scaling_level_1_100.csv`
 - Mission reward table: `docs/data/mission_ducat_rewards_level_1_100.csv`

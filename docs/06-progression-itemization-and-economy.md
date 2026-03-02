@@ -71,6 +71,7 @@
   - base stat line
   - affix pool roll
   - prefix pool roll
+  - computed item power score
 - Drop identity favors class-relevant items with mixed universal drops.
 - Common has no prefix or affix.
 - Uncommon has prefix or affix.
@@ -81,6 +82,64 @@
 - Suffix pool rolls are uniform: each eligible suffix has equal chance.
 - Affix scaling key tables (level 1-100) are defined in [11-item-affix-scaling-table.md](./11-item-affix-scaling-table.md).
 - Backend-ready generated table lives at `docs/data/affix_scaling_level_1_100.csv`.
+
+### Item Power Score Formula (Level 1-100)
+- Goal: item power should be driven mostly by item level, with smaller contributions from base rarity and prefix/suffix tier quality.
+- Canonical formula:
+  - `base_power = item_level * 8`
+  - `rarity_bonus = base_power * rarity_bonus_rate`
+  - `roll_bonus = prefix_tier_bonus + suffix_tier_bonus`
+  - `total_item_power = round_nearest((base_power + rarity_bonus + roll_bonus) * category_power_multiplier)`
+- Rounding rule:
+  - round once at the final total only (not per component), using nearest integer.
+
+Category multipliers:
+
+| Item Major Category | category_power_multiplier |
+|---|---:|
+| Armor | `1.0` |
+| Jewelry | `1.0` |
+| Weapon | `2.0` |
+
+Base-item rarity bonus rates:
+
+| Base Item Rarity | rarity_bonus_rate |
+|---|---:|
+| Common | 0.00 |
+| Uncommon | 0.10 |
+| Rare | 0.20 |
+| Epic | 0.30 |
+
+Prefix/suffix tier bonus formulas:
+
+| Roll Tier | Per-roll bonus formula |
+|---|---|
+| T1 | `item_level * 0.25` |
+| T2 | `item_level * 0.50` |
+| T3 | `item_level * 0.75` |
+
+Roll presence by item rarity:
+- Common: no prefix/suffix roll
+- Uncommon: one roll (prefix or suffix)
+- Rare: two rolls (prefix and suffix)
+- Epic: two rolls (prefix and suffix)
+
+Worked examples:
+
+| Case | Computation | Result |
+|---|---|---:|
+| Level 100 Common Armor (no rolls) | `(800 + 0 + 0) * 1.0` | `800` |
+| Level 100 Uncommon Jewelry + T1 roll | `(800 + 80 + 25) * 1.0` | `905` |
+| Level 100 Rare Weapon + T3 prefix + T3 suffix | `(800 + 160 + 75 + 75) * 2.0` | `2220` |
+| Level 57 Rare Weapon + T1 prefix + T2 suffix | `(456 + 91.2 + 14.25 + 28.5) * 2.0 = 1179.9`, then round | `1180` |
+
+Data contract (documentation-level, for backend/frontend alignment):
+- `item_level`: integer in `[1, 100]`
+- `rarity`: `common | uncommon | rare | epic`
+- `prefix_tier`: `null | T1 | T2 | T3`
+- `suffix_tier`: `null | T1 | T2 | T3`
+- `category_power_multiplier`: number (`1.0` armor/jewelry, `2.0` weapon)
+- `item_power`: integer computed from the formula above
 
 ## Vestiges
 - Vestiges are equipable by all classes.

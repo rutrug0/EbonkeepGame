@@ -43,6 +43,8 @@ Examples:
   - T3: 10%
 - Each prefix in the selected prefix pool has equal probability.
 - Each suffix in the selected suffix pool has equal probability.
+- Prefix/suffix stat-roll values in this document are separate from item power scoring.
+- Item power score contribution by roll tier (T1/T2/T3) is defined in [06-progression-itemization-and-economy.md](./06-progression-itemization-and-economy.md) (`Item Power Score Formula` section).
 
 ## Verified Anchor Example
 At item level `1`, `resistance_primary` rolls:

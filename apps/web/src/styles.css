@@ -1114,7 +1114,29 @@ button:active {
 }
 
 .equipmentCellIconOnly.hasItem {
-  cursor: default;
+  cursor: grab;
+}
+
+.equipmentCellIconOnly.hasItem:active {
+  cursor: grabbing;
+}
+
+.equipmentCellIconOnly.isDragSource {
+  opacity: 0.55;
+}
+
+.equipmentCellIconOnly.dropTargetValid {
+  border-color: rgba(126, 201, 140, 0.64);
+  background: rgba(34, 62, 43, 0.62);
+}
+
+.equipmentCellIconOnly.dropTargetInvalid {
+  border-color: rgba(208, 115, 115, 0.6);
+  background: rgba(73, 32, 32, 0.62);
+}
+
+.equipmentCellIconOnly.slotHint {
+  box-shadow: 0 0 0 2px rgba(227, 194, 126, 0.45);
 }
 
 .equipmentColumn .equipmentCell,
@@ -1196,6 +1218,7 @@ button:active {
 .equipmentTooltipCard {
   width: 320px;
   max-width: 320px;
+  text-align: left;
   box-shadow: 0 10px 24px rgba(5, 8, 12, 0.48);
 }
 
@@ -1440,10 +1463,21 @@ button:active {
   font-size: 15px;
 }
 
+.inventoryCardIcon.isRestricted {
+  opacity: 0.5;
+  box-shadow: inset 0 0 0 999px rgba(178, 34, 34, 0.46);
+}
+
 .inventoryCardContent {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.inventoryCardDetails {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--space-2);
 }
 
 .inventoryCardMeta {
@@ -1478,11 +1512,80 @@ button:active {
   color: #d4dee7;
 }
 
+.inventoryCardFlavor {
+  color: #aab5c1;
+  font-style: italic;
+}
+
+.inventoryCardDamageBlock {
+  display: grid;
+  gap: 1px;
+}
+
+.inventoryCardDamagePrimary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #e7eff7;
+}
+
+.inventoryCardDamageRollMeta {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #a9b6c4;
+  font-style: italic;
+}
+
+.inventoryCardModifierList {
+  display: grid;
+  gap: 2px;
+}
+
+.inventoryCardModifierLine {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: #d9e4ef;
+}
+
+.inventoryModifierTier {
+  font-weight: 700;
+}
+
+.modifierTier-t1 {
+  color: var(--uncommon);
+}
+
+.modifierTier-t2 {
+  color: var(--rare);
+}
+
+.modifierTier-t3 {
+  color: var(--epic);
+}
+
 .inventoryCardPower {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.35;
   color: #ecf2f7;
+}
+
+.inventoryCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.inventoryCardLevel {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #cbd6e1;
+  text-align: right;
 }
 
 .inventoryItemCard.rarity-common {

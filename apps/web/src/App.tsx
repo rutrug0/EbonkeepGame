@@ -58,12 +58,7 @@ type EquipmentSlotId =
 
 type EquipmentSlot = {
   label: string;
-  itemName: string | null;
-  rarity?: Rarity;
   majorCategory: ItemMajorCategory;
-  category: string;
-  power?: number;
-  description?: string;
 };
 
 type InventoryItem = {
@@ -79,9 +74,53 @@ type InventoryItem = {
     weaponFamily?: WeaponFamily;
     vestigeId?: VestigeId;
   };
+  equipSlotId: EquipmentSlotId;
+  levelRequirement: number;
+  statBonuses?: Partial<Record<TrainableStatKey, number>>;
+  damageRoll?: WeaponDamageRoll;
+  prefix?: ItemModifier;
+  affix?: ItemModifier;
   power: number;
   description: string;
 };
+
+type ModifierTier = "T1" | "T2" | "T3";
+
+type ItemModifier = {
+  kind: "prefix" | "affix";
+  tier: ModifierTier;
+  name: string;
+  bonusLabel: string;
+  bonusValue: string;
+};
+
+type ItemModifierStatLine = {
+  id: string;
+  tier: ModifierTier;
+  label: string;
+  value: string;
+};
+
+type WeaponDamageRoll = {
+  minRollRange: [number, number];
+  rolledMin: number;
+  rolledMax: number;
+  maxRollRange: [number, number];
+  averageDamage: number;
+};
+
+type MeleeDamageRollWindow = {
+  minLow: number;
+  minHigh: number;
+  maxLow: number;
+  maxHigh: number;
+};
+
+type EquippedItems = Record<EquipmentSlotId, InventoryItem | null>;
+
+type DragPayload =
+  | { source: "inventory"; itemId: string }
+  | { source: "equipment"; slotId: EquipmentSlotId; itemId: string };
 
 type ContractBand = {
   low: number;
@@ -125,7 +164,7 @@ type StatContributionLine = {
   valueLabel: string;
 };
 
-const INVENTORY_ITEM_LIMIT = 10;
+const INVENTORY_ITEM_LIMIT = 20;
 const CONTRACT_SLOT_COUNT = 6;
 const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
 const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
@@ -137,6 +176,7 @@ const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
 const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
+const DRAG_PAYLOAD_MIME = "application/x-ebonkeep-drag-payload";
 
 const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
   { id: "inventory", label: "Inventory" },
@@ -167,111 +207,224 @@ const EQUIPMENT_RIGHT_SLOTS: EquipmentSlotId[] = [
 ];
 const EQUIPMENT_VESTIGE_SLOTS: EquipmentSlotId[] = ["vestige1", "vestige2", "vestige3"];
 
-const MOCK_EQUIPMENT: Record<EquipmentSlotId, EquipmentSlot> = {
-  helmet: {
-    label: "Helmet",
-    itemName: "Scout Hood",
-    rarity: "uncommon",
-    majorCategory: "armor",
-    category: "Armor",
-    power: 31,
-    description: "Light reconnaissance hood with reinforced stitching."
-  },
-  necklace: { label: "Necklace", itemName: null, majorCategory: "jewelry", category: "Jewelry" },
-  upperArmor: {
-    label: "Upper Armor",
-    itemName: "Riveted Vest",
-    rarity: "common",
-    majorCategory: "armor",
-    category: "Armor",
-    power: 36,
-    description: "Standard issue vest fitted with steel rivets."
-  },
-  belt: { label: "Belt", itemName: null, majorCategory: "armor", category: "Armor" },
-  ringLeft: {
-    label: "Ring",
-    itemName: "Band of Aim",
-    rarity: "uncommon",
-    majorCategory: "jewelry",
-    category: "Jewelry",
-    power: 28,
-    description: "A focus ring that sharpens ranged precision."
-  },
-  weapon: {
-    label: "Weapon",
-    itemName: "Initiate Iron Blade",
-    rarity: "common",
-    majorCategory: "weapon",
-    category: "Weapon",
-    power: 42,
-    description: "Balanced training blade used by newly sworn wardens."
-  },
-  pauldrons: { label: "Pauldrons", itemName: null, majorCategory: "armor", category: "Armor" },
-  gloves: { label: "Gloves", itemName: null, majorCategory: "armor", category: "Armor" },
-  lowerArmor: {
-    label: "Lower Armor",
-    itemName: "Braced Legguards",
-    rarity: "common",
-    majorCategory: "armor",
-    category: "Armor",
-    power: 33,
-    description: "Legguards with articulated plates for steady footing."
-  },
-  boots: {
-    label: "Boots",
-    itemName: "Dustwalker Boots",
-    rarity: "rare",
-    majorCategory: "armor",
-    category: "Armor",
-    power: 39,
-    description: "Hardened soles that hold traction through loose ash."
-  },
-  ringRight: { label: "Ring", itemName: null, majorCategory: "jewelry", category: "Jewelry" },
-  vestige1: {
-    label: "Vestige I",
-    itemName: "Vestige of Emberwake",
-    rarity: "rare",
-    majorCategory: "vestige",
-    category: "Vestige",
-    power: 67,
-    description: "A smoldering relic that responds to resolve and aggression."
-  },
-  vestige2: {
-    label: "Vestige II",
-    itemName: "Vestige of First Light",
-    rarity: "epic",
-    majorCategory: "vestige",
-    category: "Vestige",
-    power: 74,
-    description: "Radiant fragment tied to dawn-forged covenant rites."
-  },
-  vestige3: { label: "Vestige III", itemName: null, majorCategory: "vestige", category: "Vestige" }
+const ALL_EQUIPMENT_SLOTS: EquipmentSlotId[] = [
+  ...EQUIPMENT_LEFT_SLOTS,
+  "weapon",
+  ...EQUIPMENT_RIGHT_SLOTS,
+  ...EQUIPMENT_VESTIGE_SLOTS
+];
+
+const EQUIPMENT_SLOTS: Record<EquipmentSlotId, EquipmentSlot> = {
+  helmet: { label: "Helmet", majorCategory: "armor" },
+  necklace: { label: "Necklace", majorCategory: "jewelry" },
+  upperArmor: { label: "Upper Armor", majorCategory: "armor" },
+  belt: { label: "Belt", majorCategory: "armor" },
+  ringLeft: { label: "Ring I", majorCategory: "jewelry" },
+  weapon: { label: "Weapon", majorCategory: "weapon" },
+  pauldrons: { label: "Pauldrons", majorCategory: "armor" },
+  gloves: { label: "Gloves", majorCategory: "armor" },
+  lowerArmor: { label: "Lower Armor", majorCategory: "armor" },
+  boots: { label: "Boots", majorCategory: "armor" },
+  ringRight: { label: "Ring II", majorCategory: "jewelry" },
+  vestige1: { label: "Vestige I", majorCategory: "vestige" },
+  vestige2: { label: "Vestige II", majorCategory: "vestige" },
+  vestige3: { label: "Vestige III", majorCategory: "vestige" }
 };
 
-const EQUIPMENT_STAT_BONUSES: Record<
-  EquipmentSlotId,
-  Partial<Record<TrainableStatKey, number>>
-> = {
-  helmet: { intelligence: 1, vitality: 1 },
-  necklace: {},
-  upperArmor: { strength: 3, vitality: 2 },
-  belt: {},
-  ringLeft: { dexterity: 2, initiative: 2 },
-  weapon: { strength: 4, dexterity: 1 },
-  pauldrons: {},
-  gloves: {},
-  lowerArmor: { strength: 1, vitality: 2 },
-  boots: { dexterity: 2, initiative: 1 },
-  ringRight: {},
-  vestige1: {},
-  vestige2: {},
-  vestige3: {}
-};
+function createEmptyEquippedItems(): EquippedItems {
+  return ALL_EQUIPMENT_SLOTS.reduce(
+    (accumulator, slotId) => ({
+      ...accumulator,
+      [slotId]: null
+    }),
+    {} as EquippedItems
+  );
+}
 
-const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
+function getModifierPool(item: Pick<InventoryItem, "archetype">): {
+  prefixNames: [string, string, string];
+  affixNames: [string, string, string];
+  prefixBonusLabel: string;
+  affixBonusLabel: string;
+  prefixBonusValues: [string, string, string];
+  affixBonusValues: [string, string, string];
+} {
+  if (item.archetype?.majorCategory === "weapon") {
+    if (item.archetype.weaponArchetype === "melee") {
+      return {
+        prefixNames: ["Forceful", "Brutal", "Worldrend"],
+        affixNames: ["of Striking", "of Cleaving", "of the Warbringer"],
+        prefixBonusLabel: "Melee Damage",
+        affixBonusLabel: "Melee Damage",
+        prefixBonusValues: ["+2", "+4", "+6"],
+        affixBonusValues: ["+2", "+4", "+6"]
+      };
+    }
+    if (item.archetype.weaponArchetype === "arcane") {
+      return {
+        prefixNames: ["Imbued", "Arcane", "Void-touched"],
+        affixNames: ["of Sparks", "of Sorcery", "of Cataclysm"],
+        prefixBonusLabel: "Spell Damage",
+        affixBonusLabel: "Spell Shield",
+        prefixBonusValues: ["+2", "+4", "+6"],
+        affixBonusValues: ["+1", "+2", "+3"]
+      };
+    }
+    return {
+      prefixNames: ["Keen", "Deadeye", "Windpiercer"],
+      affixNames: ["of Aim", "of Piercing", "of the Ballista"],
+      prefixBonusLabel: "Ranged Damage",
+      affixBonusLabel: "Missile Resistance",
+      prefixBonusValues: ["+2", "+4", "+6"],
+      affixBonusValues: ["+1", "+2", "+3"]
+    };
+  }
+
+  if (item.archetype?.majorCategory === "armor" && item.archetype.armorArchetype === "heavy") {
+    return {
+      prefixNames: ["Reinforced", "Ironbound", "Bastionforged"],
+      affixNames: ["of Guarding", "of the Bulwark", "of Unyielding Stone"],
+      prefixBonusLabel: "Armor",
+      affixBonusLabel: "Max Hitpoints",
+      prefixBonusValues: ["+2", "+4", "+6"],
+      affixBonusValues: ["+10", "+20", "+30"]
+    };
+  }
+
+  if (item.archetype?.majorCategory === "armor" && item.archetype.armorArchetype === "robe") {
+    return {
+      prefixNames: ["Warded", "Runed", "Nullbound"],
+      affixNames: ["of Warding", "of the Barrier", "of Arcane Silence"],
+      prefixBonusLabel: "Spell Shield",
+      affixBonusLabel: "Spell Damage",
+      prefixBonusValues: ["+1", "+2", "+3"],
+      affixBonusValues: ["+2", "+4", "+6"]
+    };
+  }
+
+  return {
+    prefixNames: ["Deflecting", "Arrowproof", "Stormguard"],
+    affixNames: ["of Deflection", "of the Iron Screen", "of the Unerring Wall"],
+    prefixBonusLabel: "Missile Resistance",
+    affixBonusLabel: "Ranged Damage",
+    prefixBonusValues: ["+1", "+2", "+3"],
+    affixBonusValues: ["+2", "+4", "+6"]
+  };
+}
+
+function tierIndex(tier: ModifierTier): 0 | 1 | 2 {
+  if (tier === "T1") {
+    return 0;
+  }
+  if (tier === "T2") {
+    return 1;
+  }
+  return 2;
+}
+
+const ITEM_POWER_BASE_PER_LEVEL = 8;
+const WEAPON_POWER_MULTIPLIER = 2;
+const MOCK_WARRIOR_LEVEL = 20;
+const MOCK_WARRIOR_CLASS: PlayerState["class"] = "warrior";
+const RARITY_POWER_BONUS_RATE: Record<Rarity, number> = {
+  common: 0,
+  uncommon: 0.1,
+  rare: 0.2,
+  epic: 0.3
+};
+const MODIFIER_TIER_POWER_PER_LEVEL: Record<ModifierTier, number> = {
+  T1: 0.25,
+  T2: 0.5,
+  T3: 0.75
+};
+const MOCK_MELEE_RARITY_POOL: Rarity[] = ["uncommon", "rare", "epic"];
+const MOCK_MELEE_WEAPON_LEVELS = [18, 19, 20, 21, 22] as const;
+const MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL: Record<number, Record<Rarity, MeleeDamageRollWindow>> = {
+  // Source: docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv
+  18: {
+    common: { minLow: 41, minHigh: 48, maxLow: 50, maxHigh: 59 },
+    uncommon: { minLow: 43, minHigh: 51, maxLow: 53, maxHigh: 62 },
+    rare: { minLow: 45, minHigh: 53, maxLow: 55, maxHigh: 65 },
+    epic: { minLow: 47, minHigh: 56, maxLow: 58, maxHigh: 68 }
+  },
+  19: {
+    common: { minLow: 43, minHigh: 50, maxLow: 53, maxHigh: 62 },
+    uncommon: { minLow: 45, minHigh: 53, maxLow: 55, maxHigh: 65 },
+    rare: { minLow: 47, minHigh: 55, maxLow: 58, maxHigh: 68 },
+    epic: { minLow: 49, minHigh: 58, maxLow: 60, maxHigh: 71 }
+  },
+  20: {
+    common: { minLow: 45, minHigh: 52, maxLow: 55, maxHigh: 64 },
+    uncommon: { minLow: 47, minHigh: 55, maxLow: 57, maxHigh: 67 },
+    rare: { minLow: 49, minHigh: 58, maxLow: 60, maxHigh: 71 },
+    epic: { minLow: 51, minHigh: 60, maxLow: 63, maxHigh: 74 }
+  },
+  21: {
+    common: { minLow: 46, minHigh: 55, maxLow: 57, maxHigh: 67 },
+    uncommon: { minLow: 49, minHigh: 57, maxLow: 60, maxHigh: 70 },
+    rare: { minLow: 51, minHigh: 60, maxLow: 62, maxHigh: 73 },
+    epic: { minLow: 53, minHigh: 63, maxLow: 65, maxHigh: 77 }
+  },
+  22: {
+    common: { minLow: 48, minHigh: 57, maxLow: 59, maxHigh: 69 },
+    uncommon: { minLow: 51, minHigh: 59, maxLow: 62, maxHigh: 73 },
+    rare: { minLow: 53, minHigh: 62, maxLow: 65, maxHigh: 76 },
+    epic: { minLow: 55, minHigh: 65, maxLow: 68, maxHigh: 80 }
+  }
+};
+const MOCK_MELEE_WEAPON_TEMPLATES: Array<{
+  itemName: string;
+  weaponFamily: WeaponFamily;
+  description: string;
+}> = [
   {
-    id: "itm_brigandine_plate",
-    itemName: "Brigandine Plate",
+    itemName: "Garrison Blade",
+    weaponFamily: "sword",
+    description: "Straight sword built for disciplined line engagements."
+  },
+  {
+    itemName: "Rampart Cleaver",
+    weaponFamily: "axe",
+    description: "Broad axe head designed to split shield formations."
+  },
+  {
+    itemName: "Citadel Longsword",
+    weaponFamily: "sword",
+    description: "Balanced longsword favored by veteran keep wardens."
+  },
+  {
+    itemName: "Siegebreaker Axe",
+    weaponFamily: "axe",
+    description: "Counterweighted axe that thrives on committed swings."
+  },
+  {
+    itemName: "Oathsteel Blade",
+    weaponFamily: "sword",
+    description: "Temple-forged blade tempered for decisive finishing blows."
+  }
+];
+
+type MockInventoryItemSeed = Omit<InventoryItem, "power" | "prefix" | "affix">;
+
+const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
+  {
+    id: "itm_mock_ironwall_helm",
+    itemName: "Ironwall Helm",
+    rarity: "uncommon",
+    category: "Armor",
+    equipable: true,
+    archetype: {
+      majorCategory: "armor",
+      armorArchetype: "heavy"
+    },
+    equipSlotId: "helmet",
+    levelRequirement: 18,
+    statBonuses: { strength: 3, vitality: 4 },
+    description: "Frontline helm lined with extra reinforcement plating."
+  },
+  {
+    id: "itm_mock_bastion_cuirass",
+    itemName: "Bastion Cuirass",
     rarity: "rare",
     category: "Armor",
     equipable: true,
@@ -279,98 +432,226 @@ const MOCK_INVENTORY_ITEMS: InventoryItem[] = [
       majorCategory: "armor",
       armorArchetype: "heavy"
     },
-    power: 56,
-    description: "Riveted chestplate favored by vanguard scouts."
+    equipSlotId: "upperArmor",
+    levelRequirement: 20,
+    statBonuses: { strength: 4, vitality: 5 },
+    description: "Dense war plate made to hold ground under heavy pressure."
   },
   {
-    id: "itm_steel_coffer",
-    itemName: "Steel Coffer",
+    id: "itm_mock_legion_girdle",
+    itemName: "Legion Girdle",
     rarity: "uncommon",
-    category: "Container",
-    equipable: false,
-    power: 24,
-    description: "Reinforced lockbox used for contract payouts."
+    category: "Armor",
+    equipable: true,
+    archetype: {
+      majorCategory: "armor",
+      armorArchetype: "heavy"
+    },
+    equipSlotId: "belt",
+    levelRequirement: 19,
+    statBonuses: { vitality: 3, initiative: 2 },
+    description: "Stabilized combat belt used in prolonged siege pushes."
   },
   {
-    id: "itm_stamina_minor",
-    itemName: "Minor Stamina Draught",
-    rarity: "common",
-    category: "Consumable",
-    equipable: false,
-    power: 12,
-    description: "Restores a small burst of stamina between encounters."
-  },
-  {
-    id: "itm_rune_fragment",
-    itemName: "Rune Fragment",
+    id: "itm_mock_bulwark_greaves",
+    itemName: "Bulwark Greaves",
     rarity: "rare",
-    category: "Material",
-    equipable: false,
-    power: 33,
-    description: "Etched shard used in relic inscription."
+    category: "Armor",
+    equipable: true,
+    archetype: {
+      majorCategory: "armor",
+      armorArchetype: "heavy"
+    },
+    equipSlotId: "lowerArmor",
+    levelRequirement: 21,
+    statBonuses: { strength: 3, vitality: 4 },
+    description: "Greaves that favor relentless advance over agility."
   },
   {
-    id: "itm_worn_satchel",
-    itemName: "Worn Satchel",
-    rarity: "common",
-    category: "Utility",
-    equipable: false,
-    power: 10,
-    description: "Field satchel with spare wraps and thread."
+    id: "itm_mock_duskstalker_gloves",
+    itemName: "Duskstalker Gloves",
+    rarity: "uncommon",
+    category: "Armor",
+    equipable: true,
+    archetype: {
+      majorCategory: "armor",
+      armorArchetype: "light"
+    },
+    equipSlotId: "gloves",
+    levelRequirement: 20,
+    statBonuses: { dexterity: 4, initiative: 2 },
+    description: "Fine-cut gloves for precision shot setups and quick hands."
   },
   {
-    id: "itm_warden_signet",
-    itemName: "Warden Signet",
+    id: "itm_mock_runespun_mantle",
+    itemName: "Runespun Mantle",
+    rarity: "epic",
+    category: "Armor",
+    equipable: true,
+    archetype: {
+      majorCategory: "armor",
+      armorArchetype: "robe"
+    },
+    equipSlotId: "upperArmor",
+    levelRequirement: 22,
+    statBonuses: { intelligence: 5, vitality: 2, initiative: 2 },
+    description: "Spellthread mantle layered with old ward inscriptions."
+  },
+  {
+    id: "itm_mock_oath_loop",
+    itemName: "Oath Loop",
     rarity: "rare",
     category: "Jewelry",
     equipable: true,
     archetype: {
       majorCategory: "jewelry"
     },
-    power: 41,
-    description: "Old signet ring recognized by keep sentries."
+    equipSlotId: "ringLeft",
+    levelRequirement: 19,
+    statBonuses: { luck: 3, initiative: 2 },
+    description: "Signet ring carried by captains sworn to first response."
   },
   {
-    id: "itm_ashen_relic",
-    itemName: "Ashen Relic",
+    id: "itm_mock_warden_charm",
+    itemName: "Warden Charm",
     rarity: "uncommon",
-    category: "Vestige",
+    category: "Jewelry",
     equipable: true,
     archetype: {
-      majorCategory: "vestige",
-      vestigeId: "ashen-sovereign"
+      majorCategory: "jewelry"
     },
-    power: 29,
-    description: "Weathered relic that hums near corrupted shrines."
-  },
-  {
-    id: "itm_phoenix_feather",
-    itemName: "Phoenix Feather",
-    rarity: "epic",
-    category: "Rare Material",
-    equipable: false,
-    power: 68,
-    description: "Mythic plume used to temper elite-grade gear."
-  },
-  {
-    id: "itm_potion_cracked",
-    itemName: "Cracked Potion",
-    rarity: "common",
-    category: "Consumable",
-    equipable: false,
-    power: 9,
-    description: "Unstable vial, still useful in low-risk runs."
-  },
-  {
-    id: "itm_bandit_emblem",
-    itemName: "Bandit Emblem",
-    rarity: "uncommon",
-    category: "Trophy",
-    equipable: false,
-    power: 18,
-    description: "Recovered insignia proving local threat clearance."
+    equipSlotId: "necklace",
+    levelRequirement: 20,
+    statBonuses: { vitality: 3, luck: 2 },
+    description: "Steel talisman believed to steady resolve in chaotic fights."
   }
 ];
+
+function randomRarityFromPool(pool: Rarity[]): Rarity {
+  return pool[randomInRange(0, pool.length - 1)];
+}
+
+function rollModifierTier(): ModifierTier {
+  const roll = Math.random();
+  if (roll < 0.6) {
+    return "T1";
+  }
+  if (roll < 0.9) {
+    return "T2";
+  }
+  return "T3";
+}
+
+function rollMeleeWeaponDamage(levelRequirement: number, rarity: Rarity): WeaponDamageRoll {
+  const byRarity = MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL[levelRequirement] ?? MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL[20];
+  const window = byRarity[rarity];
+  const rolledMin = randomInRange(window.minLow, window.minHigh);
+  const rolledMax = randomInRange(Math.max(window.maxLow, rolledMin), window.maxHigh);
+  return {
+    minRollRange: [window.minLow, window.minHigh],
+    rolledMin,
+    rolledMax,
+    maxRollRange: [window.maxLow, window.maxHigh],
+    averageDamage: (rolledMin + rolledMax) / 2
+  };
+}
+
+function buildRarityModifiers(item: Pick<InventoryItem, "rarity" | "archetype">): Pick<InventoryItem, "prefix" | "affix"> {
+  if (item.rarity === "common") {
+    return {};
+  }
+
+  const pool = getModifierPool(item);
+  const prefixTier = rollModifierTier();
+  const affixTier = rollModifierTier();
+  const prefix: ItemModifier = {
+    kind: "prefix",
+    tier: prefixTier,
+    name: pool.prefixNames[tierIndex(prefixTier)],
+    bonusLabel: pool.prefixBonusLabel,
+    bonusValue: pool.prefixBonusValues[tierIndex(prefixTier)]
+  };
+  const affix: ItemModifier = {
+    kind: "affix",
+    tier: affixTier,
+    name: pool.affixNames[tierIndex(affixTier)],
+    bonusLabel: pool.affixBonusLabel,
+    bonusValue: pool.affixBonusValues[tierIndex(affixTier)]
+  };
+
+  if (item.rarity === "uncommon") {
+    return Math.random() < 0.5 ? { prefix } : { affix };
+  }
+
+  return { prefix, affix };
+}
+
+function getPowerCategoryMultiplier(item: Pick<InventoryItem, "archetype">): number {
+  return item.archetype?.majorCategory === "weapon" ? WEAPON_POWER_MULTIPLIER : 1;
+}
+
+function computeMockItemPower(
+  item: Pick<InventoryItem, "levelRequirement" | "rarity" | "archetype" | "prefix" | "affix">
+): number {
+  const basePower = item.levelRequirement * ITEM_POWER_BASE_PER_LEVEL;
+  const rarityBonus = basePower * RARITY_POWER_BONUS_RATE[item.rarity];
+  const prefixBonus = item.prefix ? item.levelRequirement * MODIFIER_TIER_POWER_PER_LEVEL[item.prefix.tier] : 0;
+  const affixBonus = item.affix ? item.levelRequirement * MODIFIER_TIER_POWER_PER_LEVEL[item.affix.tier] : 0;
+  const totalBeforeCategoryMultiplier = basePower + rarityBonus + prefixBonus + affixBonus;
+  return Math.round(totalBeforeCategoryMultiplier * getPowerCategoryMultiplier(item));
+}
+
+function createMockMeleeWeaponItems(): MockInventoryItemSeed[] {
+  return MOCK_MELEE_WEAPON_LEVELS.map((levelRequirement, index) => {
+    const template = MOCK_MELEE_WEAPON_TEMPLATES[index];
+    const rarity = randomRarityFromPool(MOCK_MELEE_RARITY_POOL);
+    const baseStrength = Math.max(4, Math.round(levelRequirement / 4));
+    return {
+      id: `itm_mock_melee_${levelRequirement}`,
+      itemName: template.itemName,
+      rarity,
+      category: "Weapon",
+      equipable: true,
+      archetype: {
+        majorCategory: "weapon",
+        weaponArchetype: "melee",
+        weaponFamily: template.weaponFamily
+      },
+      equipSlotId: "weapon",
+      levelRequirement,
+      statBonuses: {
+        strength: baseStrength,
+        vitality: levelRequirement % 2 === 0 ? 2 : 1,
+        initiative: levelRequirement >= 21 ? 2 : 1
+      },
+      damageRoll: rollMeleeWeaponDamage(levelRequirement, rarity),
+      description: template.description
+    };
+  });
+}
+
+function createMockInventoryItems(): InventoryItem[] {
+  return [...createMockMeleeWeaponItems(), ...MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS].map((item) => {
+    const modifiers = buildRarityModifiers(item);
+    const itemWithModifiers: InventoryItem = {
+      ...item,
+      ...modifiers,
+      power: 0
+    };
+    return {
+      ...itemWithModifiers,
+      power: computeMockItemPower(itemWithModifiers)
+    };
+  });
+}
+
+function applyMockPlayerStateOverrides(state: PlayerState): PlayerState {
+  return {
+    ...state,
+    class: MOCK_WARRIOR_CLASS,
+    level: MOCK_WARRIOR_LEVEL
+  };
+}
 
 const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
@@ -544,6 +825,143 @@ function formatClassLabel(playerClass: PlayerState["class"]): string {
 
 function formatRarityLabel(rarity: Rarity): string {
   return rarity.charAt(0).toUpperCase() + rarity.slice(1);
+}
+
+function formatArchetypeLabel(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function getItemSubtypeLabel(item: InventoryItem): string {
+  const majorCategory = item.archetype?.majorCategory;
+  if (majorCategory === "armor" && item.archetype?.armorArchetype) {
+    return `${formatArchetypeLabel(item.archetype.armorArchetype)} Armor`;
+  }
+  if (majorCategory === "weapon" && item.archetype?.weaponArchetype) {
+    return `${formatArchetypeLabel(item.archetype.weaponArchetype)} Weapon`;
+  }
+  return item.category;
+}
+
+function getDisplayItemName(item: InventoryItem): string {
+  const prefixName = item.prefix?.name ? `${item.prefix.name} ` : "";
+  const affixName = item.affix?.name ? ` ${item.affix.name}` : "";
+  return `${prefixName}${item.itemName}${affixName}`.trim();
+}
+
+function getModifierTierClassName(tier: ModifierTier): string {
+  if (tier === "T1") {
+    return "modifierTier-t1";
+  }
+  if (tier === "T2") {
+    return "modifierTier-t2";
+  }
+  return "modifierTier-t3";
+}
+
+function renderItemDisplayName(item: InventoryItem): ReactElement {
+  return (
+    <>
+      {item.prefix ? <>{item.prefix.name} </> : null}
+      <span>{item.itemName}</span>
+      {item.affix ? <> {item.affix.name}</> : null}
+    </>
+  );
+}
+
+function getItemModifierStatLines(item: InventoryItem): ItemModifierStatLine[] {
+  const lines: ItemModifierStatLine[] = [];
+  if (item.prefix) {
+    lines.push({
+      id: `${item.id}-prefix`,
+      tier: item.prefix.tier,
+      label: item.prefix.bonusLabel,
+      value: item.prefix.bonusValue
+    });
+  }
+  if (item.affix) {
+    lines.push({
+      id: `${item.id}-affix`,
+      tier: item.affix.tier,
+      label: item.affix.bonusLabel,
+      value: item.affix.bonusValue
+    });
+  }
+  return lines;
+}
+
+function getWeaponDamageSummary(item: InventoryItem): { damageLine: string; rollLine: string } | null {
+  if (!item.damageRoll) {
+    return null;
+  }
+  const { minRollRange, maxRollRange, rolledMin, rolledMax, averageDamage } = item.damageRoll;
+  return {
+    damageLine: `Damage: ${formatOneDecimal(averageDamage)}`,
+    rollLine: `Roll: [${minRollRange[0]}-${minRollRange[1]}] ${rolledMin} - ${rolledMax} [${maxRollRange[0]}-${maxRollRange[1]}]`
+  };
+}
+
+function canPlayerUseItem(item: InventoryItem, playerState: PlayerState | null): boolean {
+  if (!item.equipable || !item.archetype || !playerState) {
+    return true;
+  }
+  const archetypeClassKey = item.archetype.weaponArchetype ?? item.archetype.armorArchetype;
+  const isClassEligible = isItemUsableByClass(playerState.class, item.archetype.majorCategory, archetypeClassKey);
+  const isLevelEligible = playerState.level >= item.levelRequirement;
+  return isClassEligible && isLevelEligible;
+}
+
+function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): ReactElement {
+  const subtypeLabel = getItemSubtypeLabel(item);
+  const modifierLines = getItemModifierStatLines(item);
+  const weaponDamageSummary = getWeaponDamageSummary(item);
+  const displayItemName = getDisplayItemName(item);
+
+  return (
+    <>
+      <div className="inventoryCardVisual">
+        {renderItemIcon({
+          majorCategory: item.archetype?.majorCategory,
+          category: item.category,
+          itemName: displayItemName,
+          className: `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
+        })}
+      </div>
+      <div className="inventoryCardContent">
+        <div className="inventoryCardTop">
+          <div className="inventoryCardMeta">
+            <h4>{renderItemDisplayName(item)}</h4>
+            <p className="inventoryCardCategory">{subtypeLabel}</p>
+          </div>
+          <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
+        </div>
+        {weaponDamageSummary ? (
+          <div className="inventoryCardDamageBlock">
+            <p className="inventoryCardDamagePrimary">{weaponDamageSummary.damageLine}</p>
+            <p className="inventoryCardDamageRollMeta">{weaponDamageSummary.rollLine}</p>
+          </div>
+        ) : null}
+        {modifierLines.length > 0 ? (
+          <div className="inventoryCardModifierList">
+            {modifierLines.map((line) => (
+              <p key={line.id} className="inventoryCardModifierLine">
+                <span className={`inventoryModifierTier ${getModifierTierClassName(line.tier)}`}>({line.tier})</span>{" "}
+                <span>
+                  {line.label} {line.value}
+                </span>
+              </p>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div className="inventoryCardDetails">
+        <p className="inventoryCardDescription inventoryCardFlavor">{item.description}</p>
+        <div className="inventoryCardFooter">
+          <span className="inventoryCardPower">Power {item.power}</span>
+          <span className="inventoryCardLevel">Level {item.levelRequirement}</span>
+        </div>
+      </div>
+    </>
+  );
 }
 
 type ItemIconVariant =
@@ -797,15 +1215,19 @@ export function App() {
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
-    MOCK_INVENTORY_ITEMS.slice(0, INVENTORY_ITEM_LIMIT)
+    createMockInventoryItems().slice(0, INVENTORY_ITEM_LIMIT)
   );
+  const [equippedItems, setEquippedItems] = useState<EquippedItems>(() => createEmptyEquippedItems());
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
   const [profileSideTab, setProfileSideTab] = useState<ProfileSideTab>("inventory");
   const [draggingInventoryCardId, setDraggingInventoryCardId] = useState<string | null>(null);
+  const [draggingEquipmentSlotId, setDraggingEquipmentSlotId] = useState<EquipmentSlotId | null>(null);
   const [dropTargetInventoryCardId, setDropTargetInventoryCardId] = useState<string | null>(null);
   const [dropInsertPosition, setDropInsertPosition] = useState<InventoryInsertPosition>("before");
+  const [equipmentDropTargetSlotId, setEquipmentDropTargetSlotId] = useState<EquipmentSlotId | null>(null);
+  const [equipmentDropState, setEquipmentDropState] = useState<"valid" | "invalid" | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
   const [activeStatTraining, setActiveStatTraining] = useState<{
@@ -824,6 +1246,11 @@ export function App() {
     () => contractSlots.filter((slot) => slot.offer === null && slot.replenishReadyAt !== null),
     [contractSlots]
   );
+  const draggingInventoryItem = useMemo(
+    () => (draggingInventoryCardId ? inventoryItems.find((item) => item.id === draggingInventoryCardId) ?? null : null),
+    [draggingInventoryCardId, inventoryItems]
+  );
+  const hintedEquipmentSlotId = draggingInventoryItem?.equipSlotId ?? null;
 
   const healthPercent = playerState
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
@@ -840,18 +1267,18 @@ export function App() {
       luck: 0
     };
 
-    (Object.keys(MOCK_EQUIPMENT) as EquipmentSlotId[]).forEach((slotId) => {
-      if (!MOCK_EQUIPMENT[slotId].itemName) {
+    ALL_EQUIPMENT_SLOTS.forEach((slotId) => {
+      const item = equippedItems[slotId];
+      if (!item || !item.statBonuses) {
         return;
       }
-      const bonuses = EQUIPMENT_STAT_BONUSES[slotId];
-      (Object.keys(bonuses) as TrainableStatKey[]).forEach((statKey) => {
-        totals[statKey] += bonuses[statKey] ?? 0;
+      (Object.keys(item.statBonuses) as TrainableStatKey[]).forEach((statKey) => {
+        totals[statKey] += item.statBonuses?.[statKey] ?? 0;
       });
     });
 
     return totals;
-  }, []);
+  }, [equippedItems]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -877,14 +1304,20 @@ export function App() {
   useEffect(() => {
     if (activeTab !== "inventory") {
       setDraggingInventoryCardId(null);
+      setDraggingEquipmentSlotId(null);
       setDropTargetInventoryCardId(null);
+      setEquipmentDropTargetSlotId(null);
+      setEquipmentDropState(null);
     }
   }, [activeTab]);
 
   useEffect(() => {
     if (profileSideTab !== "inventory") {
       setDraggingInventoryCardId(null);
+      setDraggingEquipmentSlotId(null);
       setDropTargetInventoryCardId(null);
+      setEquipmentDropTargetSlotId(null);
+      setEquipmentDropState(null);
     }
   }, [profileSideTab]);
 
@@ -905,7 +1338,7 @@ export function App() {
     void fetchPlayerState(token)
       .then((state) => {
         if (active) {
-          setPlayerState(state);
+          setPlayerState(applyMockPlayerStateOverrides(state));
         }
       })
       .catch((err: unknown) => {
@@ -1012,9 +1445,13 @@ export function App() {
     setPlayerState(null);
     setActiveTab("inventory");
     setError(null);
-    setInventoryItems(MOCK_INVENTORY_ITEMS.slice(0, INVENTORY_ITEM_LIMIT));
+    setInventoryItems(createMockInventoryItems().slice(0, INVENTORY_ITEM_LIMIT));
+    setEquippedItems(createEmptyEquippedItems());
     setDraggingInventoryCardId(null);
+    setDraggingEquipmentSlotId(null);
     setDropTargetInventoryCardId(null);
+    setEquipmentDropTargetSlotId(null);
+    setEquipmentDropState(null);
     setBaseStats(null);
     setCurrencies(null);
     setActiveStatTraining(null);
@@ -1077,6 +1514,198 @@ export function App() {
     });
   }
 
+  function isEquipmentSlotId(value: string): value is EquipmentSlotId {
+    return ALL_EQUIPMENT_SLOTS.includes(value as EquipmentSlotId);
+  }
+
+  function setDragPayload(event: DragEvent<HTMLElement>, payload: DragPayload) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(DRAG_PAYLOAD_MIME, JSON.stringify(payload));
+    event.dataTransfer.setData("application/x-ebonkeep-item-id", payload.itemId);
+    event.dataTransfer.setData("text/plain", payload.itemId);
+  }
+
+  function readDragPayload(event: DragEvent<HTMLElement>): DragPayload | null {
+    const serializedPayload = event.dataTransfer.getData(DRAG_PAYLOAD_MIME);
+    if (serializedPayload) {
+      try {
+        const parsedPayload = JSON.parse(serializedPayload) as Partial<DragPayload>;
+        if (parsedPayload.source === "inventory" && typeof parsedPayload.itemId === "string") {
+          return { source: "inventory", itemId: parsedPayload.itemId };
+        }
+        if (
+          parsedPayload.source === "equipment" &&
+          typeof parsedPayload.itemId === "string" &&
+          typeof parsedPayload.slotId === "string" &&
+          isEquipmentSlotId(parsedPayload.slotId)
+        ) {
+          return { source: "equipment", itemId: parsedPayload.itemId, slotId: parsedPayload.slotId };
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    const fallbackItemId =
+      event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
+      event.dataTransfer.getData("text/plain");
+    if (fallbackItemId) {
+      return { source: "inventory", itemId: fallbackItemId };
+    }
+
+    if (draggingEquipmentSlotId) {
+      const equippedItem = equippedItems[draggingEquipmentSlotId];
+      if (equippedItem) {
+        return { source: "equipment", slotId: draggingEquipmentSlotId, itemId: equippedItem.id };
+      }
+    }
+
+    if (draggingInventoryCardId) {
+      return { source: "inventory", itemId: draggingInventoryCardId };
+    }
+
+    return null;
+  }
+
+  function clearDragState() {
+    setDraggingInventoryCardId(null);
+    setDraggingEquipmentSlotId(null);
+    setDropTargetInventoryCardId(null);
+    setEquipmentDropTargetSlotId(null);
+    setEquipmentDropState(null);
+  }
+
+  function getItemById(itemId: string): InventoryItem | null {
+    return inventoryItems.find((item) => item.id === itemId) ?? null;
+  }
+
+  function getEquipValidationError(item: InventoryItem, targetSlotId: EquipmentSlotId): string | null {
+    if (!item.equipable) {
+      return "Item cannot be equipped.";
+    }
+    if (item.equipSlotId !== targetSlotId) {
+      return `Wrong slot. This item fits ${EQUIPMENT_SLOTS[item.equipSlotId].label}.`;
+    }
+
+    if (!playerState) {
+      return "Player state unavailable.";
+    }
+
+    if (item.levelRequirement > playerState.level) {
+      return `Requires level ${item.levelRequirement}.`;
+    }
+
+    if (item.archetype) {
+      const archetypeClassKey = item.archetype.weaponArchetype ?? item.archetype.armorArchetype;
+      if (!isItemUsableByClass(playerState.class, item.archetype.majorCategory, archetypeClassKey)) {
+        return "Class restriction: your class cannot equip this item.";
+      }
+
+      if (item.archetype.majorCategory === "vestige" && item.archetype.vestigeId) {
+        const equippedVestigeIds = EQUIPMENT_VESTIGE_SLOTS
+          .map((slotId) => equippedItems[slotId]?.archetype?.vestigeId)
+          .filter((vestigeId): vestigeId is VestigeId => vestigeId !== undefined);
+        if (
+          equippedVestigeIds.includes(item.archetype.vestigeId) &&
+          equippedItems[targetSlotId]?.archetype?.vestigeId !== item.archetype.vestigeId
+        ) {
+          return "Duplicate vestige cannot be equipped.";
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function insertItemAroundTarget(
+    items: InventoryItem[],
+    itemToInsert: InventoryItem,
+    targetItemId: string,
+    insertPosition: InventoryInsertPosition
+  ): InventoryItem[] {
+    const targetIndex = items.findIndex((item) => item.id === targetItemId);
+    if (targetIndex < 0) {
+      return [...items, itemToInsert];
+    }
+
+    const insertIndex = insertPosition === "after" ? targetIndex + 1 : targetIndex;
+    const nextItems = [...items];
+    nextItems.splice(insertIndex, 0, itemToInsert);
+    return nextItems;
+  }
+
+  function equipInventoryItemToSlot(itemId: string, targetSlotId: EquipmentSlotId) {
+    const sourceIndex = inventoryItems.findIndex((item) => item.id === itemId);
+    if (sourceIndex < 0) {
+      return;
+    }
+
+    const sourceItem = inventoryItems[sourceIndex];
+    const validationError = getEquipValidationError(sourceItem, targetSlotId);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    const nextInventory = [...inventoryItems];
+    nextInventory.splice(sourceIndex, 1);
+    const displacedItem = equippedItems[targetSlotId];
+    if (displacedItem) {
+      nextInventory.splice(sourceIndex, 0, displacedItem);
+    }
+
+    if (nextInventory.length > INVENTORY_ITEM_LIMIT) {
+      setError("Inventory is full. Clear space before swapping.");
+      return;
+    }
+
+    setInventoryItems(nextInventory);
+    setEquippedItems({
+      ...equippedItems,
+      [targetSlotId]: sourceItem
+    });
+    setError(null);
+  }
+
+  function unequipItemToInventory(
+    sourceSlotId: EquipmentSlotId,
+    targetItemId?: string,
+    insertPosition: InventoryInsertPosition = "after"
+  ) {
+    const sourceItem = equippedItems[sourceSlotId];
+    if (!sourceItem) {
+      return;
+    }
+
+    if (inventoryItems.length >= INVENTORY_ITEM_LIMIT) {
+      setError("Inventory is full. Cannot unequip item.");
+      return;
+    }
+
+    const nextInventory = targetItemId
+      ? insertItemAroundTarget(inventoryItems, sourceItem, targetItemId, insertPosition)
+      : [...inventoryItems, sourceItem];
+
+    setInventoryItems(nextInventory);
+    setEquippedItems({
+      ...equippedItems,
+      [sourceSlotId]: null
+    });
+    setError(null);
+  }
+
+  function handleInventoryCardDoubleClick(itemId: string) {
+    const item = getItemById(itemId);
+    if (!item) {
+      return;
+    }
+    equipInventoryItemToSlot(itemId, item.equipSlotId);
+  }
+
+  function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
+    unequipItemToInventory(slotId);
+  }
+
   function autoScrollInventoryList(pointerY: number) {
     const scrollContainer = sidePanelScrollRef.current;
     if (!scrollContainer) {
@@ -1100,15 +1729,35 @@ export function App() {
   }
 
   function handleInventoryCardDragStart(event: DragEvent<HTMLElement>, itemId: string) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", itemId);
-    event.dataTransfer.setData("application/x-ebonkeep-item-id", itemId);
+    setDragPayload(event, { source: "inventory", itemId });
     setDraggingInventoryCardId(itemId);
+    setDraggingEquipmentSlotId(null);
     setDropTargetInventoryCardId(itemId);
     setDropInsertPosition("before");
+    setEquipmentDropTargetSlotId(null);
+    setEquipmentDropState(null);
+  }
+
+  function handleEquipmentSlotDragStart(event: DragEvent<HTMLElement>, slotId: EquipmentSlotId) {
+    const sourceItem = equippedItems[slotId];
+    if (!sourceItem) {
+      return;
+    }
+
+    setDragPayload(event, { source: "equipment", slotId, itemId: sourceItem.id });
+    setDraggingEquipmentSlotId(slotId);
+    setDraggingInventoryCardId(null);
+    setDropTargetInventoryCardId(null);
+    setEquipmentDropTargetSlotId(null);
+    setEquipmentDropState(null);
   }
 
   function handleInventoryCardDragOver(event: DragEvent<HTMLElement>, targetItemId: string) {
+    const payload = readDragPayload(event);
+    if (!payload) {
+      return;
+    }
+
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
     const cardRect = event.currentTarget.getBoundingClientRect();
@@ -1120,41 +1769,112 @@ export function App() {
     if (dropInsertPosition !== insertPosition) {
       setDropInsertPosition(insertPosition);
     }
+    if (equipmentDropTargetSlotId !== null) {
+      setEquipmentDropTargetSlotId(null);
+      setEquipmentDropState(null);
+    }
     autoScrollInventoryList(event.clientY);
   }
 
   function handleInventoryCardDrop(event: DragEvent<HTMLElement>, targetItemId: string) {
     event.preventDefault();
-    const sourceItemId =
-      event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
-      event.dataTransfer.getData("text/plain") ||
-      draggingInventoryCardId;
-    if (!sourceItemId) {
-      return;
+    const payload = readDragPayload(event);
+    if (payload?.source === "inventory") {
+      reorderInventoryItems(payload.itemId, targetItemId, dropInsertPosition);
+    } else if (payload?.source === "equipment") {
+      unequipItemToInventory(payload.slotId, targetItemId, dropInsertPosition);
     }
-    reorderInventoryItems(sourceItemId, targetItemId, dropInsertPosition);
-    setDraggingInventoryCardId(null);
-    setDropTargetInventoryCardId(null);
+    clearDragState();
   }
 
   function handleInventoryCardDragEnd() {
-    setDraggingInventoryCardId(null);
-    setDropTargetInventoryCardId(null);
+    clearDragState();
+  }
+
+  function handleEquipmentSlotDragOver(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
+    const payload = readDragPayload(event);
+    if (!payload) {
+      return;
+    }
+
+    event.preventDefault();
+    if (payload.source !== "inventory") {
+      event.dataTransfer.dropEffect = "none";
+      setEquipmentDropTargetSlotId(targetSlotId);
+      setEquipmentDropState("invalid");
+      return;
+    }
+
+    const sourceItem = getItemById(payload.itemId);
+    const validationError = sourceItem ? getEquipValidationError(sourceItem, targetSlotId) : "Invalid item.";
+    event.dataTransfer.dropEffect = validationError ? "none" : "move";
+    setEquipmentDropTargetSlotId(targetSlotId);
+    setEquipmentDropState(validationError ? "invalid" : "valid");
+  }
+
+  function handleEquipmentSlotDrop(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
+    event.preventDefault();
+    const payload = readDragPayload(event);
+    if (payload?.source === "inventory") {
+      equipInventoryItemToSlot(payload.itemId, targetSlotId);
+    }
+    clearDragState();
+  }
+
+  function handleEquipmentSlotDragLeave(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
+    const relatedTarget = event.relatedTarget as Node | null;
+    if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
+      return;
+    }
+    if (equipmentDropTargetSlotId === targetSlotId) {
+      setEquipmentDropTargetSlotId(null);
+      setEquipmentDropState(null);
+    }
   }
 
   function handleInventoryListDragOver(event: DragEvent<HTMLDivElement>) {
+    const payload = readDragPayload(event);
+    if (!payload) {
+      return;
+    }
+
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+    if (equipmentDropTargetSlotId !== null) {
+      setEquipmentDropTargetSlotId(null);
+      setEquipmentDropState(null);
+    }
     autoScrollInventoryList(event.clientY);
   }
 
   function handleInventoryListDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
-    const sourceItemId =
-      event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
-      event.dataTransfer.getData("text/plain") ||
-      draggingInventoryCardId;
-    if (!sourceItemId || inventoryItems.length === 0) {
+    const payload = readDragPayload(event);
+    if (!payload) {
+      clearDragState();
+      return;
+    }
+
+    if (payload.source === "equipment") {
+      if (inventoryItems.length === 0) {
+        unequipItemToInventory(payload.slotId);
+        clearDragState();
+        return;
+      }
+
+      const containerRect = event.currentTarget.getBoundingClientRect();
+      const insertAtEnd = event.clientY >= containerRect.top + containerRect.height / 2;
+      const targetItemId = insertAtEnd ? inventoryItems[inventoryItems.length - 1].id : inventoryItems[0].id;
+      const fallbackPosition: InventoryInsertPosition = insertAtEnd ? "after" : "before";
+      const resolvedPosition =
+        dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
+      unequipItemToInventory(payload.slotId, targetItemId, resolvedPosition);
+      clearDragState();
+      return;
+    }
+
+    if (inventoryItems.length === 0) {
+      clearDragState();
       return;
     }
 
@@ -1165,9 +1885,8 @@ export function App() {
     const resolvedPosition =
       dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
 
-    reorderInventoryItems(sourceItemId, targetItem.id, resolvedPosition);
-    setDraggingInventoryCardId(null);
-    setDropTargetInventoryCardId(null);
+    reorderInventoryItems(payload.itemId, targetItem.id, resolvedPosition);
+    clearDragState();
   }
 
   function formatContractDifficulty(difficulty: ContractDifficulty): string {
@@ -1199,13 +1918,27 @@ export function App() {
     extraClassName = "",
     tooltipPlacement: "left" | "right" | "top" = "right"
   ) {
-    const slot = MOCK_EQUIPMENT[slotId];
-    const hasItem = slot.itemName !== null;
-    const rarity = slot.rarity ?? "common";
+    const slot = EQUIPMENT_SLOTS[slotId];
+    const equippedItem = equippedItems[slotId];
+    const displayItemName = equippedItem ? getDisplayItemName(equippedItem) : null;
+    const hasItem = equippedItem !== null;
+    const rarity = equippedItem?.rarity ?? "common";
+    const canUseEquippedItem = equippedItem ? canPlayerUseItem(equippedItem, playerState) : true;
+    const dropTargetClass =
+      equipmentDropTargetSlotId === slotId && equipmentDropState === "valid"
+        ? " dropTargetValid"
+        : equipmentDropTargetSlotId === slotId && equipmentDropState === "invalid"
+          ? " dropTargetInvalid"
+          : "";
+    const hintClass = hintedEquipmentSlotId === slotId ? " slotHint" : "";
+    const dragSourceClass = draggingEquipmentSlotId === slotId ? " isDragSource" : "";
     const classNames = [
       "equipmentCell",
       "equipmentCellIconOnly",
       extraClassName,
+      dropTargetClass,
+      hintClass,
+      dragSourceClass,
       hasItem ? "hasItem" : "isEmpty",
       hasItem ? `rarity-${rarity}` : ""
     ]
@@ -1213,38 +1946,28 @@ export function App() {
       .join(" ");
 
     return (
-      <div key={slotId} className={classNames} aria-label={hasItem ? `${slot.label}: ${slot.itemName}` : `${slot.label}: Empty`}>
+      <div
+        key={slotId}
+        className={classNames}
+        draggable={hasItem}
+        onDragStart={hasItem ? (event) => handleEquipmentSlotDragStart(event, slotId) : undefined}
+        onDragOver={(event) => handleEquipmentSlotDragOver(event, slotId)}
+        onDrop={(event) => handleEquipmentSlotDrop(event, slotId)}
+        onDragLeave={(event) => handleEquipmentSlotDragLeave(event, slotId)}
+        onDoubleClick={hasItem ? () => handleEquipmentSlotDoubleClick(slotId) : undefined}
+        onDragEnd={handleInventoryCardDragEnd}
+        aria-label={hasItem ? `${slot.label}: ${displayItemName}` : `${slot.label}: Empty`}
+      >
         {renderItemIcon({
-          majorCategory: slot.majorCategory,
-          category: slot.category,
-          itemName: slot.itemName ?? slot.label,
+          majorCategory: equippedItem?.archetype?.majorCategory ?? slot.majorCategory,
+          category: equippedItem?.category ?? slot.label,
+          itemName: displayItemName ?? slot.label,
           className: `equipmentItemIcon${hasItem ? "" : " isPlaceholder"}`
         })}
-        {hasItem ? (
+        {equippedItem ? (
           <div className={`equipmentItemTooltip tooltip-${tooltipPlacement}`} role="tooltip">
             <article className={`inventoryItemCard equipmentTooltipCard rarity-${rarity}`}>
-              <div className="inventoryCardVisual">
-                {renderItemIcon({
-                  majorCategory: slot.majorCategory,
-                  category: slot.category,
-                  itemName: slot.itemName,
-                  className: "inventoryCardIcon"
-                })}
-              </div>
-              <div className="inventoryCardContent">
-                <div className="inventoryCardTop">
-                  <div className="inventoryCardMeta">
-                    <h4>{slot.itemName}</h4>
-                    <p className="inventoryCardCategory">{slot.category}</p>
-                    <p className="inventoryCardCategory">Slot: {slot.label}</p>
-                  </div>
-                  <span className="inventoryCardRarity">{formatRarityLabel(rarity)}</span>
-                </div>
-                <p className="inventoryCardDescription">
-                  {slot.description ?? `${slot.itemName} is equipped in ${slot.label}.`}
-                </p>
-                <p className="inventoryCardPower">Power {slot.power ?? 0}</p>
-              </div>
+              {renderInventoryItemCardBody(equippedItem, canUseEquippedItem)}
             </article>
           </div>
         ) : null}
@@ -1463,16 +2186,7 @@ export function App() {
                 ? " dropCueBefore"
                 : " dropCueAfter"
               : "";
-          const archetypeDetail = item.archetype
-            ? `${item.archetype.majorCategory}${
-                item.archetype.weaponFamily ? `:${item.archetype.weaponFamily}` : ""
-              }`
-            : null;
-          const archetypeClassKey = item.archetype?.weaponArchetype ?? item.archetype?.armorArchetype;
-          const isUsableByClass =
-            item.equipable && item.archetype && playerState
-              ? isItemUsableByClass(playerState.class, item.archetype.majorCategory, archetypeClassKey)
-              : null;
+          const canUseItem = canPlayerUseItem(item, playerState);
           return (
             <article
               key={item.id}
@@ -1481,31 +2195,10 @@ export function App() {
               onDragStart={allowDrag ? (event) => handleInventoryCardDragStart(event, item.id) : undefined}
               onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
               onDrop={allowDrag ? (event) => handleInventoryCardDrop(event, item.id) : undefined}
+              onDoubleClick={allowDrag ? () => handleInventoryCardDoubleClick(item.id) : undefined}
               onDragEnd={allowDrag ? handleInventoryCardDragEnd : undefined}
             >
-              <div className="inventoryCardVisual">
-                {renderItemIcon({
-                  majorCategory: item.archetype?.majorCategory,
-                  category: item.category,
-                  itemName: item.itemName,
-                  className: "inventoryCardIcon"
-                })}
-              </div>
-              <div className="inventoryCardContent">
-                <div className="inventoryCardTop">
-                  <div className="inventoryCardMeta">
-                    <h4>{item.itemName}</h4>
-                    <p className="inventoryCardCategory">{item.category}</p>
-                    {archetypeDetail ? <p className="inventoryCardCategory">Archetype: {archetypeDetail}</p> : null}
-                    {isUsableByClass === false ? (
-                      <p className="inventoryCardCategory">Class Restriction: Not usable by your class</p>
-                    ) : null}
-                  </div>
-                  <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
-                </div>
-                <p className="inventoryCardDescription">{item.description}</p>
-                <p className="inventoryCardPower">Power {item.power}</p>
-              </div>
+              {renderInventoryItemCardBody(item, canUseItem)}
             </article>
           );
         })}
