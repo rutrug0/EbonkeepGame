@@ -12,7 +12,6 @@ Define warrior melee weapon progression with:
 - Damage category profiles: `docs/data/weapon_damage_category_profiles.csv`
 - Generated scaling table: `docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv`
 - Generated name/range table: `docs/data/warrior_melee_weapon_name_ranges_v4.csv`
-- Curated art-prompt source: `docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv`
 - Generator: `tools/generate_warrior_weapon_tables.ps1`
 
 ## Name Table Metadata Columns
@@ -21,8 +20,6 @@ Define warrior melee weapon progression with:
 - `allowed_class` (always `warrior` for this table)
 - `weapon_type` (`Sword` or `Axe`)
 - `flavor_text` (single-sentence lore hint line, used as item identity text)
-
-`docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv` is the curated source used by the item art pipeline and includes everything above plus:
 - `prompt_item_description` (hand-authored per-row item art prompt)
 
 ### Flavor Text Voice Rules (Curated Tables)
@@ -38,6 +35,7 @@ Define warrior melee weapon progression with:
 
 ## Drop Range Rules (Name Table)
 - Weapon sequence base levels increase by `+4`.
+- Curated weapon rows follow strict type alternation by sequence: `Axe` then `Sword`, repeating.
 - Drop window is `base_level +/- 10`.
 - Lower bound is clamped to `0`.
 - Upper bound includes:
@@ -61,6 +59,10 @@ This matches examples:
   - `item_roll_min in [template_min * (1-variance), template_min * (1+variance)]`
   - `item_roll_max in [template_max * (1-variance), template_max * (1+variance)]`
 - Actual attack hit then rolls between the item's generated min/max.
+- Runtime applies an additional base-level influence multiplier (no clamp):
+  - `multiplier = (1 - w) + w * ((base_avg_common + avg_growth_per_ilvl * base_level) / (base_avg_common + avg_growth_per_ilvl * ilvl))`
+  - `w = base_level_influence_weight` from `docs/data/warrior_weapon_damage_coefficients_v2.csv` (default `0.25`)
+  - multiplier is applied post-lookup to roll windows before min/max damage are rolled.
 
 Rarity multipliers:
 - Common: `1.00`

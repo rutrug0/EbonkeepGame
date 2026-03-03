@@ -212,6 +212,7 @@ export const devWeaponSchema = z.object({
   displayLine: z.string(),
   rarity: z.enum(["common", "uncommon", "rare", "epic"]),
   level: z.number().int().min(1).max(100),
+  baseLevel: z.number().int().min(0).max(100),
   weaponFamily: weaponArchetypeSchema,
   allowedClass: playerClassSchema,
   minDamage: z.number().int().min(0),

@@ -201,6 +201,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH), help="Path to prompt/source YAML config.")
     parser.add_argument(
+        "--weapon-type",
+        default=None,
+        help="Only include weapon rows matching this type (case-insensitive), e.g. axe.",
+    )
+    parser.add_argument(
         "--ca-bundle",
         default=None,
         help="Path to a PEM CA bundle for TLS verification (optional).",
@@ -481,6 +486,7 @@ def build_ssl_context(*, insecure: bool, ca_bundle: str | None) -> ssl.SSLContex
 def main() -> int:
     args = parse_args()
     load_dotenv(DEFAULT_ENV_PATH)
+    weapon_type_filter = (args.weapon_type or "").strip().lower()
 
     config_path = Path(args.config)
     if not config_path.is_absolute():
@@ -498,7 +504,7 @@ def main() -> int:
 
     render_defaults = config.get("render_defaults", {})
     model = str(render_defaults.get("model", "gpt-image-1"))
-    size = str(render_defaults.get("size", "1024x1024"))
+    size = str(render_defaults.get("size", "512x512"))
     background = str(render_defaults.get("background", "transparent"))
     quality = str(render_defaults.get("quality", "low"))
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com")
@@ -521,6 +527,7 @@ def main() -> int:
         "eligible_rows": 0,
         "skipped_missing_prompt": 0,
         "skipped_source_filter": 0,
+        "skipped_weapon_type_filter": 0,
         "skipped_family_prompt": 0,
         "skipped_unchanged": 0,
         "generated": 0,
@@ -557,6 +564,11 @@ def main() -> int:
             if record is None:
                 counts["skipped_missing_prompt"] += 1
                 continue
+
+            if weapon_type_filter:
+                if record.major_category != "weapon" or record.item_type.strip().lower() != weapon_type_filter:
+                    counts["skipped_weapon_type_filter"] += 1
+                    continue
 
             family_prompts = config.get("families", {})
             family_prompt = str(family_prompts.get(record.family_key, "")).strip()
@@ -752,6 +764,7 @@ def main() -> int:
         "config_path": str(config_path),
         "output_dir": str(output_dir),
         "sources_filter": args.sources,
+        "weapon_type_filter": weapon_type_filter,
         "dry_run": args.dry_run,
         "force": args.force,
         "only_missing": args.only_missing,

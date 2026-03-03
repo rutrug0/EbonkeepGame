@@ -12,7 +12,6 @@ Define ranger ranged weapon progression with:
 - Damage category profiles: `docs/data/weapon_damage_category_profiles.csv`
 - Generated scaling table: `docs/data/ranger_ranged_weapon_ilvl_scaling_v1.csv`
 - Generated name/range table: `docs/data/ranger_ranged_weapon_name_ranges_v3.csv`
-- Curated art-prompt source: `docs/data/ranger_ranged_weapon_name_ranges_v2.csv`
 - Generator: `tools/generate_warrior_weapon_tables.ps1`
 
 ## Name Table Metadata Columns
@@ -21,8 +20,6 @@ Define ranger ranged weapon progression with:
 - `allowed_class` (always `ranger` for this table)
 - `weapon_type` (`Bow` or `Sling`)
 - `flavor_text` (single-sentence lore hint line, used as item identity text)
-
-`docs/data/ranger_ranged_weapon_name_ranges_v2.csv` is the curated source used by the item art pipeline and includes:
 - `prompt_item_description` (hand-authored per-row item art prompt)
 
 ### Flavor Text Voice Rules (Curated Tables)
@@ -34,6 +31,7 @@ Define ranger ranged weapon progression with:
 
 ## Drop Range Rules
 - Weapon sequence base levels increase by `+4`.
+- Curated weapon rows follow strict type alternation by sequence: `Sling` then `Bow`, repeating.
 - Drop window is `base_level +/- 10`.
 - Lower bound is clamped to `0`.
 - Upper bound is capped to current level cap (default `100`).
@@ -45,6 +43,10 @@ Define ranger ranged weapon progression with:
   - template range by rarity
   - item min/max roll bands
   - per-hit roll between generated min/max
+- Runtime also applies base-level influence (no clamp) using:
+  - `multiplier = (1 - w) + w * ((base_avg_common + avg_growth_per_ilvl * base_level) / (base_avg_common + avg_growth_per_ilvl * ilvl))`
+  - `w = base_level_influence_weight` from `docs/data/warrior_weapon_damage_coefficients_v2.csv` (default `0.25`)
+  - multiplier is applied post-lookup to roll windows before min/max damage are rolled.
 
 ## Regenerate
 `powershell -ExecutionPolicy Bypass -File .\tools\generate_warrior_weapon_tables.ps1`

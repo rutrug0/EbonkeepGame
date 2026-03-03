@@ -86,7 +86,9 @@
 ### Item Power Score Formula (Level 1-100)
 - Goal: item power should be driven mostly by item level, with smaller contributions from base rarity and prefix/suffix tier quality.
 - Canonical formula:
-  - `base_power = item_level * 8`
+  - `power_level = item_level` for armor/jewelry
+  - `power_level = item_level * 0.75 + weapon_base_level * 0.25` for weapons
+  - `base_power = power_level * 8`
   - `rarity_bonus = base_power * rarity_bonus_rate`
   - `roll_bonus = prefix_tier_bonus + suffix_tier_bonus`
   - `total_item_power = round_nearest((base_power + rarity_bonus + roll_bonus) * category_power_multiplier)`
@@ -114,9 +116,9 @@ Prefix/suffix tier bonus formulas:
 
 | Roll Tier | Per-roll bonus formula |
 |---|---|
-| T1 | `item_level * 0.25` |
-| T2 | `item_level * 0.50` |
-| T3 | `item_level * 0.75` |
+| T1 | `power_level * 0.25` |
+| T2 | `power_level * 0.50` |
+| T3 | `power_level * 0.75` |
 
 Roll presence by item rarity:
 - Common: no prefix/suffix roll
@@ -132,9 +134,11 @@ Worked examples:
 | Level 100 Uncommon Jewelry + T1 roll | `(800 + 80 + 25) * 1.0` | `905` |
 | Level 100 Rare Weapon + T3 prefix + T3 suffix | `(800 + 160 + 75 + 75) * 2.0` | `2220` |
 | Level 57 Rare Weapon + T1 prefix + T2 suffix | `(456 + 91.2 + 14.25 + 28.5) * 2.0 = 1179.9`, then round | `1180` |
+| Level 50 Rare Weapon with base level 56 + T1 prefix + T2 suffix | `power_level=51.5`, then `(412 + 82.4 + 12.875 + 25.75) * 2.0 = 1066.05`, then round | `1066` |
 
 Data contract (documentation-level, for backend/frontend alignment):
 - `item_level`: integer in `[1, 100]`
+- `weapon_base_level`: integer in `[0, 100]` (required for weapons, ignored for non-weapons)
 - `rarity`: `common | uncommon | rare | epic`
 - `prefix_tier`: `null | T1 | T2 | T3`
 - `suffix_tier`: `null | T1 | T2 | T3`

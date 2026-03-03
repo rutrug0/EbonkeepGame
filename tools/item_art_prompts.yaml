@@ -2,13 +2,13 @@
   "general_prompt": "Rendering Model (Strict):\n\n2D game asset illustration\n\nhard cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp shadow edges, no gradient blending\n\nno soft lighting\n\nno volumetric light\n\nno bloom outside silhouette\n\nno painterly brush texture\n\nno realistic rendering\n\nno 3D render look\n\nflat color fills\n\nminimal surface noise (subtle 5-10% texture only)\n\nLine & Shape Control:\n\nmedium-weight outer contour line\n\nthinner internal detail lines\n\nclean ink-style linework\n\nbold, readable silhouette\n\nsimplified surface detail\n\nno micro-detail rendering\n\nMaterial Definition:\n\nmetal rendered with flat highlight bands (no soft reflections)\n\nhighlights are graphic shapes, not gradients\n\nsteel tone slightly desaturated\n\nno high-gloss photoreal reflections\n\nColor System:\n\nmuted earthy palette\n\nsaturation restrained (moderate, not vibrant)\n\nselective accent highlight only\n\nglow restricted to thin contained lines\n\nglow does not spill beyond object silhouette\n\nRealism Control:\n\nsemi-realistic proportions (grounded but clearly illustrative)\n\nrealism level 4/10\n\nnot cartoon exaggerated\n\nnot photorealistic\n\nProhibited:\n\nno painterly rendering\n\nno soft gradient shading\n\nno dramatic cinematic lighting\n\nno heavy texture noise\n\nno environmental lighting\n\nno background elements\n\nAsset Presentation Rules (Locked)\n\nsingle isolated item\n\ncentered composition\n\ntransparent background (alpha channel)\n\nno environment\n\nno floor\n\nno cast shadow outside silhouette\n\nclean UI-ready presentation",
   "render_defaults": {
     "model": "gpt-image-1.5",
-    "size": "1024x1024",
+    "size": "512x512",
     "background": "transparent",
     "quality": "medium"
   },
   "families": {
     "weapon:melee:sword": "One melee sword only. Close crop detail composition. Guard and grip are the primary focus. Pommel must be clearly visible. Grip length and thickness must look realistically proportioned for a usable one-handed or hand-and-a-half sword, never toy-like or oversized. Show only a small beginning section of blade emerging from the guard, never a long blade segment and never full weapon length. Sword orientation is locked with hilt in lower-left and blade tip direction in upper-right. Keep a consistent diagonal from lower-left to upper-right with a shallow 10-15 degree rise toward top-right, never mirrored or reversed. No hand, no scabbard, no character.",
-    "weapon:melee:axe": "One melee axe only. Close crop detail composition. Axe head is the primary focus. If the head is single-bit, the cutting edge must face right or slight bottom-right to match the overall tilt, never left. Show only a partial haft and never the full weapon length. The haft must physically reach the lower-left frame boundary and be visibly cropped by the image edge so it clearly continues out of frame, never ending inside the image. Keep a consistent diagonal from lower-left to upper-right with a shallow 10-15 degree rise toward top-right. No hand, no character.",
+    "weapon:melee:axe": "One melee axe only. Close crop detail composition. Axe head is the primary focus. If the head is single-bit, the cutting edge must face right or slight bottom-right to match the overall tilt, never left. Show only a partial haft and never the full weapon length. The haft must physically reach the lower-left frame boundary and be visibly cropped by the image edge so it clearly continues out of frame, never ending inside the image. Haft geometry is strict: the shaft centerline must be one continuous straight line from the lower-left crop into and through the axe eye, with no kink, elbow, dogleg, S-curve, or sudden angle change near the head. The wood grain direction and any wraps must follow that same straight axis. Keep a consistent diagonal from lower-left to upper-right with a shallow 10-15 degree rise toward top-right. No hand, no character.",
     "weapon:ranged:bow": "One ranged bow only. Close crop detail composition around the grip and riser area, with only partial upper and lower limbs visible. Keep a consistent diagonal from lower-left to upper-right with a shallow 10-15 degree rise toward top-right. Do not show full bow length. Place the bowstring run noticeably closer to the bottom-left region of the frame, clearly separated from the grip window and riser, with a strong visible gap so the string never sits on or against the grip. No hand, no character.",
     "weapon:ranged:sling": "One ranged sling only. Full sling is allowed and should remain fully readable. The pouch must have two distinct visible cords, one from each side of the pouch, both clearly attached and readable, never a single-cord sling. Keep a consistent diagonal from lower-left to upper-right with a shallow 10-15 degree rise toward top-right. No hand, no character.",
     "weapon:arcane:wand": "One arcane wand only. Close crop detail composition. Focus tip and head are primary, show only a partial shaft and never full wand length. The wand shaft must run to the frame boundary so it reads as continuing out of frame, never cut midway. Keep a consistent diagonal from lower-left to upper-right with a shallow 10-15 degree rise toward top-right. Subtle runic inlays and restrained glow only. No hand, no character.",
@@ -45,19 +45,19 @@
     {
       "id": "warrior_melee_manual",
       "group": "weapons",
-      "path": "docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv",
+      "path": "docs/data/warrior_melee_weapon_name_ranges_v4.csv",
       "major_category": "weapon"
     },
     {
       "id": "ranger_ranged_v2_manual",
       "group": "weapons",
-      "path": "docs/data/ranger_ranged_weapon_name_ranges_v2.csv",
+      "path": "docs/data/ranger_ranged_weapon_name_ranges_v3.csv",
       "major_category": "weapon"
     },
     {
       "id": "mage_arcane_v2_manual",
       "group": "weapons",
-      "path": "docs/data/mage_arcane_weapon_name_ranges_v2.csv",
+      "path": "docs/data/mage_arcane_weapon_name_ranges_v3.csv",
       "major_category": "weapon"
     },
     {

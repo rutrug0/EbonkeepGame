@@ -32,6 +32,7 @@ $endIlvl = [int]$cfg.end_ilvl
 $baseAvgCommon = [double]$cfg.base_avg_common
 $avgGrowthPerIlvl = [double]$cfg.avg_growth_per_ilvl
 $creationVariancePct = [double]$cfg.creation_variance_pct
+$baseLevelInfluenceWeight = [double]$cfg.base_level_influence_weight
 
 $rarities = @(
     @{ name = "common"; mult = [double]$cfg.rarity_common },
@@ -55,6 +56,7 @@ function New-DamageRows {
         [double]$BaseAvg,
         [double]$AvgGrowth,
         [double]$CreationVariance,
+        [double]$BaseLevelInfluenceWeight,
         [object[]]$RarityDefs
     )
 
@@ -91,6 +93,7 @@ function New-DamageRows {
                     item_roll_max_high = $creationMaxHigh
                     possible_attack_roll_low = $creationMinLow
                     possible_attack_roll_high = $creationMaxHigh
+                    base_level_influence_weight = Round-2 $BaseLevelInfluenceWeight
                 })
         }
     }
@@ -103,7 +106,8 @@ function New-NameRows {
         [string]$AllowedClass,
         [string]$DamageCategory,
         [object[]]$Weapons,
-        [int]$MaxLevel
+        [int]$MaxLevel,
+        [hashtable]$PromptByWeaponName
     )
 
     $rows = New-Object System.Collections.Generic.List[object]
@@ -127,10 +131,19 @@ function New-NameRows {
         $dropMin = [Math]::Max(0, $baseLevel - 10)
         $dropMaxRaw = $baseLevel + 10
         $dropMaxCapped = [Math]::Min($MaxLevel, $dropMaxRaw)
+        $weaponName = [string]$Weapons[$i].name
+        $promptItemDescription = ""
+
+        if ($PromptByWeaponName.ContainsKey($weaponName)) {
+            $promptItemDescription = [string]$PromptByWeaponName[$weaponName]
+        }
+        elseif ($Weapons[$i].ContainsKey("prompt_item_description")) {
+            $promptItemDescription = [string]$Weapons[$i].prompt_item_description
+        }
 
         $rows.Add([PSCustomObject]@{
                 sequence = $idx
-                weapon_name = $Weapons[$i].name
+                weapon_name = $weaponName
                 weapon_type = $Weapons[$i].type
                 weapon_family = $WeaponFamily
                 allowed_class = $AllowedClass
@@ -141,9 +154,40 @@ function New-NameRows {
                 drop_min_level = $dropMin
                 drop_max_level_raw = $dropMaxRaw
                 drop_max_level_capped = $dropMaxCapped
+                prompt_item_description = $promptItemDescription
             })
     }
     return $rows
+}
+
+function Get-PromptMapFromExistingNameTable {
+    param(
+        [string]$Path
+    )
+
+    $map = @{}
+    if (-not (Test-Path $Path)) {
+        return $map
+    }
+
+    $rows = Import-Csv -Path $Path
+    foreach ($row in $rows) {
+        if (-not $row.PSObject.Properties["prompt_item_description"]) {
+            continue
+        }
+        $weaponName = ([string]$row.weapon_name).Trim()
+        $prompt = ([string]$row.prompt_item_description).Trim()
+        if ([string]::IsNullOrWhiteSpace($weaponName)) {
+            continue
+        }
+        if ([string]::IsNullOrWhiteSpace($prompt)) {
+            continue
+        }
+        if (-not $map.ContainsKey($weaponName)) {
+            $map[$weaponName] = $prompt
+        }
+    }
+    return $map
 }
 
 $catalogs = @(
@@ -268,17 +312,21 @@ foreach ($catalog in $catalogs) {
         -BaseAvg $baseAvgCommon `
         -AvgGrowth $avgGrowthPerIlvl `
         -CreationVariance $creationVariancePct `
+        -BaseLevelInfluenceWeight $baseLevelInfluenceWeight `
         -RarityDefs $rarities
+
+    $damageOutputPath = Join-Path $OutputDir ([string]$catalog.damage_output)
+    $nameOutputPath = Join-Path $OutputDir ([string]$catalog.name_output)
+    $promptByWeaponName = Get-PromptMapFromExistingNameTable -Path $nameOutputPath
 
     $nameRows = New-NameRows `
         -WeaponFamily ([string]$catalog.weapon_family) `
         -AllowedClass ([string]$catalog.allowed_class) `
         -DamageCategory $category `
         -Weapons $catalog.weapons `
-        -MaxLevel $LevelCap
+        -MaxLevel $LevelCap `
+        -PromptByWeaponName $promptByWeaponName
 
-    $damageOutputPath = Join-Path $OutputDir ([string]$catalog.damage_output)
-    $nameOutputPath = Join-Path $OutputDir ([string]$catalog.name_output)
     $damageRows | Export-Csv -Path $damageOutputPath -NoTypeInformation
     $nameRows | Export-Csv -Path $nameOutputPath -NoTypeInformation
 

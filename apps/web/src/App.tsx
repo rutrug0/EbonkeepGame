@@ -78,6 +78,7 @@ type InventoryItem = {
   };
   equipSlotId: EquipmentSlotId;
   levelRequirement: number;
+  baseLevel?: number;
   statBonuses?: Partial<Record<TrainableStatKey, number>>;
   damageRoll?: WeaponDamageRoll;
   prefix?: ItemModifier;
@@ -335,6 +336,7 @@ function tierIndex(tier: ModifierTier): 0 | 1 | 2 {
 
 const ITEM_POWER_BASE_PER_LEVEL = 8;
 const WEAPON_POWER_MULTIPLIER = 2;
+const WEAPON_BASE_LEVEL_POWER_WEIGHT = 0.25;
 const MOCK_WARRIOR_LEVEL = 80;
 const MOCK_WARRIOR_CLASS: PlayerState["class"] = "warrior";
 const RARITY_POWER_BONUS_RATE: Record<Rarity, number> = {
@@ -695,12 +697,17 @@ function getPowerCategoryMultiplier(item: Pick<InventoryItem, "archetype">): num
 }
 
 function computeMockItemPower(
-  item: Pick<InventoryItem, "levelRequirement" | "rarity" | "archetype" | "prefix" | "affix">
+  item: Pick<InventoryItem, "levelRequirement" | "baseLevel" | "rarity" | "archetype" | "prefix" | "affix">
 ): number {
-  const basePower = item.levelRequirement * ITEM_POWER_BASE_PER_LEVEL;
+  const effectiveLevel =
+    item.archetype?.majorCategory === "weapon"
+      ? item.levelRequirement * (1 - WEAPON_BASE_LEVEL_POWER_WEIGHT) +
+        (item.baseLevel ?? item.levelRequirement) * WEAPON_BASE_LEVEL_POWER_WEIGHT
+      : item.levelRequirement;
+  const basePower = effectiveLevel * ITEM_POWER_BASE_PER_LEVEL;
   const rarityBonus = basePower * RARITY_POWER_BONUS_RATE[item.rarity];
-  const prefixBonus = item.prefix ? item.levelRequirement * MODIFIER_TIER_POWER_PER_LEVEL[item.prefix.tier] : 0;
-  const affixBonus = item.affix ? item.levelRequirement * MODIFIER_TIER_POWER_PER_LEVEL[item.affix.tier] : 0;
+  const prefixBonus = item.prefix ? effectiveLevel * MODIFIER_TIER_POWER_PER_LEVEL[item.prefix.tier] : 0;
+  const affixBonus = item.affix ? effectiveLevel * MODIFIER_TIER_POWER_PER_LEVEL[item.affix.tier] : 0;
   const totalBeforeCategoryMultiplier = basePower + rarityBonus + prefixBonus + affixBonus;
   return Math.round(totalBeforeCategoryMultiplier * getPowerCategoryMultiplier(item));
 }
@@ -892,6 +899,7 @@ function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): I
     },
     equipSlotId: "weapon",
     levelRequirement: weapon.level,
+    baseLevel: weapon.baseLevel,
     damageRoll: {
       minRollRange: [weapon.minDamage, weapon.minDamage] as [number, number],
       rolledMin: weapon.minDamage,
@@ -964,6 +972,10 @@ function createMockInventoryItems(devWeapons?: PlayerState["devWeapons"]): Inven
     iconWeaponCount > 0
       ? [...mockWeaponItems].sort((first, second) => Number(Boolean(second.iconAssetPath)) - Number(Boolean(first.iconAssetPath)))
       : [...previewWeaponItems, ...mockWeaponItems];
+
+  if (devWeapons && devWeapons.length > 0) {
+    return prioritizedWeaponItems;
+  }
 
   return [...baseItems, ...prioritizedWeaponItems];
 }

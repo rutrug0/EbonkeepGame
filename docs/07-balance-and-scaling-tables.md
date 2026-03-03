@@ -129,6 +129,9 @@ Sanity-check examples:
   - `docs/data/warrior_weapon_damage_coefficients_v2.csv`
   - `docs/data/weapon_damage_category_profiles.csv`
 - specification: [14-warrior-melee-weapon-tables.md](./14-warrior-melee-weapon-tables.md)
+- runtime roll influence:
+  - `multiplier = 0.75 + 0.25 * ((base_avg_common + avg_growth_per_ilvl * weapon_base_level) / (base_avg_common + avg_growth_per_ilvl * item_level))`
+  - applied post-lookup to min/max roll windows (no clamp)
 
 ## Ranger Ranged Weapon Tables
 - ilvl scaling table: `docs/data/ranger_ranged_weapon_ilvl_scaling_v1.csv`
@@ -137,6 +140,8 @@ Sanity-check examples:
   - `docs/data/warrior_weapon_damage_coefficients_v2.csv`
   - `docs/data/weapon_damage_category_profiles.csv`
 - specification: [15-ranger-ranged-weapon-tables.md](./15-ranger-ranged-weapon-tables.md)
+- runtime roll influence:
+  - same base-level multiplier model as melee (weight `0.25`, no clamp)
 
 ## Mage Arcane Weapon Tables
 - ilvl scaling table: `docs/data/mage_arcane_weapon_ilvl_scaling_v1.csv`
@@ -145,6 +150,8 @@ Sanity-check examples:
   - `docs/data/warrior_weapon_damage_coefficients_v2.csv`
   - `docs/data/weapon_damage_category_profiles.csv`
 - specification: [16-mage-arcane-weapon-tables.md](./16-mage-arcane-weapon-tables.md)
+- runtime roll influence:
+  - same base-level multiplier model as melee (weight `0.25`, no clamp)
 
 ## Armor Name-Range Tables
 - heavy table: `docs/data/heavy_armor_name_ranges_v1.csv`

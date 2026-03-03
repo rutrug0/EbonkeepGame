@@ -22,6 +22,7 @@ export type DevWeapon = {
   displayLine: string;
   rarity: WeaponRarity;
   level: number;
+  baseLevel: number;
   weaponFamily: WeaponFamilyKey;
   allowedClass: PlayerClass;
   minDamage: number;
@@ -38,6 +39,7 @@ type NameRow = {
   allowedClass: PlayerClass;
   damageCategory: DamageCategory;
   flavorText: string;
+  baseLevel: number;
   dropMin: number;
   dropMax: number;
 };
@@ -49,6 +51,12 @@ type DamageRow = {
   minHigh: number;
   maxLow: number;
   maxHigh: number;
+};
+
+type DamageCoefficients = {
+  baseAvgCommon: number;
+  avgGrowthPerIlvl: number;
+  baseLevelInfluenceWeight: number;
 };
 
 type AffixScalingRow = {
@@ -75,12 +83,18 @@ type WeaponDataset = {
   damageFile: string;
 };
 
-const WEAPON_COUNT = 50;
 const MAX_LEVEL = 100;
 const WEAPON_FAMILIES: readonly WeaponFamilyKey[] = ["melee", "ranged", "arcane"];
 const PLAYER_CLASSES: readonly PlayerClass[] = ["warrior", "ranger", "mage"];
 const DAMAGE_CATEGORIES: readonly DamageCategory[] = ["strength", "agility", "intelligence"];
 const WEAPON_RARITIES: readonly WeaponRarity[] = ["common", "uncommon", "rare", "epic"];
+const DAMAGE_COEFFICIENTS_FILE = "warrior_weapon_damage_coefficients_v2.csv";
+const TARGET_AXE_ROLLS: readonly { name: string; count: number }[] = [
+  { name: "Blackmoor Cleaver", count: 5 },
+  { name: "Durnholde Axe", count: 5 },
+  { name: "Kingsreach Axe", count: 5 },
+  { name: "Dornhal Greataxe", count: 5 }
+];
 
 const WEAPON_DATASETS: readonly WeaponDataset[] = [
   {
@@ -252,9 +266,40 @@ function resolveDataPath(fileName: string): string {
 function stripQuotes(value: string): string {
   const trimmed = value.trim();
   if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
-    return trimmed.slice(1, -1);
+    return trimmed.slice(1, -1).replaceAll("\"\"", "\"");
   }
   return trimmed;
+}
+
+function parseCsvLine(line: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let idx = 0; idx < line.length; idx += 1) {
+    const char = line[idx];
+    if (char === "\"") {
+      const nextChar = idx + 1 < line.length ? line[idx + 1] : "";
+      if (inQuotes && nextChar === "\"") {
+        current += "\"";
+        idx += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      cells.push(stripQuotes(current));
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(stripQuotes(current));
+  return cells;
 }
 
 function parseCsv(fileName: string): Record<string, string>[] {
@@ -267,11 +312,11 @@ function parseCsv(fileName: string): Record<string, string>[] {
     return [];
   }
 
-  const headers = lines[0].split(",").map(stripQuotes);
+  const headers = parseCsvLine(lines[0]);
   const rows: Record<string, string>[] = [];
 
   for (const line of lines.slice(1)) {
-    const cells = line.split(",").map(stripQuotes);
+    const cells = parseCsvLine(line);
     const row: Record<string, string> = {};
     for (let i = 0; i < headers.length; i += 1) {
       row[headers[i]] = cells[i] ?? "";
@@ -283,7 +328,13 @@ function parseCsv(fileName: string): Record<string, string>[] {
 }
 
 function toInt(value: string): number {
-  return Number.parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toFloat(value: string): number {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function isWeaponFamily(value: string): value is WeaponFamilyKey {
@@ -342,6 +393,19 @@ function formatAffixValue(value: number, unit: AffixUnit): string {
   return value.toString();
 }
 
+function buildDamageCoefficients(): DamageCoefficients {
+  const row = parseCsv(DAMAGE_COEFFICIENTS_FILE)[0];
+  if (!row) {
+    throw new Error(`Missing rows in '${DAMAGE_COEFFICIENTS_FILE}'.`);
+  }
+
+  return {
+    baseAvgCommon: toFloat(row.base_avg_common),
+    avgGrowthPerIlvl: toFloat(row.avg_growth_per_ilvl),
+    baseLevelInfluenceWeight: toFloat(row.base_level_influence_weight || "0.25")
+  };
+}
+
 function buildNameRows(): NameRow[] {
   const rows: NameRow[] = [];
   for (const dataset of WEAPON_DATASETS) {
@@ -359,6 +423,7 @@ function buildNameRows(): NameRow[] {
         allowedClass,
         damageCategory,
         flavorText: row.flavor_text,
+        baseLevel: toInt(row.base_level),
         dropMin: toInt(row.drop_min_level),
         dropMax: toInt(row.drop_max_level_capped)
       });
@@ -408,7 +473,48 @@ function buildAffixScalingRows(): Map<string, AffixScalingRow> {
 
 const nameRows = buildNameRows();
 const damageRows = buildDamageRows();
+const damageCoefficients = buildDamageCoefficients();
 const affixRows = buildAffixScalingRows();
+
+function averageDamageAtLevel(level: number, coefficients: DamageCoefficients): number {
+  return coefficients.baseAvgCommon + coefficients.avgGrowthPerIlvl * level;
+}
+
+function computeBaseLevelDamageMultiplier(
+  itemLevel: number,
+  baseLevel: number,
+  coefficients: DamageCoefficients
+): number {
+  const weightedShare = coefficients.baseLevelInfluenceWeight;
+  const itemAvg = averageDamageAtLevel(itemLevel, coefficients);
+  if (itemAvg <= 0) {
+    return 1;
+  }
+
+  const baseAvg = averageDamageAtLevel(baseLevel, coefficients);
+  return (1 - weightedShare) + weightedShare * (baseAvg / itemAvg);
+}
+
+function applyBaseLevelInfluenceToDamageRow(
+  row: DamageRow,
+  itemLevel: number,
+  baseLevel: number,
+  coefficients: DamageCoefficients
+): Pick<DamageRow, "minLow" | "minHigh" | "maxLow" | "maxHigh"> {
+  const multiplier = computeBaseLevelDamageMultiplier(itemLevel, baseLevel, coefficients);
+
+  const minLow = Math.max(1, Math.round(row.minLow * multiplier));
+  const minHigh = Math.max(minLow, Math.round(row.minHigh * multiplier));
+  const maxLow = Math.max(minHigh, Math.round(row.maxLow * multiplier));
+  const maxHigh = Math.max(maxLow, Math.round(row.maxHigh * multiplier));
+
+  return {
+    minLow,
+    minHigh,
+    maxLow,
+    maxHigh
+  };
+}
 
 function rollAffix(
   level: number,
@@ -463,19 +569,26 @@ function pickNameCandidate(weaponFamily: WeaponFamilyKey, level: number): NameRo
   return candidates.length > 0 ? pickOne(candidates) : pickOne(familyRows);
 }
 
-function generateOneWeapon(): DevWeapon {
-  const dataset = pickOne([...WEAPON_DATASETS]);
+function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
+  const dataset = forcedNameCandidate
+    ? WEAPON_DATASETS.find((entry) => entry.weaponFamily === forcedNameCandidate.weaponFamily) ?? pickOne([...WEAPON_DATASETS])
+    : pickOne([...WEAPON_DATASETS]);
   const rarity = rollRarity();
-  const level = randomInt(1, MAX_LEVEL);
-  const nameCandidate = pickNameCandidate(dataset.weaponFamily, level);
+  const level = forcedNameCandidate
+    ? randomInt(forcedNameCandidate.dropMin, forcedNameCandidate.dropMax)
+    : randomInt(1, MAX_LEVEL);
+  const nameCandidate = forcedNameCandidate ?? pickNameCandidate(dataset.weaponFamily, level);
 
   const baseName = nameCandidate.weaponName;
 
   const damageRow =
     damageRows.get(`${dataset.weaponFamily}:${level}:${rarity}`) ??
     damageRows.get(`${dataset.weaponFamily}:1:${rarity}`);
-  const minDamage = damageRow ? randomInt(damageRow.minLow, damageRow.minHigh) : 1;
-  const rolledMax = damageRow ? randomInt(damageRow.maxLow, damageRow.maxHigh) : minDamage + 1;
+  const adjustedRow = damageRow
+    ? applyBaseLevelInfluenceToDamageRow(damageRow, level, nameCandidate.baseLevel, damageCoefficients)
+    : null;
+  const minDamage = adjustedRow ? randomInt(adjustedRow.minLow, adjustedRow.minHigh) : 1;
+  const rolledMax = adjustedRow ? randomInt(adjustedRow.maxLow, adjustedRow.maxHigh) : minDamage + 1;
   const maxDamage = Math.max(minDamage, rolledMax);
 
   const affixes: DevWeaponAffix[] = [];
@@ -499,6 +612,7 @@ function generateOneWeapon(): DevWeapon {
     displayLine: `${displayName} | ${nameCandidate.weaponType} | Level ${level} [${minDamage}-${maxDamage}] | ${affixSummary}`,
     rarity,
     level,
+    baseLevel: nameCandidate.baseLevel,
     weaponFamily: dataset.weaponFamily,
     allowedClass: nameCandidate.allowedClass,
     minDamage,
@@ -510,7 +624,24 @@ function generateOneWeapon(): DevWeapon {
 }
 
 function generateStartupDevWeapons(): DevWeapon[] {
-  return Array.from({ length: WEAPON_COUNT }, () => generateOneWeapon());
+  const targetedRows = TARGET_AXE_ROLLS.map((target) => {
+    const row = nameRows.find(
+      (entry) => entry.weaponFamily === "melee" && entry.weaponName === target.name
+    );
+    if (!row) {
+      throw new Error(`Targeted mock weapon '${target.name}' was not found in melee name rows.`);
+    }
+    return { row, count: target.count };
+  });
+
+  const targetedWeapons: DevWeapon[] = [];
+  for (const target of targetedRows) {
+    for (let i = 0; i < target.count; i += 1) {
+      targetedWeapons.push(generateOneWeapon(target.row));
+    }
+  }
+
+  return targetedWeapons;
 }
 
 const startupDevWeapons = generateStartupDevWeapons();

@@ -21,9 +21,9 @@ The generator sends **one item per request** to the OpenAI Images API.
 Configured in `tools/item_art_prompts.yaml` under `sources`.
 
 Current sources include:
-- `docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv`
-- `docs/data/ranger_ranged_weapon_name_ranges_v2.csv`
-- `docs/data/mage_arcane_weapon_name_ranges_v2.csv`
+- `docs/data/warrior_melee_weapon_name_ranges_v4.csv`
+- `docs/data/ranger_ranged_weapon_name_ranges_v3.csv`
+- `docs/data/mage_arcane_weapon_name_ranges_v3.csv`
 - `docs/data/heavy_armor_name_ranges_v1.csv`
 - `docs/data/light_armor_name_ranges_v1.csv`
 - `docs/data/robe_armor_name_ranges_v1.csv`
@@ -60,7 +60,7 @@ Weapon family prompts enforce a consistent composition language:
 ## Default Render Settings
 From `render_defaults` in `tools/item_art_prompts.yaml`:
 - model: `gpt-image-1.5`
-- size: `1024x1024`
+- size: `512x512`
 - background: `transparent`
 - quality: `medium`
 
