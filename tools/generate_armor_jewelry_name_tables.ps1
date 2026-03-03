@@ -12,7 +12,7 @@ function Get-NameWordCount {
     return $parts.Count
 }
 
-function Test-OneSentenceFlavor {
+function Test-FlavorText {
     param([string]$Flavor)
 
     if ([string]::IsNullOrWhiteSpace($Flavor)) {
@@ -24,11 +24,13 @@ function Test-OneSentenceFlavor {
     }
 
     $trimmed = $Flavor.Trim()
+    # Allow 1-2 sentences for more lore buildup, but keep it strictly declarative.
     $periodCount = ([regex]::Matches($trimmed, '\.')).Count
     $bangCount = ([regex]::Matches($trimmed, "!")).Count
     $questionCount = ([regex]::Matches($trimmed, '\?')).Count
+    $semicolonCount = ([regex]::Matches($trimmed, ';')).Count
 
-    return ($periodCount -eq 1 -and $bangCount -eq 0 -and $questionCount -eq 0)
+    return ($periodCount -ge 1 -and $periodCount -le 2 -and $bangCount -eq 0 -and $questionCount -eq 0 -and $semicolonCount -eq 0)
 }
 
 function Validate-LevelWindow {
@@ -74,8 +76,8 @@ function Validate-CommonRules {
         }
 
         $flavor = [string]$row.flavor_text
-        if (-not (Test-OneSentenceFlavor $flavor)) {
-            throw "${TableName}: sequence $($row.sequence) flavor_text must be exactly one sentence ending with '.'."
+        if (-not (Test-FlavorText $flavor)) {
+            throw "${TableName}: sequence $($row.sequence) flavor_text must be 1-2 sentences ending with '.', with no '!' '?' or ';'."
         }
 
         Validate-LevelWindow -Row $row -TableName $TableName

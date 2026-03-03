@@ -32,3 +32,6 @@ apps/web/vite.config.d.ts
 # Generated item art pipeline artifacts
 apps/web/public/assets/items/generated/
 tools/.cache/
+
+# Local helper command cheat sheet
+/item_art_generation_commands.txt

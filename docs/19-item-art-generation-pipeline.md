@@ -30,8 +30,8 @@ Current sources include:
 - `docs/data/jewelry_ring_name_ranges_v1.csv`
 - `docs/data/jewelry_necklace_name_ranges_v1.csv`
 
-Rows missing `prompt_item_description` are intentionally skipped.
-Ranger and mage v2 weapon tables now carry handcrafted `prompt_item_description` values.
+Rows missing `prompt_item_description` are skipped by design.
+Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
 
 ## Prompt Layering
 Final prompt is assembled in this order:
@@ -47,10 +47,10 @@ Final prompt is assembled in this order:
 
 ## Default Render Settings
 From `render_defaults` in `tools/item_art_prompts.yaml`:
-- model: `gpt-image-1`
+- model: `gpt-image-1.5`
 - size: `1024x1024`
 - background: `transparent`
-- quality: `low`
+- quality: `medium`
 
 ## Environment
 Set in `.env` (see `.env.example`):
@@ -95,17 +95,17 @@ Rules:
 
 ## Output Contract
 Default output path pattern:
-`apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<item_id>.png`
+`apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<asset_family>_<item_name>.png`
 
 For each generated image, the pipeline also writes:
-`apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<item_id>.txt`
+`apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<asset_family>_<item_name>.txt`
 
 The `.txt` file contains the exact final prompt used for that item generation.
 
 Examples:
-- `.../weapon/weapon/melee/sword/<id>.png`
-- `.../armor/armor/heavy/helmet/<id>.png`
-- `.../jewelry/jewelry/ring/<id>.png`
+- `.../weapon/melee/sword/warrior_melee_iron_shortsword.png`
+- `.../armor/heavy/helmet/heavy_armor_crude_cap.png`
+- `.../jewelry/ring/ring_tin_ring.png`
 
 ## Operational Notes
 - One API request per item.
@@ -116,3 +116,8 @@ Examples:
   - default: verified TLS with system CA / `certifi` bundle (if installed)
   - custom CA: `--ca-bundle` or `OPENAI_CA_BUNDLE`
   - troubleshooting only: `--insecure` to disable certificate verification
+
+## Writing Guidance (Curated Tables)
+- `flavor_text` is treated as a lore hint in a monk-scribe, cynical narrator voice (dark but defiant).
+- Keep `flavor_text` mostly non-arcane across all levels, and avoid referencing the item name inside the sentence.
+- Encode arcane cues, glow behavior, and heroic relic qualities primarily in `prompt_item_description`, gated by item level (subtle around `50+`, stronger around `80+`).

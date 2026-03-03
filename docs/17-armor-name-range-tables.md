@@ -16,7 +16,7 @@ This phase does not include armor stat scaling values.
 - Curated robe table: `docs/data/robe_armor_name_ranges_v1.csv`
 - Validator: `tools/generate_armor_jewelry_name_tables.ps1`
 
-Armor `item_name` and `flavor_text` fields are manually curated and are not auto-generated.
+Armor `item_name`, `flavor_text`, and `prompt_item_description` fields are manually curated and are not auto-generated.
 
 ## CSV Schema
 All three armor tables use the same columns:
@@ -28,6 +28,7 @@ All three armor tables use the same columns:
 - `slot_family`
 - `allowed_class`
 - `flavor_text`
+- `prompt_item_description`
 - `base_level`
 - `drop_min_level`
 - `drop_max_level_raw`
@@ -47,7 +48,32 @@ All three armor tables use the same columns:
   - `helmet`, `upper_armor`, `pauldrons`, `gloves`, `belt`, `lower_armor`, `boots`
   - each slot family has its own 25-row progression
 - `item_name`: must be 1-2 words (`max 2 words`)
-- `flavor_text`: exactly one sentence per row, ending with `.`
+- `flavor_text`: 1-2 sentences per row, ending with `.`
+- `prompt_item_description`: handcrafted per-row art prompt text used by the item art pipeline
+
+## Flavor Text Voice Rules
+- Never include the item name in `flavor_text`.
+- 1-2 sentences per row, ending with `.`.
+- Punctuation is flexible, but avoid `;` and avoid `!` / `?`.
+- Voice target: monk-scribe, cynical narrator, dark but defiant.
+- Keep `flavor_text` mostly non-arcane across all levels; reserve arcane emphasis for `prompt_item_description`.
+- Avoid systematic cadence such as repeating `, it` chains, and vary sentence length and openings.
+- Favor readable "object trivia" over pure abstraction:
+  - include one concrete detail (material, wear, smell, repair, maker quirk, issue note)
+  - include one implication (how it is used, what it costs, what it prevents, what it demands)
+  - if you use 2 sentences, the second should clearly follow from the first (no disconnected stingers)
+- Level scaling guidance:
+  - low levels: shoddy, improvised, hungry, submissive
+  - mid levels: reliable, hardened, field repaired
+  - high levels: heroic, stubborn, vow-bound
+
+## Prompt Item Description Guidance
+- `prompt_item_description` is where visual arcane cues belong (not in `flavor_text`).
+- Arcane gating by `base_level` (guideline, not a hard rule):
+  - `< 50`: no glow, no overt arcane motifs
+  - `50-79`: subtle engravings, faint contained glow lines, restrained energy
+  - `80+`: heroic relic qualities, brighter contained glow, richer inlay detail
+- Avoid repeated scaffolds across rows, prompts should read handcrafted item by item.
 
 ## Progression Rules
 - Low base levels (`0-16`) should read basic/simple or even rough quality.
@@ -57,6 +83,12 @@ All three armor tables use the same columns:
 - Armor `item_name` should stay slot-aware (for example, helmet rows should read like headgear names).
 - Flavor art direction should match weapon tables: concise, dark-fantasy, and evocative.
 - Flavor text is written manually item-by-item; do not auto-generate prose.
+- Avoid explicit arcane effects language in `flavor_text` even at high levels; keep the lore grounded and let the art prompt carry arcane cues.
+- Prompt text should be individually authored per item and avoid formulaic repeated phrasing.
+- Flavor quality gates:
+  - no duplicate `flavor_text` lines inside the table
+  - avoid reusable sentence scaffolds across rows in the same slot progression
+  - keep row openings and clause structure varied so lines read handcrafted rather than generated
 
 ## Range Rules
 - 175 rows per armor table (`7 slots * 25 rows per slot`).

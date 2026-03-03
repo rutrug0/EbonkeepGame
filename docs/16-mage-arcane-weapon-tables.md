@@ -12,6 +12,7 @@ Define mage arcane weapon progression with:
 - Damage category profiles: `docs/data/weapon_damage_category_profiles.csv`
 - Generated scaling table: `docs/data/mage_arcane_weapon_ilvl_scaling_v1.csv`
 - Generated name/range table: `docs/data/mage_arcane_weapon_name_ranges_v3.csv`
+- Curated art-prompt source: `docs/data/mage_arcane_weapon_name_ranges_v2.csv`
 - Generator: `tools/generate_warrior_weapon_tables.ps1`
 
 ## Name Table Metadata Columns
@@ -19,7 +20,17 @@ Define mage arcane weapon progression with:
 - `weapon_family` (always `arcane` for this table)
 - `allowed_class` (always `mage` for this table)
 - `weapon_type` (`Wand` or `Staff`)
-- `flavor_text` (single dark-fantasy flavor line tuned to the weapon row)
+- `flavor_text` (single-sentence lore hint line, used as item identity text)
+
+`docs/data/mage_arcane_weapon_name_ranges_v2.csv` is the curated source used by the item art pipeline and includes:
+- `prompt_item_description` (hand-authored per-row item art prompt)
+
+### Flavor Text Voice Rules (Curated Tables)
+- Never include the item name in `flavor_text`.
+- 1-2 sentences per row, ending with `.`.
+- Punctuation: commas and periods are allowed. Do not use `;`, `!`, or `?`.
+- Voice target: monk-scribe, cynical narrator, dark but defiant.
+- Keep `flavor_text` mostly non-arcane across all levels; reserve arcane emphasis for `prompt_item_description`.
 
 ## Drop Range Rules
 - Weapon sequence base levels increase by `+4`.

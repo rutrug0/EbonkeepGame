@@ -12,6 +12,7 @@ Define warrior melee weapon progression with:
 - Damage category profiles: `docs/data/weapon_damage_category_profiles.csv`
 - Generated scaling table: `docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv`
 - Generated name/range table: `docs/data/warrior_melee_weapon_name_ranges_v4.csv`
+- Curated art-prompt source: `docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv`
 - Generator: `tools/generate_warrior_weapon_tables.ps1`
 
 ## Name Table Metadata Columns
@@ -19,7 +20,21 @@ Define warrior melee weapon progression with:
 - `weapon_family` (always `melee` for this table)
 - `allowed_class` (always `warrior` for this table)
 - `weapon_type` (`Sword` or `Axe`)
-- `flavor_text` (single dark-fantasy flavor line tuned to the weapon row)
+- `flavor_text` (single-sentence lore hint line, used as item identity text)
+
+`docs/data/warrior_melee_weapon_name_ranges_v4_manual_prompts.csv` is the curated source used by the item art pipeline and includes everything above plus:
+- `prompt_item_description` (hand-authored per-row item art prompt)
+
+### Flavor Text Voice Rules (Curated Tables)
+- Never include the item name in `flavor_text`.
+- 1-2 sentences per row, ending with `.`.
+- Punctuation: commas and periods are allowed. Do not use `;`, `!`, or `?`.
+- Voice target: monk-scribe, cynical narrator, dark but defiant.
+- Keep `flavor_text` mostly non-arcane across all levels; reserve arcane emphasis for `prompt_item_description`.
+- Level scaling guidance:
+  - low levels: shoddy, improvised, hungry, submissive
+  - mid levels: reliable, hardened, field repaired
+  - high levels: heroic, stubborn, vow-bound
 
 ## Drop Range Rules (Name Table)
 - Weapon sequence base levels increase by `+4`.

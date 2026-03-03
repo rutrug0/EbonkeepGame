@@ -24,6 +24,7 @@ Both jewelry tables use the same columns:
 - `slot_family`
 - `allowed_class`
 - `flavor_text`
+- `prompt_item_description`
 - `base_level`
 - `drop_min_level`
 - `drop_max_level_raw`
@@ -40,7 +41,15 @@ Both jewelry tables use the same columns:
   - `slot_family = necklace`
   - `allowed_class = all`
 - `item_name`: must be 1-2 words (`max 2 words`)
-- `flavor_text`: exactly one sentence per row, ending with `.`
+- `flavor_text`: 1-2 sentences per row, ending with `.`
+- `prompt_item_description`: handcrafted per-row art prompt text used by the item art pipeline
+
+### Flavor Text Voice Rules
+- Never include the item name in `flavor_text`.
+- 1-2 sentences per row, ending with `.`.
+- Punctuation: commas and periods are allowed. Do not use `;`, `!`, or `?`.
+- Voice target: monk-scribe, cynical narrator, dark but defiant.
+- Keep `flavor_text` mostly non-arcane across all levels; reserve arcane emphasis for `prompt_item_description`.
 
 ## Progression Rules
 - Low base levels (`0-16`) should be plain/basic in name and tone.
@@ -49,6 +58,13 @@ Both jewelry tables use the same columns:
 - Avoid advanced/mythic naming at low levels.
 - Flavor art direction should match weapon tables: concise, dark-fantasy, and evocative.
 - Flavor text is written manually item-by-item; do not auto-generate prose.
+- Avoid explicit arcane effects language in `flavor_text` even at high levels; keep the lore grounded and let the art prompt carry arcane cues.
+- Keep visible arcane cues in `prompt_item_description` rare, and largely limited to high-tier base levels (`80+`).
+- Prompt text should be individually authored per item and avoid formulaic repeated phrasing.
+- Flavor quality gates:
+  - no duplicate `flavor_text` lines inside each jewelry table
+  - avoid repeating the same sentence skeleton across adjacent progression rows
+  - vary opening language and cadence so each row reads handcrafted
 
 ## Range Rules
 - 25 rows per table.
