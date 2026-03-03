@@ -45,6 +45,18 @@ Final prompt is assembled in this order:
    - `flavor_text`
 4. render constraints (single item, transparent background, no text/logo)
 
+## Weapon Framing Rules
+Weapon family prompts enforce a consistent composition language:
+- All weapons keep the same diagonal tilt from lower-left to upper-right (shallow rise toward top-right).
+- Melee swords: close crop on guard and grip with pommel clearly visible, realistic handle proportions, and only a short starting section of blade visible.
+- Melee swords: hilt stays lower-left and blade tip direction stays upper-right, never mirrored.
+- Melee axes: close crop on head, only part of haft shown, and haft must reach the lower-left frame edge and be visibly cropped by the border so it clearly continues out of frame.
+- Melee axes: if single-bit, cutting edge points right or slight bottom-right, never left.
+- Bows: close crop on grip/riser, only partial limbs shown, with the bowstring positioned toward the bottom-left area and clearly separated from the grip/riser.
+- Slings: full sling may be shown for readability, and must show two visible cords attached to opposite sides of the pouch.
+- Wands and staves: close crop on focus tip/head, only part of shaft/haft shown, and shaft/haft must run to the frame boundary so it reads as continuing out of frame.
+- No hands, no characters, no worn presentation in weapon renders.
+
 ## Default Render Settings
 From `render_defaults` in `tools/item_art_prompts.yaml`:
 - model: `gpt-image-1.5`
