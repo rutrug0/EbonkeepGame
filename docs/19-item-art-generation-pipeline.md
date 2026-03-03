@@ -6,7 +6,7 @@ Generate item art assets from `docs/data` with a deterministic, resumable pipeli
 This pipeline composes prompts from:
 - a general art-direction prompt
 - family-level prompt fragments
-- item-level metadata (`name`, `prompt_item_description`, `flavor_text`)
+- item-level art description (`prompt_item_description`)
 
 The generator sends **one item per request** to the OpenAI Images API.
 
@@ -37,12 +37,7 @@ Current curated item sources include handcrafted `prompt_item_description` value
 Final prompt is assembled in this order:
 1. `general_prompt`
 2. family prompt by computed `family_key`
-3. item metadata block:
-   - item name
-   - category/family/type
-   - base level and level band
-   - `prompt_item_description`
-   - `flavor_text`
+3. item design block from `prompt_item_description` (`Weapon Design:` wrapper for weapon rows)
 4. render constraints (single item, transparent background, no text/logo)
 
 ## Weapon Framing Rules
@@ -60,7 +55,7 @@ Weapon family prompts enforce a consistent composition language:
 ## Default Render Settings
 From `render_defaults` in `tools/item_art_prompts.yaml`:
 - model: `gpt-image-1.5`
-- size: `512x512`
+- size: `1024x1024`
 - background: `transparent`
 - quality: `medium`
 
@@ -76,7 +71,7 @@ python tools/generate_item_art.py --dry-run
 python tools/generate_item_art.py --sources weapons
 python tools/generate_item_art.py --sources all --limit 10 --verbose
 python tools/generate_item_art.py --force
-python tools/generate_item_art.py --only-missing
+python tools/generate_item_art.py --regenerate-changed
 python tools/generate_item_art.py --ca-bundle C:\\path\\to\\cacert.pem
 python tools/generate_item_art.py --insecure
 ```
@@ -87,6 +82,7 @@ Arguments:
 - `--limit <n>`
 - `--dry-run`
 - `--force`
+- `--regenerate-changed`
 - `--only-missing`
 - `--verbose`
 - `--config <path>`
@@ -94,16 +90,16 @@ Arguments:
 - `--insecure`
 
 ## Rerun Behavior
-Pipeline computes a prompt/render hash per item (`model + size + background + quality + prompt + item_id`).
+Default mode only fills missing assets.
 
 Rules:
 - If output file missing: generate.
-- If output exists and hash unchanged: skip.
-- If output exists and hash changed: regenerate.
-- If output was deleted: regenerate on next run.
+- If output exists: skip (even if prompt/config changed).
+- If output was deleted: generate on next run.
 
 `--force` overrides and regenerates all eligible rows.
-`--only-missing` only fills missing files.
+`--regenerate-changed` opt-in restores hash-based regeneration (`model + size + background + quality + prompt + item_id`).
+`--only-missing` is equivalent to the default mode.
 
 ## Output Contract
 Default output path pattern:
@@ -130,6 +126,5 @@ Examples:
   - troubleshooting only: `--insecure` to disable certificate verification
 
 ## Writing Guidance (Curated Tables)
-- `flavor_text` is treated as a lore hint in a monk-scribe, cynical narrator voice (dark but defiant).
-- Keep `flavor_text` mostly non-arcane across all levels, and avoid referencing the item name inside the sentence.
+- `flavor_text` is lore metadata for item text systems and is not injected into image prompts.
 - Encode arcane cues, glow behavior, and heroic relic qualities primarily in `prompt_item_description`, gated by item level (subtle around `50+`, stronger around `80+`).

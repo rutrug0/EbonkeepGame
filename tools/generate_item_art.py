@@ -4,7 +4,7 @@
 Behavior:
 - One item per API request.
 - Prompt layering: general + family + item-specific fields.
-- Hash-aware reruns: skip unchanged existing files.
+- Missing-first reruns: existing files are skipped unless explicitly regenerated.
 - Missing/empty `prompt_item_description` rows are skipped.
 """
 
@@ -183,9 +183,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true", help="Plan actions only; do not call API or write PNG files.")
     parser.add_argument("--force", action="store_true", help="Regenerate all selected eligible items.")
     parser.add_argument(
+        "--regenerate-changed",
+        action="store_true",
+        help="Opt in to hash-based regeneration when an existing file's prompt/render hash changed.",
+    )
+    parser.add_argument(
         "--only-missing",
         action="store_true",
-        help="Only generate if image file is missing; ignore hash changes.",
+        help="Generate only missing images (default behavior; kept for compatibility).",
     )
     parser.add_argument("--verbose", action="store_true", help="Verbose per-item logging.")
     parser.add_argument(
@@ -358,16 +363,11 @@ def compose_prompt(record: ItemRecord, config: dict[str, Any]) -> str:
         design_block = f"Weapon Design:\n\n{record.prompt_item_description.strip()}"
     else:
         design_block = record.prompt_item_description.strip()
-    identity_block = (
-        f'image should represent well an item with name "{record.display_name}" '
-        f'with this flavor description: {record.flavor_text}'
-    ).strip()
 
     blocks = [
         general_prompt,
         family_prompt,
         design_block,
-        identity_block,
     ]
     return "\n\n".join(block for block in blocks if block)
 
@@ -504,7 +504,7 @@ def main() -> int:
 
     render_defaults = config.get("render_defaults", {})
     model = str(render_defaults.get("model", "gpt-image-1"))
-    size = str(render_defaults.get("size", "512x512"))
+    size = str(render_defaults.get("size", "1024x1024"))
     background = str(render_defaults.get("background", "transparent"))
     quality = str(render_defaults.get("quality", "low"))
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com")
@@ -652,18 +652,16 @@ def main() -> int:
         action = "generate"
         if args.force:
             action = "regenerate" if file_exists else "generate"
-        elif args.only_missing:
-            if file_exists:
-                action = "skip_unchanged"
-            else:
-                action = "generate"
-        else:
+        elif args.regenerate_changed and not args.only_missing:
             if file_exists and previous_hash == prompt_hash:
                 action = "skip_unchanged"
             elif file_exists:
                 action = "regenerate"
             else:
                 action = "generate"
+        else:
+            # Default pipeline mode: only fill missing assets.
+            action = "skip_unchanged" if file_exists else "generate"
 
         if action == "skip_unchanged":
             counts["skipped_unchanged"] += 1
@@ -767,6 +765,7 @@ def main() -> int:
         "weapon_type_filter": weapon_type_filter,
         "dry_run": args.dry_run,
         "force": args.force,
+        "regenerate_changed": args.regenerate_changed,
         "only_missing": args.only_missing,
         "render": {
             "model": model,
