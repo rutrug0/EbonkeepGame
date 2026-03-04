@@ -1,24 +1,68 @@
+@font-face {
+  font-family: "Alegreya Sans";
+  src: url("/assets/fonts/AlegreyaSans-400.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Alegreya Sans";
+  src: url("/assets/fonts/AlegreyaSans-700.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cinzel";
+  src: url("/assets/fonts/Cinzel-600.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cinzel";
+  src: url("/assets/fonts/Cinzel-700.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --bg-stone: #0c1117;
-  --bg-iron: #141c25;
-  --panel: rgba(14, 20, 27, 0.92);
-  --panel-soft: rgba(19, 26, 34, 0.95);
-  --border: rgba(196, 205, 218, 0.12);
-  --text-main: #eef3f6;
-  --text-soft: #c0ccd4;
-  --health: #8f3430;
-  --xp: #36688f;
-  --common: #98a7b3;
-  --uncommon: #71a862;
-  --rare: #d4af37;
-  --epic: #b07fce;
-  --font-base: 18px;
+  --bg-stone: #13171d;
+  --bg-iron: #1b232d;
+  --bg-slate: #26303a;
+  --panel: rgba(23, 30, 37, 0.94);
+  --panel-soft: rgba(29, 37, 46, 0.95);
+  --panel-soft-solid: #1d252e;
+  --panel-elevated: rgba(36, 45, 55, 0.96);
+  --border: rgba(186, 166, 131, 0.24);
+  --border-soft: rgba(173, 156, 126, 0.14);
+  --text-main: #f0e8d7;
+  --text-soft: #c8bfad;
+  --text-muted: #a69b86;
+  --accent-info: #4c868d;
+  --accent-warn: #be9651;
+  --accent-danger: #97504a;
+  --accent-success: #6f8d5f;
+  --accent-focus: #d2ad72;
+  --health: #9a433c;
+  --xp: #446d84;
+  --common: #a39d8f;
+  --uncommon: #799866;
+  --rare: #c9a559;
+  --epic: #9d7bb8;
+  --font-body: "Alegreya Sans", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-display: "Cinzel", Cambria, "Palatino Linotype", "Book Antiqua", serif;
+  --font-base: 1.13rem;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 10px;
   --space-4: 14px;
   --space-5: 24px;
-  --soft-radius: 4px;
+  --soft-radius: 5px;
   --equip-slot-size: 104px;
   --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
   --left-panel-min: 120px;
@@ -39,7 +83,7 @@
   --character-visual-padding: 10px;
 
   color: var(--text-main);
-  font-family: "Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   font-size: var(--font-base);
 }
 
@@ -59,9 +103,9 @@ body {
   min-height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(circle at 14% 12%, rgba(198, 142, 69, 0.16), transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(90, 122, 154, 0.15), transparent 45%),
-    linear-gradient(170deg, var(--bg-iron), var(--bg-stone) 62%);
+    radial-gradient(circle at 11% 14%, rgba(197, 158, 103, 0.13), transparent 43%),
+    radial-gradient(circle at 84% 84%, rgba(79, 115, 120, 0.12), transparent 46%),
+    linear-gradient(165deg, var(--bg-slate) 0%, var(--bg-iron) 45%, var(--bg-stone) 100%);
   color: var(--text-main);
 }
 
@@ -70,12 +114,36 @@ body {
   height: 100dvh;
   overflow: hidden;
   color: var(--text-main);
-  font-family: "Trebuchet MS", "Lucida Sans Unicode", "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   font-size: var(--font-base);
+  position: relative;
+}
+
+.appRoot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(191, 153, 95, 0.08), transparent 38%),
+    radial-gradient(circle at 78% 82%, rgba(70, 108, 113, 0.08), transparent 42%),
+    repeating-linear-gradient(
+      130deg,
+      rgba(255, 255, 255, 0.008) 0 2px,
+      rgba(0, 0, 0, 0.008) 2px 4px
+    );
+  mix-blend-mode: normal;
+  opacity: 0.5;
+  z-index: 0;
+}
+
+.appSurface {
+  position: relative;
+  z-index: 1;
 }
 
 .appRoot.layout-compact {
-  --font-base: 16px;
+  --font-base: 1rem;
   --space-1: 4px;
   --space-2: 6px;
   --space-3: 8px;
@@ -96,7 +164,7 @@ body {
 }
 
 .appRoot.layout-wide {
-  --font-base: 19px;
+  --font-base: 1.19rem;
   --space-1: 5px;
   --space-2: 9px;
   --space-3: 12px;
@@ -125,27 +193,28 @@ h1,
 h2,
 h3 {
   margin: 0;
-  font-family: Cambria, "Palatino Linotype", "Book Antiqua", serif;
-  letter-spacing: 0.02em;
+  font-family: var(--font-display);
+  letter-spacing: 0.035em;
   line-height: 1.2;
+  font-weight: 600;
 }
 
 h1 {
-  font-size: 32px;
+  font-size: 2rem;
 }
 
 h2 {
-  font-size: 24px;
+  font-size: 1.5rem;
 }
 
 h3 {
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 
 p {
   margin: 0;
   color: var(--text-soft);
-  font-size: 16px;
+  font-size: 1.06rem;
   line-height: 1.4;
 }
 
@@ -155,25 +224,34 @@ button {
   min-height: 48px;
   padding: var(--space-2) var(--space-3);
   color: var(--text-main);
-  background: linear-gradient(180deg, rgba(44, 54, 64, 0.9), rgba(30, 38, 47, 0.95));
+  background:
+    linear-gradient(180deg, rgba(56, 66, 77, 0.68), rgba(30, 38, 46, 0.96)),
+    linear-gradient(130deg, rgba(64, 53, 38, 0.18), rgba(38, 49, 59, 0.12));
   font: inherit;
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(249, 232, 201, 0.08);
   transition:
     transform 120ms ease,
     border-color 120ms ease,
-    filter 120ms ease;
+    filter 120ms ease,
+    background 120ms ease;
 }
 
 button:hover {
   transform: translateY(-1px);
-  border-color: rgba(228, 213, 193, 0.45);
-  filter: brightness(1.05);
+  border-color: color-mix(in srgb, var(--accent-focus) 76%, transparent);
+  filter: brightness(1.08);
 }
 
 button:active {
   transform: translateY(0);
+}
+
+button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-focus) 70%, transparent);
+  outline-offset: 1px;
 }
 
 .authPage {
@@ -228,11 +306,13 @@ button:active {
 .playerCard,
 .menuCard,
 .contentCard {
-  border: 1px solid rgba(204, 214, 225, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
   background: var(--panel);
   padding: var(--space-4);
-  box-shadow: inset 0 1px 0 rgba(250, 235, 207, 0.03);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.07),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.22);
 }
 
 .playerCard {
@@ -265,15 +345,15 @@ button:active {
   width: var(--avatar-size);
   height: var(--avatar-size);
   border-radius: var(--soft-radius);
-  border: 1px solid rgba(240, 221, 196, 0.26);
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 45%, transparent);
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 22px;
-  color: #f8e6c9;
+  font-size: 1.38rem;
+  color: #f2e4c9;
   background:
-    radial-gradient(circle at 30% 28%, rgba(255, 226, 182, 0.24), transparent 35%),
-    linear-gradient(145deg, #595546, #2d3847);
+    radial-gradient(circle at 34% 26%, rgba(232, 199, 144, 0.22), transparent 39%),
+    linear-gradient(150deg, rgba(95, 85, 66, 0.94), rgba(45, 55, 66, 0.96));
 }
 
 .identityText {
@@ -282,7 +362,7 @@ button:active {
 }
 
 .identityText h1 {
-  font-size: 22px;
+  font-size: 1.38rem;
 }
 
 .barBlock {
@@ -291,8 +371,8 @@ button:active {
 }
 
 .barLabel {
-  color: #d9e4eb;
-  font-size: 15px;
+  color: color-mix(in srgb, var(--text-main) 82%, var(--accent-info) 18%);
+  font-size: 1rem;
   font-weight: 500;
   line-height: 1.4;
 }
@@ -300,8 +380,8 @@ button:active {
 .barShell {
   height: 10px;
   border-radius: 999px;
-  border: 1px solid rgba(226, 234, 239, 0.2);
-  background: rgba(12, 17, 23, 0.82);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  background: rgba(15, 19, 24, 0.86);
   overflow: hidden;
 }
 
@@ -311,11 +391,11 @@ button:active {
 }
 
 .healthFill {
-  background: linear-gradient(90deg, #7c2b28, var(--health));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-danger) 62%, #5e211f), var(--health));
 }
 
 .xpFill {
-  background: linear-gradient(90deg, #2d5c80, var(--xp));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-info) 65%, #25445a), var(--xp));
 }
 
 .menuList {
@@ -353,7 +433,7 @@ button:active {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #d7c39c;
+  color: color-mix(in srgb, var(--accent-warn) 76%, var(--text-main) 24%);
   pointer-events: none;
 }
 
@@ -367,23 +447,25 @@ button:active {
   width: 100%;
   padding: 0 var(--menu-label-side-pad);
   text-align: center;
-  font-size: 18px;
+  font-size: 1.13rem;
   line-height: 1.2;
 }
 
 .menuButton.active {
-  border-color: rgba(224, 192, 147, 0.4);
-  background: linear-gradient(180deg, rgba(95, 75, 48, 0.9), rgba(67, 53, 34, 0.95));
+  border-color: color-mix(in srgb, var(--accent-warn) 60%, transparent);
+  background:
+    linear-gradient(180deg, rgba(101, 78, 47, 0.88), rgba(62, 49, 33, 0.94)),
+    linear-gradient(140deg, rgba(173, 135, 78, 0.16), rgba(94, 117, 120, 0.08));
 }
 
 .menuButton.active .menuButtonIcon {
-  color: #f5e2be;
+  color: #f3e1bf;
 }
 
 .logoutButton {
   margin-top: var(--space-1);
-  border-color: rgba(171, 124, 124, 0.35);
-  background: linear-gradient(180deg, rgba(98, 59, 59, 0.92), rgba(70, 42, 42, 0.95));
+  border-color: color-mix(in srgb, var(--accent-danger) 56%, transparent);
+  background: linear-gradient(180deg, rgba(104, 61, 58, 0.9), rgba(71, 41, 39, 0.95));
 }
 
 .rightPanel {
@@ -526,8 +608,10 @@ button:active {
 }
 
 .profileSwitchButton.active {
-  border-color: rgba(224, 192, 147, 0.42);
-  background: linear-gradient(180deg, rgba(95, 75, 48, 0.9), rgba(67, 53, 34, 0.95));
+  border-color: color-mix(in srgb, var(--accent-warn) 60%, transparent);
+  background:
+    linear-gradient(180deg, rgba(101, 78, 47, 0.88), rgba(62, 49, 33, 0.94)),
+    linear-gradient(140deg, rgba(173, 135, 78, 0.16), rgba(94, 117, 120, 0.08));
 }
 
 .profileMeta {
@@ -559,6 +643,7 @@ button:active {
 .sidePanelBodyCard {
   min-height: 0;
   overflow: hidden;
+  background: var(--panel-soft-solid);
 }
 
 .sidePanelScroll {
@@ -568,6 +653,7 @@ button:active {
   display: grid;
   gap: var(--space-2);
   padding-right: var(--space-1);
+  background: var(--panel-soft-solid);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -583,21 +669,21 @@ button:active {
 }
 
 .statsGroup {
-  border: 1px solid rgba(214, 221, 230, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
-  background: rgba(18, 24, 30, 0.55);
+  background: rgba(24, 31, 39, 0.66);
   padding: var(--space-3);
   display: grid;
   gap: var(--space-2);
 }
 
 .statsGroupTitle {
-  font-size: 15px;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #dbe4ec;
+  color: color-mix(in srgb, var(--text-main) 86%, var(--accent-warn) 14%);
 }
 
 .statsRows {
@@ -609,7 +695,7 @@ button:active {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-3);
   padding: var(--space-1) 0;
-  border-bottom: 1px solid rgba(214, 221, 230, 0.08);
+  border-bottom: 1px solid rgba(191, 174, 145, 0.1);
 }
 
 .statsRows .statsRow:last-child {
@@ -618,13 +704,13 @@ button:active {
 
 .statsRowLabel {
   color: var(--text-soft);
-  font-size: 16px;
+  font-size: 1.06rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .statsRowValue {
-  color: #f4f7f9;
+  color: var(--text-main);
   font-weight: 700;
 }
 
@@ -644,23 +730,23 @@ button:active {
   width: 100%;
   min-width: 980px;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1.4;
 }
 
 .contractsTable thead th {
   text-align: left;
   padding: var(--space-2);
-  color: #d8e3ec;
-  background: rgba(19, 27, 35, 0.88);
-  border-bottom: 1px solid rgba(214, 221, 230, 0.14);
+  color: color-mix(in srgb, var(--text-main) 82%, var(--accent-info) 18%);
+  background: rgba(24, 33, 42, 0.88);
+  border-bottom: 1px solid rgba(190, 173, 142, 0.16);
   white-space: nowrap;
 }
 
 .contractsTable tbody td {
   padding: var(--space-2);
-  border-bottom: 1px solid rgba(214, 221, 230, 0.08);
-  color: #dfebf3;
+  border-bottom: 1px solid rgba(190, 173, 142, 0.1);
+  color: color-mix(in srgb, var(--text-main) 90%, white 10%);
   vertical-align: middle;
 }
 
@@ -675,7 +761,7 @@ button:active {
 
 .contractsNameCell span {
   color: var(--text-soft);
-  font-size: 14px;
+  font-size: 0.94rem;
   font-weight: 500;
   line-height: 1.4;
 }
@@ -686,28 +772,28 @@ button:active {
   justify-content: center;
   min-width: 70px;
   padding: var(--space-1) var(--space-2);
-  border: 1px solid rgba(218, 228, 239, 0.2);
+  border: 1px solid rgba(193, 176, 147, 0.3);
   border-radius: var(--soft-radius);
-  background: rgba(22, 29, 37, 0.72);
+  background: rgba(28, 36, 45, 0.74);
 }
 
 .contractDifficulty-easy {
-  border-color: rgba(113, 168, 98, 0.7);
-  color: #9fcca0;
+  border-color: color-mix(in srgb, var(--accent-success) 74%, transparent);
+  color: color-mix(in srgb, var(--accent-success) 65%, var(--text-main) 35%);
 }
 
 .contractDifficulty-medium {
-  border-color: rgba(194, 166, 94, 0.7);
-  color: #ddc98f;
+  border-color: color-mix(in srgb, var(--accent-warn) 74%, transparent);
+  color: color-mix(in srgb, var(--accent-warn) 66%, var(--text-main) 34%);
 }
 
 .contractDifficulty-hard {
-  border-color: rgba(181, 99, 99, 0.75);
-  color: #e0a0a0;
+  border-color: color-mix(in srgb, var(--accent-danger) 76%, transparent);
+  color: color-mix(in srgb, var(--accent-danger) 62%, var(--text-main) 38%);
 }
 
 .contractsTimeCell {
-  color: #f2f5f8;
+  color: var(--text-main);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -715,18 +801,18 @@ button:active {
 .contractAbandonButton {
   padding: var(--space-1) var(--space-2);
   white-space: nowrap;
-  font-size: 15px;
-  border-color: rgba(171, 124, 124, 0.35);
-  background: linear-gradient(180deg, rgba(98, 59, 59, 0.92), rgba(70, 42, 42, 0.95));
+  font-size: 0.94rem;
+  border-color: color-mix(in srgb, var(--accent-danger) 56%, transparent);
+  background: linear-gradient(180deg, rgba(104, 61, 58, 0.9), rgba(71, 41, 39, 0.95));
 }
 
 .contractsReplenishRow td {
-  background: rgba(16, 22, 29, 0.76);
-  color: #b8c5d0;
+  background: rgba(21, 28, 35, 0.76);
+  color: var(--text-soft);
 }
 
 .contractsReplenishMessage {
-  font-size: 15px;
+  font-size: 1rem;
   line-height: 1.4;
   letter-spacing: 0.01em;
 }
@@ -742,7 +828,7 @@ button:active {
 
 .appRoot.layout-compact .contractsTable {
   min-width: 0;
-  font-size: 14px;
+  font-size: 0.94rem;
 }
 
 .appRoot.layout-compact .contractsTable thead {
@@ -757,9 +843,9 @@ button:active {
 .appRoot.layout-compact .contractsTable tbody tr {
   display: grid;
   gap: var(--space-1);
-  border: 1px solid rgba(214, 221, 230, 0.12);
+  border: 1px solid rgba(191, 174, 145, 0.2);
   border-radius: var(--soft-radius);
-  background: rgba(18, 24, 30, 0.58);
+  background: rgba(24, 31, 39, 0.68);
   padding: var(--space-2);
 }
 
@@ -769,13 +855,13 @@ button:active {
   align-items: start;
   gap: var(--space-2);
   padding: var(--space-1) 0;
-  border-bottom: 1px solid rgba(214, 221, 230, 0.06);
+  border-bottom: 1px solid rgba(191, 174, 145, 0.08);
 }
 
 .appRoot.layout-compact .contractsTable tbody td::before {
   content: attr(data-label);
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: 0.81rem;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
@@ -817,9 +903,9 @@ button:active {
 }
 
 .statCell {
-  border: 1px solid rgba(214, 221, 230, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
-  background: rgba(18, 24, 30, 0.55);
+  background: rgba(24, 31, 39, 0.66);
   padding: var(--space-2);
   display: grid;
   gap: var(--space-1);
@@ -827,13 +913,13 @@ button:active {
 
 .statLabel {
   color: var(--text-soft);
-  font-size: 14px;
+  font-size: 0.88rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .statValue {
-  color: #f4f7f9;
+  color: var(--text-main);
   font-weight: 700;
 }
 
@@ -873,15 +959,15 @@ button:active {
 }
 
 .economyItem {
-  border: 1px solid rgba(214, 221, 230, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
-  background: rgba(17, 24, 31, 0.62);
+  background: rgba(24, 31, 39, 0.66);
   padding: var(--space-2);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
-  font-size: 14px;
+  font-size: 0.94rem;
 }
 
 .currencyIcon {
@@ -890,20 +976,20 @@ button:active {
   justify-content: center;
   width: 16px;
   height: 16px;
-  font-size: 14px;
+  font-size: 0.88rem;
   line-height: 1;
 }
 
 .ducatIcon {
-  color: #d9ba61;
+  color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-main) 28%);
 }
 
 .imperialIcon {
-  color: #aeb8d3;
+  color: color-mix(in srgb, var(--accent-info) 68%, var(--text-main) 32%);
 }
 
 .gearScoreIcon {
-  color: #87b5d4;
+  color: color-mix(in srgb, var(--accent-info) 75%, var(--text-main) 25%);
 }
 
 .mainStatsTraining {
@@ -919,9 +1005,9 @@ button:active {
 
 .statTrainingColumn {
   position: relative;
-  border: 1px solid rgba(214, 221, 230, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
-  background: rgba(16, 22, 29, 0.66);
+  background: rgba(24, 31, 39, 0.72);
   padding: 8px;
   display: grid;
   grid-template-rows: auto auto 1fr;
@@ -930,26 +1016,26 @@ button:active {
 }
 
 .statTrainingLabel {
-  font-size: 13px;
+  font-size: 0.88rem;
   font-weight: 600;
-  color: #e5edf3;
+  color: color-mix(in srgb, var(--text-main) 88%, var(--accent-warn) 12%);
   text-align: center;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .statTrainingValue {
-  font-size: 15px;
+  font-size: 0.94rem;
   font-weight: 700;
-  color: #f3f7fb;
+  color: var(--text-main);
   text-align: center;
 }
 
 .itemBonusValue {
   margin-left: 4px;
-  font-size: 13px;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: #7ecf82;
+  color: color-mix(in srgb, var(--accent-success) 75%, var(--text-main) 25%);
 }
 
 .statTrainingAction {
@@ -965,9 +1051,9 @@ button:active {
   justify-content: center;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 0.88rem;
   font-weight: 600;
-  color: #e6d7af;
+  color: color-mix(in srgb, var(--accent-warn) 74%, var(--text-main) 26%);
 }
 
 .statTrainButton {
@@ -975,14 +1061,14 @@ button:active {
   justify-self: center;
   min-height: 36px;
   padding: 4px 10px;
-  font-size: 13px;
+  font-size: 0.81rem;
   line-height: 1.1;
 }
 
 .statTrainButton:disabled {
-  border-color: rgba(185, 191, 205, 0.25);
-  background: linear-gradient(180deg, rgba(58, 64, 74, 0.88), rgba(42, 47, 55, 0.92));
-  color: rgba(223, 229, 240, 0.58);
+  border-color: rgba(166, 153, 130, 0.24);
+  background: linear-gradient(180deg, rgba(61, 67, 75, 0.84), rgba(43, 49, 56, 0.92));
+  color: rgba(207, 198, 178, 0.58);
   cursor: not-allowed;
   filter: grayscale(0.2);
 }
@@ -996,7 +1082,7 @@ button:active {
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: rgba(212, 219, 233, 0.16);
+  background: rgba(191, 174, 145, 0.2);
   overflow: hidden;
 }
 
@@ -1004,13 +1090,17 @@ button:active {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(112, 197, 120, 0.88), rgba(162, 230, 137, 0.92));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-success) 72%, #3c5132),
+    color-mix(in srgb, var(--accent-success) 52%, var(--accent-warn) 48%)
+  );
   transition: width 240ms linear;
 }
 
 .statTrainingTimer {
-  font-size: 11px;
-  color: #c5d0dd;
+  font-size: 0.75rem;
+  color: var(--text-soft);
   text-align: center;
 }
 
@@ -1026,10 +1116,10 @@ button:active {
   width: max-content;
   min-width: 0;
   max-width: min(320px, calc(100vw - 48px));
-  border: 1px solid rgba(228, 235, 245, 0.16);
+  border: 1px solid rgba(196, 178, 147, 0.26);
   border-radius: var(--soft-radius);
-  background: rgba(9, 13, 18, 0.94);
-  box-shadow: 0 12px 22px rgba(3, 6, 9, 0.42);
+  background: rgba(27, 35, 43, 0.96);
+  box-shadow: 0 12px 24px rgba(6, 9, 12, 0.5);
   padding: var(--space-2);
   display: grid;
   gap: 4px;
@@ -1070,9 +1160,9 @@ button:active {
   left: 50%;
   width: 10px;
   height: 10px;
-  border-right: 1px solid rgba(228, 235, 245, 0.16);
-  border-bottom: 1px solid rgba(228, 235, 245, 0.16);
-  background: rgba(9, 13, 18, 0.94);
+  border-right: 1px solid rgba(196, 178, 147, 0.26);
+  border-bottom: 1px solid rgba(196, 178, 147, 0.26);
+  background: rgba(27, 35, 43, 0.96);
   transform: translateX(-50%) rotate(45deg);
 }
 
@@ -1092,8 +1182,8 @@ button:active {
 .statTrainingTooltipTitle,
 .uiHoverTooltipTitle {
   margin: 0;
-  color: #eef3f9;
-  font-size: 11px;
+  color: color-mix(in srgb, var(--text-main) 82%, var(--accent-warn) 18%);
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1104,14 +1194,14 @@ button:active {
   margin: 0;
   display: grid;
   gap: 2px;
-  color: #ced8e4;
-  font-size: 12px;
+  color: var(--text-soft);
+  font-size: 0.81rem;
   line-height: 1.3;
 }
 
 .statTrainingTooltipLine strong,
 .uiHoverTooltipLine strong {
-  color: #f2f6fb;
+  color: var(--text-main);
   font-weight: 700;
 }
 
@@ -1123,10 +1213,10 @@ button:active {
   width: max-content;
   min-width: 0;
   max-width: min(320px, calc(100vw - 48px));
-  border: 1px solid rgba(228, 235, 245, 0.16);
+  border: 1px solid rgba(196, 178, 147, 0.26);
   border-radius: var(--soft-radius);
-  background: rgba(9, 13, 18, 0.94);
-  box-shadow: 0 12px 22px rgba(3, 6, 9, 0.42);
+  background: rgba(27, 35, 43, 0.96);
+  box-shadow: 0 12px 24px rgba(6, 9, 12, 0.5);
   padding: var(--space-2);
   display: grid;
   gap: 4px;
@@ -1147,8 +1237,8 @@ button:active {
   bottom: 100%;
   border-right: none;
   border-bottom: none;
-  border-left: 1px solid rgba(228, 235, 245, 0.16);
-  border-top: 1px solid rgba(228, 235, 245, 0.16);
+  border-left: 1px solid rgba(196, 178, 147, 0.26);
+  border-top: 1px solid rgba(196, 178, 147, 0.26);
 }
 
 .uiHoverTooltipBottom.uiHoverTooltipAnchorStart {
@@ -1212,9 +1302,9 @@ button:active {
 }
 
 .equipmentCell {
-  border: 1px solid rgba(214, 221, 230, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
-  background: rgba(18, 24, 30, 0.55);
+  background: rgba(24, 31, 39, 0.66);
   padding: var(--space-2);
   display: grid;
   gap: var(--space-1);
@@ -1243,17 +1333,17 @@ button:active {
 }
 
 .equipmentCellIconOnly.dropTargetValid {
-  border-color: rgba(126, 201, 140, 0.64);
-  background: rgba(34, 62, 43, 0.62);
+  border-color: color-mix(in srgb, var(--accent-success) 70%, transparent);
+  background: rgba(45, 62, 47, 0.68);
 }
 
 .equipmentCellIconOnly.dropTargetInvalid {
-  border-color: rgba(208, 115, 115, 0.6);
-  background: rgba(73, 32, 32, 0.62);
+  border-color: color-mix(in srgb, var(--accent-danger) 74%, transparent);
+  background: rgba(70, 40, 39, 0.68);
 }
 
 .equipmentCellIconOnly.slotHint {
-  box-shadow: 0 0 0 2px rgba(227, 194, 126, 0.45);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-focus) 68%, transparent);
 }
 
 .equipmentColumn .equipmentCell,
@@ -1280,13 +1370,13 @@ button:active {
 .equipmentItemIcon {
   width: calc(var(--equip-slot-size) * 0.46);
   height: calc(var(--equip-slot-size) * 0.46);
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .vestigeCell .equipmentItemIcon {
   width: calc(var(--vestige-slot-size) * 0.62);
   height: calc(var(--vestige-slot-size) * 0.62);
-  font-size: 10px;
+  font-size: 0.63rem;
 }
 
 .equipmentItemIcon.isPlaceholder {
@@ -1362,11 +1452,11 @@ button:active {
   align-self: stretch;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(214, 221, 230, 0.1);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
   background:
-    radial-gradient(circle at 50% 18%, rgba(198, 142, 69, 0.12), transparent 44%),
-    linear-gradient(180deg, rgba(19, 26, 34, 0.78), rgba(12, 17, 23, 0.94));
+    radial-gradient(circle at 50% 16%, rgba(187, 148, 95, 0.14), transparent 45%),
+    linear-gradient(180deg, rgba(30, 38, 46, 0.82), rgba(20, 26, 33, 0.95));
   padding: var(--character-visual-padding);
 }
 
@@ -1375,8 +1465,8 @@ button:active {
   width: 100%;
   height: 100%;
   min-height: var(--character-frame-height);
-  border: 1px solid rgba(214, 221, 230, 0.08);
-  background: rgba(10, 14, 19, 0.76);
+  border: 1px solid rgba(183, 166, 136, 0.14);
+  background: rgba(18, 24, 30, 0.8);
   display: grid;
   place-items: center;
   align-content: center;
@@ -1387,37 +1477,37 @@ button:active {
 .characterSilhouette {
   width: clamp(110px, 38%, 170px);
   aspect-ratio: 2 / 3;
-  border: 1px solid rgba(239, 243, 247, 0.18);
+  border: 1px solid rgba(210, 193, 164, 0.24);
   background:
-    radial-gradient(circle at 55% 22%, rgba(226, 232, 238, 0.25), transparent 34%),
-    linear-gradient(170deg, rgba(103, 117, 132, 0.36), rgba(43, 51, 61, 0.88));
+    radial-gradient(circle at 55% 22%, rgba(218, 208, 189, 0.22), transparent 34%),
+    linear-gradient(170deg, rgba(100, 107, 112, 0.44), rgba(47, 56, 65, 0.9));
   clip-path: polygon(48% 0%, 66% 8%, 74% 28%, 92% 62%, 82% 100%, 18% 100%, 8% 62%, 26% 28%, 34% 8%);
 }
 
 .characterVisualLabel {
-  font-size: 15px;
+  font-size: 1rem;
   font-weight: 500;
   line-height: 1.3;
-  color: #d4dde5;
+  color: var(--text-soft);
   letter-spacing: 0.03em;
 }
 
 .equipmentSlot {
   color: var(--text-soft);
-  font-size: 14px;
+  font-size: 0.94rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .equipmentItem,
 .equipmentEmpty {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
 }
 
 .equipmentEmpty {
-  color: #82919c;
+  color: var(--text-muted);
 }
 
 .equipmentItem.rarity-common {
@@ -1450,54 +1540,62 @@ button:active {
   display: grid;
   gap: var(--space-1);
   padding: var(--space-2) 0;
-  background:
-    linear-gradient(180deg, rgba(10, 14, 19, 0.98) 0%, rgba(10, 14, 19, 0.92) 76%, rgba(10, 14, 19, 0));
+  background: var(--panel-soft-solid);
+  border-bottom: none;
 }
 
 .inventoryControlsRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .inventoryFilterButtons {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .inventoryIconButton {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px solid rgba(214, 221, 230, 0.28);
-  background: rgba(25, 32, 39, 0.9);
-  color: var(--text-main);
+  width: 56px;
+  height: 56px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  color: var(--text-soft);
+  box-shadow: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition: color 120ms ease, transform 120ms ease;
 }
 
 .inventoryIconButton:hover {
-  border-color: rgba(224, 192, 147, 0.6);
-  background: rgba(62, 49, 32, 0.82);
+  color: color-mix(in srgb, var(--text-main) 85%, var(--accent-focus) 15%);
 }
 
 .inventoryIconButton:active {
-  transform: translateY(1px);
+  transform: scale(0.96);
 }
 
-.inventoryIconButton.active {
-  border-color: rgba(224, 192, 147, 0.7);
-  background: linear-gradient(180deg, rgba(95, 75, 48, 0.88), rgba(67, 53, 34, 0.94));
+.inventoryIconButton.active,
+.inventoryIconButton[aria-pressed="true"] {
+  color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-main) 28%);
+  box-shadow: none;
+}
+
+.inventoryIconButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-focus) 72%, transparent);
+  outline-offset: 2px;
 }
 
 .inventoryIconButton svg {
-  width: 18px;
-  height: 18px;
+  width: 40px;
+  height: 40px;
   display: block;
   fill: currentColor;
 }
@@ -1505,7 +1603,7 @@ button:active {
 .inventoryFilterSummary {
   margin: 0;
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: 0.88rem;
   letter-spacing: 0.02em;
 }
 
@@ -1520,14 +1618,14 @@ button:active {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(230, 237, 245, 0.32);
+  border: 1px solid rgba(193, 176, 147, 0.34);
   border-radius: var(--soft-radius);
-  color: #ebf2f8;
+  color: var(--text-main);
   font-weight: 700;
   letter-spacing: 0.04em;
   background:
-    radial-gradient(circle at 30% 25%, rgba(248, 253, 255, 0.24), transparent 48%),
-    linear-gradient(145deg, rgba(88, 101, 116, 0.9), rgba(50, 59, 69, 0.94));
+    radial-gradient(circle at 30% 25%, rgba(228, 222, 209, 0.2), transparent 48%),
+    linear-gradient(145deg, rgba(88, 98, 108, 0.88), rgba(52, 61, 69, 0.94));
 }
 
 .itemVisualImage {
@@ -1601,15 +1699,15 @@ button:active {
 
 .inventoryItemCard {
   position: relative;
-  border: 1px solid rgba(214, 221, 230, 0.14);
+  border: 1px solid rgba(190, 173, 142, 0.22);
   border-radius: var(--soft-radius);
   background:
-    linear-gradient(160deg, rgba(24, 33, 42, 0.9), rgba(14, 20, 28, 0.92));
+    linear-gradient(160deg, rgba(29, 37, 45, 0.92), rgba(20, 26, 33, 0.95));
   padding: var(--space-3);
   display: grid;
   grid-template-columns: 105px minmax(0, 1fr);
   gap: var(--space-2);
-  align-items: stretch;
+  align-items: start;
 }
 
 .inventoryComparisonOverlay {
@@ -1642,7 +1740,11 @@ button:active {
   right: 8px;
   height: 3px;
   border-radius: 2px;
-  background: linear-gradient(90deg, rgba(219, 191, 131, 0.85), rgba(245, 227, 178, 0.95));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-warn) 72%, #8b6b3a),
+    color-mix(in srgb, var(--accent-warn) 45%, var(--text-main) 55%)
+  );
   box-shadow: 0 0 0 1px rgba(31, 24, 16, 0.42);
 }
 
@@ -1659,34 +1761,51 @@ button:active {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-2);
   align-items: center;
+  grid-column: 1 / -1;
 }
 
 .inventoryCardVisual {
-  border: 1px solid rgba(219, 228, 237, 0.14);
+  grid-column: 1;
+  border: 1px solid rgba(190, 173, 142, 0.22);
   border-radius: var(--soft-radius);
   background:
-    radial-gradient(circle at 50% 24%, rgba(197, 147, 79, 0.16), transparent 52%),
-    linear-gradient(170deg, rgba(21, 28, 36, 0.86), rgba(13, 18, 24, 0.9));
+    radial-gradient(circle at 50% 24%, rgba(181, 142, 87, 0.14), transparent 52%),
+    linear-gradient(170deg, rgba(25, 33, 41, 0.9), rgba(16, 22, 29, 0.94));
   display: grid;
   place-items: center;
+  aspect-ratio: 1 / 1;
+  align-self: start;
+  overflow: hidden;
+}
+
+.inventoryCardVisual .itemVisualImage,
+.inventoryCardVisual .itemVisualImageCard {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
 }
 
 .inventoryCardIcon {
   width: 58px;
   height: 58px;
-  font-size: 15px;
+  font-size: 0.94rem;
 }
 
 .inventoryCardIcon.isRestricted {
   opacity: 0.5;
   filter: saturate(0.5) sepia(0.35) hue-rotate(-20deg);
-  box-shadow: inset 0 0 0 999px rgba(178, 34, 34, 0.46);
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--accent-danger) 70%, transparent);
 }
 
 .inventoryCardContent {
+  grid-column: 2;
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+  align-content: start;
 }
 
 .inventoryCardDetails {
@@ -1702,34 +1821,35 @@ button:active {
 
 .inventoryCardMeta h4 {
   margin: 0;
-  font-size: 17px;
+  font-size: 1.06rem;
   line-height: 1.25;
 }
 
 .inventoryCardCategory {
-  font-size: 14px;
+  font-size: 0.94rem;
   font-weight: 500;
   color: var(--text-soft);
   line-height: 1.35;
 }
 
 .inventoryCardRarity {
-  font-size: 13px;
+  font-size: 0.94rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   text-transform: uppercase;
-  color: #d7e1ea;
+  color: color-mix(in srgb, var(--text-main) 88%, var(--accent-info) 12%);
 }
 
 .inventoryCardDescription {
-  font-size: 15px;
+  font-size: 0.94rem;
   line-height: 1.4;
-  color: #d4dee7;
+  color: color-mix(in srgb, var(--text-main) 82%, white 18%);
 }
 
 .inventoryCardFlavor {
-  color: #aab5c1;
+  color: #9fa4ad;
   font-style: italic;
+  text-align: center;
 }
 
 .inventoryCardDamageBlock {
@@ -1739,17 +1859,17 @@ button:active {
 
 .inventoryCardDamagePrimary {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.94rem;
   line-height: 1.35;
   font-weight: 700;
-  color: #e7eff7;
+  color: var(--text-main);
 }
 
 .inventoryCardDamageRollMeta {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.94rem;
   line-height: 1.35;
-  color: #a9b6c4;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -1760,9 +1880,9 @@ button:active {
 
 .inventoryCardModifierLine {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.94rem;
   line-height: 1.35;
-  color: #d9e4ef;
+  color: color-mix(in srgb, var(--text-main) 86%, white 14%);
 }
 
 .inventoryModifierTier {
@@ -1782,10 +1902,10 @@ button:active {
 }
 
 .inventoryCardPower {
-  font-size: 14px;
+  font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.35;
-  color: #ecf2f7;
+  color: var(--text-main);
 }
 
 .inventoryCardFooter {
@@ -1796,10 +1916,10 @@ button:active {
 }
 
 .inventoryCardLevel {
-  font-size: 13px;
+  font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.35;
-  color: #cbd6e1;
+  color: var(--text-soft);
   text-align: right;
 }
 
@@ -1834,11 +1954,11 @@ button:active {
 
 .error {
   margin-top: var(--space-1);
-  border: 1px solid rgba(224, 125, 125, 0.55);
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 68%, transparent);
   border-radius: var(--soft-radius);
-  background: rgba(110, 39, 39, 0.32);
+  background: rgba(91, 45, 42, 0.4);
   padding: var(--space-2) var(--space-3);
-  color: #f5dede;
+  color: color-mix(in srgb, var(--text-main) 85%, #ffd8d4 15%);
 }
 
 .floatingError {
@@ -1859,3 +1979,13 @@ button:active {
     transform: translateY(0);
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

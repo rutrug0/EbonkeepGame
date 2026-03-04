@@ -1255,6 +1255,13 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
 
   return (
     <>
+      <div className="inventoryCardTop">
+        <div className="inventoryCardMeta">
+          <h4>{renderItemDisplayName(item)}</h4>
+          <p className="inventoryCardCategory">{subtypeLabel}</p>
+        </div>
+        <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
+      </div>
       <div className="inventoryCardVisual">
         {renderItemIcon({
           majorCategory: item.archetype?.majorCategory,
@@ -1266,13 +1273,6 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
         })}
       </div>
       <div className="inventoryCardContent">
-        <div className="inventoryCardTop">
-          <div className="inventoryCardMeta">
-            <h4>{renderItemDisplayName(item)}</h4>
-            <p className="inventoryCardCategory">{subtypeLabel}</p>
-          </div>
-          <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
-        </div>
         {weaponDamageSummary ? (
           <div className="inventoryCardDamageBlock">
             <p className="inventoryCardDamagePrimary">{weaponDamageSummary.damageLine}</p>
@@ -2102,6 +2102,16 @@ export function App() {
     );
   }
 
+  function toggleExclusiveInventoryCategoryFilter(filter: InventoryCategoryFilter) {
+    const isCurrentlyActive =
+      filter === "weapon" ? showOnlyWeapons : filter === "armor" ? showOnlyArmor : showOnlyJewelry;
+    const nextActive = !isCurrentlyActive;
+
+    setShowOnlyWeapons(filter === "weapon" ? nextActive : false);
+    setShowOnlyArmor(filter === "armor" ? nextActive : false);
+    setShowOnlyJewelry(filter === "jewelry" ? nextActive : false);
+  }
+
   function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
     unequipItemToInventory(slotId);
   }
@@ -2807,9 +2817,10 @@ export function App() {
                       <div className="inventoryControlWithTooltip">
                         <button
                           type="button"
-                          className="inventoryIconButton"
+                          className={`inventoryIconButton${powerSortDirection === "desc" ? " active" : ""}`}
                           onClick={toggleInventoryPowerSort}
                           aria-label="Toggle power sort direction"
+                          aria-pressed={powerSortDirection === "desc"}
                           aria-describedby="inventory-power-sort-tooltip"
                         >
                           <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -2833,7 +2844,7 @@ export function App() {
                           <button
                             type="button"
                             className={`inventoryIconButton${showOnlyWeapons ? " active" : ""}`}
-                            onClick={() => setShowOnlyWeapons((previous) => !previous)}
+                            onClick={() => toggleExclusiveInventoryCategoryFilter("weapon")}
                             aria-label="Filter weapons"
                             aria-pressed={showOnlyWeapons}
                             aria-describedby="inventory-filter-weapons-tooltip"
@@ -2857,7 +2868,7 @@ export function App() {
                           <button
                             type="button"
                             className={`inventoryIconButton${showOnlyArmor ? " active" : ""}`}
-                            onClick={() => setShowOnlyArmor((previous) => !previous)}
+                            onClick={() => toggleExclusiveInventoryCategoryFilter("armor")}
                             aria-label="Filter armor"
                             aria-pressed={showOnlyArmor}
                             aria-describedby="inventory-filter-armor-tooltip"
@@ -2881,7 +2892,7 @@ export function App() {
                           <button
                             type="button"
                             className={`inventoryIconButton${showOnlyJewelry ? " active" : ""}`}
-                            onClick={() => setShowOnlyJewelry((previous) => !previous)}
+                            onClick={() => toggleExclusiveInventoryCategoryFilter("jewelry")}
                             aria-label="Filter jewelry"
                             aria-pressed={showOnlyJewelry}
                             aria-describedby="inventory-filter-jewelry-tooltip"
