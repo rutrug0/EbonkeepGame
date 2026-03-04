@@ -63,12 +63,12 @@
   --space-4: 14px;
   --space-5: 24px;
   --soft-radius: 5px;
-  --equip-slot-size: 104px;
+  --equip-slot-size: calc((var(--character-frame-height) - (var(--space-2) * 4)) / 5);
   --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
   --left-panel-min: 120px;
   --left-panel-max: 320px;
   --panel-viewport-max: 1080px;
-  --panel-main-max: 550px;
+  --panel-main-max: 780px;
   --panel-stats-min: 310px;
   --panel-stats-max: 435px;
   --avatar-size: 58px;
@@ -78,9 +78,9 @@
   --menu-label-side-pad: 42px;
   --contract-label-col: 104px;
   --inventory-item-icon-size: 34px;
-  --character-frame-width: 360px;
-  --character-frame-height: 500px;
-  --character-visual-padding: 10px;
+  --character-frame-height: 574px;
+  --character-frame-width: calc(var(--character-frame-height) * 0.9);
+  --character-visual-padding: 0px;
 
   color: var(--text-main);
   font-family: var(--font-body);
@@ -173,7 +173,7 @@ body {
   --left-panel-min: 160px;
   --left-panel-max: 360px;
   --panel-viewport-max: 1320px;
-  --panel-main-max: 645px;
+  --panel-main-max: 780px;
   --panel-stats-min: 385px;
   --panel-stats-max: 505px;
   --avatar-size: 64px;
@@ -181,7 +181,7 @@ body {
   --menu-icon-size: 38px;
   --menu-icon-left: 10px;
   --menu-label-side-pad: 46px;
-  --equip-slot-size: 112px;
+  --equip-slot-size: calc((var(--character-frame-height) - (var(--space-2) * 4)) / 5);
 }
 
 .appSurface {
@@ -283,7 +283,7 @@ button:focus-visible {
   gap: var(--space-4);
   grid-template-columns: minmax(var(--left-panel-min), var(--left-panel-max)) max-content;
   align-items: stretch;
-  justify-content: start;
+  justify-content: center;
   position: relative;
 }
 
@@ -488,6 +488,12 @@ button:focus-visible {
   grid-template-columns: var(--panel-main-max) var(--panel-stats-max);
   gap: var(--space-3);
   align-items: stretch;
+  position: relative;
+}
+
+.panelViewportGroup.panelViewportGroupWithChat {
+  min-width: calc(var(--panel-main-max) + (var(--panel-stats-max) * 2) + (var(--space-3) * 2));
+  grid-template-columns: var(--panel-main-max) var(--panel-stats-max) var(--panel-stats-max);
 }
 
 .appRoot.layout-compact .landingPage {
@@ -505,7 +511,8 @@ button:focus-visible {
 
 .appRoot.layout-compact .panelViewport,
 .appRoot.layout-compact .panelViewportProfileMain,
-.appRoot.layout-compact .panelViewportSide {
+.appRoot.layout-compact .panelViewportSide,
+.appRoot.layout-compact .panelViewportChat {
   width: 100%;
   min-width: 0;
   max-width: none;
@@ -536,6 +543,18 @@ button:focus-visible {
   max-width: var(--panel-stats-max);
   display: flex;
   min-height: 0;
+}
+
+.panelViewportChat {
+  width: var(--panel-stats-max);
+  min-width: var(--panel-stats-max);
+  max-width: var(--panel-stats-max);
+  display: flex;
+  min-height: 0;
+}
+
+.panelViewportSide.panelViewportSideChatCovered {
+  visibility: hidden;
 }
 
 .panelViewportProfileMain .contentShell,
@@ -644,6 +663,129 @@ button:focus-visible {
   min-height: 0;
   overflow: hidden;
   background: var(--panel-soft-solid);
+}
+
+.chatPanelStack {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.chatPanelTabsCard {
+  align-content: start;
+}
+
+.chatPanelHeaderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.chatChannelTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.chatChannelTabs .profileSwitchButton {
+  width: 100%;
+  min-width: 0;
+}
+
+.chatOverlayCloseButton {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  height: 36px;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.chatMessagesCard {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.chatMessagesScroll {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent-warn) 38%, transparent) transparent;
+}
+
+.chatMessageList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.chatMessageItem {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  padding: var(--space-2);
+  background: linear-gradient(160deg, rgba(24, 32, 41, 0.92), rgba(17, 23, 31, 0.95));
+  display: grid;
+  gap: var(--space-1);
+}
+
+.chatMessageMeta {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.88rem;
+  color: var(--text-soft);
+}
+
+.chatMessageMeta strong {
+  color: color-mix(in srgb, var(--text-main) 88%, var(--accent-warn) 12%);
+  font-weight: 700;
+}
+
+.chatMessageText {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 0.94rem;
+  line-height: 1.4;
+}
+
+.chatEmptyState {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
+
+.chatComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.chatComposer input {
+  width: 100%;
+  min-height: 40px;
+  border-radius: var(--soft-radius);
+  border: 1px solid var(--border);
+  background: rgba(18, 24, 30, 0.92);
+  color: var(--text-main);
+  padding: 0 var(--space-2);
+  font-size: 0.94rem;
+}
+
+.chatComposer input::placeholder {
+  color: var(--text-muted);
+}
+
+.chatComposer button {
+  min-width: 74px;
+  min-height: 40px;
 }
 
 .sidePanelScroll {
@@ -1314,6 +1456,9 @@ button:focus-visible {
   border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
   background: rgba(24, 31, 39, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(229, 212, 180, 0.06),
+    0 5px 12px rgba(5, 8, 12, 0.26);
   padding: var(--space-2);
   display: grid;
   gap: var(--space-1);
@@ -1331,6 +1476,23 @@ button:focus-visible {
 
 .equipmentCellIconOnly.hasItem {
   cursor: grab;
+  box-shadow:
+    inset 0 1px 0 rgba(236, 220, 190, 0.08),
+    0 6px 14px rgba(5, 8, 12, 0.32);
+}
+
+.equipmentCellIconOnly:not(.hasItem) {
+  background: rgba(15, 21, 28, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(203, 186, 158, 0.04),
+    0 4px 10px rgba(4, 7, 11, 0.34);
+}
+
+.equipmentCellIconOnly:not(.hasItem) .inventoryCardVisual {
+  border-color: rgba(173, 155, 126, 0.18);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(132, 97, 58, 0.08), transparent 52%),
+    linear-gradient(170deg, rgba(17, 23, 30, 0.94), rgba(10, 15, 21, 0.98));
 }
 
 .equipmentCellIconOnly.hasItem:active {
@@ -1454,33 +1616,41 @@ button:focus-visible {
 }
 
 .characterVisual {
-  width: 100%;
-  height: 100%;
-  min-height: calc(var(--character-frame-height) + (var(--character-visual-padding) * 2));
-  justify-self: stretch;
-  align-self: stretch;
+  width: min(100%, var(--character-frame-width));
+  min-height: 0;
+  aspect-ratio: 9 / 10;
+  justify-self: center;
+  align-self: center;
   display: grid;
-  place-items: center;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--soft-radius);
-  background:
-    radial-gradient(circle at 50% 16%, rgba(187, 148, 95, 0.14), transparent 45%),
-    linear-gradient(180deg, rgba(30, 38, 46, 0.82), rgba(20, 26, 33, 0.95));
+  place-items: stretch;
+  border: none;
+  border-radius: 0;
+  background: transparent;
   padding: var(--character-visual-padding);
 }
 
 .characterVisualFrame {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: var(--character-frame-height);
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 9 / 10;
   border: 1px solid rgba(183, 166, 136, 0.14);
   background: rgba(18, 24, 30, 0.8);
   display: grid;
   place-items: center;
   align-content: center;
-  gap: var(--space-3);
+  gap: 0;
   overflow: visible;
+}
+
+.characterVisualImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
 }
 
 .characterSilhouette {
@@ -1491,14 +1661,65 @@ button:focus-visible {
     radial-gradient(circle at 55% 22%, rgba(218, 208, 189, 0.22), transparent 34%),
     linear-gradient(170deg, rgba(100, 107, 112, 0.44), rgba(47, 56, 65, 0.9));
   clip-path: polygon(48% 0%, 66% 8%, 74% 28%, 92% 62%, 82% 100%, 18% 100%, 8% 62%, 26% 28%, 34% 8%);
+  z-index: 1;
+}
+
+.characterCycleButton {
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-solid) 84%, transparent);
+  color: var(--text-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  z-index: 5;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.characterCycleButton:hover {
+  border-color: color-mix(in srgb, var(--accent-focus) 72%, transparent);
+  color: var(--text-high);
+}
+
+.characterCycleButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-focus) 76%, transparent);
+  outline-offset: 1px;
+}
+
+.characterCycleButton span {
+  font-size: 0.98rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.characterCycleButtonPrev {
+  left: var(--space-2);
+}
+
+.characterCycleButtonNext {
+  right: var(--space-2);
 }
 
 .characterVisualLabel {
+  position: absolute;
+  left: 50%;
+  top: var(--space-2);
+  transform: translateX(-50%);
   font-size: 1rem;
   font-weight: 500;
   line-height: 1.3;
   color: var(--text-soft);
   letter-spacing: 0.03em;
+  z-index: 4;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-solid) 74%, transparent);
 }
 
 .equipmentSlot {
@@ -1547,8 +1768,8 @@ button:focus-visible {
   top: 0;
   z-index: 5;
   display: grid;
-  gap: var(--space-1);
-  padding: var(--space-2) 0;
+  gap: 2px;
+  padding: 0;
   background: var(--panel-soft-solid);
   border-bottom: none;
 }
@@ -1557,18 +1778,18 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .inventoryFilterButtons {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .inventoryIconButton {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   min-height: 0;
   padding: 0;
   border: none;
@@ -1603,8 +1824,8 @@ button:focus-visible {
 }
 
 .inventoryIconButton svg {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   display: block;
   fill: currentColor;
 }
@@ -1782,6 +2003,7 @@ button:focus-visible {
     linear-gradient(170deg, rgba(25, 33, 41, 0.9), rgba(16, 22, 29, 0.94));
   display: grid;
   place-items: center;
+  position: relative;
   aspect-ratio: 1 / 1;
   align-self: start;
   overflow: hidden;
@@ -1910,11 +2132,28 @@ button:focus-visible {
   color: var(--epic);
 }
 
-.inventoryCardPower {
-  font-size: 0.94rem;
+.inventoryCardPower,
+.equipmentSlotPower {
+  font-size: 1.175rem;
   font-weight: 600;
   line-height: 1.35;
   color: var(--text-main);
+}
+
+.equipmentSlotPower {
+  position: absolute;
+  left: 6px;
+  bottom: 5px;
+  z-index: 2;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  text-shadow:
+    0 2px 4px rgba(3, 5, 8, 0.9),
+    0 0 2px rgba(3, 5, 8, 0.72);
+  box-shadow: none;
+  pointer-events: none;
 }
 
 .inventoryCardFooter {
@@ -1932,20 +2171,63 @@ button:focus-visible {
   text-align: right;
 }
 
-.inventoryItemCard.rarity-common {
+.inventoryItemCard.rarity-common,
+.equipmentCellIconOnly.hasItem.rarity-common {
   border-color: rgba(152, 167, 179, 0.55);
 }
 
-.inventoryItemCard.rarity-uncommon {
+.inventoryItemCard.rarity-common .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-common .inventoryCardVisual {
+  border-color: rgba(168, 181, 194, 0.36);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(173, 184, 194, 0.16), transparent 54%),
+    linear-gradient(170deg, rgba(27, 35, 43, 0.92), rgba(17, 24, 31, 0.96));
+}
+
+.inventoryItemCard.rarity-uncommon,
+.equipmentCellIconOnly.hasItem.rarity-uncommon {
   border-color: rgba(113, 168, 98, 0.72);
 }
 
-.inventoryItemCard.rarity-rare {
+.inventoryItemCard.rarity-uncommon .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-uncommon .inventoryCardVisual {
+  border-color: rgba(113, 168, 98, 0.38);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(114, 179, 97, 0.2), transparent 54%),
+    linear-gradient(170deg, rgba(25, 37, 34, 0.92), rgba(16, 27, 24, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(96, 148, 83, 0.14);
+}
+
+.inventoryItemCard.rarity-rare,
+.equipmentCellIconOnly.hasItem.rarity-rare {
   border-color: rgba(212, 175, 55, 0.78);
 }
 
-.inventoryItemCard.rarity-epic {
+.inventoryItemCard.rarity-rare .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-rare .inventoryCardVisual {
+  border-color: rgba(212, 175, 55, 0.46);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(216, 170, 62, 0.26), transparent 54%),
+    linear-gradient(170deg, rgba(36, 33, 25, 0.92), rgba(24, 22, 16, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(187, 145, 45, 0.17),
+    0 0 12px rgba(186, 143, 38, 0.09);
+}
+
+.inventoryItemCard.rarity-epic,
+.equipmentCellIconOnly.hasItem.rarity-epic {
   border-color: rgba(176, 127, 206, 0.75);
+}
+
+.inventoryItemCard.rarity-epic .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-epic .inventoryCardVisual {
+  border-color: rgba(176, 127, 206, 0.44);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(176, 127, 206, 0.24), transparent 54%),
+    linear-gradient(170deg, rgba(33, 27, 40, 0.92), rgba(22, 17, 29, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(153, 106, 187, 0.16),
+    0 0 12px rgba(128, 78, 163, 0.1);
 }
 
 .appRoot.layout-compact .inventoryCards {
@@ -1959,6 +2241,49 @@ button:focus-visible {
 
 .appRoot.layout-compact .statTrainingColumns {
   grid-template-columns: repeat(6, minmax(86px, 1fr));
+}
+
+.inventoryChatPanelOverlayViewport {
+  position: absolute;
+  top: 0;
+  left: calc(var(--panel-main-max) + var(--space-3));
+  width: var(--panel-stats-max);
+  height: 100%;
+  z-index: 26;
+  pointer-events: auto;
+}
+
+.inventoryChatPanelOverlayViewport .contentShell {
+  height: 100%;
+}
+
+.appRoot.layout-compact .inventoryChatPanelOverlayViewport {
+  left: 0;
+  width: 100%;
+}
+
+.inventoryChatFloatingToggle {
+  position: fixed;
+  right: calc(var(--space-4) + 10px);
+  bottom: calc(var(--space-4) + 10px);
+  width: 76px;
+  min-width: 76px;
+  height: 76px;
+  min-height: 76px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 39;
+  opacity: 0.84;
+  border-color: color-mix(in srgb, var(--accent-warn) 44%, transparent);
+}
+
+.inventoryChatFloatingToggleIcon {
+  width: 40px;
+  height: 40px;
+  display: block;
+  fill: currentColor;
 }
 
 .error {

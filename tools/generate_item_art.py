@@ -38,6 +38,47 @@ DEFAULT_MANIFEST_TS_PATH = REPO_ROOT / "apps" / "web" / "src" / "generated" / "i
 DEFAULT_MANIFEST_JSON_PATH = REPO_ROOT / "apps" / "web" / "public" / "assets" / "items" / "generated" / "item_art_manifest.json"
 
 TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
+CHARACTER_SERIOUS_STYLE_GUARDRAILS = (
+    "Character Tone Guardrails:\n\n"
+    "serious, grounded medieval fantasy mood\n\n"
+    "adult character appearance only (no childlike or teen stylization)\n\n"
+    "realistic facial proportions and eye size\n\n"
+    "no anime style\n\n"
+    "no manga style\n\n"
+    "no chibi style\n\n"
+    "no cute idol styling\n\n"
+    "no exaggerated expressions\n\n"
+    "entire head must fit fully in frame, including full hair volume\n\n"
+    "leave visible padding above hairline and above tallest hair shapes\n\n"
+    "never crop forehead, hair, or top of head by image boundary\n\n"
+    "camera framing must include upper torso to waistline; do not zoom to chest-only crop\n\n"
+    "keep full head and hair inside a safe frame area with clear top margin\n\n"
+    "avoid direct eye contact as a default; off-camera gaze is preferred\n\n"
+    "weathered, practical materials and restrained ornamentation"
+)
+CHARACTER_GAZE_VARIANTS = (
+    "Pose and Gaze Variation:\n\n"
+    "three-quarter head angle (10-20 degrees) toward viewer left\n\n"
+    "eyes looking slightly off-camera left",
+    "Pose and Gaze Variation:\n\n"
+    "three-quarter head angle (10-20 degrees) toward viewer right\n\n"
+    "eyes looking slightly off-camera right",
+    "Pose and Gaze Variation:\n\n"
+    "near-frontal head angle\n\n"
+    "gaze slightly above camera line, not direct eye contact",
+    "Pose and Gaze Variation:\n\n"
+    "head subtly lowered (5-10 degrees)\n\n"
+    "eyes looking past camera toward viewer right",
+    "Pose and Gaze Variation:\n\n"
+    "head subtly raised (5-10 degrees)\n\n"
+    "eyes looking past camera toward viewer left",
+)
+
+
+def character_gaze_block(item_id: str) -> str:
+    digest = hashlib.sha256(item_id.encode("utf-8")).hexdigest()
+    variant_idx = int(digest[:8], 16) % len(CHARACTER_GAZE_VARIANTS)
+    return CHARACTER_GAZE_VARIANTS[variant_idx]
 
 
 def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
@@ -83,6 +124,13 @@ def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
         key = f"jewelry:{jewelry_type}:{item_name_norm}"
         return key, f"/assets/items/generated/{rel.as_posix()}"
 
+    if major == "character":
+        if len(parts) < 3:
+            return None
+        stat_family = parts[1].lower()
+        key = f"character:{stat_family}:{filename}"
+        return key, f"/assets/items/generated/{rel.as_posix()}"
+
     return None
 
 
@@ -123,6 +171,7 @@ class ItemRecord:
     major_category: str
     family_key: str
     display_name: str
+    output_name: str
     item_type: str
     base_level: int
     level_band: str
@@ -170,7 +219,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate item art assets from docs/data CSV files.")
     parser.add_argument(
         "--sources",
-        choices=["all", "weapons", "armor", "jewelry"],
+        choices=["all", "weapons", "armor", "jewelry", "characters"],
         default="all",
         help="Subset of configured sources to process.",
     )
@@ -247,6 +296,25 @@ def slugify_underscore(value: str) -> str:
     return slug or "item"
 
 
+def character_output_name(row: dict[str, str], fallback_sequence: int) -> str:
+    main_stat = (row.get("main_stat") or "").strip().lower()
+    stat_code_by_main_stat = {
+        "strength": "str",
+        "intelligence": "int",
+        "dexterity": "dex",
+    }
+    stat_code = stat_code_by_main_stat.get(main_stat, "char")
+
+    character_id = slugify_underscore((row.get("character_id") or "").strip())
+    match = re.match(r"^(str|int|dex)_(\d+)", character_id)
+    if match:
+        stat_code = match.group(1)
+        number = int(match.group(2))
+        return f"{stat_code}{number}"
+
+    return f"{stat_code}{max(fallback_sequence, 1)}"
+
+
 def asset_family_for(record: ItemRecord) -> str:
     if record.major_category == "armor":
         parts = record.family_key.split(":")
@@ -272,7 +340,7 @@ def asset_family_for(record: ItemRecord) -> str:
 
 def output_filename_for(record: ItemRecord) -> str:
     family = asset_family_for(record)
-    name = slugify_underscore(record.display_name)
+    name = slugify_underscore(record.output_name)
     return f"{family}_{name}.png"
 
 
@@ -305,6 +373,8 @@ def build_family_key(source: dict[str, Any], row: dict[str, str], major_category
         return f"armor:{row.get('archetype', '').strip()}:{row.get('slot_family', '').strip()}"
     if major_category == "jewelry":
         return f"jewelry:{row.get('archetype', '').strip()}"
+    if major_category == "character":
+        return f"character:{(row.get('main_stat') or '').strip().lower()}"
     return major_category
 
 
@@ -320,19 +390,41 @@ def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int)
     if major == "weapon":
         display_name = (row.get("weapon_name") or "").strip()
         item_type = (row.get("weapon_type") or "").strip()
+    elif major == "character":
+        display_name = (row.get("character_name") or "").strip()
+        item_type = (row.get("main_stat") or "").strip()
     else:
         display_name = (row.get("item_name") or "").strip()
         item_type = (row.get("item_type") or "").strip()
 
-    base_level_raw = (row.get("base_level") or "0").strip()
+    display_name_field = str(source.get("display_name_field") or "").strip()
+    if display_name_field:
+        display_name = (row.get(display_name_field) or "").strip()
+
+    item_type_field = str(source.get("item_type_field") or "").strip()
+    if item_type_field:
+        item_type = (row.get(item_type_field) or "").strip()
+
+    base_level_field = str(source.get("base_level_field") or "base_level").strip() or "base_level"
+    base_level_raw = (row.get(base_level_field) or "0").strip()
     try:
         base_level_int = int(base_level_raw)
     except ValueError:
         base_level_int = 0
 
-    prompt_desc = (row.get("prompt_item_description") or "").strip()
+    if major == "character":
+        prompt_desc = (row.get("prompt_character_avatar") or "").strip()
+    else:
+        prompt_desc = (row.get("prompt_item_description") or "").strip()
+    prompt_field = str(source.get("prompt_field") or "").strip()
+    if prompt_field:
+        prompt_desc = (row.get(prompt_field) or "").strip()
     if not prompt_desc:
         return None
+
+    output_name = display_name
+    if major == "character":
+        output_name = character_output_name(row, sequence_int)
 
     family_key = build_family_key(source, row, major)
     source_id = str(source["id"])
@@ -347,6 +439,7 @@ def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int)
         major_category=major,
         family_key=family_key,
         display_name=display_name,
+        output_name=output_name,
         item_type=item_type,
         base_level=base_level_int,
         level_band=level_band(base_level_int),
@@ -356,7 +449,9 @@ def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int)
 
 
 def compose_prompt(record: ItemRecord, config: dict[str, Any]) -> str:
-    general_prompt = str(config.get("general_prompt", "")).strip()
+    group_general_prompts = config.get("group_general_prompts", {})
+    group_prompt = str(group_general_prompts.get(record.source_group, "")).strip()
+    general_prompt = group_prompt or str(config.get("general_prompt", "")).strip()
     family_prompts = config.get("families", {})
     family_prompt = str(family_prompts.get(record.family_key, "")).strip()
     if record.major_category == "weapon":
@@ -364,11 +459,11 @@ def compose_prompt(record: ItemRecord, config: dict[str, Any]) -> str:
     else:
         design_block = record.prompt_item_description.strip()
 
-    blocks = [
-        general_prompt,
-        family_prompt,
-        design_block,
-    ]
+    blocks = [general_prompt]
+    if record.source_group == "characters":
+        blocks.append(CHARACTER_SERIOUS_STYLE_GUARDRAILS)
+        blocks.append(character_gaze_block(record.item_id))
+    blocks.extend([family_prompt, design_block])
     return "\n\n".join(block for block in blocks if block)
 
 
@@ -483,6 +578,30 @@ def build_ssl_context(*, insecure: bool, ca_bundle: str | None) -> ssl.SSLContex
         return ssl.create_default_context()
 
 
+def resolve_render_settings(config: dict[str, Any], source_group: str) -> dict[str, str]:
+    render_defaults = config.get("render_defaults", {})
+    settings = {
+        "model": str(render_defaults.get("model", "gpt-image-1")),
+        "size": str(render_defaults.get("size", "1024x1024")),
+        "background": str(render_defaults.get("background", "transparent")),
+        "quality": str(render_defaults.get("quality", "low")),
+    }
+
+    group_overrides = config.get("group_render_overrides", {})
+    if isinstance(group_overrides, dict):
+        source_override = group_overrides.get(source_group)
+        if isinstance(source_override, dict):
+            for key in ("model", "size", "background", "quality"):
+                value = source_override.get(key)
+                if value is None:
+                    continue
+                value_text = str(value).strip()
+                if value_text:
+                    settings[key] = value_text
+
+    return settings
+
+
 def main() -> int:
     args = parse_args()
     load_dotenv(DEFAULT_ENV_PATH)
@@ -503,10 +622,12 @@ def main() -> int:
         return 2
 
     render_defaults = config.get("render_defaults", {})
-    model = str(render_defaults.get("model", "gpt-image-1"))
-    size = str(render_defaults.get("size", "1024x1024"))
-    background = str(render_defaults.get("background", "transparent"))
-    quality = str(render_defaults.get("quality", "low"))
+    default_render_settings = {
+        "model": str(render_defaults.get("model", "gpt-image-1")),
+        "size": str(render_defaults.get("size", "1024x1024")),
+        "background": str(render_defaults.get("background", "transparent")),
+        "quality": str(render_defaults.get("quality", "low")),
+    }
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com")
     api_key = os.environ.get("OPENAI_API_KEY", "")
     env_ca_bundle = os.environ.get("OPENAI_CA_BUNDLE", "").strip()
@@ -521,7 +642,7 @@ def main() -> int:
     state = load_json(DEFAULT_STATE_PATH)
     state_items = state.get("items") if isinstance(state.get("items"), dict) else {}
 
-    planned: list[tuple[ItemRecord, str, str, str]] = []
+    planned: list[tuple[ItemRecord, str, str, str, dict[str, str]]] = []
     counts: dict[str, int] = {
         "total_rows": 0,
         "eligible_rows": 0,
@@ -577,11 +698,12 @@ def main() -> int:
                 continue
 
             final_prompt = compose_prompt(record, config)
+            record_render_settings = resolve_render_settings(config, record.source_group)
             prompt_hash = compute_prompt_hash(
-                model,
-                size,
-                background,
-                quality,
+                record_render_settings["model"],
+                record_render_settings["size"],
+                record_render_settings["background"],
+                record_render_settings["quality"],
                 final_prompt,
                 record.item_id,
             )
@@ -593,12 +715,12 @@ def main() -> int:
             output_path = output_dir.joinpath(*rel_parts)
 
             counts["eligible_rows"] += 1
-            planned.append((record, final_prompt, prompt_hash, str(output_path)))
+            planned.append((record, final_prompt, prompt_hash, str(output_path), record_render_settings))
 
     rng = random.Random(args.random_seed)
 
     if args.random_level_sample and planned:
-        by_band: dict[str, list[tuple[ItemRecord, str, str, str]]] = {"low": [], "mid": [], "high": []}
+        by_band: dict[str, list[tuple[ItemRecord, str, str, str, dict[str, str]]]] = {"low": [], "mid": [], "high": []}
         for item in planned:
             record = item[0]
             bucket = by_band.get(record.level_band)
@@ -615,14 +737,14 @@ def main() -> int:
         else:
             target = len(planned)
 
-        sampled: list[tuple[ItemRecord, str, str, str]] = []
+        sampled: list[tuple[ItemRecord, str, str, str, dict[str, str]]] = []
         for band in ("low", "mid", "high"):
             if len(sampled) >= target:
                 break
             if by_band[band]:
                 sampled.append(by_band[band].pop())
 
-        remaining: list[tuple[ItemRecord, str, str, str]] = by_band["low"] + by_band["mid"] + by_band["high"]
+        remaining: list[tuple[ItemRecord, str, str, str, dict[str, str]]] = by_band["low"] + by_band["mid"] + by_band["high"]
         rng.shuffle(remaining)
         if len(sampled) < target:
             sampled.extend(remaining[: target - len(sampled)])
@@ -642,7 +764,7 @@ def main() -> int:
 
     run_items: list[dict[str, Any]] = []
 
-    for record, final_prompt, prompt_hash, output_path_str in planned:
+    for record, final_prompt, prompt_hash, output_path_str, record_render_settings in planned:
         output_path = Path(output_path_str)
         prompt_output_path = output_path.with_suffix(".txt")
         previous = state_items.get(record.item_id, {}) if isinstance(state_items, dict) else {}
@@ -697,6 +819,10 @@ def main() -> int:
             continue
 
         try:
+            model = record_render_settings["model"]
+            size = record_render_settings["size"]
+            background = record_render_settings["background"]
+            quality = record_render_settings["quality"]
             image_bytes = call_openai_image(
                 api_key=api_key,
                 base_url=base_url,
@@ -768,10 +894,8 @@ def main() -> int:
         "regenerate_changed": args.regenerate_changed,
         "only_missing": args.only_missing,
         "render": {
-            "model": model,
-            "size": size,
-            "background": background,
-            "quality": quality,
+            "defaults": default_render_settings,
+            "group_render_overrides": config.get("group_render_overrides", {}),
             "base_url": base_url,
             "tls_verify": not args.insecure,
             "ca_bundle": ca_bundle or "",

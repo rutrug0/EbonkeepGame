@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type FormEvent,
   type ReactElement
 } from "react";
 
@@ -41,6 +42,7 @@ type ProfileSideTab = "inventory" | "consumables" | "stats";
 type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
 type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
+type ChatChannel = "world" | "guild";
 
 type EquipmentSlotId =
   | "helmet"
@@ -176,6 +178,13 @@ type StatContributionLine = {
   valueLabel: string;
 };
 type DevWeaponInventorySeed = NonNullable<PlayerState["devWeapons"]>[number];
+type ChatMessage = {
+  id: string;
+  channel: ChatChannel;
+  sender: string;
+  text: string;
+  sentAtMs: number;
+};
 
 const INVENTORY_ITEM_LIMIT = 20;
 const CONTRACT_SLOT_COUNT = 6;
@@ -190,6 +199,72 @@ const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
 const DRAG_PAYLOAD_MIME = "application/x-ebonkeep-drag-payload";
+const CHAT_DOCK_TOLERANCE_PX = 1;
+const CHAT_CHANNEL_LABELS: Record<ChatChannel, string> = {
+  world: "World",
+  guild: "Guild"
+};
+const GENERATED_CHARACTER_VISUALS: Array<{ key: string; assetName: string; path: string }> = Object.entries(
+  GENERATED_ITEM_ICON_PATHS
+)
+  .filter(([key, assetPath]) => key.startsWith("character:") && assetPath.startsWith("/assets/items/generated/character/"))
+  .map(([key, path]) => ({
+    key,
+    assetName: key.split(":")[2] ?? "",
+    path
+  }))
+  .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }));
+
+function formatChatTime(sentAtMs: number): string {
+  const sentAt = new Date(sentAtMs);
+  const hours = sentAt.getHours().toString().padStart(2, "0");
+  const minutes = sentAt.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function createInitialChatMessages(nowMs: number = Date.now()): Record<ChatChannel, ChatMessage[]> {
+  return {
+    world: [
+      {
+        id: "world-seed-1",
+        channel: "world",
+        sender: "Town Crier",
+        text: "World bosses are stirring near Dreadmoor.",
+        sentAtMs: nowMs - 5 * 60 * 1000
+      },
+      {
+        id: "world-seed-2",
+        channel: "world",
+        sender: "Mercenary-Rin",
+        text: "Selling rare iron bundles, whisper me.",
+        sentAtMs: nowMs - 3 * 60 * 1000
+      },
+      {
+        id: "world-seed-3",
+        channel: "world",
+        sender: "Archmage Sol",
+        text: "Need one more for hard contract chain.",
+        sentAtMs: nowMs - 90 * 1000
+      }
+    ],
+    guild: [
+      {
+        id: "guild-seed-1",
+        channel: "guild",
+        sender: "Guildmaster",
+        text: "Guild reset at dawn. Donate materials before then.",
+        sentAtMs: nowMs - 6 * 60 * 1000
+      },
+      {
+        id: "guild-seed-2",
+        channel: "guild",
+        sender: "Quartermaster",
+        text: "Bench upgrades are queued after tonight's run.",
+        sentAtMs: nowMs - 2 * 60 * 1000
+      }
+    ]
+  };
+}
 
 const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
   { id: "inventory", label: "Inventory" },
@@ -1554,7 +1629,14 @@ function createContractSlots(nowMs: number): ContractSlotState[] {
 
 export function App() {
   const initialContractSlots = useMemo(() => createContractSlots(Date.now()), []);
+  const landingPageRef = useRef<HTMLDivElement | null>(null);
+  const leftPanelRef = useRef<HTMLElement | null>(null);
   const sidePanelScrollRef = useRef<HTMLDivElement | null>(null);
+  const rightPanelRef = useRef<HTMLElement | null>(null);
+  const panelViewportGroupRef = useRef<HTMLDivElement | null>(null);
+  const panelViewportMainRef = useRef<HTMLDivElement | null>(null);
+  const panelViewportSideRef = useRef<HTMLDivElement | null>(null);
+  const chatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | null>(
     () => window.localStorage.getItem("ebonkeep.dev.token")
   );
@@ -1582,12 +1664,27 @@ export function App() {
   const [showOnlyJewelry, setShowOnlyJewelry] = useState(false);
   const [showOnlyWearable, setShowOnlyWearable] = useState(false);
   const [powerSortDirection, setPowerSortDirection] = useState<"desc" | "asc">("asc");
+  const [activeChatChannel, setActiveChatChannel] = useState<ChatChannel>("world");
+  const [chatMessagesByChannel, setChatMessagesByChannel] = useState<Record<ChatChannel, ChatMessage[]>>(() =>
+    createInitialChatMessages()
+  );
+  const [chatDraft, setChatDraft] = useState("");
+  const [canDockInventoryChat, setCanDockInventoryChat] = useState(false);
+  const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
+  const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
   const [activeStatTraining, setActiveStatTraining] = useState<{
     stat: TrainableStatKey;
     completesAt: number;
   } | null>(null);
+  const [activeCharacterVisualIndex, setActiveCharacterVisualIndex] = useState<number>(() => {
+    const total = GENERATED_CHARACTER_VISUALS.length;
+    if (total === 0) {
+      return -1;
+    }
+    return Math.floor(Math.random() * total);
+  });
 
   const profileName = playerState ? getDisplayName(playerState) : "Warden";
   const avatarInitial = profileName.charAt(0);
@@ -1633,6 +1730,14 @@ export function App() {
       return activeInventoryCategoryFilters.includes(category as InventoryCategoryFilter);
     });
   }, [activeInventoryCategoryFilters, inventoryItems, showOnlyWearable]);
+  const activeChatMessages = chatMessagesByChannel[activeChatChannel];
+  const isInventoryChatVisible = canDockInventoryChat ? isInventoryChatDockedVisible : isInventoryChatOverlayOpen;
+  const activeCharacterVisual =
+    activeCharacterVisualIndex >= 0 ? GENERATED_CHARACTER_VISUALS[activeCharacterVisualIndex] ?? null : null;
+  const activeCharacterVisualPath =
+    activeCharacterVisual?.path ?? null;
+  const activeCharacterVisualName = activeCharacterVisual?.assetName ?? null;
+  const canCycleCharacterVisuals = GENERATED_CHARACTER_VISUALS.length > 1;
 
   const healthPercent = playerState
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
@@ -1691,6 +1796,8 @@ export function App() {
       setEquipmentDropTargetSlotId(null);
       setEquipmentDropState(null);
       setInventoryComparisonHover(null);
+      setCanDockInventoryChat(false);
+      setIsInventoryChatOverlayOpen(false);
     }
   }, [activeTab]);
 
@@ -1704,6 +1811,87 @@ export function App() {
       setInventoryComparisonHover(null);
     }
   }, [profileSideTab]);
+
+  useEffect(() => {
+    if (activeTab !== "inventory") {
+      return;
+    }
+
+    const recalculateChatDocking = () => {
+      if (layoutMode === "compact") {
+        setCanDockInventoryChat(false);
+        return;
+      }
+
+      const landingPage = landingPageRef.current;
+      const leftPanel = leftPanelRef.current;
+      const panelGroup = panelViewportGroupRef.current;
+      const mainPanel = panelViewportMainRef.current;
+      const sidePanel = panelViewportSideRef.current;
+      if (!landingPage || !leftPanel || !panelGroup || !mainPanel || !sidePanel) {
+        setCanDockInventoryChat(false);
+        return;
+      }
+
+      const landingPageWidth = landingPage.getBoundingClientRect().width;
+      const leftPanelWidth = leftPanel.getBoundingClientRect().width;
+      const landingPageStyle = window.getComputedStyle(landingPage);
+      const landingColumnGap = Number.parseFloat(landingPageStyle.columnGap || landingPageStyle.gap || "0") || 0;
+      const availableRightPanelWidth = Math.max(0, landingPageWidth - leftPanelWidth - landingColumnGap);
+      const mainPanelWidth = mainPanel.getBoundingClientRect().width;
+      const sidePanelWidth = sidePanel.getBoundingClientRect().width;
+      const groupStyle = window.getComputedStyle(panelGroup);
+      const groupColumnGap = Number.parseFloat(groupStyle.columnGap || groupStyle.gap || "0") || 0;
+      const requiredWidth = mainPanelWidth + sidePanelWidth * 2 + groupColumnGap * 2;
+      setCanDockInventoryChat(availableRightPanelWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => recalculateChatDocking()) : null;
+    if (resizeObserver) {
+      if (landingPageRef.current) {
+        resizeObserver.observe(landingPageRef.current);
+      }
+      if (leftPanelRef.current) {
+        resizeObserver.observe(leftPanelRef.current);
+      }
+      if (rightPanelRef.current) {
+        resizeObserver.observe(rightPanelRef.current);
+      }
+      if (panelViewportGroupRef.current) {
+        resizeObserver.observe(panelViewportGroupRef.current);
+      }
+      if (panelViewportMainRef.current) {
+        resizeObserver.observe(panelViewportMainRef.current);
+      }
+      if (panelViewportSideRef.current) {
+        resizeObserver.observe(panelViewportSideRef.current);
+      }
+    }
+
+    const rafId = window.requestAnimationFrame(recalculateChatDocking);
+    window.addEventListener("resize", recalculateChatDocking);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", recalculateChatDocking);
+      resizeObserver?.disconnect();
+    };
+  }, [activeTab, layoutMode]);
+
+  useEffect(() => {
+    if (canDockInventoryChat) {
+      setIsInventoryChatOverlayOpen(false);
+    }
+  }, [canDockInventoryChat]);
+
+  useEffect(() => {
+    const scrollContainer = chatMessagesScrollRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+  }, [activeChatChannel, activeChatMessages.length]);
 
   useEffect(() => {
     let active = true;
@@ -1749,6 +1937,12 @@ export function App() {
       setActiveStatTraining(null);
       return;
     }
+
+    setChatMessagesByChannel(createInitialChatMessages());
+    setActiveChatChannel("world");
+    setChatDraft("");
+    setIsInventoryChatDockedVisible(true);
+    setIsInventoryChatOverlayOpen(false);
 
     setInventoryItems(createMockInventoryItems(playerState.devWeapons).slice(0, INVENTORY_ITEM_LIMIT));
     setEquippedItems(createEmptyEquippedItems());
@@ -1839,6 +2033,12 @@ export function App() {
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
     setInventoryComparisonHover(null);
+    setActiveChatChannel("world");
+    setChatMessagesByChannel(createInitialChatMessages());
+    setChatDraft("");
+    setCanDockInventoryChat(false);
+    setIsInventoryChatDockedVisible(true);
+    setIsInventoryChatOverlayOpen(false);
     setBaseStats(null);
     setCurrencies(null);
     setActiveStatTraining(null);
@@ -2110,6 +2310,49 @@ export function App() {
     setShowOnlyWeapons(filter === "weapon" ? nextActive : false);
     setShowOnlyArmor(filter === "armor" ? nextActive : false);
     setShowOnlyJewelry(filter === "jewelry" ? nextActive : false);
+  }
+
+  function openInventoryChat() {
+    if (canDockInventoryChat) {
+      setIsInventoryChatDockedVisible(true);
+      return;
+    }
+    setIsInventoryChatOverlayOpen(true);
+  }
+
+  function closeInventoryChat() {
+    if (canDockInventoryChat) {
+      setIsInventoryChatDockedVisible(false);
+      return;
+    }
+    setIsInventoryChatOverlayOpen(false);
+  }
+
+  function sendChatMessage() {
+    const trimmedMessage = chatDraft.trim();
+    if (!trimmedMessage) {
+      return;
+    }
+
+    const sentAtMs = Date.now();
+    const nextMessage: ChatMessage = {
+      id: `${activeChatChannel}-${sentAtMs}-${Math.floor(Math.random() * 10000)}`,
+      channel: activeChatChannel,
+      sender: profileName,
+      text: trimmedMessage,
+      sentAtMs
+    };
+
+    setChatMessagesByChannel((previousMessages) => ({
+      ...previousMessages,
+      [activeChatChannel]: [...previousMessages[activeChatChannel], nextMessage]
+    }));
+    setChatDraft("");
+  }
+
+  function handleChatComposerSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    sendChatMessage();
   }
 
   function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
@@ -2450,6 +2693,11 @@ export function App() {
               className: useImageOnlyIcon ? undefined : "equipmentItemIcon",
               renderMode: useImageOnlyIcon ? "imageOnly" : "default"
             })}
+            {equippedItem && useImageOnlyIcon ? (
+              <span className="equipmentSlotPower" aria-hidden="true">
+                {equippedItem.power}
+              </span>
+            ) : null}
           </div>
         ) : null}
         {equippedItem ? (
@@ -2527,7 +2775,54 @@ export function App() {
               <div className="equipmentCenterColumn">
                 <div className="characterVisual">
                   <div className="characterVisualFrame">
-                    <div className="characterSilhouette" aria-hidden="true" />
+                    {activeCharacterVisualPath ? (
+                      <img
+                        src={activeCharacterVisualPath}
+                        alt={`${activeCharacterVisualName ?? profileName} portrait`}
+                        className="characterVisualImage"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="characterSilhouette" aria-hidden="true" />
+                    )}
+                    {canCycleCharacterVisuals ? (
+                      <>
+                        <button
+                          type="button"
+                          className="characterCycleButton characterCycleButtonPrev"
+                          onClick={() => {
+                            setActiveCharacterVisualIndex((currentIndex) => {
+                              const total = GENERATED_CHARACTER_VISUALS.length;
+                              if (total === 0) {
+                                return -1;
+                              }
+                              const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+                              return (safeIndex - 1 + total) % total;
+                            });
+                          }}
+                          aria-label="Show previous character portrait"
+                        >
+                          <span aria-hidden="true">{"<"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="characterCycleButton characterCycleButtonNext"
+                          onClick={() => {
+                            setActiveCharacterVisualIndex((currentIndex) => {
+                              const total = GENERATED_CHARACTER_VISUALS.length;
+                              if (total === 0) {
+                                return -1;
+                              }
+                              const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+                              return (safeIndex + 1) % total;
+                            });
+                          }}
+                          aria-label="Show next character portrait"
+                        >
+                          <span aria-hidden="true">{">"}</span>
+                        </button>
+                      </>
+                    ) : null}
                     <p className="characterVisualLabel">{profileName}</p>
                     {renderEquipmentSlotCell("weapon", "equipmentWeaponCell equipmentWeaponOverlay", "top")}
                     <div className="vestigeRack vestigeRackOverlay">
@@ -2980,6 +3275,68 @@ export function App() {
     );
   }
 
+  function renderChatPanel() {
+    return (
+      <section className="contentShell statsViewportShell">
+        <section className="contentStack statsViewportStack chatPanelStack">
+          <article className="contentCard chatPanelTabsCard">
+            <div className="chatPanelHeaderRow">
+              <div className="chatChannelTabs" role="tablist" aria-label="Chat channels">
+                {Object.entries(CHAT_CHANNEL_LABELS).map(([channel, label]) => (
+                  <button
+                    key={channel}
+                    className={`profileSwitchButton${activeChatChannel === channel ? " active" : ""}`}
+                    onClick={() => setActiveChatChannel(channel as ChatChannel)}
+                    role="tab"
+                    aria-selected={activeChatChannel === channel}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <button className="chatOverlayCloseButton" onClick={closeInventoryChat} aria-label="Close chat">
+                x
+              </button>
+            </div>
+          </article>
+
+          <article className="contentCard statsViewportBody sidePanelBodyCard chatMessagesCard">
+            <div className="chatMessagesScroll" ref={chatMessagesScrollRef}>
+              {activeChatMessages.length > 0 ? (
+                <ul className="chatMessageList">
+                  {activeChatMessages.map((message) => (
+                    <li key={message.id} className="chatMessageItem">
+                      <p className="chatMessageMeta">
+                        <strong>{message.sender}</strong>
+                        <span>{formatChatTime(message.sentAtMs)}</span>
+                      </p>
+                      <p className="chatMessageText">{message.text}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="chatEmptyState">No messages yet.</p>
+              )}
+            </div>
+
+            <form className="chatComposer" onSubmit={handleChatComposerSubmit}>
+              <input
+                type="text"
+                value={chatDraft}
+                onChange={(event) => setChatDraft(event.currentTarget.value)}
+                placeholder={`Message ${CHAT_CHANNEL_LABELS[activeChatChannel]}...`}
+                maxLength={180}
+              />
+              <button type="submit" disabled={chatDraft.trim().length === 0}>
+                Send
+              </button>
+            </form>
+          </article>
+        </section>
+      </section>
+    );
+  }
+
   function renderContractsPanel() {
     if (isLoadingState) {
       return (
@@ -3165,10 +3522,10 @@ export function App() {
   }
 
   return (
-    <main className={`appRoot layout-${layoutMode}`}>
-      <div className="appSurface">
-        <div className="landingPage">
-          <aside className="leftPanel">
+      <main className={`appRoot layout-${layoutMode}`}>
+        <div className="appSurface">
+        <div className="landingPage" ref={landingPageRef}>
+          <aside className="leftPanel" ref={leftPanelRef}>
             <div className="leftPanelShell">
               <section className="playerCard">
                 <div className="identityRow">
@@ -3220,16 +3577,56 @@ export function App() {
             </div>
           </aside>
 
-          <section className="rightPanel">
+          <section className="rightPanel" ref={rightPanelRef}>
             {activeTab === "inventory" ? (
-              <div className="panelViewportGroup">
-                <div className="panelViewportProfileMain">{renderProfilePanel()}</div>
-                <div className="panelViewportSide">{renderProfileSidePanel()}</div>
+              <div
+                className={`panelViewportGroup${
+                  canDockInventoryChat && isInventoryChatDockedVisible ? " panelViewportGroupWithChat" : ""
+                }`}
+                ref={panelViewportGroupRef}
+              >
+                <div className="panelViewportProfileMain" ref={panelViewportMainRef}>
+                  {renderProfilePanel()}
+                </div>
+                <div
+                  className={`panelViewportSide${
+                    !canDockInventoryChat && isInventoryChatOverlayOpen ? " panelViewportSideChatCovered" : ""
+                  }`}
+                  ref={panelViewportSideRef}
+                >
+                  {renderProfileSidePanel()}
+                </div>
+                {canDockInventoryChat && isInventoryChatDockedVisible ? (
+                  <div className="panelViewportSide panelViewportChat">{renderChatPanel()}</div>
+                ) : null}
+                {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
+                  <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
+                ) : null}
               </div>
             ) : (
               <div className="panelViewport">{renderActivePanel()}</div>
             )}
           </section>
+
+          {activeTab === "inventory" && !isInventoryChatVisible ? (
+            <>
+              <button
+                className="inventoryChatFloatingToggle"
+                onClick={openInventoryChat}
+                aria-label="Show chat panel"
+                aria-pressed="false"
+              >
+                <svg
+                  className="inventoryChatFloatingToggleIcon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M4 5h16v10H8l-4 4V5zm2 2v7.17L7.17 13H18V7H6zm3 2h6v2H9V9z" />
+                </svg>
+              </button>
+            </>
+          ) : null}
 
           {error ? <div className="error floatingError">Error: {error}</div> : null}
         </div>

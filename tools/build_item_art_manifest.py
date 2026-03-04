@@ -80,6 +80,13 @@ def key_for_path(rel: Path) -> tuple[str, str] | None:
         key = f"jewelry:{jewelry_type}:{norm_name_from_slug(item_slug)}"
         return key, f"/assets/items/generated/{rel.as_posix()}"
 
+    if major == "character":
+        if len(parts) < 3:
+            return None
+        stat_family = parts[1].lower()
+        key = f"character:{stat_family}:{filename}"
+        return key, f"/assets/items/generated/{rel.as_posix()}"
+
     return None
 
 
@@ -134,4 +141,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

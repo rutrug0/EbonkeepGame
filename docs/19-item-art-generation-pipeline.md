@@ -29,9 +29,11 @@ Current sources include:
 - `docs/data/robe_armor_name_ranges_v1.csv`
 - `docs/data/jewelry_ring_name_ranges_v1.csv`
 - `docs/data/jewelry_necklace_name_ranges_v1.csv`
+- `docs/data/character_avatar_prompt_templates_v1.csv` (characters)
 
 Rows missing `prompt_item_description` are skipped by design.
 Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
+Character sources can map a different prompt column (for example `prompt_character_avatar`) via source config.
 
 ## Prompt Layering
 Final prompt is assembled in this order:
@@ -59,6 +61,10 @@ From `render_defaults` in `tools/item_art_prompts.yaml`:
 - background: `transparent`
 - quality: `medium`
 
+Group overrides can supersede defaults via `group_render_overrides`.
+Current override:
+- `characters` -> `quality: high`
+
 ## Environment
 Set in `.env` (see `.env.example`):
 - `OPENAI_API_KEY` (required for non-dry runs)
@@ -77,7 +83,7 @@ python tools/generate_item_art.py --insecure
 ```
 
 Arguments:
-- `--sources all|weapons|armor|jewelry`
+- `--sources all|weapons|armor|jewelry|characters`
 - `--output-dir <path>`
 - `--limit <n>`
 - `--dry-run`
@@ -109,6 +115,11 @@ For each generated image, the pipeline also writes:
 `apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<asset_family>_<item_name>.txt`
 
 The `.txt` file contains the exact final prompt used for that item generation.
+
+Character naming convention:
+- Character portrait filenames are sequence IDs by stat family, not character names.
+- Pattern: `character_<stat_code><n>.png` where stat code is `str`, `int`, or `dex`.
+- Examples: `character_str1.png`, `character_int3.png`, `character_dex10.png`.
 
 Examples:
 - `.../weapon/melee/sword/warrior_melee_iron_shortsword.png`
