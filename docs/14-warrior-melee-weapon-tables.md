@@ -63,6 +63,7 @@ This matches examples:
   - `multiplier = (1 - w) + w * ((base_avg_common + avg_growth_per_ilvl * base_level) / (base_avg_common + avg_growth_per_ilvl * ilvl))`
   - `w = base_level_influence_weight` from `docs/data/warrior_weapon_damage_coefficients_v2.csv` (default `0.25`)
   - multiplier is applied post-lookup to roll windows before min/max damage are rolled.
+- After base min/max rolls are generated, direct damage affixes (`melee_damage`) add a calibrated flat delta to both rolled min and rolled max based on tier-bounded damage-equivalent mapping.
 
 Rarity multipliers:
 - Common: `1.00`

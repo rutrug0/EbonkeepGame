@@ -17,6 +17,12 @@ type DevWeaponAffix = {
   unit: AffixUnit;
 };
 
+type RolledWeaponAffix = DevWeaponAffix & {
+  scaleKey: string;
+  rollMin: number;
+  rollMax: number;
+};
+
 export type DevWeapon = {
   displayName: string;
   displayLine: string;
@@ -27,6 +33,7 @@ export type DevWeapon = {
   allowedClass: PlayerClass;
   minDamage: number;
   maxDamage: number;
+  power: number;
   affixSummary: string;
   affixes: DevWeaponAffix[];
   flavorText: string;
@@ -59,6 +66,11 @@ type DamageCoefficients = {
   baseLevelInfluenceWeight: number;
 };
 
+type WeaponPowerCoefficients = {
+  weaponPowerScaleFactor: number;
+  tierPercentRanges: Record<AffixTier, { min: number; max: number }>;
+};
+
 type AffixScalingRow = {
   level: number;
   scaleKey: string;
@@ -89,6 +101,12 @@ const PLAYER_CLASSES: readonly PlayerClass[] = ["warrior", "ranger", "mage"];
 const DAMAGE_CATEGORIES: readonly DamageCategory[] = ["strength", "agility", "intelligence"];
 const WEAPON_RARITIES: readonly WeaponRarity[] = ["common", "uncommon", "rare", "epic"];
 const DAMAGE_COEFFICIENTS_FILE = "warrior_weapon_damage_coefficients_v2.csv";
+const WEAPON_POWER_COEFFICIENTS_FILE = "weapon_power_coefficients_v1.csv";
+const DIRECT_DAMAGE_AFFIX_STATS = new Set<DevWeaponAffix["stat"]>([
+  "melee_damage",
+  "ranged_damage",
+  "spell_damage"
+]);
 const TARGET_AXE_ROLLS: readonly { name: string; count: number }[] = [
   { name: "Blackmoor Cleaver", count: 5 },
   { name: "Durnholde Axe", count: 5 },
@@ -406,6 +424,31 @@ function buildDamageCoefficients(): DamageCoefficients {
   };
 }
 
+function buildWeaponPowerCoefficients(): WeaponPowerCoefficients {
+  const row = parseCsv(WEAPON_POWER_COEFFICIENTS_FILE)[0];
+  if (!row) {
+    throw new Error(`Missing rows in '${WEAPON_POWER_COEFFICIENTS_FILE}'.`);
+  }
+
+  return {
+    weaponPowerScaleFactor: toFloat(row.weapon_power_scale_factor || "8.0"),
+    tierPercentRanges: {
+      T1: {
+        min: toFloat(row.t1_pct_min || "0.04"),
+        max: toFloat(row.t1_pct_max || "0.08")
+      },
+      T2: {
+        min: toFloat(row.t2_pct_min || "0.10"),
+        max: toFloat(row.t2_pct_max || "0.14")
+      },
+      T3: {
+        min: toFloat(row.t3_pct_min || "0.16"),
+        max: toFloat(row.t3_pct_max || "0.20")
+      }
+    }
+  };
+}
+
 function buildNameRows(): NameRow[] {
   const rows: NameRow[] = [];
   for (const dataset of WEAPON_DATASETS) {
@@ -474,6 +517,7 @@ function buildAffixScalingRows(): Map<string, AffixScalingRow> {
 const nameRows = buildNameRows();
 const damageRows = buildDamageRows();
 const damageCoefficients = buildDamageCoefficients();
+const weaponPowerCoefficients = buildWeaponPowerCoefficients();
 const affixRows = buildAffixScalingRows();
 
 function averageDamageAtLevel(level: number, coefficients: DamageCoefficients): number {
@@ -516,11 +560,54 @@ function applyBaseLevelInfluenceToDamageRow(
   };
 }
 
+function clamp01(value: number): number {
+  if (value <= 0) {
+    return 0;
+  }
+  if (value >= 1) {
+    return 1;
+  }
+  return value;
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) {
+    return 0;
+  }
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return total / values.length;
+}
+
+function expectedPostRarityDamageFromRow(row: Pick<DamageRow, "minLow" | "minHigh" | "maxLow" | "maxHigh">): number {
+  const expectedMin = average([row.minLow, row.minHigh]);
+  const expectedMax = average([row.maxLow, row.maxHigh]);
+  return average([expectedMin, expectedMax]);
+}
+
+function toDamageEquivalentPercent(
+  affix: Pick<RolledWeaponAffix, "tier" | "value" | "rollMin" | "rollMax">,
+  coefficients: WeaponPowerCoefficients
+): number {
+  const tierRange = coefficients.tierPercentRanges[affix.tier];
+  const denominator = affix.rollMax - affix.rollMin;
+  const progress =
+    denominator > 0 ? clamp01((affix.value - affix.rollMin) / denominator) : 1;
+  return tierRange.min + (tierRange.max - tierRange.min) * progress;
+}
+
+function getAffixDamageEquivalentValue(
+  affix: Pick<RolledWeaponAffix, "tier" | "value" | "rollMin" | "rollMax">,
+  expectedPostRarityDamage: number,
+  coefficients: WeaponPowerCoefficients
+): number {
+  return expectedPostRarityDamage * toDamageEquivalentPercent(affix, coefficients);
+}
+
 function rollAffix(
   level: number,
   source: "prefix" | "suffix",
   weaponFamily: WeaponFamilyKey
-): DevWeaponAffix {
+): RolledWeaponAffix {
   const family = pickOne([...AFFIX_FAMILIES[weaponFamily]]);
   const tier = rollTier();
   const scaling = affixRows.get(`${level}:${family.scaleKey}:${tier}`);
@@ -531,7 +618,10 @@ function rollAffix(
       tier,
       stat: family.statKey,
       value: 0,
-      unit: "flat"
+      unit: "flat",
+      scaleKey: family.scaleKey,
+      rollMin: 0,
+      rollMax: 0
     };
   }
 
@@ -541,7 +631,10 @@ function rollAffix(
     tier,
     stat: family.statKey,
     value: randomInt(scaling.rollMin, scaling.rollMax),
-    unit: scaling.unit
+    unit: scaling.unit,
+    scaleKey: family.scaleKey,
+    rollMin: scaling.rollMin,
+    rollMax: scaling.rollMax
   };
 }
 
@@ -587,11 +680,12 @@ function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
   const adjustedRow = damageRow
     ? applyBaseLevelInfluenceToDamageRow(damageRow, level, nameCandidate.baseLevel, damageCoefficients)
     : null;
-  const minDamage = adjustedRow ? randomInt(adjustedRow.minLow, adjustedRow.minHigh) : 1;
-  const rolledMax = adjustedRow ? randomInt(adjustedRow.maxLow, adjustedRow.maxHigh) : minDamage + 1;
-  const maxDamage = Math.max(minDamage, rolledMax);
+  const baseRolledMin = adjustedRow ? randomInt(adjustedRow.minLow, adjustedRow.minHigh) : 1;
+  const baseRolledMax = adjustedRow
+    ? randomInt(adjustedRow.maxLow, adjustedRow.maxHigh)
+    : baseRolledMin + 1;
 
-  const affixes: DevWeaponAffix[] = [];
+  const affixes: RolledWeaponAffix[] = [];
   if (rarity === "uncommon") {
     affixes.push(
       rollAffix(level, Math.random() < 0.5 ? "prefix" : "suffix", dataset.weaponFamily)
@@ -601,12 +695,55 @@ function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
     affixes.push(rollAffix(level, "suffix", dataset.weaponFamily));
   }
 
+  const expectedPostRarityDamage = adjustedRow
+    ? expectedPostRarityDamageFromRow(adjustedRow)
+    : average([baseRolledMin, baseRolledMax]);
+  const affixDamageEquivalentValues = affixes.map((affix) =>
+    getAffixDamageEquivalentValue(
+      affix,
+      expectedPostRarityDamage,
+      weaponPowerCoefficients
+    )
+  );
+  const directDamageContributionTotal = affixes.reduce((sum, affix, index) => {
+    if (!DIRECT_DAMAGE_AFFIX_STATS.has(affix.stat)) {
+      return sum;
+    }
+    return sum + affixDamageEquivalentValues[index];
+  }, 0);
+  const utilityDamageContributionTotal = affixes.reduce((sum, affix, index) => {
+    if (DIRECT_DAMAGE_AFFIX_STATS.has(affix.stat)) {
+      return sum;
+    }
+    return sum + affixDamageEquivalentValues[index];
+  }, 0);
+  const directDamageDelta = Math.max(0, Math.round(directDamageContributionTotal));
+  const minDamage = Math.max(1, baseRolledMin + directDamageDelta);
+  const maxDamage = Math.max(minDamage, baseRolledMax + directDamageDelta);
+  const expectedFinalDamage =
+    expectedPostRarityDamage +
+    directDamageContributionTotal +
+    utilityDamageContributionTotal;
+  const power = Math.max(
+    0,
+    Math.round(expectedFinalDamage * weaponPowerCoefficients.weaponPowerScaleFactor)
+  );
+
   const prefix = affixes.find((affix) => affix.source === "prefix");
   const suffix = affixes.find((affix) => affix.source === "suffix");
   const nameWithPrefix = prefix ? `${prefix.name} ${baseName}` : baseName;
   const displayName = suffix ? `${nameWithPrefix} ${suffix.name}` : nameWithPrefix;
-
-  const affixSummary = buildAffixSummary(affixes);
+  const payloadAffixes: DevWeaponAffix[] = affixes.map(
+    ({ source, name, tier, stat, value, unit }) => ({
+      source,
+      name,
+      tier,
+      stat,
+      value,
+      unit
+    })
+  );
+  const affixSummary = buildAffixSummary(payloadAffixes);
   return {
     displayName,
     displayLine: `${displayName} | ${nameCandidate.weaponType} | Level ${level} [${minDamage}-${maxDamage}] | ${affixSummary}`,
@@ -617,8 +754,9 @@ function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
     allowedClass: nameCandidate.allowedClass,
     minDamage,
     maxDamage,
+    power,
     affixSummary,
-    affixes,
+    affixes: payloadAffixes,
     flavorText: nameCandidate.flavorText
   };
 }

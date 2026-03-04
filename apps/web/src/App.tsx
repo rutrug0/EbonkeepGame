@@ -916,7 +916,7 @@ function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): I
 
   return {
     ...itemWithModifiers,
-    power: computeMockItemPower(itemWithModifiers)
+    power: weapon.power
   };
 }
 

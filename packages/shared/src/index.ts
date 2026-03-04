@@ -217,6 +217,7 @@ export const devWeaponSchema = z.object({
   allowedClass: playerClassSchema,
   minDamage: z.number().int().min(0),
   maxDamage: z.number().int().min(0),
+  power: z.number().int().min(0),
   affixSummary: z.string(),
   affixes: z.array(devWeaponAffixSchema),
   flavorText: z.string()

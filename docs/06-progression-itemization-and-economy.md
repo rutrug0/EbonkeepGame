@@ -84,66 +84,51 @@
 - Backend-ready generated table lives at `docs/data/affix_scaling_level_1_100.csv`.
 
 ### Item Power Score Formula (Level 1-100)
-- Goal: item power should be driven mostly by item level, with smaller contributions from base rarity and prefix/suffix tier quality.
-- Canonical formula:
-  - `power_level = item_level` for armor/jewelry
-  - `power_level = item_level * 0.75 + weapon_base_level * 0.25` for weapons
-  - `base_power = power_level * 8`
-  - `rarity_bonus = base_power * rarity_bonus_rate`
-  - `roll_bonus = prefix_tier_bonus + suffix_tier_bonus`
-  - `total_item_power = round_nearest((base_power + rarity_bonus + roll_bonus) * category_power_multiplier)`
-- Rounding rule:
-  - round once at the final total only (not per component), using nearest integer.
+- Goal: a single quick-glance number should track real weapon strength from item level, base-level range identity, rarity, and affix/suffix quality.
+- Current ownership:
+  - Weapon power: API-authoritative, damage-index based.
+  - Armor/jewelry power: legacy level/rarity/tier formula (unchanged in this pass).
 
-Category multipliers:
+Weapon power model (damage-index based):
+- Build post-rarity expected damage from weapon roll windows after base-level influence:
+  - `expected_post_rarity = avg(avg(min_low, min_high), avg(max_low, max_high))`
+- For each present affix/suffix, convert the rolled value to a damage-equivalent percent using tier ranges:
+  - T1: `4%-8%`
+  - T2: `10%-14%`
+  - T3: `16%-20%`
+  - `progress = clamp01((roll_value - roll_min) / (roll_max - roll_min))`
+  - `affix_pct = tier_min + progress * (tier_max - tier_min)`
+  - `affix_damage_equivalent = expected_post_rarity * affix_pct`
+- Direct damage affixes (`melee_damage`, `ranged_damage`, `spell_damage`) add their damage-equivalent to rolled min/max:
+  - `direct_delta = round(sum(direct_affix_damage_equivalent))`
+  - `rolled_min += direct_delta`
+  - `rolled_max += direct_delta`
+- Final expected damage index:
+  - `expected_final_damage = expected_post_rarity + sum(all_affix_damage_equivalent)`
+- Final weapon power:
+  - `weapon_power = round(expected_final_damage * weapon_power_scale_factor)`
 
-| Item Major Category | category_power_multiplier |
-|---|---:|
-| Armor | `1.0` |
-| Jewelry | `1.0` |
-| Weapon | `2.0` |
+Weapon power coefficients:
+- Source: `docs/data/weapon_power_coefficients_v1.csv`
+- Fields:
+  - `weapon_power_scale_factor`
+  - `t1_pct_min`, `t1_pct_max`
+  - `t2_pct_min`, `t2_pct_max`
+  - `t3_pct_min`, `t3_pct_max`
 
-Base-item rarity bonus rates:
-
-| Base Item Rarity | rarity_bonus_rate |
-|---|---:|
-| Common | 0.00 |
-| Uncommon | 0.10 |
-| Rare | 0.20 |
-| Epic | 0.30 |
-
-Prefix/suffix tier bonus formulas:
-
-| Roll Tier | Per-roll bonus formula |
-|---|---|
-| T1 | `power_level * 0.25` |
-| T2 | `power_level * 0.50` |
-| T3 | `power_level * 0.75` |
-
-Roll presence by item rarity:
-- Common: no prefix/suffix roll
-- Uncommon: one roll (prefix or suffix)
-- Rare: two rolls (prefix and suffix)
-- Epic: two rolls (prefix and suffix)
-
-Worked examples:
-
-| Case | Computation | Result |
-|---|---|---:|
-| Level 100 Common Armor (no rolls) | `(800 + 0 + 0) * 1.0` | `800` |
-| Level 100 Uncommon Jewelry + T1 roll | `(800 + 80 + 25) * 1.0` | `905` |
-| Level 100 Rare Weapon + T3 prefix + T3 suffix | `(800 + 160 + 75 + 75) * 2.0` | `2220` |
-| Level 57 Rare Weapon + T1 prefix + T2 suffix | `(456 + 91.2 + 14.25 + 28.5) * 2.0 = 1179.9`, then round | `1180` |
-| Level 50 Rare Weapon with base level 56 + T1 prefix + T2 suffix | `power_level=51.5`, then `(412 + 82.4 + 12.875 + 25.75) * 2.0 = 1066.05`, then round | `1066` |
+Affix cap semantics (weapon power and weapon roll contribution):
+- Cap anchor: post-rarity expected damage baseline.
+- Cap scope: per affix roll.
+- T3 per-affix contribution maximum: `20%` of post-rarity expected damage.
 
 Data contract (documentation-level, for backend/frontend alignment):
 - `item_level`: integer in `[1, 100]`
-- `weapon_base_level`: integer in `[0, 100]` (required for weapons, ignored for non-weapons)
+- `weapon_base_level`: integer in `[0, 100]`
 - `rarity`: `common | uncommon | rare | epic`
-- `prefix_tier`: `null | T1 | T2 | T3`
-- `suffix_tier`: `null | T1 | T2 | T3`
-- `category_power_multiplier`: number (`1.0` armor/jewelry, `2.0` weapon)
-- `item_power`: integer computed from the formula above
+- `min_damage`: integer `>= 0` (after direct-damage affix injection)
+- `max_damage`: integer `>= min_damage` (after direct-damage affix injection)
+- `power`: integer `>= 0`, API-authoritative quick-glance score
+- `affixes[]`: includes rolled `tier`, `stat`, `value`, and `unit`
 
 ## Vestiges
 - Vestiges are equipable by all classes.
