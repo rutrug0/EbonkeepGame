@@ -1010,9 +1010,21 @@ button:focus-visible {
   background: rgba(24, 31, 39, 0.72);
   padding: 8px;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto 1fr;
   gap: 6px;
   align-content: start;
+}
+
+.statTrainingSymbol {
+  display: inline-grid;
+  justify-content: center;
+  align-items: center;
+}
+
+.statTrainingSymbol svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: color-mix(in srgb, var(--accent-warn) 62%, var(--text-main) 38%);
 }
 
 .statTrainingLabel {

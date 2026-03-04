@@ -2502,13 +2502,13 @@ export function App() {
       ducats: Math.max(playerState.currency.ducats, TEST_MIN_DUCATS),
       imperials: playerState.currency.imperials
     };
-    const mainStatColumns: Array<{ key: TrainableStatKey; label: string }> = [
-      { key: "strength", label: "STR" },
-      { key: "intelligence", label: "INT" },
-      { key: "dexterity", label: "DEX" },
-      { key: "vitality", label: "VIT" },
-      { key: "initiative", label: "INI" },
-      { key: "luck", label: "LCK" }
+    const mainStatColumns: Array<{ key: TrainableStatKey; label: string; iconPath: string }> = [
+      { key: "strength", label: "STR", iconPath: "M6.2 17c-1.2 0-2.2-1-2.2-2.2V10h1.9V7.8a1 1 0 112 0V10h.8V7.2a1 1 0 112 0V10h.8V7.5a1 1 0 112 0V10h.7a2 2 0 012 2v2.8c0 1.2-1 2.2-2.2 2.2H6.2z" },
+      { key: "intelligence", label: "INT", iconPath: "M4 4h5a3 3 0 013 3v9a3 3 0 00-3-3H4V4zm12 0h-5a3 3 0 00-3 3v9a3 3 0 013-3h5V4z" },
+      { key: "dexterity", label: "DEX", iconPath: "M4 5h5l1 4h4l2 3H4V5zm0 8h13v2H4v-2z" },
+      { key: "vitality", label: "VIT", iconPath: "M10 17l-1.4-1.2C5 12.6 3 10.8 3 8.5 3 6.6 4.6 5 6.5 5c1.1 0 2.2.5 2.9 1.4.7-.9 1.8-1.4 2.9-1.4C14.4 5 16 6.6 16 8.5c0 2.3-2 4.1-5.6 7.3L10 17zM9 7h2v2h2v2h-2v2H9v-2H7V9h2V7z" },
+      { key: "initiative", label: "INI", iconPath: "M9 2l-5 9h4l-1 7 8-11h-4l1-5H9z" },
+      { key: "luck", label: "LCK", iconPath: "M5 4h10a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zm2 2a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2zM10 9a1 1 0 100 2 1 1 0 000-2zm-3 3a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2z" }
     ];
 
     return (
@@ -2603,6 +2603,11 @@ export function App() {
 
                   return (
                     <div key={statColumn.key} className="statTrainingColumn">
+                      <span className="statTrainingSymbol" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" focusable="false">
+                          <path d={statColumn.iconPath} />
+                        </svg>
+                      </span>
                       <span className="statTrainingLabel">{statColumn.label}</span>
                       <div
                         className={`statTrainingTooltip${statTooltipAnchorClass ? ` ${statTooltipAnchorClass}` : ""}`}
