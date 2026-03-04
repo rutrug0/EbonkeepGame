@@ -40,6 +40,7 @@ type LayoutMode = "compact" | "standard" | "wide";
 type ProfileSideTab = "inventory" | "consumables" | "stats";
 type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
+type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
 
 type EquipmentSlotId =
   | "helmet"
@@ -1576,6 +1577,11 @@ export function App() {
   const [equipmentDropTargetSlotId, setEquipmentDropTargetSlotId] = useState<EquipmentSlotId | null>(null);
   const [equipmentDropState, setEquipmentDropState] = useState<"valid" | "invalid" | null>(null);
   const [inventoryComparisonHover, setInventoryComparisonHover] = useState<InventoryComparisonHoverState | null>(null);
+  const [showOnlyWeapons, setShowOnlyWeapons] = useState(false);
+  const [showOnlyArmor, setShowOnlyArmor] = useState(false);
+  const [showOnlyJewelry, setShowOnlyJewelry] = useState(false);
+  const [showOnlyWearable, setShowOnlyWearable] = useState(false);
+  const [powerSortDirection, setPowerSortDirection] = useState<"desc" | "asc">("asc");
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
   const [activeStatTraining, setActiveStatTraining] = useState<{
@@ -1599,6 +1605,34 @@ export function App() {
     [draggingInventoryCardId, inventoryItems]
   );
   const hintedEquipmentSlotId = draggingInventoryItem?.equipSlotId ?? null;
+  const activeInventoryCategoryFilters = useMemo<InventoryCategoryFilter[]>(() => {
+    const filters: InventoryCategoryFilter[] = [];
+    if (showOnlyWeapons) {
+      filters.push("weapon");
+    }
+    if (showOnlyArmor) {
+      filters.push("armor");
+    }
+    if (showOnlyJewelry) {
+      filters.push("jewelry");
+    }
+    return filters;
+  }, [showOnlyArmor, showOnlyJewelry, showOnlyWeapons]);
+  const filteredInventoryItems = useMemo(() => {
+    return inventoryItems.filter((item) => {
+      if (showOnlyWearable && !item.equipable) {
+        return false;
+      }
+      if (activeInventoryCategoryFilters.length === 0) {
+        return true;
+      }
+      const category = item.archetype?.majorCategory;
+      if (!category) {
+        return false;
+      }
+      return activeInventoryCategoryFilters.includes(category as InventoryCategoryFilter);
+    });
+  }, [activeInventoryCategoryFilters, inventoryItems, showOnlyWearable]);
 
   const healthPercent = playerState
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
@@ -2056,6 +2090,18 @@ export function App() {
     equipInventoryItemToSlot(itemId, item.equipSlotId);
   }
 
+  function toggleInventoryPowerSort() {
+    const nextDirection = powerSortDirection === "asc" ? "desc" : "asc";
+    setPowerSortDirection(nextDirection);
+    setInventoryItems((previousItems) =>
+      [...previousItems].sort((firstItem, secondItem) =>
+        nextDirection === "desc"
+          ? secondItem.power - firstItem.power
+          : firstItem.power - secondItem.power
+      )
+    );
+  }
+
   function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
     unequipItemToInventory(slotId);
   }
@@ -2277,7 +2323,7 @@ export function App() {
     }
 
     if (payload.source === "equipment") {
-      if (inventoryItems.length === 0) {
+      if (filteredInventoryItems.length === 0) {
         unequipItemToInventory(payload.slotId);
         clearDragState();
         return;
@@ -2285,7 +2331,9 @@ export function App() {
 
       const containerRect = event.currentTarget.getBoundingClientRect();
       const insertAtEnd = event.clientY >= containerRect.top + containerRect.height / 2;
-      const targetItemId = insertAtEnd ? inventoryItems[inventoryItems.length - 1].id : inventoryItems[0].id;
+      const targetItemId = insertAtEnd
+        ? filteredInventoryItems[filteredInventoryItems.length - 1].id
+        : filteredInventoryItems[0].id;
       const fallbackPosition: InventoryInsertPosition = insertAtEnd ? "after" : "before";
       const resolvedPosition =
         dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
@@ -2294,14 +2342,16 @@ export function App() {
       return;
     }
 
-    if (inventoryItems.length === 0) {
+    if (filteredInventoryItems.length === 0) {
       clearDragState();
       return;
     }
 
     const containerRect = event.currentTarget.getBoundingClientRect();
     const insertAtEnd = event.clientY >= containerRect.top + containerRect.height / 2;
-    const targetItem = insertAtEnd ? inventoryItems[inventoryItems.length - 1] : inventoryItems[0];
+    const targetItem = insertAtEnd
+      ? filteredInventoryItems[filteredInventoryItems.length - 1]
+      : filteredInventoryItems[0];
     const fallbackPosition: InventoryInsertPosition = insertAtEnd ? "after" : "before";
     const resolvedPosition =
       dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
@@ -2510,7 +2560,7 @@ export function App() {
 
             <div className="mainStatsTraining">
               <div className="statTrainingColumns">
-                {mainStatColumns.map((statColumn) => {
+                {mainStatColumns.map((statColumn, statIndex) => {
                   const baseValue = effectiveBaseStats[statColumn.key];
                   const itemBonus = equipmentStatBonuses[statColumn.key];
                   const statContributionLines = getStatContributionLines(
@@ -2534,10 +2584,20 @@ export function App() {
                       )
                     : 0;
 
+                  const statTooltipAnchorClass =
+                    statIndex === 0
+                      ? "statTrainingTooltipAnchorStart"
+                      : statIndex === mainStatColumns.length - 1
+                        ? "statTrainingTooltipAnchorEnd"
+                        : "";
+
                   return (
                     <div key={statColumn.key} className="statTrainingColumn">
                       <span className="statTrainingLabel">{statColumn.label}</span>
-                      <div className="statTrainingTooltip" role="tooltip">
+                      <div
+                        className={`statTrainingTooltip${statTooltipAnchorClass ? ` ${statTooltipAnchorClass}` : ""}`}
+                        role="tooltip"
+                      >
                         <p className="statTrainingTooltipTitle">Derived Contributions</p>
                         {statContributionLines.map((line) => (
                           <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
@@ -2742,14 +2802,136 @@ export function App() {
             >
               {profileSideTab === "inventory" ? (
                 <>
-                  <div className="inventoryHeader">
-                    <h3>Inventory Items</h3>
-                    <p>
-                      Stored: {inventoryItems.length}/{INVENTORY_ITEM_LIMIT}
+                  <div className="inventoryToolbarSticky">
+                    <div className="inventoryControlsRow">
+                      <div className="inventoryControlWithTooltip">
+                        <button
+                          type="button"
+                          className="inventoryIconButton"
+                          onClick={toggleInventoryPowerSort}
+                          aria-label="Toggle power sort direction"
+                          aria-describedby="inventory-power-sort-tooltip"
+                        >
+                          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                            <path d="M7 4L4 7h2v9h2V7h2L7 4zM13 16l3-3h-2V4h-2v9h-2l3 3z" />
+                          </svg>
+                        </button>
+                        <div
+                          id="inventory-power-sort-tooltip"
+                          className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
+                          role="tooltip"
+                        >
+                          <p className="uiHoverTooltipTitle">Sort Items</p>
+                          <p className="uiHoverTooltipLine">
+                            Click to sort by power, alternating between highest-first and lowest-first each click.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="inventoryFilterButtons">
+                        <div className="inventoryControlWithTooltip">
+                          <button
+                            type="button"
+                            className={`inventoryIconButton${showOnlyWeapons ? " active" : ""}`}
+                            onClick={() => setShowOnlyWeapons((previous) => !previous)}
+                            aria-label="Filter weapons"
+                            aria-pressed={showOnlyWeapons}
+                            aria-describedby="inventory-filter-weapons-tooltip"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                              <path d="M4 16l4-4 2 2-4 4H4v-2zm8-9l1.5-1.5L16 8l-1.5 1.5L12 7zM10.5 8.5l1-1 1.5 1.5-1 1-1.5-1.5zM8 11l2-2 1.5 1.5-2 2L8 11z" />
+                            </svg>
+                          </button>
+                          <div
+                            id="inventory-filter-weapons-tooltip"
+                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
+                            role="tooltip"
+                          >
+                            <p className="uiHoverTooltipTitle">Weapons Filter</p>
+                            <p className="uiHoverTooltipLine">
+                              Show only weapon items. Click again to include all item categories.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="inventoryControlWithTooltip">
+                          <button
+                            type="button"
+                            className={`inventoryIconButton${showOnlyArmor ? " active" : ""}`}
+                            onClick={() => setShowOnlyArmor((previous) => !previous)}
+                            aria-label="Filter armor"
+                            aria-pressed={showOnlyArmor}
+                            aria-describedby="inventory-filter-armor-tooltip"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                              <path d="M10 3l5 2v4c0 3.5-2.2 6-5 8-2.8-2-5-4.5-5-8V5l5-2zm0 2.2L7 6.3v2.6c0 2.4 1.4 4.3 3 5.8 1.6-1.5 3-3.4 3-5.8V6.3l-3-1.1z" />
+                            </svg>
+                          </button>
+                          <div
+                            id="inventory-filter-armor-tooltip"
+                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
+                            role="tooltip"
+                          >
+                            <p className="uiHoverTooltipTitle">Armor Filter</p>
+                            <p className="uiHoverTooltipLine">
+                              Show only armor items. Click again to include all item categories.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="inventoryControlWithTooltip">
+                          <button
+                            type="button"
+                            className={`inventoryIconButton${showOnlyJewelry ? " active" : ""}`}
+                            onClick={() => setShowOnlyJewelry((previous) => !previous)}
+                            aria-label="Filter jewelry"
+                            aria-pressed={showOnlyJewelry}
+                            aria-describedby="inventory-filter-jewelry-tooltip"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                              <path d="M10 5a5 5 0 105 5 5 5 0 00-5-5zm0 2a3 3 0 110 6 3 3 0 010-6zM4 4h3v2H4zM13 4h3v2h-3z" />
+                            </svg>
+                          </button>
+                          <div
+                            id="inventory-filter-jewelry-tooltip"
+                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
+                            role="tooltip"
+                          >
+                            <p className="uiHoverTooltipTitle">Jewelry Filter</p>
+                            <p className="uiHoverTooltipLine">
+                              Show only rings and amulets. Click again to include all item categories.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="inventoryControlWithTooltip">
+                          <button
+                            type="button"
+                            className={`inventoryIconButton${showOnlyWearable ? " active" : ""}`}
+                            onClick={() => setShowOnlyWearable((previous) => !previous)}
+                            aria-label="Filter wearable items"
+                            aria-pressed={showOnlyWearable}
+                            aria-describedby="inventory-filter-wearable-tooltip"
+                          >
+                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                              <path d="M7 3h6l2 3-2 2-1-1v9H8V7L7 8 5 6l2-3z" />
+                            </svg>
+                          </button>
+                          <div
+                            id="inventory-filter-wearable-tooltip"
+                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
+                            role="tooltip"
+                          >
+                            <p className="uiHoverTooltipTitle">Wearable Filter</p>
+                            <p className="uiHoverTooltipLine">
+                              Show only equippable gear. Click again to include all item categories.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="inventoryFilterSummary">
+                      Showing {filteredInventoryItems.length}/{inventoryItems.length}
                     </p>
                   </div>
-                  <p>Drag and drop cards to reorder your inventory list.</p>
-                  {renderInventoryCards(inventoryItems, true)}
+                  {renderInventoryCards(filteredInventoryItems, true)}
                 </>
               ) : null}
 
