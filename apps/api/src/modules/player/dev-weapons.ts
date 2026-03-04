@@ -31,6 +31,10 @@ export type DevWeapon = {
   baseLevel: number;
   weaponFamily: WeaponFamilyKey;
   allowedClass: PlayerClass;
+  minRollLow: number;
+  minRollHigh: number;
+  maxRollLow: number;
+  maxRollHigh: number;
   minDamage: number;
   maxDamage: number;
   power: number;
@@ -107,12 +111,7 @@ const DIRECT_DAMAGE_AFFIX_STATS = new Set<DevWeaponAffix["stat"]>([
   "ranged_damage",
   "spell_damage"
 ]);
-const TARGET_AXE_ROLLS: readonly { name: string; count: number }[] = [
-  { name: "Blackmoor Cleaver", count: 5 },
-  { name: "Durnholde Axe", count: 5 },
-  { name: "Kingsreach Axe", count: 5 },
-  { name: "Dornhal Greataxe", count: 5 }
-];
+const STARTUP_MOCK_MELEE_WEAPON_COUNT = 20;
 
 const WEAPON_DATASETS: readonly WeaponDataset[] = [
   {
@@ -377,6 +376,17 @@ function randomInt(min: number, max: number): number {
 
 function pickOne<T>(values: T[]): T {
   return values[randomInt(0, values.length - 1)];
+}
+
+function pickRandomSubset<T>(values: readonly T[], count: number): T[] {
+  const copy = [...values];
+  for (let idx = copy.length - 1; idx > 0; idx -= 1) {
+    const swapIndex = randomInt(0, idx);
+    const current = copy[idx];
+    copy[idx] = copy[swapIndex];
+    copy[swapIndex] = current;
+  }
+  return copy.slice(0, Math.max(0, Math.min(count, copy.length)));
 }
 
 function rollRarity(): WeaponRarity {
@@ -718,7 +728,19 @@ function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
     return sum + affixDamageEquivalentValues[index];
   }, 0);
   const directDamageDelta = Math.max(0, Math.round(directDamageContributionTotal));
-  const minDamage = Math.max(1, baseRolledMin + directDamageDelta);
+  const minRollLow = adjustedRow
+    ? Math.max(1, adjustedRow.minLow + directDamageDelta)
+    : Math.max(1, baseRolledMin + directDamageDelta);
+  const minRollHigh = adjustedRow
+    ? Math.max(minRollLow, adjustedRow.minHigh + directDamageDelta)
+    : minRollLow;
+  const maxRollLow = adjustedRow
+    ? Math.max(minRollHigh, adjustedRow.maxLow + directDamageDelta)
+    : Math.max(minRollHigh, baseRolledMax + directDamageDelta);
+  const maxRollHigh = adjustedRow
+    ? Math.max(maxRollLow, adjustedRow.maxHigh + directDamageDelta)
+    : maxRollLow;
+  const minDamage = Math.max(minRollLow, baseRolledMin + directDamageDelta);
   const maxDamage = Math.max(minDamage, baseRolledMax + directDamageDelta);
   const expectedFinalDamage =
     expectedPostRarityDamage +
@@ -752,6 +774,10 @@ function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
     baseLevel: nameCandidate.baseLevel,
     weaponFamily: dataset.weaponFamily,
     allowedClass: nameCandidate.allowedClass,
+    minRollLow,
+    minRollHigh,
+    maxRollLow,
+    maxRollHigh,
     minDamage,
     maxDamage,
     power,
@@ -762,24 +788,12 @@ function generateOneWeapon(forcedNameCandidate?: NameRow): DevWeapon {
 }
 
 function generateStartupDevWeapons(): DevWeapon[] {
-  const targetedRows = TARGET_AXE_ROLLS.map((target) => {
-    const row = nameRows.find(
-      (entry) => entry.weaponFamily === "melee" && entry.weaponName === target.name
-    );
-    if (!row) {
-      throw new Error(`Targeted mock weapon '${target.name}' was not found in melee name rows.`);
-    }
-    return { row, count: target.count };
-  });
-
-  const targetedWeapons: DevWeapon[] = [];
-  for (const target of targetedRows) {
-    for (let i = 0; i < target.count; i += 1) {
-      targetedWeapons.push(generateOneWeapon(target.row));
-    }
+  const meleeRows = nameRows.filter((entry) => entry.weaponFamily === "melee");
+  if (meleeRows.length === 0) {
+    throw new Error("No melee name rows loaded for startup mock weapon generation.");
   }
-
-  return targetedWeapons;
+  const selectedRows = pickRandomSubset(meleeRows, STARTUP_MOCK_MELEE_WEAPON_COUNT);
+  return selectedRows.map((row) => generateOneWeapon(row));
 }
 
 const startupDevWeapons = generateStartupDevWeapons();

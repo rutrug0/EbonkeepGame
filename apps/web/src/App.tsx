@@ -902,10 +902,10 @@ function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): I
     levelRequirement: weapon.level,
     baseLevel: weapon.baseLevel,
     damageRoll: {
-      minRollRange: [weapon.minDamage, weapon.minDamage] as [number, number],
+      minRollRange: [weapon.minRollLow, weapon.minRollHigh] as [number, number],
       rolledMin: weapon.minDamage,
       rolledMax: weapon.maxDamage,
-      maxRollRange: [weapon.maxDamage, weapon.maxDamage] as [number, number],
+      maxRollRange: [weapon.maxRollLow, weapon.maxRollHigh] as [number, number],
       averageDamage: (weapon.minDamage + weapon.maxDamage) / 2
     },
     prefix,
@@ -2822,10 +2822,9 @@ export function App() {
                       <div className="inventoryControlWithTooltip">
                         <button
                           type="button"
-                          className={`inventoryIconButton${powerSortDirection === "desc" ? " active" : ""}`}
+                          className="inventoryIconButton"
                           onClick={toggleInventoryPowerSort}
-                          aria-label="Toggle power sort direction"
-                          aria-pressed={powerSortDirection === "desc"}
+                          aria-label="Sort by power"
                           aria-describedby="inventory-power-sort-tooltip"
                         >
                           <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -2837,10 +2836,7 @@ export function App() {
                           className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
                           role="tooltip"
                         >
-                          <p className="uiHoverTooltipTitle">Sort Items</p>
-                          <p className="uiHoverTooltipLine">
-                            Click to sort by power, alternating between highest-first and lowest-first each click.
-                          </p>
+                          <p className="uiHoverTooltipTitle">SORT ITEMS</p>
                         </div>
                       </div>
 
@@ -2863,10 +2859,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">Weapons Filter</p>
-                            <p className="uiHoverTooltipLine">
-                              Show only weapon items. Click again to include all item categories.
-                            </p>
+                            <p className="uiHoverTooltipTitle">WEAPONS FILTER</p>
                           </div>
                         </div>
                         <div className="inventoryControlWithTooltip">
@@ -2887,10 +2880,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">Armor Filter</p>
-                            <p className="uiHoverTooltipLine">
-                              Show only armor items. Click again to include all item categories.
-                            </p>
+                            <p className="uiHoverTooltipTitle">ARMOR FILTER</p>
                           </div>
                         </div>
                         <div className="inventoryControlWithTooltip">
@@ -2911,10 +2901,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">Jewelry Filter</p>
-                            <p className="uiHoverTooltipLine">
-                              Show only rings and amulets. Click again to include all item categories.
-                            </p>
+                            <p className="uiHoverTooltipTitle">JEWELRY FILTER</p>
                           </div>
                         </div>
                         <div className="inventoryControlWithTooltip">
@@ -2935,10 +2922,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">Wearable Filter</p>
-                            <p className="uiHoverTooltipLine">
-                              Show only equippable gear. Click again to include all item categories.
-                            </p>
+                            <p className="uiHoverTooltipTitle">WEARABLE FILTER</p>
                           </div>
                         </div>
                       </div>
