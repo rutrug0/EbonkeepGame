@@ -281,9 +281,9 @@ button:focus-visible {
   padding: var(--space-4);
   display: grid;
   gap: var(--space-4);
-  grid-template-columns: minmax(var(--left-panel-min), var(--left-panel-max)) max-content;
+  grid-template-columns: minmax(var(--left-panel-min), var(--left-panel-max)) minmax(0, 1fr);
   align-items: stretch;
-  justify-content: center;
+  justify-content: stretch;
   position: relative;
 }
 
@@ -478,7 +478,9 @@ button:focus-visible {
 }
 
 .panelViewport {
-  width: min(100%, var(--panel-viewport-max));
+  width: 100%;
+  max-width: var(--panel-viewport-max);
+  min-width: 0;
 }
 
 .panelViewportGroup {
@@ -607,6 +609,142 @@ button:focus-visible {
 
 .contentStack > .contentCard:last-child {
   border-bottom: none;
+}
+
+.encyclopediaControlsCard {
+  align-content: start;
+}
+
+.encyclopediaTabRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.encyclopediaSetListCard,
+.encyclopediaGroupListCard {
+  align-content: start;
+}
+
+.encyclopediaSetList,
+.encyclopediaGroupList {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.encyclopediaSetSection,
+.encyclopediaGroupSection {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.encyclopediaSetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.encyclopediaSetHeader h3 {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.encyclopediaSetBadge {
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 55%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-main) 90%, var(--accent-warn) 10%);
+  background: rgba(39, 31, 22, 0.55);
+}
+
+.encyclopediaSetGrid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.encyclopediaGroupGrid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.encyclopediaItemCard {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: rgba(22, 30, 38, 0.82);
+  padding: var(--space-2);
+  min-height: 280px;
+}
+
+.encyclopediaItemCard.isMissing {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+.encyclopediaItemImageWrap {
+  width: 100%;
+  height: 118px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: calc(var(--soft-radius) - 2px);
+  background: rgba(14, 20, 26, 0.82);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.encyclopediaItemImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.encyclopediaItemPlaceholder {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.encyclopediaItemBody {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+}
+
+.encyclopediaItemMeta {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--text-main) 68%, var(--accent-info) 32%);
+}
+
+.encyclopediaItemName {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.encyclopediaItemFlavor {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--text-main) 84%, white 16%);
+}
+
+.encyclopediaEmptyState {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.98rem;
 }
 
 .profileSwitchBar {
@@ -962,6 +1100,10 @@ button:focus-visible {
 .appRoot.layout-compact .contractsHeader {
   align-items: flex-start;
   flex-direction: column;
+}
+
+.appRoot.layout-compact .encyclopediaSetGrid {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 }
 
 .appRoot.layout-compact .contractsTableWrap {

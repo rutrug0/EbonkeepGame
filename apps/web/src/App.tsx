@@ -22,9 +22,14 @@ import {
 
 import { devGuestLogin, fetchPlayerState } from "./api";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
+import {
+  GENERATED_ITEM_ENCYCLOPEDIA_DATA,
+  type GeneratedEncyclopediaItem
+} from "./generated/itemEncyclopediaData";
 
 type LandingTab =
   | "inventory"
+  | "encyclopedia"
   | "contracts"
   | "missions"
   | "arena"
@@ -43,6 +48,9 @@ type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
 type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
 type ChatChannel = "world" | "guild";
+type EncyclopediaCategory = "armor" | "weapon" | "jewelry";
+type EncyclopediaArmorArchetype = "heavy" | "light" | "robe";
+type EncyclopediaWeaponArchetype = "melee" | "ranged" | "arcane";
 
 type EquipmentSlotId =
   | "helmet"
@@ -268,6 +276,7 @@ function createInitialChatMessages(nowMs: number = Date.now()): Record<ChatChann
 
 const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
   { id: "inventory", label: "Inventory" },
+  { id: "encyclopedia", label: "Encyclopedia" },
   { id: "contracts", label: "Contracts" },
   { id: "missions", label: "Missions" },
   { id: "arena", label: "Arena" },
@@ -318,6 +327,18 @@ const EQUIPMENT_SLOTS: Record<EquipmentSlotId, EquipmentSlot> = {
   vestige2: { label: "Vestige II", majorCategory: "vestige" },
   vestige3: { label: "Vestige III", majorCategory: "vestige" }
 };
+const ENCYCLOPEDIA_ARMOR_SLOT_ORDER: string[] = [
+  "helmet",
+  "upper_armor",
+  "pauldrons",
+  "gloves",
+  "belt",
+  "lower_armor",
+  "boots"
+];
+const ENCYCLOPEDIA_CATEGORY_ORDER: EncyclopediaCategory[] = ["armor", "weapon", "jewelry"];
+const ENCYCLOPEDIA_ARMOR_ARCHETYPE_ORDER: EncyclopediaArmorArchetype[] = ["heavy", "light", "robe"];
+const ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER: EncyclopediaWeaponArchetype[] = ["melee", "ranged", "arcane"];
 
 function createEmptyEquippedItems(): EquippedItems {
   return ALL_EQUIPMENT_SLOTS.reduce(
@@ -1161,6 +1182,13 @@ function renderMenuIcon(tab: LandingTab) {
           <path d="M4 13h16M10 9V7h4v2M11 13h2" />
         </svg>
       );
+    case "encyclopedia":
+      return (
+        <svg {...iconProps}>
+          <path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 0-2 2V4z" />
+          <path d="M7 8h8M7 12h8M7 16h6" />
+        </svg>
+      );
     case "contracts":
       return (
         <svg {...iconProps}>
@@ -1240,6 +1268,48 @@ function formatRarityLabel(rarity: Rarity): string {
 
 function formatArchetypeLabel(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatTokenLabel(value: unknown): string {
+  const normalized = typeof value === "string" ? value : String(value ?? "");
+  if (!normalized) {
+    return "Unknown";
+  }
+  const cleaned = normalized.trim();
+  if (!cleaned) {
+    return "Unknown";
+  }
+  return cleaned
+    .split(/[_\s]+/)
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function sanitizeEncyclopediaItem(raw: GeneratedEncyclopediaItem): GeneratedEncyclopediaItem {
+  return {
+    key: typeof raw.key === "string" && raw.key.length > 0 ? raw.key : `unknown:${Math.random().toString(36).slice(2)}`,
+    majorCategory: typeof raw.majorCategory === "string" ? raw.majorCategory : "unknown",
+    archetype: typeof raw.archetype === "string" ? raw.archetype : "unknown",
+    family: typeof raw.family === "string" ? raw.family : "unknown",
+    slotFamily: typeof raw.slotFamily === "string" ? raw.slotFamily : "unknown",
+    itemType: typeof raw.itemType === "string" ? raw.itemType : "Unknown",
+    itemName: typeof raw.itemName === "string" ? raw.itemName : "Unknown Item",
+    flavorText: typeof raw.flavorText === "string" ? raw.flavorText : "",
+    baseLevel: Number.isFinite(raw.baseLevel) ? raw.baseLevel : 0,
+    dropMinLevel: Number.isFinite(raw.dropMinLevel) ? raw.dropMinLevel : 0,
+    dropMaxLevel: Number.isFinite(raw.dropMaxLevel) ? raw.dropMaxLevel : 0,
+    iconPath: typeof raw.iconPath === "string" ? raw.iconPath : null,
+    sourceId: typeof raw.sourceId === "string" ? raw.sourceId : "unknown",
+    sequence: Number.isFinite(raw.sequence) ? raw.sequence : 0,
+  };
+}
+
+function normalizeEncyclopediaItems(input: GeneratedEncyclopediaItem[]): GeneratedEncyclopediaItem[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+  return input.map((item) => sanitizeEncyclopediaItem(item));
 }
 
 function getItemSubtypeLabel(item: InventoryItem): string {
@@ -1642,6 +1712,10 @@ export function App() {
   );
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
+  const [encyclopediaCategory, setEncyclopediaCategory] = useState<EncyclopediaCategory>("armor");
+  const [encyclopediaArmorArchetype, setEncyclopediaArmorArchetype] = useState<EncyclopediaArmorArchetype>("heavy");
+  const [encyclopediaWeaponArchetype, setEncyclopediaWeaponArchetype] =
+    useState<EncyclopediaWeaponArchetype>("melee");
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
@@ -3471,10 +3545,260 @@ export function App() {
     );
   }
 
+  function renderEncyclopediaItemCard(
+    item: GeneratedEncyclopediaItem | null,
+    fallbackLabel: string | null = null
+  ): ReactElement {
+    const labelToken = item?.slotFamily || item?.family || item?.itemType || fallbackLabel || "item";
+    const cardLabel = formatTokenLabel(labelToken);
+    return (
+      <article className={`encyclopediaItemCard${item ? "" : " isMissing"}`}>
+        <div className="encyclopediaItemImageWrap" aria-hidden="true">
+          {item?.iconPath ? (
+            <img className="encyclopediaItemImage" src={item.iconPath} alt={item.itemName} loading="lazy" />
+          ) : (
+            <div className="encyclopediaItemPlaceholder">Art pending</div>
+          )}
+        </div>
+        <div className="encyclopediaItemBody">
+          <p className="encyclopediaItemMeta">{cardLabel}</p>
+          <h3 className="encyclopediaItemName">{item?.itemName ?? "Missing Item"}</h3>
+          <p className="encyclopediaItemFlavor">{item?.flavorText || "No entry available for this slot yet."}</p>
+        </div>
+      </article>
+    );
+  }
+
+  function renderEncyclopediaPanel() {
+    try {
+      const allItems = normalizeEncyclopediaItems(GENERATED_ITEM_ENCYCLOPEDIA_DATA);
+      return (
+        <section className="contentShell">
+          <section className="contentStack">
+            <article className="contentCard encyclopediaControlsCard">
+              <h2>Encyclopedia</h2>
+              <p>Browse all defined weapons, armor sets, and jewelry with generated item art.</p>
+              <div className="encyclopediaTabRow">
+                {ENCYCLOPEDIA_CATEGORY_ORDER.map((category) => (
+                  <button
+                    key={category}
+                    className={`profileSwitchButton${encyclopediaCategory === category ? " active" : ""}`}
+                    onClick={() => setEncyclopediaCategory(category)}
+                  >
+                    {formatTokenLabel(category)}
+                  </button>
+                ))}
+              </div>
+              {encyclopediaCategory === "armor" ? (
+                <div className="encyclopediaTabRow">
+                  {ENCYCLOPEDIA_ARMOR_ARCHETYPE_ORDER.map((archetype) => (
+                    <button
+                      key={archetype}
+                      className={`profileSwitchButton${encyclopediaArmorArchetype === archetype ? " active" : ""}`}
+                      onClick={() => setEncyclopediaArmorArchetype(archetype)}
+                    >
+                      {formatTokenLabel(archetype)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              {encyclopediaCategory === "weapon" ? (
+                <div className="encyclopediaTabRow">
+                  {ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER.map((archetype) => (
+                    <button
+                      key={archetype}
+                      className={`profileSwitchButton${encyclopediaWeaponArchetype === archetype ? " active" : ""}`}
+                      onClick={() => setEncyclopediaWeaponArchetype(archetype)}
+                    >
+                      {formatTokenLabel(archetype)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </article>
+
+            {encyclopediaCategory === "armor" ? (
+              (() => {
+                const armorItems = allItems.filter(
+                  (item) => item.majorCategory === "armor" && item.archetype === encyclopediaArmorArchetype
+                );
+                const byBaseLevel = new Map<number, Map<string, GeneratedEncyclopediaItem>>();
+                for (const item of armorItems) {
+                  const slotMap = byBaseLevel.get(item.baseLevel) ?? new Map<string, GeneratedEncyclopediaItem>();
+                  slotMap.set(item.slotFamily, item);
+                  byBaseLevel.set(item.baseLevel, slotMap);
+                }
+                const levels = [...byBaseLevel.keys()].sort((left, right) => left - right);
+                if (levels.length === 0) {
+                  return (
+                    <article className="contentCard">
+                      <p className="encyclopediaEmptyState">No armor entries found for this archetype.</p>
+                    </article>
+                  );
+                }
+                return (
+                  <article className="contentCard encyclopediaSetListCard">
+                    <div className="encyclopediaSetList">
+                      {levels.map((baseLevel) => {
+                        const slotMap = byBaseLevel.get(baseLevel);
+                        return (
+                          <section
+                            className="encyclopediaSetSection"
+                            key={`armor-${encyclopediaArmorArchetype}-${baseLevel}`}
+                          >
+                            <div className="encyclopediaSetHeader">
+                              <h3>{formatTokenLabel(encyclopediaArmorArchetype)} Set</h3>
+                              <span className="encyclopediaSetBadge">Base {baseLevel}</span>
+                            </div>
+                            <div className="encyclopediaSetGrid">
+                              {ENCYCLOPEDIA_ARMOR_SLOT_ORDER.map((slotFamily) => (
+                                <div key={`slot-${baseLevel}-${slotFamily}`}>
+                                  {renderEncyclopediaItemCard(slotMap?.get(slotFamily) ?? null, slotFamily)}
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })()
+            ) : null}
+
+            {encyclopediaCategory === "weapon" ? (
+              (() => {
+                const weaponItems = allItems.filter(
+                  (item) => item.majorCategory === "weapon" && item.archetype === encyclopediaWeaponArchetype
+                );
+                type WeaponGroup = {
+                  family: string;
+                  baseLevel: number;
+                  items: GeneratedEncyclopediaItem[];
+                };
+                const byGroup = new Map<string, WeaponGroup>();
+                for (const item of weaponItems) {
+                  const key = `${item.family}:${item.baseLevel}`;
+                  const current = byGroup.get(key);
+                  if (current) {
+                    current.items.push(item);
+                    continue;
+                  }
+                  byGroup.set(key, { family: item.family, baseLevel: item.baseLevel, items: [item] });
+                }
+                const groups = [...byGroup.values()].sort((left, right) => {
+                  if (left.baseLevel !== right.baseLevel) {
+                    return left.baseLevel - right.baseLevel;
+                  }
+                  return String(left.family).localeCompare(String(right.family));
+                });
+                if (groups.length === 0) {
+                  return (
+                    <article className="contentCard">
+                      <p className="encyclopediaEmptyState">No weapon entries found for this archetype.</p>
+                    </article>
+                  );
+                }
+                return (
+                  <article className="contentCard encyclopediaGroupListCard">
+                    <div className="encyclopediaGroupList">
+                      {groups.map((group) => (
+                        <section
+                          className="encyclopediaGroupSection"
+                          key={`weapon-${encyclopediaWeaponArchetype}-${group.family}-${group.baseLevel}`}
+                        >
+                          <div className="encyclopediaSetHeader">
+                            <h3>{formatTokenLabel(group.family)}</h3>
+                            <span className="encyclopediaSetBadge">Base {group.baseLevel}</span>
+                          </div>
+                          <div className="encyclopediaGroupGrid">
+                            {group.items
+                              .slice()
+                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName)))
+                              .map((item) => (
+                                <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
+                              ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })()
+            ) : null}
+
+            {encyclopediaCategory === "jewelry" ? (
+              (() => {
+                const jewelryItems = allItems.filter((item) => item.majorCategory === "jewelry");
+                if (jewelryItems.length === 0) {
+                  return (
+                    <article className="contentCard">
+                      <p className="encyclopediaEmptyState">No jewelry entries found.</p>
+                    </article>
+                  );
+                }
+                type JewelryGroup = {
+                  family: string;
+                  baseLevel: number;
+                  items: GeneratedEncyclopediaItem[];
+                };
+                const byGroup = new Map<string, JewelryGroup>();
+                for (const item of jewelryItems) {
+                  const key = `${item.family}:${item.baseLevel}`;
+                  const current = byGroup.get(key);
+                  if (current) {
+                    current.items.push(item);
+                    continue;
+                  }
+                  byGroup.set(key, { family: item.family, baseLevel: item.baseLevel, items: [item] });
+                }
+                const groups = [...byGroup.values()].sort((left, right) => {
+                  if (left.family !== right.family) {
+                    return String(left.family).localeCompare(String(right.family));
+                  }
+                  return left.baseLevel - right.baseLevel;
+                });
+                return (
+                  <article className="contentCard encyclopediaGroupListCard">
+                    <div className="encyclopediaGroupList">
+                      {groups.map((group) => (
+                        <section className="encyclopediaGroupSection" key={`jewelry-${group.family}-${group.baseLevel}`}>
+                          <div className="encyclopediaSetHeader">
+                            <h3>{formatTokenLabel(group.family)}</h3>
+                            <span className="encyclopediaSetBadge">Base {group.baseLevel}</span>
+                          </div>
+                          <div className="encyclopediaGroupGrid">
+                            {group.items
+                              .slice()
+                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName)))
+                              .map((item) => (
+                                <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
+                              ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })()
+            ) : null}
+          </section>
+        </section>
+      );
+    } catch {
+      return renderPlaceholderPanel(
+        "Encyclopedia",
+        "Encyclopedia data could not be rendered. Rebuild manifests and reload the page."
+      );
+    }
+  }
+
   function renderActivePanel() {
     switch (activeTab) {
       case "inventory":
         return renderProfilePanel();
+      case "encyclopedia":
+        return renderEncyclopediaPanel();
       case "contracts":
         return renderContractsPanel();
       case "missions":

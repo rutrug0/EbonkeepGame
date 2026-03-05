@@ -12,6 +12,7 @@ The generator sends **one item per request** to the OpenAI Images API.
 
 ## Files
 - Script: `tools/generate_item_art.py`
+- Manifest/metadata builder: `tools/build_item_art_manifest.py`
 - Prompt/source config: `tools/item_art_prompts.yaml`
 - Run state cache: `tools/.cache/item_art_state.json`
 - Last run report: `tools/.cache/item_art_last_run.json`
@@ -75,6 +76,7 @@ Set in `.env` (see `.env.example`):
 ```bash
 python tools/generate_item_art.py --dry-run
 python tools/generate_item_art.py --sources weapons
+python tools/generate_item_art.py --sources armor --armor-archetype heavy --base-level 0
 python tools/generate_item_art.py --sources all --limit 10 --verbose
 python tools/generate_item_art.py --force
 python tools/generate_item_art.py --regenerate-changed
@@ -86,6 +88,8 @@ Arguments:
 - `--sources all|weapons|armor|jewelry|characters`
 - `--output-dir <path>`
 - `--limit <n>`
+- `--base-level <n>`
+- `--armor-archetype <heavy|light|robe>`
 - `--dry-run`
 - `--force`
 - `--regenerate-changed`
@@ -116,6 +120,12 @@ For each generated image, the pipeline also writes:
 
 The `.txt` file contains the exact final prompt used for that item generation.
 
+Generated app metadata files:
+- `apps/web/src/generated/itemArtManifest.ts` (icon key -> PNG path map)
+- `apps/web/public/assets/items/generated/item_art_manifest.json`
+- `apps/web/src/generated/itemEncyclopediaData.ts` (catalog entries with base levels/families/icons)
+- `apps/web/public/assets/items/generated/item_encyclopedia_data.json`
+
 Character naming convention:
 - Character portrait filenames are sequence IDs by stat family, not character names.
 - Pattern: `character_<stat_code><n>.png` where stat code is `str`, `int`, or `dex`.
@@ -130,6 +140,7 @@ Examples:
 - One API request per item.
 - Retry with exponential backoff for transient failures (`429`, `5xx`, network).
 - Script writes a machine-readable run report after each run.
+- Manifest + encyclopedia metadata are refreshed from current generated assets and `docs/data` tables.
 - Generated assets and cache are ignored by git.
 - TLS behavior:
   - default: verified TLS with system CA / `certifi` bundle (if installed)
