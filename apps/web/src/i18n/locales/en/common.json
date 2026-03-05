@@ -1,0 +1,221 @@
+﻿{
+  "app": {
+    "title": "Ebonkeep",
+    "errorPrefix": "Error"
+  },
+  "auth": {
+    "subtitle": "Login to open your post-login landing page.",
+    "loginGuest": "Login as Guest"
+  },
+  "menu": {
+    "title": "Menu",
+    "inventory": "Inventory",
+    "encyclopedia": "Encyclopedia",
+    "contracts": "Contracts",
+    "missions": "Missions",
+    "arena": "Arena",
+    "guild": "Guild",
+    "castles": "Castles",
+    "auctionHouse": "Auction House",
+    "merchant": "Merchant",
+    "leaderboards": "Leaderboards",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "player": {
+    "classUnknown": "Class unknown",
+    "level": "Level {{value}}"
+  },
+  "bars": {
+    "health": "Health",
+    "experience": "Experience"
+  },
+  "inventory": {
+    "loading": "Loading player state...",
+    "unavailable": "Player state unavailable. Login again to refresh your data.",
+    "power": "Power {{value}}",
+    "requiredLevel": "Level {{value}}",
+    "noItems": "No items available.",
+    "sortItems": "SORT ITEMS",
+    "filterWeapons": "WEAPONS FILTER",
+    "filterArmor": "ARMOR FILTER",
+    "filterJewelry": "JEWELRY FILTER",
+    "filterWearable": "WEARABLE FILTER",
+    "summary": "Showing {{shown}}/{{total}}",
+    "consumables": "Consumables",
+    "itemCount": "{{count}} items",
+    "messageShowChat": "Show chat panel",
+    "sortByPower": "Sort by power",
+    "filterWeaponsAria": "Filter weapons",
+    "filterArmorAria": "Filter armor",
+    "filterJewelryAria": "Filter jewelry",
+    "filterWearableAria": "Filter wearable items"
+  },
+  "currencies": {
+    "ducats": "Ducats",
+    "imperials": "Imperials",
+    "gearScore": "Gear Score"
+  },
+  "training": {
+    "derivedContributions": "Derived Contributions",
+    "train": "Train",
+    "training": "Training",
+    "busy": "Busy",
+    "progressAria": "{{stat}} training progress",
+    "alreadyInProgress": "Training already in progress.",
+    "notEnoughDucats": "Not enough ducats for training."
+  },
+  "chat": {
+    "world": "World",
+    "guild": "Guild",
+    "channels": "Chat channels",
+    "close": "Close chat",
+    "empty": "No messages yet.",
+    "messagePlaceholder": "Message {{channel}}...",
+    "send": "Send"
+  },
+  "contracts": {
+    "loading": "Loading contracts board...",
+    "description": "Contracts expire when their availability timer ends. Abandoning a contract starts its refill timer immediately.",
+    "available": "Available: {{available}}/{{total}} | Replenishing: {{replenishing}}",
+    "table": {
+      "contract": "Contract",
+      "difficulty": "Difficulty",
+      "experienceRoll": "Experience Roll",
+      "ducatsRoll": "Ducats Roll",
+      "materialsRoll": "Materials Roll",
+      "itemDropRoll": "Item Drop Roll",
+      "staminaRoll": "Stamina Roll",
+      "expiresIn": "Expires In",
+      "action": "Action"
+    },
+    "slot": "Slot {{index}}",
+    "replenishing": "Replenishing",
+    "newIn": "New contract available in {{duration}}",
+    "abandon": "Abandon",
+    "rollLow": "Low",
+    "rollMedium": "Medium",
+    "rollHigh": "High",
+    "difficultyEasy": "Easy",
+    "difficultyMedium": "Medium",
+    "difficultyHard": "Hard"
+  },
+  "profile": {
+    "defaultName": "Warden",
+    "namePattern": "Warden {{id}}",
+    "panel": "Profile Panel",
+    "loading": "Loading profile data...",
+    "inventoryTab": "Inventory",
+    "consumablesTab": "Consumables",
+    "statsTab": "Stats",
+    "class": "Class",
+    "level": "Level",
+    "definedInDocs": "Defined in docs (API pending)",
+    "defensive": "Defensive",
+    "offensive": "Offensive",
+    "mainDamage": "Main Damage",
+    "meleeDamage": "Melee Damage",
+    "spellDamage": "Spell Damage",
+    "rangedDamage": "Ranged Damage",
+    "rangedAttackDamage": "Ranged Attack Damage",
+    "armor": "Armor",
+    "spellShield": "Spell Shield",
+    "missileResistance": "Missile Resistance",
+    "maxHitpoints": "Max Hitpoints",
+    "critChance": "Crit Chance",
+    "critDamage": "Crit Damage",
+    "combatSpeed": "Combat Speed",
+    "extraAttackChance": "Extra Attack Chance",
+    "chanceToExtraAttack": "Chance to Extra Attack",
+    "flatBonusMainStat": "Flat Bonus Damage (Main Stat x 0.10)",
+    "derivedFlat": "+{{value}} flat",
+    "derivedPercent": "+{{value}}%",
+    "portraitSuffix": "portrait",
+    "showPreviousPortrait": "Show previous character portrait",
+    "showNextPortrait": "Show next character portrait"
+  },
+  "item": {
+    "damage": "Damage: {{value}}",
+    "roll": "Roll: [{{minLow}}-{{minHigh}}] {{rolledMin}} - {{rolledMax}} [{{maxLow}}-{{maxHigh}}]",
+    "empty": "Empty",
+    "missingItem": "Missing Item",
+    "artPending": "Art pending",
+    "noEntry": "No entry available for this slot yet.",
+    "unknown": "Unknown"
+  },
+  "errors": {
+    "stateLoadFailed": "State load failed.",
+    "loginFailed": "Login failed.",
+    "itemCannotBeEquipped": "Item cannot be equipped.",
+    "wrongSlot": "Wrong slot. This item fits {{slotLabel}}.",
+    "playerStateUnavailable": "Player state unavailable.",
+    "requiresLevel": "Requires level {{level}}.",
+    "classRestriction": "Class restriction: your class cannot equip this item.",
+    "duplicateVestige": "Duplicate vestige cannot be equipped.",
+    "inventoryFullSwap": "Inventory is full. Clear space before swapping.",
+    "inventoryFullUnequip": "Inventory is full. Cannot unequip item.",
+    "invalidItem": "Invalid item."
+  },
+  "encyclopedia": {
+    "description": "Browse all defined weapons, armor sets, and jewelry with generated item art.",
+    "base": "Base {{value}}",
+    "armorSet": "{{archetype}} Set",
+    "emptyArmor": "No armor entries found for this archetype.",
+    "emptyWeapon": "No weapon entries found for this archetype.",
+    "emptyJewelry": "No jewelry entries found.",
+    "renderError": "Encyclopedia data could not be rendered. Rebuild manifests and reload the page."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Choose your interface language. Changes apply instantly and are saved to your account.",
+    "languageLabel": "Language",
+    "saving": "Saving language preference...",
+    "saveFailed": "Language saved locally, but account sync failed.",
+    "saveSuccess": "Language synced to account."
+  },
+  "placeholders": {
+    "missions": "Mission selection and launch board will appear here.",
+    "arena": "Arena matchmaking and battle history will appear here.",
+    "guild": "Guild management and clan tools will appear here.",
+    "castles": "Castle conquest systems and holdings will appear here.",
+    "auctionHouse": "Marketplace listings will appear here. This is a placeholder panel for the first iteration.",
+    "merchant": "Merchant offers, rerolls, and purchases will appear here.",
+    "leaderboards": "Season rankings and score ladders will appear here.",
+    "panelUnavailable": "Panel unavailable."
+  },
+  "rarity": {
+    "common": "Common",
+    "uncommon": "Uncommon",
+    "rare": "Rare",
+    "epic": "Epic"
+  },
+  "archetype": {
+    "heavy": "Heavy",
+    "light": "Light",
+    "robe": "Robe",
+    "melee": "Melee",
+    "ranged": "Ranged",
+    "arcane": "Arcane"
+  },
+  "class": {
+    "warrior": "Warrior",
+    "mage": "Mage",
+    "ranger": "Ranger"
+  },
+  "slots": {
+    "helmet": "Helmet",
+    "necklace": "Necklace",
+    "upperArmor": "Upper Armor",
+    "belt": "Belt",
+    "ringLeft": "Ring I",
+    "weapon": "Weapon",
+    "pauldrons": "Pauldrons",
+    "gloves": "Gloves",
+    "lowerArmor": "Lower Armor",
+    "boots": "Boots",
+    "ringRight": "Ring II",
+    "vestige1": "Vestige I",
+    "vestige2": "Vestige II",
+    "vestige3": "Vestige III"
+  }
+}

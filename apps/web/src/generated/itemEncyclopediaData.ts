@@ -3,6 +3,7 @@
 
 export type GeneratedEncyclopediaItem = {
   key: string;
+  contentId: string;
   majorCategory: string;
   archetype: string;
   family: string;
@@ -21,6 +22,7 @@ export type GeneratedEncyclopediaItem = {
 export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   {
     "key": "armor:heavy:makeshift belt",
+    "contentId": "heavy_armor_v1:101",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -37,6 +39,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:makeshift boots",
+    "contentId": "heavy_armor_v1:151",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -53,6 +56,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:makeshift gauntlets",
+    "contentId": "heavy_armor_v1:76",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -69,6 +73,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:makeshift cap",
+    "contentId": "heavy_armor_v1:1",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -85,6 +90,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:makeshift greaves",
+    "contentId": "heavy_armor_v1:126",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -101,6 +107,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:makeshift pauldrons",
+    "contentId": "heavy_armor_v1:51",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -117,6 +124,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:makeshift cuirass",
+    "contentId": "heavy_armor_v1:26",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -133,6 +141,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn belt",
+    "contentId": "heavy_armor_v1:102",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -149,6 +158,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn shinboots",
+    "contentId": "heavy_armor_v1:152",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -165,6 +175,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn handguards",
+    "contentId": "heavy_armor_v1:77",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -181,6 +192,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn helm",
+    "contentId": "heavy_armor_v1:2",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -197,6 +209,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn legguards",
+    "contentId": "heavy_armor_v1:127",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -213,6 +226,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn pads",
+    "contentId": "heavy_armor_v1:52",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -229,6 +243,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:worn jerkin",
+    "contentId": "heavy_armor_v1:27",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -245,6 +260,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn cinch",
+    "contentId": "heavy_armor_v1:103",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -261,6 +277,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn treads",
+    "contentId": "heavy_armor_v1:153",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -277,6 +294,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn mitts",
+    "contentId": "heavy_armor_v1:78",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -293,6 +311,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn helm",
+    "contentId": "heavy_armor_v1:3",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -309,6 +328,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn shinguards",
+    "contentId": "heavy_armor_v1:128",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -325,6 +345,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn shoulders",
+    "contentId": "heavy_armor_v1:53",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -341,6 +362,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rainworn cuirass",
+    "contentId": "heavy_armor_v1:28",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -357,6 +379,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn girdle",
+    "contentId": "heavy_armor_v1:104",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -373,6 +396,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn boots",
+    "contentId": "heavy_armor_v1:154",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -389,6 +413,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn grips",
+    "contentId": "heavy_armor_v1:79",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -405,6 +430,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn skullcap",
+    "contentId": "heavy_armor_v1:4",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -421,6 +447,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn legplates",
+    "contentId": "heavy_armor_v1:129",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -437,6 +464,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn spaulders",
+    "contentId": "heavy_armor_v1:54",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -453,6 +481,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:roadworn jack",
+    "contentId": "heavy_armor_v1:29",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -469,6 +498,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service cinch",
+    "contentId": "heavy_armor_v1:105",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -485,6 +515,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service boots",
+    "contentId": "heavy_armor_v1:155",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -501,6 +532,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service grips",
+    "contentId": "heavy_armor_v1:80",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -517,6 +549,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service helm",
+    "contentId": "heavy_armor_v1:5",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -533,6 +566,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service legplates",
+    "contentId": "heavy_armor_v1:130",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -549,6 +583,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service spaulders",
+    "contentId": "heavy_armor_v1:55",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -565,6 +600,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:service jack",
+    "contentId": "heavy_armor_v1:30",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -581,6 +617,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol warbelt",
+    "contentId": "heavy_armor_v1:106",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -597,6 +634,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol sabatons",
+    "contentId": "heavy_armor_v1:156",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -613,6 +651,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol handguards",
+    "contentId": "heavy_armor_v1:81",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -629,6 +668,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol sallet",
+    "contentId": "heavy_armor_v1:6",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -645,6 +685,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol tassets",
+    "contentId": "heavy_armor_v1:131",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -661,6 +702,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol spaulders",
+    "contentId": "heavy_armor_v1:56",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -677,6 +719,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:patrol breastplate",
+    "contentId": "heavy_armor_v1:31",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -693,6 +736,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison warbelt",
+    "contentId": "heavy_armor_v1:107",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -709,6 +753,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison sabatons",
+    "contentId": "heavy_armor_v1:157",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -725,6 +770,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison grips",
+    "contentId": "heavy_armor_v1:82",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -741,6 +787,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison visor",
+    "contentId": "heavy_armor_v1:7",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -757,6 +804,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison tassets",
+    "contentId": "heavy_armor_v1:132",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -773,6 +821,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison pauldrons",
+    "contentId": "heavy_armor_v1:57",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -789,6 +838,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:garrison cuirass",
+    "contentId": "heavy_armor_v1:32",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -805,6 +855,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower waistguard",
+    "contentId": "heavy_armor_v1:108",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -821,6 +872,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower sabatons",
+    "contentId": "heavy_armor_v1:158",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -837,6 +889,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower grips",
+    "contentId": "heavy_armor_v1:83",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -853,6 +906,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower bascinet",
+    "contentId": "heavy_armor_v1:8",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -869,6 +923,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower legguards",
+    "contentId": "heavy_armor_v1:133",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -885,6 +940,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower pauldrons",
+    "contentId": "heavy_armor_v1:58",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -901,6 +957,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:tower harness",
+    "contentId": "heavy_armor_v1:33",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -917,6 +974,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart warbelt",
+    "contentId": "heavy_armor_v1:109",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -933,6 +991,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart sabatons",
+    "contentId": "heavy_armor_v1:159",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -949,6 +1008,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart handguards",
+    "contentId": "heavy_armor_v1:84",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -965,6 +1025,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart warhelm",
+    "contentId": "heavy_armor_v1:9",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -981,6 +1042,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart faulds",
+    "contentId": "heavy_armor_v1:134",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -997,6 +1059,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart spaulders",
+    "contentId": "heavy_armor_v1:59",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1013,6 +1076,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:rampart cuirass",
+    "contentId": "heavy_armor_v1:34",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1029,6 +1093,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard girdle",
+    "contentId": "heavy_armor_v1:110",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1045,6 +1110,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard sabatons",
+    "contentId": "heavy_armor_v1:160",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1061,6 +1127,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard grips",
+    "contentId": "heavy_armor_v1:85",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1077,6 +1144,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard helm",
+    "contentId": "heavy_armor_v1:10",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1093,6 +1161,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard faulds",
+    "contentId": "heavy_armor_v1:135",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1109,6 +1178,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard pauldrons",
+    "contentId": "heavy_armor_v1:60",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1125,6 +1195,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stoneguard harness",
+    "contentId": "heavy_armor_v1:35",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1141,6 +1212,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark waistguard",
+    "contentId": "heavy_armor_v1:111",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1157,6 +1229,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark greaves",
+    "contentId": "heavy_armor_v1:161",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1173,6 +1246,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark gripguards",
+    "contentId": "heavy_armor_v1:86",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1189,6 +1263,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark helm",
+    "contentId": "heavy_armor_v1:11",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1205,6 +1280,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark tassets",
+    "contentId": "heavy_armor_v1:136",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1221,6 +1297,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark spaulders",
+    "contentId": "heavy_armor_v1:61",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1237,6 +1314,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:valenmark breastplate",
+    "contentId": "heavy_armor_v1:36",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1253,6 +1331,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge waistguard",
+    "contentId": "heavy_armor_v1:112",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1269,6 +1348,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge sabatons",
+    "contentId": "heavy_armor_v1:162",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1285,6 +1365,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge warhands",
+    "contentId": "heavy_armor_v1:87",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1301,6 +1382,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge bascinet",
+    "contentId": "heavy_armor_v1:12",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1317,6 +1399,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge greaves",
+    "contentId": "heavy_armor_v1:137",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1333,6 +1416,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge pauldrons",
+    "contentId": "heavy_armor_v1:62",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1349,6 +1433,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:blackridge aegis",
+    "contentId": "heavy_armor_v1:37",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1365,6 +1450,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn warbelt",
+    "contentId": "heavy_armor_v1:113",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1381,6 +1467,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn sabatons",
+    "contentId": "heavy_armor_v1:163",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1397,6 +1484,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn fists",
+    "contentId": "heavy_armor_v1:88",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1413,6 +1501,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn greathelm",
+    "contentId": "heavy_armor_v1:13",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1429,6 +1518,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn legplates",
+    "contentId": "heavy_armor_v1:138",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1445,6 +1535,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn mantlets",
+    "contentId": "heavy_armor_v1:63",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1461,6 +1552,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:cairn warplate",
+    "contentId": "heavy_armor_v1:38",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1477,6 +1569,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal platebelt",
+    "contentId": "heavy_armor_v1:114",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1493,6 +1586,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal greaves",
+    "contentId": "heavy_armor_v1:164",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1509,6 +1603,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal gripguards",
+    "contentId": "heavy_armor_v1:89",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1525,6 +1620,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal warhelm",
+    "contentId": "heavy_armor_v1:14",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1541,6 +1637,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal strideplates",
+    "contentId": "heavy_armor_v1:139",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1557,6 +1654,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal spaulders",
+    "contentId": "heavy_armor_v1:64",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1573,6 +1671,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:greyseal cuirass",
+    "contentId": "heavy_armor_v1:39",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1589,6 +1688,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward platebelt",
+    "contentId": "heavy_armor_v1:115",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1605,6 +1705,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward sabatons",
+    "contentId": "heavy_armor_v1:165",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1621,6 +1722,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward warhands",
+    "contentId": "heavy_armor_v1:90",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1637,6 +1739,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward visor",
+    "contentId": "heavy_armor_v1:15",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1653,6 +1756,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward faulds",
+    "contentId": "heavy_armor_v1:140",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1669,6 +1773,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward mantlets",
+    "contentId": "heavy_armor_v1:65",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1685,6 +1790,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:ashenward warplate",
+    "contentId": "heavy_armor_v1:40",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1701,6 +1807,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight platebelt",
+    "contentId": "heavy_armor_v1:116",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1717,6 +1824,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight sabatons",
+    "contentId": "heavy_armor_v1:166",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1733,6 +1841,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight warhands",
+    "contentId": "heavy_armor_v1:91",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1749,6 +1858,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight visor",
+    "contentId": "heavy_armor_v1:16",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1765,6 +1875,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight tassets",
+    "contentId": "heavy_armor_v1:141",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1781,6 +1892,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight mantlets",
+    "contentId": "heavy_armor_v1:66",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1797,6 +1909,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:wardenlight breastplate",
+    "contentId": "heavy_armor_v1:41",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1813,6 +1926,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere waistguard",
+    "contentId": "heavy_armor_v1:117",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1829,6 +1943,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere marchboots",
+    "contentId": "heavy_armor_v1:167",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1845,6 +1960,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere warhands",
+    "contentId": "heavy_armor_v1:92",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1861,6 +1977,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere bascinet",
+    "contentId": "heavy_armor_v1:17",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1877,6 +1994,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere greaves",
+    "contentId": "heavy_armor_v1:142",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -1893,6 +2011,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere pauldrons",
+    "contentId": "heavy_armor_v1:67",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -1909,6 +2028,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:dreadmere aegis",
+    "contentId": "heavy_armor_v1:42",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -1925,6 +2045,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard warbelt",
+    "contentId": "heavy_armor_v1:118",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -1941,6 +2062,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard warboots",
+    "contentId": "heavy_armor_v1:168",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -1957,6 +2079,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard handguards",
+    "contentId": "heavy_armor_v1:93",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -1973,6 +2096,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard visor",
+    "contentId": "heavy_armor_v1:18",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -1989,6 +2113,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard tassets",
+    "contentId": "heavy_armor_v1:143",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2005,6 +2130,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard spaulders",
+    "contentId": "heavy_armor_v1:68",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2021,6 +2147,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:highguard cuirass",
+    "contentId": "heavy_armor_v1:43",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2037,6 +2164,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale platebelt",
+    "contentId": "heavy_armor_v1:119",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2053,6 +2181,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale sabatons",
+    "contentId": "heavy_armor_v1:169",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2069,6 +2198,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale gripguards",
+    "contentId": "heavy_armor_v1:94",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2085,6 +2215,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale crownhelm",
+    "contentId": "heavy_armor_v1:19",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2101,6 +2232,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale strideplates",
+    "contentId": "heavy_armor_v1:144",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2117,6 +2249,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale pauldrons",
+    "contentId": "heavy_armor_v1:69",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2133,6 +2266,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:stormvale warplate",
+    "contentId": "heavy_armor_v1:44",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2149,6 +2283,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron girdle",
+    "contentId": "heavy_armor_v1:120",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2165,6 +2300,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron marchboots",
+    "contentId": "heavy_armor_v1:170",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2181,6 +2317,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron warhands",
+    "contentId": "heavy_armor_v1:95",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2197,6 +2334,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron warhelm",
+    "contentId": "heavy_armor_v1:20",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2213,6 +2351,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron greaves",
+    "contentId": "heavy_armor_v1:145",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2229,6 +2368,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron pauldrons",
+    "contentId": "heavy_armor_v1:70",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2245,6 +2385,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:galeiron breastplate",
+    "contentId": "heavy_armor_v1:45",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2261,6 +2402,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark girdle",
+    "contentId": "heavy_armor_v1:121",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2277,6 +2419,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark sabatons",
+    "contentId": "heavy_armor_v1:171",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2293,6 +2436,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark handguards",
+    "contentId": "heavy_armor_v1:96",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2309,6 +2453,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark greathelm",
+    "contentId": "heavy_armor_v1:21",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2325,6 +2470,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark legplates",
+    "contentId": "heavy_armor_v1:146",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2341,6 +2487,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark mantlets",
+    "contentId": "heavy_armor_v1:71",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2357,6 +2504,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:silvermark cuirass",
+    "contentId": "heavy_armor_v1:46",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2373,6 +2521,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary claspbelt",
+    "contentId": "heavy_armor_v1:122",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2389,6 +2538,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary sabatons",
+    "contentId": "heavy_armor_v1:172",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2405,6 +2555,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary handguards",
+    "contentId": "heavy_armor_v1:97",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2421,6 +2572,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary barbute",
+    "contentId": "heavy_armor_v1:22",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2437,6 +2589,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary legplates",
+    "contentId": "heavy_armor_v1:147",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2453,6 +2606,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary mantlets",
+    "contentId": "heavy_armor_v1:72",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2469,6 +2623,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:reliquary carapace",
+    "contentId": "heavy_armor_v1:47",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2485,6 +2640,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall cincture",
+    "contentId": "heavy_armor_v1:123",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2501,6 +2657,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall treads",
+    "contentId": "heavy_armor_v1:173",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2517,6 +2674,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall gauntlets",
+    "contentId": "heavy_armor_v1:98",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2533,6 +2691,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall armet",
+    "contentId": "heavy_armor_v1:23",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2549,6 +2708,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall faulds",
+    "contentId": "heavy_armor_v1:148",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2565,6 +2725,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall mantlets",
+    "contentId": "heavy_armor_v1:73",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2581,6 +2742,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:crestfall cuirass",
+    "contentId": "heavy_armor_v1:48",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2597,6 +2759,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant claspbelt",
+    "contentId": "heavy_armor_v1:124",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2613,6 +2776,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant sabatons",
+    "contentId": "heavy_armor_v1:174",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2629,6 +2793,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant gauntlets",
+    "contentId": "heavy_armor_v1:99",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2645,6 +2810,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant armet",
+    "contentId": "heavy_armor_v1:24",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2661,6 +2827,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant faulds",
+    "contentId": "heavy_armor_v1:149",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2677,6 +2844,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant mantlets",
+    "contentId": "heavy_armor_v1:74",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2693,6 +2861,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:umbracant cuirass",
+    "contentId": "heavy_armor_v1:49",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2709,6 +2878,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial waistguard",
+    "contentId": "heavy_armor_v1:125",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "belt",
@@ -2725,6 +2895,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial sabatons",
+    "contentId": "heavy_armor_v1:175",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "boots",
@@ -2741,6 +2912,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial gauntlets",
+    "contentId": "heavy_armor_v1:100",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "gloves",
@@ -2757,6 +2929,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial visor",
+    "contentId": "heavy_armor_v1:25",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "helmet",
@@ -2773,6 +2946,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial faulds",
+    "contentId": "heavy_armor_v1:150",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "lower_armor",
@@ -2789,6 +2963,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial mantlets",
+    "contentId": "heavy_armor_v1:75",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "pauldrons",
@@ -2805,6 +2980,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:heavy:imperial warplate",
+    "contentId": "heavy_armor_v1:50",
     "majorCategory": "armor",
     "archetype": "heavy",
     "family": "upper_armor",
@@ -2821,6 +2997,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ragged strap",
+    "contentId": "light_armor_v1:101",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -2837,6 +3014,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:rough shoes",
+    "contentId": "light_armor_v1:151",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -2853,6 +3031,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:thin grips",
+    "contentId": "light_armor_v1:76",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -2869,6 +3048,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ragged cap",
+    "contentId": "light_armor_v1:1",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -2885,6 +3065,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:plain leggings",
+    "contentId": "light_armor_v1:126",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -2901,6 +3082,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:rough guards",
+    "contentId": "light_armor_v1:51",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -2917,6 +3099,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:plain jerkin",
+    "contentId": "light_armor_v1:26",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -2927,12 +3110,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 0,
     "dropMinLevel": 0,
     "dropMaxLevel": 10,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_plain_jerkin.png",
     "sourceId": "light_armor_v1",
     "sequence": 26
   },
   {
     "key": "armor:light:worn cord",
+    "contentId": "light_armor_v1:102",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -2949,6 +3133,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:old boots",
+    "contentId": "light_armor_v1:152",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -2965,6 +3150,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:patchwork handwraps",
+    "contentId": "light_armor_v1:77",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -2981,6 +3167,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:worn mask",
+    "contentId": "light_armor_v1:2",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -2997,6 +3184,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:frayed trousers",
+    "contentId": "light_armor_v1:127",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3013,6 +3201,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:old pads",
+    "contentId": "light_armor_v1:52",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3029,6 +3218,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:frayed leathers",
+    "contentId": "light_armor_v1:27",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3045,6 +3235,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:plain belt",
+    "contentId": "light_armor_v1:103",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3061,6 +3252,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:thin treads",
+    "contentId": "light_armor_v1:153",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3077,6 +3269,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ragged gloves",
+    "contentId": "light_armor_v1:78",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3093,6 +3286,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:plain hood",
+    "contentId": "light_armor_v1:3",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3109,6 +3303,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:rough pants",
+    "contentId": "light_armor_v1:128",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3125,6 +3320,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:thin wraps",
+    "contentId": "light_armor_v1:53",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3141,6 +3337,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:rough vest",
+    "contentId": "light_armor_v1:28",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3157,6 +3354,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:frayed belt",
+    "contentId": "light_armor_v1:104",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3173,6 +3371,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:patchwork boots",
+    "contentId": "light_armor_v1:154",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3189,6 +3388,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:worn mitts",
+    "contentId": "light_armor_v1:79",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3205,6 +3405,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:frayed cowl",
+    "contentId": "light_armor_v1:4",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3221,6 +3422,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:old legwraps",
+    "contentId": "light_armor_v1:129",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3237,6 +3439,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:patchwork shoulders",
+    "contentId": "light_armor_v1:54",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3253,6 +3456,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:old tunic",
+    "contentId": "light_armor_v1:29",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3263,12 +3467,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 12,
     "dropMinLevel": 2,
     "dropMaxLevel": 22,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_old_tunic.png",
     "sourceId": "light_armor_v1",
     "sequence": 29
   },
   {
     "key": "armor:light:rough sash",
+    "contentId": "light_armor_v1:105",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3285,6 +3490,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ragged footwraps",
+    "contentId": "light_armor_v1:155",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3301,6 +3507,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:plain gloves",
+    "contentId": "light_armor_v1:80",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3317,6 +3524,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:rough cap",
+    "contentId": "light_armor_v1:5",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3333,6 +3541,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:thin leathers",
+    "contentId": "light_armor_v1:130",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3349,6 +3558,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ragged pads",
+    "contentId": "light_armor_v1:55",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3365,6 +3575,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:thin garb",
+    "contentId": "light_armor_v1:30",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3375,12 +3586,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 16,
     "dropMinLevel": 6,
     "dropMaxLevel": 26,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_thin_garb.png",
     "sourceId": "light_armor_v1",
     "sequence": 30
   },
   {
     "key": "armor:light:steady belt",
+    "contentId": "light_armor_v1:106",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3397,6 +3609,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:trail trailboots",
+    "contentId": "light_armor_v1:156",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3413,6 +3626,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ranger grips",
+    "contentId": "light_armor_v1:81",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3429,6 +3643,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:steady hood",
+    "contentId": "light_armor_v1:6",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3445,6 +3660,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:weathered leggings",
+    "contentId": "light_armor_v1:131",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3461,6 +3677,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:trail shoulders",
+    "contentId": "light_armor_v1:56",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3477,6 +3694,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:weathered tunic",
+    "contentId": "light_armor_v1:31",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3487,12 +3705,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 20,
     "dropMinLevel": 10,
     "dropMaxLevel": 30,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_weathered_tunic.png",
     "sourceId": "light_armor_v1",
     "sequence": 31
   },
   {
     "key": "armor:light:keen girdle",
+    "contentId": "light_armor_v1:107",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3509,6 +3728,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:field shoes",
+    "contentId": "light_armor_v1:157",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3525,6 +3745,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:braced handwraps",
+    "contentId": "light_armor_v1:82",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3541,6 +3762,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:keen cap",
+    "contentId": "light_armor_v1:7",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3557,6 +3779,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:scout legwraps",
+    "contentId": "light_armor_v1:132",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3573,6 +3796,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:field shoulderguards",
+    "contentId": "light_armor_v1:57",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3589,6 +3813,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:scout vest",
+    "contentId": "light_armor_v1:32",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3599,12 +3824,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 24,
     "dropMinLevel": 14,
     "dropMaxLevel": 34,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_scout_vest.png",
     "sourceId": "light_armor_v1",
     "sequence": 32
   },
   {
     "key": "armor:light:weathered sash",
+    "contentId": "light_armor_v1:108",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3621,6 +3847,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ranger treads",
+    "contentId": "light_armor_v1:158",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3637,6 +3864,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:steady wristwraps",
+    "contentId": "light_armor_v1:83",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3653,6 +3881,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:weathered mask",
+    "contentId": "light_armor_v1:8",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3669,6 +3898,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:trail trousers",
+    "contentId": "light_armor_v1:133",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3685,6 +3915,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ranger guards",
+    "contentId": "light_armor_v1:58",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3701,6 +3932,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:trail harness",
+    "contentId": "light_armor_v1:33",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3711,12 +3943,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 28,
     "dropMinLevel": 18,
     "dropMaxLevel": 38,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_trail_harness.png",
     "sourceId": "light_armor_v1",
     "sequence": 33
   },
   {
     "key": "armor:light:scout cord",
+    "contentId": "light_armor_v1:109",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3733,6 +3966,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:braced boots",
+    "contentId": "light_armor_v1:159",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3749,6 +3983,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:keen gripgloves",
+    "contentId": "light_armor_v1:84",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3765,6 +4000,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:scout headwrap",
+    "contentId": "light_armor_v1:9",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3781,6 +4017,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:field pants",
+    "contentId": "light_armor_v1:134",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3797,6 +4034,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:braced mantle",
+    "contentId": "light_armor_v1:59",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3813,6 +4051,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:field jerkin",
+    "contentId": "light_armor_v1:34",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3829,6 +4068,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:trail belt",
+    "contentId": "light_armor_v1:110",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3845,6 +4085,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:steady footwraps",
+    "contentId": "light_armor_v1:160",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3861,6 +4102,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:weathered gloves",
+    "contentId": "light_armor_v1:85",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3877,6 +4119,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:trail cowl",
+    "contentId": "light_armor_v1:10",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -3893,6 +4136,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:keen leggings",
+    "contentId": "light_armor_v1:135",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -3909,6 +4153,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:steady wraps",
+    "contentId": "light_armor_v1:60",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -3925,6 +4170,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ranger leathers",
+    "contentId": "light_armor_v1:35",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -3935,12 +4181,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 36,
     "dropMinLevel": 26,
     "dropMaxLevel": 46,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_ranger_leathers.png",
     "sourceId": "light_armor_v1",
     "sequence": 35
   },
   {
     "key": "armor:light:field belt",
+    "contentId": "light_armor_v1:111",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -3957,6 +4204,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:keen trailboots",
+    "contentId": "light_armor_v1:161",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -3973,6 +4221,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:scout grips",
+    "contentId": "light_armor_v1:86",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -3989,6 +4238,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:field hood",
+    "contentId": "light_armor_v1:11",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4005,6 +4255,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:braced leggings",
+    "contentId": "light_armor_v1:136",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4021,6 +4272,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:keen shoulders",
+    "contentId": "light_armor_v1:61",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4037,6 +4289,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:braced tunic",
+    "contentId": "light_armor_v1:36",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4047,12 +4300,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 40,
     "dropMinLevel": 30,
     "dropMaxLevel": 50,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_braced_tunic.png",
     "sourceId": "light_armor_v1",
     "sequence": 36
   },
   {
     "key": "armor:light:wind belt",
+    "contentId": "light_armor_v1:112",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4069,6 +4323,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:storm greaves",
+    "contentId": "light_armor_v1:162",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4085,6 +4340,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:hunt handwraps",
+    "contentId": "light_armor_v1:87",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4101,6 +4357,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wind headwrap",
+    "contentId": "light_armor_v1:12",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4117,6 +4374,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ridge legwraps",
+    "contentId": "light_armor_v1:137",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4133,6 +4391,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:storm mantle",
+    "contentId": "light_armor_v1:62",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4149,6 +4408,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ridge vest",
+    "contentId": "light_armor_v1:37",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4159,12 +4419,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 44,
     "dropMinLevel": 34,
     "dropMaxLevel": 54,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_ridge_vest.png",
     "sourceId": "light_armor_v1",
     "sequence": 37
   },
   {
     "key": "armor:light:moon girdle",
+    "contentId": "light_armor_v1:113",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4181,6 +4442,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wayfarer boots",
+    "contentId": "light_armor_v1:163",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4197,6 +4459,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:shadow grips",
+    "contentId": "light_armor_v1:88",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4213,6 +4476,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:moon mask",
+    "contentId": "light_armor_v1:13",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4229,6 +4493,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:long leggings",
+    "contentId": "light_armor_v1:138",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4245,6 +4510,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wayfarer shoulders",
+    "contentId": "light_armor_v1:63",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4261,6 +4527,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:long leathers",
+    "contentId": "light_armor_v1:38",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4277,6 +4544,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ridge cord",
+    "contentId": "light_armor_v1:114",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4293,6 +4561,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:hunt trailboots",
+    "contentId": "light_armor_v1:164",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4309,6 +4578,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wind gloves",
+    "contentId": "light_armor_v1:89",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4325,6 +4595,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ridge visor",
+    "contentId": "light_armor_v1:14",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4341,6 +4612,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:storm stridewear",
+    "contentId": "light_armor_v1:139",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4357,6 +4629,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:hunt shoulderguards",
+    "contentId": "light_armor_v1:64",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4373,6 +4646,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:storm harness",
+    "contentId": "light_armor_v1:39",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4383,12 +4657,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 52,
     "dropMinLevel": 42,
     "dropMaxLevel": 62,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_storm_harness.png",
     "sourceId": "light_armor_v1",
     "sequence": 39
   },
   {
     "key": "armor:light:long sash",
+    "contentId": "light_armor_v1:115",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4405,6 +4680,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:shadow footwraps",
+    "contentId": "light_armor_v1:165",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4421,6 +4697,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:moon gripgloves",
+    "contentId": "light_armor_v1:90",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4437,6 +4714,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:long cowl",
+    "contentId": "light_armor_v1:15",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4453,6 +4731,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wayfarer trousers",
+    "contentId": "light_armor_v1:140",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4469,6 +4748,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:shadow wraps",
+    "contentId": "light_armor_v1:65",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4485,6 +4765,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wayfarer tunic",
+    "contentId": "light_armor_v1:40",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4495,12 +4776,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 56,
     "dropMinLevel": 46,
     "dropMaxLevel": 66,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_wayfarer_tunic.png",
     "sourceId": "light_armor_v1",
     "sequence": 40
   },
   {
     "key": "armor:light:storm waistband",
+    "contentId": "light_armor_v1:116",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4517,6 +4799,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wind treads",
+    "contentId": "light_armor_v1:166",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4533,6 +4816,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ridge wristwraps",
+    "contentId": "light_armor_v1:91",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4549,6 +4833,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:storm hood",
+    "contentId": "light_armor_v1:16",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4565,6 +4850,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:hunt leathers",
+    "contentId": "light_armor_v1:141",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4581,6 +4867,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wind guards",
+    "contentId": "light_armor_v1:66",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4597,6 +4884,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:hunt raiment",
+    "contentId": "light_armor_v1:41",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4607,12 +4895,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 60,
     "dropMinLevel": 50,
     "dropMaxLevel": 70,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_hunt_raiment.png",
     "sourceId": "light_armor_v1",
     "sequence": 41
   },
   {
     "key": "armor:light:wayfarer belt",
+    "contentId": "light_armor_v1:117",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4629,6 +4918,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:moon greaves",
+    "contentId": "light_armor_v1:167",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4645,6 +4935,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:long handwraps",
+    "contentId": "light_armor_v1:92",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4661,6 +4952,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:wayfarer headwrap",
+    "contentId": "light_armor_v1:17",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4677,6 +4969,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:shadow legwraps",
+    "contentId": "light_armor_v1:142",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4693,6 +4986,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:moon mantle",
+    "contentId": "light_armor_v1:67",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4709,6 +5003,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:shadow vest",
+    "contentId": "light_armor_v1:42",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4725,6 +5020,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ghost girdle",
+    "contentId": "light_armor_v1:118",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4741,6 +5037,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:vanguard boots",
+    "contentId": "light_armor_v1:168",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4757,6 +5054,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:kings grips",
+    "contentId": "light_armor_v1:93",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4773,6 +5071,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ghost cowl",
+    "contentId": "light_armor_v1:18",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4789,6 +5088,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:swift leathers",
+    "contentId": "light_armor_v1:143",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4805,6 +5105,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:vanguard drapes",
+    "contentId": "light_armor_v1:68",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4821,6 +5122,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:farsight leathers",
+    "contentId": "light_armor_v1:43",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4831,12 +5133,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 68,
     "dropMinLevel": 58,
     "dropMaxLevel": 78,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_farsight_leathers.png",
     "sourceId": "light_armor_v1",
     "sequence": 43
   },
   {
     "key": "armor:light:black belt",
+    "contentId": "light_armor_v1:119",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4853,6 +5156,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:swift trailboots",
+    "contentId": "light_armor_v1:169",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4869,6 +5173,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:night handwraps",
+    "contentId": "light_armor_v1:94",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4885,6 +5190,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:black headwrap",
+    "contentId": "light_armor_v1:19",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -4895,12 +5201,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 72,
     "dropMinLevel": 62,
     "dropMaxLevel": 82,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/helmet/light_armor_black_headwrap.png",
     "sourceId": "light_armor_v1",
     "sequence": 19
   },
   {
     "key": "armor:light:highland legwraps",
+    "contentId": "light_armor_v1:144",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -4917,6 +5224,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:swift shoulderguards",
+    "contentId": "light_armor_v1:69",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -4933,6 +5241,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:highland raiment",
+    "contentId": "light_armor_v1:44",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -4943,12 +5252,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 72,
     "dropMinLevel": 62,
     "dropMaxLevel": 82,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_highland_raiment.png",
     "sourceId": "light_armor_v1",
     "sequence": 44
   },
   {
     "key": "armor:light:farsight waistband",
+    "contentId": "light_armor_v1:120",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -4965,6 +5275,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:kings greaves",
+    "contentId": "light_armor_v1:170",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -4981,6 +5292,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ghost gripgloves",
+    "contentId": "light_armor_v1:95",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -4997,6 +5309,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:farsight hood",
+    "contentId": "light_armor_v1:20",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -5007,12 +5320,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 76,
     "dropMinLevel": 66,
     "dropMaxLevel": 86,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/helmet/light_armor_farsight_hood.png",
     "sourceId": "light_armor_v1",
     "sequence": 20
   },
   {
     "key": "armor:light:vanguard leggings",
+    "contentId": "light_armor_v1:145",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -5029,6 +5343,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:kings shoulders",
+    "contentId": "light_armor_v1:70",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -5045,6 +5360,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:vanguard vestment",
+    "contentId": "light_armor_v1:45",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -5055,12 +5371,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 76,
     "dropMinLevel": 66,
     "dropMaxLevel": 86,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_vanguard_vestment.png",
     "sourceId": "light_armor_v1",
     "sequence": 45
   },
   {
     "key": "armor:light:highland cord",
+    "contentId": "light_armor_v1:121",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -5077,6 +5394,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:night treads",
+    "contentId": "light_armor_v1:171",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -5093,6 +5411,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:black gloves",
+    "contentId": "light_armor_v1:96",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -5109,6 +5428,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:highland mask",
+    "contentId": "light_armor_v1:21",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -5119,12 +5439,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 80,
     "dropMinLevel": 70,
     "dropMaxLevel": 90,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/helmet/light_armor_highland_mask.png",
     "sourceId": "light_armor_v1",
     "sequence": 21
   },
   {
     "key": "armor:light:swift stridewear",
+    "contentId": "light_armor_v1:146",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -5141,6 +5462,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:night guards",
+    "contentId": "light_armor_v1:71",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -5157,6 +5479,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:swift harness",
+    "contentId": "light_armor_v1:46",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -5167,12 +5490,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 80,
     "dropMinLevel": 70,
     "dropMaxLevel": 90,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_swift_harness.png",
     "sourceId": "light_armor_v1",
     "sequence": 46
   },
   {
     "key": "armor:light:vanguard sash",
+    "contentId": "light_armor_v1:122",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -5189,6 +5513,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ghost footwraps",
+    "contentId": "light_armor_v1:172",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -5205,6 +5530,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:farsight wristwraps",
+    "contentId": "light_armor_v1:97",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -5221,6 +5547,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:vanguard visor",
+    "contentId": "light_armor_v1:22",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -5231,12 +5558,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 84,
     "dropMinLevel": 74,
     "dropMaxLevel": 94,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/helmet/light_armor_vanguard_visor.png",
     "sourceId": "light_armor_v1",
     "sequence": 22
   },
   {
     "key": "armor:light:kings trousers",
+    "contentId": "light_armor_v1:147",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -5253,6 +5581,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ghost mantle",
+    "contentId": "light_armor_v1:72",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -5269,6 +5598,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:kings tunic",
+    "contentId": "light_armor_v1:47",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -5279,12 +5609,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 84,
     "dropMinLevel": 74,
     "dropMaxLevel": 94,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/upper_armor/light_armor_kings_tunic.png",
     "sourceId": "light_armor_v1",
     "sequence": 47
   },
   {
     "key": "armor:light:paragon girdle",
+    "contentId": "light_armor_v1:123",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -5301,6 +5632,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:eternal boots",
+    "contentId": "light_armor_v1:173",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -5317,6 +5649,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:dominion grips",
+    "contentId": "light_armor_v1:98",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -5333,6 +5666,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:paragon cowl",
+    "contentId": "light_armor_v1:23",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -5349,6 +5683,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:sovereign leathers",
+    "contentId": "light_armor_v1:148",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -5365,6 +5700,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:eternal guards",
+    "contentId": "light_armor_v1:73",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -5381,6 +5717,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:sovereign harness",
+    "contentId": "light_armor_v1:48",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -5397,6 +5734,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:firstlight belt",
+    "contentId": "light_armor_v1:124",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -5413,6 +5751,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:mythic trailboots",
+    "contentId": "light_armor_v1:174",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -5429,6 +5768,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:prime handwraps",
+    "contentId": "light_armor_v1:99",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -5445,6 +5785,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:firstlight headwrap",
+    "contentId": "light_armor_v1:24",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -5455,12 +5796,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 92,
     "dropMinLevel": 82,
     "dropMaxLevel": 100,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/helmet/light_armor_firstlight_headwrap.png",
     "sourceId": "light_armor_v1",
     "sequence": 24
   },
   {
     "key": "armor:light:ascendant legwraps",
+    "contentId": "light_armor_v1:149",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -5477,6 +5819,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:mythic drapes",
+    "contentId": "light_armor_v1:74",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -5493,6 +5836,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:ascendant raiment",
+    "contentId": "light_armor_v1:49",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -5509,6 +5853,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:sovereign waistband",
+    "contentId": "light_armor_v1:125",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "belt",
@@ -5525,6 +5870,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:dominion greaves",
+    "contentId": "light_armor_v1:175",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "boots",
@@ -5541,6 +5887,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:paragon gripgloves",
+    "contentId": "light_armor_v1:100",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "gloves",
@@ -5557,6 +5904,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:sovereign hood",
+    "contentId": "light_armor_v1:25",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "helmet",
@@ -5567,12 +5915,13 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
     "baseLevel": 96,
     "dropMinLevel": 86,
     "dropMaxLevel": 100,
-    "iconPath": null,
+    "iconPath": "/assets/items/generated/armor/light/helmet/light_armor_sovereign_hood.png",
     "sourceId": "light_armor_v1",
     "sequence": 25
   },
   {
     "key": "armor:light:eternal leggings",
+    "contentId": "light_armor_v1:150",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "lower_armor",
@@ -5589,6 +5938,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:dominion shoulders",
+    "contentId": "light_armor_v1:75",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "pauldrons",
@@ -5605,6 +5955,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:light:eternal leathers",
+    "contentId": "light_armor_v1:50",
     "majorCategory": "armor",
     "archetype": "light",
     "family": "upper_armor",
@@ -5621,6 +5972,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:frayed sash",
+    "contentId": "robe_armor_v1:101",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -5637,6 +5989,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:rough sandals",
+    "contentId": "robe_armor_v1:151",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -5653,6 +6006,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:old gloves",
+    "contentId": "robe_armor_v1:76",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -5669,6 +6023,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:frayed hood",
+    "contentId": "robe_armor_v1:1",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -5685,6 +6040,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:plain skirt",
+    "contentId": "robe_armor_v1:126",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -5701,6 +6057,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:rough wrap",
+    "contentId": "robe_armor_v1:51",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -5717,6 +6074,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:plain wrap",
+    "contentId": "robe_armor_v1:26",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -5733,6 +6091,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:worn belt",
+    "contentId": "robe_armor_v1:102",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -5749,6 +6108,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:thin shoes",
+    "contentId": "robe_armor_v1:152",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -5765,6 +6125,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:patchwork handwraps",
+    "contentId": "robe_armor_v1:77",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -5781,6 +6142,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:worn veil",
+    "contentId": "robe_armor_v1:2",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -5797,6 +6159,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:faded skirt",
+    "contentId": "robe_armor_v1:127",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -5813,6 +6176,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:thin shoulderwrap",
+    "contentId": "robe_armor_v1:52",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -5829,6 +6193,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:faded raiment",
+    "contentId": "robe_armor_v1:27",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -5845,6 +6210,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:plain sash",
+    "contentId": "robe_armor_v1:103",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -5861,6 +6227,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:old slippers",
+    "contentId": "robe_armor_v1:153",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -5877,6 +6244,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:frayed cuffs",
+    "contentId": "robe_armor_v1:78",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -5893,6 +6261,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:plain cap",
+    "contentId": "robe_armor_v1:3",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -5909,6 +6278,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:rough legwraps",
+    "contentId": "robe_armor_v1:128",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -5925,6 +6295,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:old shoulders",
+    "contentId": "robe_armor_v1:53",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -5941,6 +6312,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:rough cloth",
+    "contentId": "robe_armor_v1:28",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -5957,6 +6329,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:faded cinch",
+    "contentId": "robe_armor_v1:104",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -5973,6 +6346,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:patchwork shoes",
+    "contentId": "robe_armor_v1:154",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -5989,6 +6363,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:worn mitts",
+    "contentId": "robe_armor_v1:79",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6005,6 +6380,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:faded wrap",
+    "contentId": "robe_armor_v1:4",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6021,6 +6397,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:thin cloth",
+    "contentId": "robe_armor_v1:129",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6037,6 +6414,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:patchwork drape",
+    "contentId": "robe_armor_v1:54",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6053,6 +6431,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:thin robe",
+    "contentId": "robe_armor_v1:29",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6069,6 +6448,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:rough cord",
+    "contentId": "robe_armor_v1:105",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6085,6 +6465,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:frayed boots",
+    "contentId": "robe_armor_v1:155",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6101,6 +6482,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:plain gloves",
+    "contentId": "robe_armor_v1:80",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6117,6 +6499,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:rough cowl",
+    "contentId": "robe_armor_v1:5",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6133,6 +6516,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:old hem",
+    "contentId": "robe_armor_v1:130",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6149,6 +6533,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:frayed mantle",
+    "contentId": "robe_armor_v1:55",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6165,6 +6550,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:old mantle",
+    "contentId": "robe_armor_v1:30",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6181,6 +6567,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:focused waistcord",
+    "contentId": "robe_armor_v1:106",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6197,6 +6584,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:warded slippers",
+    "contentId": "robe_armor_v1:156",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6213,6 +6601,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:steady spellwraps",
+    "contentId": "robe_armor_v1:81",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6229,6 +6618,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:focused hood",
+    "contentId": "robe_armor_v1:6",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6245,6 +6635,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:keen legwraps",
+    "contentId": "robe_armor_v1:131",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6261,6 +6652,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:warded drape",
+    "contentId": "robe_armor_v1:56",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6277,6 +6669,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:keen mantle",
+    "contentId": "robe_armor_v1:31",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6293,6 +6686,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:circle cincture",
+    "contentId": "robe_armor_v1:107",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6309,6 +6703,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:bound treads",
+    "contentId": "robe_armor_v1:157",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6325,6 +6720,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:scribed handwraps",
+    "contentId": "robe_armor_v1:82",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6341,6 +6737,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:circle circlet",
+    "contentId": "robe_armor_v1:7",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6357,6 +6754,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:steady trousers",
+    "contentId": "robe_armor_v1:132",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6373,6 +6771,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:bound shoulderwrap",
+    "contentId": "robe_armor_v1:57",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6389,6 +6788,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:runed cloth",
+    "contentId": "robe_armor_v1:32",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6405,6 +6805,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:keen sash",
+    "contentId": "robe_armor_v1:108",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6421,6 +6822,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:steady shoes",
+    "contentId": "robe_armor_v1:158",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6437,6 +6839,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:focused mitts",
+    "contentId": "robe_armor_v1:83",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6453,6 +6856,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:keen cowl",
+    "contentId": "robe_armor_v1:8",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6469,6 +6873,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:warded skirt",
+    "contentId": "robe_armor_v1:133",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6485,6 +6890,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:steady wrap",
+    "contentId": "robe_armor_v1:58",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6501,6 +6907,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:warded raiment",
+    "contentId": "robe_armor_v1:33",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6517,6 +6924,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:runed belt",
+    "contentId": "robe_armor_v1:109",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6533,6 +6941,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:scribed sandals",
+    "contentId": "robe_armor_v1:159",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6549,6 +6958,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:circle cuffs",
+    "contentId": "robe_armor_v1:84",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6565,6 +6975,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:runed wrap",
+    "contentId": "robe_armor_v1:9",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6581,6 +6992,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:bound trousers",
+    "contentId": "robe_armor_v1:134",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6597,6 +7009,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:keen shoulderwrap",
+    "contentId": "robe_armor_v1:59",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6613,6 +7026,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:bound robe",
+    "contentId": "robe_armor_v1:34",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6629,6 +7043,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:warded cord",
+    "contentId": "robe_armor_v1:110",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6645,6 +7060,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:focused boots",
+    "contentId": "robe_armor_v1:160",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6661,6 +7077,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:keen gloves",
+    "contentId": "robe_armor_v1:85",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6677,6 +7094,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:warded veil",
+    "contentId": "robe_armor_v1:10",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6693,6 +7111,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:steady hem",
+    "contentId": "robe_armor_v1:135",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6709,6 +7128,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:focused shoulders",
+    "contentId": "robe_armor_v1:60",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6725,6 +7145,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:steady vestment",
+    "contentId": "robe_armor_v1:35",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6741,6 +7162,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:bound waistcord",
+    "contentId": "robe_armor_v1:111",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6757,6 +7179,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:circle slippers",
+    "contentId": "robe_armor_v1:161",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6773,6 +7196,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:runed spellwraps",
+    "contentId": "robe_armor_v1:86",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6789,6 +7213,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:bound hood",
+    "contentId": "robe_armor_v1:11",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6805,6 +7230,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:scribed legwraps",
+    "contentId": "robe_armor_v1:136",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6821,6 +7247,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:circle drape",
+    "contentId": "robe_armor_v1:61",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6837,6 +7264,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:scribed mantle",
+    "contentId": "robe_armor_v1:36",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6853,6 +7281,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:hex waistcord",
+    "contentId": "robe_armor_v1:112",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6869,6 +7298,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ashen treads",
+    "contentId": "robe_armor_v1:162",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6885,6 +7315,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:aether cuffs",
+    "contentId": "robe_armor_v1:87",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -6901,6 +7332,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:hex hood",
+    "contentId": "robe_armor_v1:12",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -6917,6 +7349,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:oracle trousers",
+    "contentId": "robe_armor_v1:137",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -6933,6 +7366,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ashen mantle",
+    "contentId": "robe_armor_v1:62",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -6949,6 +7383,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:oracle weave",
+    "contentId": "robe_armor_v1:37",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -6965,6 +7400,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ritual cincture",
+    "contentId": "robe_armor_v1:113",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -6981,6 +7417,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sigiled boots",
+    "contentId": "robe_armor_v1:163",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -6997,6 +7434,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:star mitts",
+    "contentId": "robe_armor_v1:88",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7013,6 +7451,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ritual veil",
+    "contentId": "robe_armor_v1:13",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7029,6 +7468,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:night skirt",
+    "contentId": "robe_armor_v1:138",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7045,6 +7485,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sigiled arcwrap",
+    "contentId": "robe_armor_v1:63",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7061,6 +7502,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:night mantle",
+    "contentId": "robe_armor_v1:38",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7077,6 +7519,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:oracle belt",
+    "contentId": "robe_armor_v1:114",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7093,6 +7536,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:aether slippers",
+    "contentId": "robe_armor_v1:164",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7109,6 +7553,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:hex handwraps",
+    "contentId": "robe_armor_v1:89",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7125,6 +7570,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:oracle mask",
+    "contentId": "robe_armor_v1:14",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7141,6 +7587,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:star trousers",
+    "contentId": "robe_armor_v1:139",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7157,6 +7604,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:aether shoulderwrap",
+    "contentId": "robe_armor_v1:64",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7173,6 +7621,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ashen raiment",
+    "contentId": "robe_armor_v1:39",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7189,6 +7638,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:night sash",
+    "contentId": "robe_armor_v1:115",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7205,6 +7655,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:star shoes",
+    "contentId": "robe_armor_v1:165",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7221,6 +7672,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ritual spellwraps",
+    "contentId": "robe_armor_v1:90",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7237,6 +7689,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:night circlet",
+    "contentId": "robe_armor_v1:15",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7253,6 +7706,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sigiled hem",
+    "contentId": "robe_armor_v1:140",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7269,6 +7723,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:star shoulders",
+    "contentId": "robe_armor_v1:65",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7285,6 +7740,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sigiled robe",
+    "contentId": "robe_armor_v1:40",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7301,6 +7757,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ashen cord",
+    "contentId": "robe_armor_v1:116",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7317,6 +7774,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:hex sandals",
+    "contentId": "robe_armor_v1:166",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7333,6 +7791,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:oracle gloves",
+    "contentId": "robe_armor_v1:91",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7349,6 +7808,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ashen cowl",
+    "contentId": "robe_armor_v1:16",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7365,6 +7825,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:aether legwraps",
+    "contentId": "robe_armor_v1:141",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7381,6 +7842,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:hex drape",
+    "contentId": "robe_armor_v1:66",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7397,6 +7859,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:aether vestment",
+    "contentId": "robe_armor_v1:41",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7413,6 +7876,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sigiled waistcord",
+    "contentId": "robe_armor_v1:117",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7429,6 +7893,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ritual treads",
+    "contentId": "robe_armor_v1:167",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7445,6 +7910,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:night cuffs",
+    "contentId": "robe_armor_v1:92",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7461,6 +7927,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sigiled hood",
+    "contentId": "robe_armor_v1:17",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7477,6 +7944,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:oracle raiment",
+    "contentId": "robe_armor_v1:142",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7493,6 +7961,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ritual mantle",
+    "contentId": "robe_armor_v1:67",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7509,6 +7978,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:star weave",
+    "contentId": "robe_armor_v1:42",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7525,6 +7995,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:nocturne cincture",
+    "contentId": "robe_armor_v1:118",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7541,6 +8012,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:blackstar boots",
+    "contentId": "robe_armor_v1:168",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7557,6 +8029,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:highrite mitts",
+    "contentId": "robe_armor_v1:93",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7573,6 +8046,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:nocturne veil",
+    "contentId": "robe_armor_v1:18",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7589,6 +8063,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:cathedral skirt",
+    "contentId": "robe_armor_v1:143",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7605,6 +8080,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:blackstar drape",
+    "contentId": "robe_armor_v1:68",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7621,6 +8097,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:cathedral mantle",
+    "contentId": "robe_armor_v1:43",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7637,6 +8114,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eclipse cord",
+    "contentId": "robe_armor_v1:119",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7653,6 +8131,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dread slippers",
+    "contentId": "robe_armor_v1:169",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7669,6 +8148,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:astral handwraps",
+    "contentId": "robe_armor_v1:94",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7685,6 +8165,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eclipse mask",
+    "contentId": "robe_armor_v1:19",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7701,6 +8182,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:stormsigil raiment",
+    "contentId": "robe_armor_v1:144",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7717,6 +8199,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dread mantle",
+    "contentId": "robe_armor_v1:69",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7733,6 +8216,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:stormsigil vestment",
+    "contentId": "robe_armor_v1:44",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7749,6 +8233,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:cathedral waistcord",
+    "contentId": "robe_armor_v1:120",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7765,6 +8250,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:highrite treads",
+    "contentId": "robe_armor_v1:170",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7781,6 +8267,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:nocturne spellwraps",
+    "contentId": "robe_armor_v1:95",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7797,6 +8284,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:cathedral cowl",
+    "contentId": "robe_armor_v1:20",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7813,6 +8301,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:blackstar hem",
+    "contentId": "robe_armor_v1:145",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7829,6 +8318,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:highrite aegis",
+    "contentId": "robe_armor_v1:70",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7845,6 +8335,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:blackstar robe",
+    "contentId": "robe_armor_v1:45",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7861,6 +8352,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:stormsigil belt",
+    "contentId": "robe_armor_v1:121",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7877,6 +8369,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:astral sandals",
+    "contentId": "robe_armor_v1:171",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -7893,6 +8386,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eclipse gloves",
+    "contentId": "robe_armor_v1:96",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -7909,6 +8403,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:stormsigil circlet",
+    "contentId": "robe_armor_v1:21",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -7925,6 +8420,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dread legwraps",
+    "contentId": "robe_armor_v1:146",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -7941,6 +8437,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:astral shoulderwrap",
+    "contentId": "robe_armor_v1:71",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -7957,6 +8454,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dread raiment",
+    "contentId": "robe_armor_v1:46",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -7973,6 +8471,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:blackstar sash",
+    "contentId": "robe_armor_v1:122",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -7989,6 +8488,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:nocturne shoes",
+    "contentId": "robe_armor_v1:172",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -8005,6 +8505,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:cathedral cuffs",
+    "contentId": "robe_armor_v1:97",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -8021,6 +8522,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:blackstar hood",
+    "contentId": "robe_armor_v1:22",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -8037,6 +8539,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:highrite trousers",
+    "contentId": "robe_armor_v1:147",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -8053,6 +8556,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:nocturne arcwrap",
+    "contentId": "robe_armor_v1:72",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -8069,6 +8573,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:highrite weave",
+    "contentId": "robe_armor_v1:47",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -8085,6 +8590,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:paragon cincture",
+    "contentId": "robe_armor_v1:123",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -8101,6 +8607,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eternal boots",
+    "contentId": "robe_armor_v1:173",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -8117,6 +8624,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dominion mitts",
+    "contentId": "robe_armor_v1:98",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -8133,6 +8641,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:paragon veil",
+    "contentId": "robe_armor_v1:23",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -8149,6 +8658,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sovereign skirt",
+    "contentId": "robe_armor_v1:148",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -8165,6 +8675,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eternal aegis",
+    "contentId": "robe_armor_v1:73",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -8181,6 +8692,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sovereign raiment",
+    "contentId": "robe_armor_v1:48",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -8197,6 +8709,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:firstlight cord",
+    "contentId": "robe_armor_v1:124",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -8213,6 +8726,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:mythic slippers",
+    "contentId": "robe_armor_v1:174",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -8229,6 +8743,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:seraphic handwraps",
+    "contentId": "robe_armor_v1:99",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -8245,6 +8760,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:firstlight crown",
+    "contentId": "robe_armor_v1:24",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -8261,6 +8777,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ascendant trousers",
+    "contentId": "robe_armor_v1:149",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -8277,6 +8794,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:mythic mantle",
+    "contentId": "robe_armor_v1:74",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -8293,6 +8811,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:ascendant regalia",
+    "contentId": "robe_armor_v1:49",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -8309,6 +8828,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sovereign waistcord",
+    "contentId": "robe_armor_v1:125",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "belt",
@@ -8325,6 +8845,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dominion treads",
+    "contentId": "robe_armor_v1:175",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "boots",
@@ -8341,6 +8862,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:paragon spellwraps",
+    "contentId": "robe_armor_v1:100",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "gloves",
@@ -8357,6 +8879,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:sovereign cowl",
+    "contentId": "robe_armor_v1:25",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "helmet",
@@ -8373,6 +8896,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eternal hem",
+    "contentId": "robe_armor_v1:150",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "lower_armor",
@@ -8389,6 +8913,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:dominion drape",
+    "contentId": "robe_armor_v1:75",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "pauldrons",
@@ -8405,6 +8930,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "armor:robe:eternal mantle",
+    "contentId": "robe_armor_v1:50",
     "majorCategory": "armor",
     "archetype": "robe",
     "family": "upper_armor",
@@ -8421,6 +8947,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:twine charm",
+    "contentId": "jewelry_necklace_v1:1",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8437,6 +8964,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:bone pendant",
+    "contentId": "jewelry_necklace_v1:2",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8453,6 +8981,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:tin locket",
+    "contentId": "jewelry_necklace_v1:3",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8469,6 +8998,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:worn charm",
+    "contentId": "jewelry_necklace_v1:4",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8485,6 +9015,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:plain pendant",
+    "contentId": "jewelry_necklace_v1:5",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8501,6 +9032,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:iron charm",
+    "contentId": "jewelry_necklace_v1:6",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8517,6 +9049,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:guard medal",
+    "contentId": "jewelry_necklace_v1:7",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8533,6 +9066,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:ash pendant",
+    "contentId": "jewelry_necklace_v1:8",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8549,6 +9083,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:road locket",
+    "contentId": "jewelry_necklace_v1:9",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8565,6 +9100,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:warden chain",
+    "contentId": "jewelry_necklace_v1:10",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8581,6 +9117,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:runed charm",
+    "contentId": "jewelry_necklace_v1:11",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8597,6 +9134,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:dawn pendant",
+    "contentId": "jewelry_necklace_v1:12",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8613,6 +9151,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:storm amulet",
+    "contentId": "jewelry_necklace_v1:13",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8629,6 +9168,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:oath medal",
+    "contentId": "jewelry_necklace_v1:14",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8645,6 +9185,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:moon talisman",
+    "contentId": "jewelry_necklace_v1:15",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8661,6 +9202,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:oracle chain",
+    "contentId": "jewelry_necklace_v1:16",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8677,6 +9219,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:kings locket",
+    "contentId": "jewelry_necklace_v1:17",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8693,6 +9236,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:bastion medal",
+    "contentId": "jewelry_necklace_v1:18",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8709,6 +9253,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:halo pendant",
+    "contentId": "jewelry_necklace_v1:19",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8725,6 +9270,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:star amulet",
+    "contentId": "jewelry_necklace_v1:20",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8741,6 +9287,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:thorn charm",
+    "contentId": "jewelry_necklace_v1:21",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8757,6 +9304,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:dominion chain",
+    "contentId": "jewelry_necklace_v1:22",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8773,6 +9321,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:revenant medal",
+    "contentId": "jewelry_necklace_v1:23",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8789,6 +9338,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:firstlight amulet",
+    "contentId": "jewelry_necklace_v1:24",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8805,6 +9355,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:necklace:sovereign relic",
+    "contentId": "jewelry_necklace_v1:25",
     "majorCategory": "jewelry",
     "archetype": "necklace",
     "family": "necklace",
@@ -8821,6 +9372,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:tin ring",
+    "contentId": "jewelry_ring_v1:1",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8837,6 +9389,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:brass band",
+    "contentId": "jewelry_ring_v1:2",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8853,6 +9406,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:worn loop",
+    "contentId": "jewelry_ring_v1:3",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8869,6 +9423,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:plain ring",
+    "contentId": "jewelry_ring_v1:4",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8885,6 +9440,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:rough band",
+    "contentId": "jewelry_ring_v1:5",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8901,6 +9457,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:iron ring",
+    "contentId": "jewelry_ring_v1:6",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8917,6 +9474,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:guard band",
+    "contentId": "jewelry_ring_v1:7",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8933,6 +9491,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:steady loop",
+    "contentId": "jewelry_ring_v1:8",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8949,6 +9508,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:field ring",
+    "contentId": "jewelry_ring_v1:9",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8965,6 +9525,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:steel band",
+    "contentId": "jewelry_ring_v1:10",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8981,6 +9542,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:runed ring",
+    "contentId": "jewelry_ring_v1:11",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -8997,6 +9559,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:silver band",
+    "contentId": "jewelry_ring_v1:12",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9013,6 +9576,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:warden ring",
+    "contentId": "jewelry_ring_v1:13",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9029,6 +9593,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:oath loop",
+    "contentId": "jewelry_ring_v1:14",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9045,6 +9610,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:dawn ring",
+    "contentId": "jewelry_ring_v1:15",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9061,6 +9627,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:storm band",
+    "contentId": "jewelry_ring_v1:16",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9077,6 +9644,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:veil ring",
+    "contentId": "jewelry_ring_v1:17",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9093,6 +9661,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:oracle band",
+    "contentId": "jewelry_ring_v1:18",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9109,6 +9678,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:kings ring",
+    "contentId": "jewelry_ring_v1:19",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9125,6 +9695,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:seraph loop",
+    "contentId": "jewelry_ring_v1:20",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9141,6 +9712,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:meridian ring",
+    "contentId": "jewelry_ring_v1:21",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9157,6 +9729,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:dominion band",
+    "contentId": "jewelry_ring_v1:22",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9173,6 +9746,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:revenant ring",
+    "contentId": "jewelry_ring_v1:23",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9189,6 +9763,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:firstlight band",
+    "contentId": "jewelry_ring_v1:24",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9205,6 +9780,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "jewelry:ring:sovereign ring",
+    "contentId": "jewelry_ring_v1:25",
     "majorCategory": "jewelry",
     "archetype": "ring",
     "family": "ring",
@@ -9221,6 +9797,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:sootwood wand",
+    "contentId": "mage_arcane_v2_manual:1",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9237,6 +9814,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:dormant hazel wand",
+    "contentId": "mage_arcane_v2_manual:2",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9253,6 +9831,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:cinderprick wand",
+    "contentId": "mage_arcane_v2_manual:3",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9269,6 +9848,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:ashbound rod",
+    "contentId": "mage_arcane_v2_manual:4",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9285,6 +9865,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:mothglass wand",
+    "contentId": "mage_arcane_v2_manual:5",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9301,6 +9882,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:hollow reed staff",
+    "contentId": "mage_arcane_v2_manual:6",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9317,6 +9899,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:runebit wand",
+    "contentId": "mage_arcane_v2_manual:7",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9333,6 +9916,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:gravewax focus",
+    "contentId": "mage_arcane_v2_manual:8",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9349,6 +9933,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:duskbranch staff",
+    "contentId": "mage_arcane_v2_manual:9",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9365,6 +9950,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:starveil wand",
+    "contentId": "mage_arcane_v2_manual:10",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9381,6 +9967,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:sable cantor",
+    "contentId": "mage_arcane_v2_manual:11",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9397,6 +9984,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:umber sigil staff",
+    "contentId": "mage_arcane_v2_manual:12",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9413,6 +10001,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:penumbral wand",
+    "contentId": "mage_arcane_v2_manual:13",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9429,6 +10018,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:hexwarden staff",
+    "contentId": "mage_arcane_v2_manual:14",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9445,6 +10035,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:noctis rod",
+    "contentId": "mage_arcane_v2_manual:15",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9461,6 +10052,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:oblivion thyrse",
+    "contentId": "mage_arcane_v2_manual:16",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9477,6 +10069,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:eclipsed scepter",
+    "contentId": "mage_arcane_v2_manual:17",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9493,6 +10086,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:aetherwake staff",
+    "contentId": "mage_arcane_v2_manual:18",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9509,6 +10103,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:voidbloom wand",
+    "contentId": "mage_arcane_v2_manual:19",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9525,6 +10120,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:cathedral spire",
+    "contentId": "mage_arcane_v2_manual:20",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9541,6 +10137,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:seraphim ashrod",
+    "contentId": "mage_arcane_v2_manual:21",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9557,6 +10154,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:abyssal choir wand",
+    "contentId": "mage_arcane_v2_manual:22",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "wand",
@@ -9573,6 +10171,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:oracle s eclipse",
+    "contentId": "mage_arcane_v2_manual:23",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9589,6 +10188,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:crown of drowned light",
+    "contentId": "mage_arcane_v2_manual:24",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9605,6 +10205,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:arcane:dominion arcanum",
+    "contentId": "mage_arcane_v2_manual:25",
     "majorCategory": "weapon",
     "archetype": "arcane",
     "family": "staff",
@@ -9621,6 +10222,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:iron shortsword",
+    "contentId": "warrior_melee_manual:1",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9637,6 +10239,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:brackenhilt",
+    "contentId": "warrior_melee_manual:2",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9653,6 +10256,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:woodcutter s axe",
+    "contentId": "warrior_melee_manual:3",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9669,6 +10273,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:greyfen blade",
+    "contentId": "warrior_melee_manual:4",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9685,6 +10290,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:plainsteel longsword",
+    "contentId": "warrior_melee_manual:5",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9701,6 +10307,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:valdaryn",
+    "contentId": "warrior_melee_manual:6",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9717,6 +10324,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:bearded war axe",
+    "contentId": "warrior_melee_manual:7",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9733,6 +10341,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:redmark sabre",
+    "contentId": "warrior_melee_manual:8",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9749,6 +10358,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:tempered longblade",
+    "contentId": "warrior_melee_manual:9",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9765,6 +10375,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:frosthollow axe",
+    "contentId": "warrior_melee_manual:10",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9781,6 +10392,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:damascus steel",
+    "contentId": "warrior_melee_manual:11",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9797,6 +10409,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:valenmark",
+    "contentId": "warrior_melee_manual:12",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9813,6 +10426,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:knight s arming sword",
+    "contentId": "warrior_melee_manual:13",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9829,6 +10443,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:durnholde axe",
+    "contentId": "warrior_melee_manual:14",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9845,6 +10460,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:rivenspire greatsword",
+    "contentId": "warrior_melee_manual:15",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9861,6 +10477,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:blackmoor cleaver",
+    "contentId": "warrior_melee_manual:16",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9877,6 +10494,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:gilded bastard sword",
+    "contentId": "warrior_melee_manual:17",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9893,6 +10511,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:harthorn",
+    "contentId": "warrior_melee_manual:18",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9909,6 +10528,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:highguard claymore",
+    "contentId": "warrior_melee_manual:19",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9925,6 +10545,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:stormvale axe",
+    "contentId": "warrior_melee_manual:20",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9941,6 +10562,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:silvermark longblade",
+    "contentId": "warrior_melee_manual:21",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9957,6 +10579,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:dornhal greataxe",
+    "contentId": "warrior_melee_manual:22",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -9973,6 +10596,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:crestfall greatsword",
+    "contentId": "warrior_melee_manual:23",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -9989,6 +10613,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:kingsreach axe",
+    "contentId": "warrior_melee_manual:24",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "axe",
@@ -10005,6 +10630,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:melee:imperial warblade",
+    "contentId": "warrior_melee_manual:25",
     "majorCategory": "weapon",
     "archetype": "melee",
     "family": "sword",
@@ -10021,6 +10647,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:twigbound sling",
+    "contentId": "ranger_ranged_v2_manual:1",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10037,6 +10664,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:hollowsnap sling",
+    "contentId": "ranger_ranged_v2_manual:2",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10053,6 +10681,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:briarloop sling",
+    "contentId": "ranger_ranged_v2_manual:3",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10069,6 +10698,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:fletchling bow",
+    "contentId": "ranger_ranged_v2_manual:4",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10085,6 +10715,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:fenstring bow",
+    "contentId": "ranger_ranged_v2_manual:5",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10101,6 +10732,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:mirewind bow",
+    "contentId": "ranger_ranged_v2_manual:6",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10117,6 +10749,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:watcher s sling",
+    "contentId": "ranger_ranged_v2_manual:7",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10133,6 +10766,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:gorseflight bow",
+    "contentId": "ranger_ranged_v2_manual:8",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10149,6 +10783,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:longreach recurve",
+    "contentId": "ranger_ranged_v2_manual:9",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10165,6 +10800,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:shardwhistle sling",
+    "contentId": "ranger_ranged_v2_manual:10",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10181,6 +10817,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:duskmantle bow",
+    "contentId": "ranger_ranged_v2_manual:11",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10197,6 +10834,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:carrionstep recurve",
+    "contentId": "ranger_ranged_v2_manual:12",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10213,6 +10851,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:skylash longbow",
+    "contentId": "ranger_ranged_v2_manual:13",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10229,6 +10868,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:silent quarry sling",
+    "contentId": "ranger_ranged_v2_manual:14",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10245,6 +10885,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:ravenline bow",
+    "contentId": "ranger_ranged_v2_manual:15",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10261,6 +10902,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:ironbloom recurve",
+    "contentId": "ranger_ranged_v2_manual:16",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10277,6 +10919,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:thornwake longbow",
+    "contentId": "ranger_ranged_v2_manual:17",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10293,6 +10936,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:dreadfletch bow",
+    "contentId": "ranger_ranged_v2_manual:18",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10309,6 +10953,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:wolfsight sling",
+    "contentId": "ranger_ranged_v2_manual:19",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "sling",
@@ -10325,6 +10970,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:moonscar recurve",
+    "contentId": "ranger_ranged_v2_manual:20",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10341,6 +10987,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:ashfall longbow",
+    "contentId": "ranger_ranged_v2_manual:21",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10357,6 +11004,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:grimtrail bow",
+    "contentId": "ranger_ranged_v2_manual:22",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10373,6 +11021,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:kingshade recurve",
+    "contentId": "ranger_ranged_v2_manual:23",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10389,6 +11038,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:black meridian bow",
+    "contentId": "ranger_ranged_v2_manual:24",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",
@@ -10405,6 +11055,7 @@ export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = [
   },
   {
     "key": "weapon:ranged:eclipsed huntmaster",
+    "contentId": "ranger_ranged_v2_manual:25",
     "majorCategory": "weapon",
     "archetype": "ranged",
     "family": "bow",

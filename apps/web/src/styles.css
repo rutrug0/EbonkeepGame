@@ -54,7 +54,7 @@
   --uncommon: #799866;
   --rare: #c9a559;
   --epic: #9d7bb8;
-  --font-body: "Alegreya Sans", "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-body: "Alegreya Sans", "Trebuchet MS", "Segoe UI", "Noto Sans", "Microsoft YaHei", "Malgun Gothic", sans-serif;
   --font-display: "Cinzel", Cambria, "Palatino Linotype", "Book Antiqua", serif;
   --font-base: 1.13rem;
   --space-1: 4px;
@@ -2442,6 +2442,27 @@ button:focus-visible {
   right: var(--space-4);
   bottom: var(--space-4);
   max-width: 460px;
+}
+
+.settingsRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+}
+
+.settingsRow label {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.settingsRow select {
+  border: 1px solid var(--border);
+  background: rgba(17, 22, 28, 0.9);
+  color: var(--text-main);
+  border-radius: var(--soft-radius);
+  padding: 8px 10px;
+  font: inherit;
 }
 
 @keyframes riseIn {

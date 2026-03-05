@@ -1,0 +1,13 @@
+﻿{
+  "auth": {"subtitle": "Войдите, чтобы открыть главную страницу.", "loginGuest": "Войти как гость"},
+  "menu": {
+    "title": "Меню", "inventory": "Инвентарь", "encyclopedia": "Энциклопедия", "contracts": "Контракты", "missions": "Миссии", "arena": "Арена", "guild": "Гильдия", "castles": "Замки", "auctionHouse": "Аукцион", "merchant": "Торговец", "leaderboards": "Рейтинги", "settings": "Настройки", "logout": "Выйти"
+  },
+  "bars": {"health": "Здоровье", "experience": "Опыт"},
+  "chat": {"world": "Мир", "guild": "Гильдия", "send": "Отправить", "empty": "Сообщений пока нет."},
+  "contracts": {"table": {"contract": "Контракт", "difficulty": "Сложность", "action": "Действие"}, "abandon": "Отменить", "replenishing": "Обновляется"},
+  "settings": {"title": "Настройки", "description": "Выберите язык интерфейса. Изменения применяются сразу.", "languageLabel": "Язык", "saving": "Сохранение языковых настроек...", "saveFailed": "Язык сохранён локально, но синхронизация аккаунта не удалась.", "saveSuccess": "Язык синхронизирован с аккаунтом."},
+  "inventory": {"consumables": "Расходники", "noItems": "Предметы отсутствуют."},
+  "profile": {"inventoryTab": "Инвентарь", "consumablesTab": "Расходники", "statsTab": "Характеристики", "class": "Класс", "level": "Уровень"},
+  "player": {"classUnknown": "Класс неизвестен", "level": "Уровень {{value}}"}
+}

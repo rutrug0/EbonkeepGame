@@ -16,6 +16,9 @@ export type WeaponArchetype = z.infer<typeof weaponArchetypeSchema>;
 export const weaponFamilySchema = z.enum(["sword", "axe", "wand", "staff", "sling", "bow"]);
 export type WeaponFamily = z.infer<typeof weaponFamilySchema>;
 
+export const supportedLocaleSchema = z.enum(["en", "es-419", "pt-BR", "ru", "fil", "zh-CN", "ko"]);
+export type SupportedLocale = z.infer<typeof supportedLocaleSchema>;
+
 const vestigeIds = [
   "ashen-sovereign",
   "hollow-star",
@@ -232,6 +235,7 @@ export const playerStateSchema = z.object({
   playerId: z.string(),
   accountId: z.string(),
   class: playerClassSchema,
+  preferredLocale: supportedLocaleSchema.default("en"),
   level: z.number().int().min(1),
   gearScore: z.number().int().min(0),
   stats: statBlockSchema,
@@ -249,6 +253,16 @@ export const devGuestLoginResponseSchema = z.object({
   accountId: z.string()
 });
 export type DevGuestLoginResponse = z.infer<typeof devGuestLoginResponseSchema>;
+
+export const playerPreferencesSchema = z.object({
+  preferredLocale: supportedLocaleSchema
+});
+export type PlayerPreferences = z.infer<typeof playerPreferencesSchema>;
+
+export const updatePlayerPreferencesBodySchema = z.object({
+  preferredLocale: supportedLocaleSchema
+});
+export type UpdatePlayerPreferencesBody = z.infer<typeof updatePlayerPreferencesBodySchema>;
 
 export const createCombatSessionBodySchema = z.object({
   mode: z.enum(["pve"]),

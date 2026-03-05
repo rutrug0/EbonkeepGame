@@ -1,0 +1,13 @@
+﻿{
+  "auth": {"subtitle": "로그인하여 메인 페이지를 여세요.", "loginGuest": "게스트로 로그인"},
+  "menu": {
+    "title": "메뉴", "inventory": "인벤토리", "encyclopedia": "도감", "contracts": "계약", "missions": "임무", "arena": "투기장", "guild": "길드", "castles": "성채", "auctionHouse": "경매장", "merchant": "상인", "leaderboards": "순위", "settings": "설정", "logout": "로그아웃"
+  },
+  "bars": {"health": "체력", "experience": "경험치"},
+  "chat": {"world": "월드", "guild": "길드", "send": "보내기", "empty": "메시지가 없습니다."},
+  "contracts": {"table": {"contract": "계약", "difficulty": "난이도", "action": "행동"}, "abandon": "포기", "replenishing": "보충 중"},
+  "settings": {"title": "설정", "description": "인터페이스 언어를 선택하세요. 변경 사항은 즉시 적용됩니다.", "languageLabel": "언어", "saving": "언어 설정 저장 중...", "saveFailed": "로컬에는 저장되었지만 계정 동기화에 실패했습니다.", "saveSuccess": "언어가 계정과 동기화되었습니다."},
+  "inventory": {"consumables": "소모품", "noItems": "사용 가능한 아이템이 없습니다."},
+  "profile": {"inventoryTab": "인벤토리", "consumablesTab": "소모품", "statsTab": "능력치", "class": "직업", "level": "레벨"},
+  "player": {"classUnknown": "알 수 없는 직업", "level": "레벨 {{value}}"}
+}

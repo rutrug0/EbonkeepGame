@@ -1,11 +1,14 @@
 import type {
   DevGuestLoginResponse,
   InventoryMoveResponse,
-  PlayerState
+  PlayerPreferences,
+  PlayerState,
+  UpdatePlayerPreferencesBody
 } from "@ebonkeep/shared";
 import {
   devGuestLoginResponseSchema,
   inventoryMoveResponseSchema,
+  playerPreferencesSchema,
   playerStateSchema
 } from "@ebonkeep/shared";
 
@@ -47,6 +50,25 @@ export async function fetchPlayerState(token: string): Promise<PlayerState> {
   }
   const data = await response.json();
   return playerStateSchema.parse(data);
+}
+
+export async function updatePlayerPreferences(
+  token: string,
+  body: UpdatePlayerPreferencesBody
+): Promise<PlayerPreferences> {
+  const response = await fetch(`${API_URL}/v1/player/preferences`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    throw new Error(`Update preferences failed (${response.status})`);
+  }
+  const data = await response.json();
+  return playerPreferencesSchema.parse(data);
 }
 
 export async function moveInventoryItem(

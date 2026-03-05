@@ -23,6 +23,7 @@ model PlayerProfile {
   id               String            @id @default(cuid())
   accountId        String
   class            String
+  preferredLocale  String            @default("en")
   level            Int               @default(1)
   gearScore        Int               @default(0)
   createdAt        DateTime          @default(now())

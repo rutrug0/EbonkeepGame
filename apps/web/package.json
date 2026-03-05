@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
+    "i18n:check": "node ../../tools/validate_locales.mjs",
     "preview": "vite preview",
     "lint": "echo \"No lint configured for @ebonkeep/web\""
   },
   "dependencies": {
     "@ebonkeep/shared": "0.1.0",
+    "i18next": "^24.2.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-i18next": "^15.4.1"
   },
   "devDependencies": {
     "@types/react": "^19.0.8",

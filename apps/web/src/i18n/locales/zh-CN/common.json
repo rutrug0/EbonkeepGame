@@ -1,0 +1,13 @@
+﻿{
+  "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录"},
+  "menu": {
+    "title": "菜单", "inventory": "背包", "encyclopedia": "图鉴", "contracts": "契约", "missions": "任务", "arena": "竞技场", "guild": "公会", "castles": "城堡", "auctionHouse": "拍卖行", "merchant": "商人", "leaderboards": "排行榜", "settings": "设置", "logout": "退出登录"
+  },
+  "bars": {"health": "生命", "experience": "经验"},
+  "chat": {"world": "世界", "guild": "公会", "send": "发送", "empty": "暂无消息。"},
+  "contracts": {"table": {"contract": "契约", "difficulty": "难度", "action": "操作"}, "abandon": "放弃", "replenishing": "补充中"},
+  "settings": {"title": "设置", "description": "选择界面语言，变更会立即生效。", "languageLabel": "语言", "saving": "正在保存语言偏好...", "saveFailed": "语言已本地保存，但账号同步失败。", "saveSuccess": "语言已同步到账号。"},
+  "inventory": {"consumables": "消耗品", "noItems": "暂无物品。"},
+  "profile": {"inventoryTab": "背包", "consumablesTab": "消耗品", "statsTab": "属性", "class": "职业", "level": "等级"},
+  "player": {"classUnknown": "未知职业", "level": "等级 {{value}}"}
+}

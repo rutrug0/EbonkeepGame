@@ -251,9 +251,11 @@ def build_encyclopedia_entries(
                 continue
 
             key = fields["key"]
+            sequence = parse_int(row.get("sequence"), 0)
             rows.append(
                 {
                     "key": key,
+                    "contentId": f"{source_id}:{sequence}",
                     "majorCategory": major_category,
                     "archetype": fields["archetype"],
                     "family": fields["family"],
@@ -266,7 +268,7 @@ def build_encyclopedia_entries(
                     "dropMaxLevel": parse_int(row.get("drop_max_level_capped"), 0),
                     "iconPath": manifest.get(key),
                     "sourceId": source_id,
-                    "sequence": parse_int(row.get("sequence"), 0),
+                    "sequence": sequence,
                 }
             )
 
@@ -296,6 +298,7 @@ def write_encyclopedia_outputs(
         "// Do not edit manually.\n\n"
         "export type GeneratedEncyclopediaItem = {\n"
         "  key: string;\n"
+        "  contentId: string;\n"
         "  majorCategory: string;\n"
         "  archetype: string;\n"
         "  family: string;\n"

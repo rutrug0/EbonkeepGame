@@ -1,0 +1,13 @@
+﻿{
+  "auth": {"subtitle": "Mag-login para buksan ang iyong pangunahing pahina.", "loginGuest": "Mag-login bilang Guest"},
+  "menu": {
+    "title": "Menu", "inventory": "Imbentaryo", "encyclopedia": "Ensiklopedya", "contracts": "Mga Kontrata", "missions": "Mga Misyon", "arena": "Arena", "guild": "Guild", "castles": "Mga Kastilyo", "auctionHouse": "Auction House", "merchant": "Mangangalakal", "leaderboards": "Leaderboards", "settings": "Mga Setting", "logout": "Mag-logout"
+  },
+  "bars": {"health": "Kalusugan", "experience": "Karanasan"},
+  "chat": {"world": "World", "guild": "Guild", "send": "Ipadala", "empty": "Wala pang mensahe."},
+  "contracts": {"table": {"contract": "Kontrata", "difficulty": "Hirap", "action": "Aksyon"}, "abandon": "I-abandon", "replenishing": "Nagre-replenish"},
+  "settings": {"title": "Mga Setting", "description": "Piliin ang wika ng interface. Agad itong ilalapat.", "languageLabel": "Wika", "saving": "Sine-save ang language preference...", "saveFailed": "Na-save ang wika sa local, pero bigo ang account sync.", "saveSuccess": "Na-sync ang wika sa account."},
+  "inventory": {"consumables": "Consumables", "noItems": "Walang available na item."},
+  "profile": {"inventoryTab": "Imbentaryo", "consumablesTab": "Consumables", "statsTab": "Stats", "class": "Klase", "level": "Level"},
+  "player": {"classUnknown": "Hindi kilalang klase", "level": "Level {{value}}"}
+}

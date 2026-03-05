@@ -1,0 +1,13 @@
+﻿{
+  "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado"},
+  "menu": {
+    "title": "Menú", "inventory": "Inventario", "encyclopedia": "Enciclopedia", "contracts": "Contratos", "missions": "Misiones", "arena": "Arena", "guild": "Gremio", "castles": "Castillos", "auctionHouse": "Casa de Subastas", "merchant": "Mercader", "leaderboards": "Clasificaciones", "settings": "Ajustes", "logout": "Cerrar sesión"
+  },
+  "bars": {"health": "Salud", "experience": "Experiencia"},
+  "chat": {"world": "Mundo", "guild": "Gremio", "send": "Enviar", "empty": "Aún no hay mensajes."},
+  "contracts": {"table": {"contract": "Contrato", "difficulty": "Dificultad", "action": "Acción"}, "abandon": "Abandonar", "replenishing": "Reponiendo"},
+  "settings": {"title": "Ajustes", "description": "Elige el idioma de la interfaz. Los cambios se aplican al instante.", "languageLabel": "Idioma", "saving": "Guardando preferencia de idioma...", "saveFailed": "Idioma guardado localmente, pero falló la sincronización de cuenta.", "saveSuccess": "Idioma sincronizado con la cuenta."},
+  "inventory": {"consumables": "Consumibles", "noItems": "No hay objetos disponibles."},
+  "profile": {"inventoryTab": "Inventario", "consumablesTab": "Consumibles", "statsTab": "Estadísticas", "class": "Clase", "level": "Nivel"},
+  "player": {"classUnknown": "Clase desconocida", "level": "Nivel {{value}}"}
+}

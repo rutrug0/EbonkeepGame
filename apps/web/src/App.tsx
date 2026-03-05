@@ -7,6 +7,7 @@ import {
   type FormEvent,
   type ReactElement
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   isItemUsableByClass,
@@ -15,17 +16,20 @@ import {
   type ItemMajorCategory,
   type PlayerClass,
   type PlayerState,
+  type SupportedLocale,
   type VestigeId,
   type WeaponArchetype,
   type WeaponFamily
 } from "@ebonkeep/shared";
 
-import { devGuestLogin, fetchPlayerState } from "./api";
+import { devGuestLogin, fetchPlayerState, updatePlayerPreferences } from "./api";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
   GENERATED_ITEM_ENCYCLOPEDIA_DATA,
   type GeneratedEncyclopediaItem
 } from "./generated/itemEncyclopediaData";
+import i18n, { setLocale } from "./i18n";
+import { LOCALE_OPTIONS, LOCALE_STORAGE_KEY, normalizeLocale } from "./i18n/supportedLocales";
 
 type LandingTab =
   | "inventory"
@@ -69,7 +73,7 @@ type EquipmentSlotId =
   | "vestige3";
 
 type EquipmentSlot = {
-  label: string;
+  labelKey: string;
   majorCategory: ItemMajorCategory;
 };
 
@@ -208,9 +212,9 @@ const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
 const DRAG_PAYLOAD_MIME = "application/x-ebonkeep-drag-payload";
 const CHAT_DOCK_TOLERANCE_PX = 1;
-const CHAT_CHANNEL_LABELS: Record<ChatChannel, string> = {
-  world: "World",
-  guild: "Guild"
+const CHAT_CHANNEL_LABEL_KEYS: Record<ChatChannel, string> = {
+  world: "chat.world",
+  guild: "chat.guild"
 };
 const GENERATED_CHARACTER_VISUALS: Array<{ key: string; assetName: string; path: string }> = Object.entries(
   GENERATED_ITEM_ICON_PATHS
@@ -274,18 +278,18 @@ function createInitialChatMessages(nowMs: number = Date.now()): Record<ChatChann
   };
 }
 
-const MENU_ITEMS: Array<{ id: LandingTab; label: string }> = [
-  { id: "inventory", label: "Inventory" },
-  { id: "encyclopedia", label: "Encyclopedia" },
-  { id: "contracts", label: "Contracts" },
-  { id: "missions", label: "Missions" },
-  { id: "arena", label: "Arena" },
-  { id: "guild", label: "Guild" },
-  { id: "castles", label: "Castles" },
-  { id: "auctionHouse", label: "Auction House" },
-  { id: "merchant", label: "Merchant" },
-  { id: "leaderboards", label: "Leaderboards" },
-  { id: "settings", label: "Settings" }
+const MENU_ITEMS: LandingTab[] = [
+  "inventory",
+  "encyclopedia",
+  "contracts",
+  "missions",
+  "arena",
+  "guild",
+  "castles",
+  "auctionHouse",
+  "merchant",
+  "leaderboards",
+  "settings"
 ];
 
 const EQUIPMENT_LEFT_SLOTS: EquipmentSlotId[] = [
@@ -312,20 +316,20 @@ const ALL_EQUIPMENT_SLOTS: EquipmentSlotId[] = [
 ];
 
 const EQUIPMENT_SLOTS: Record<EquipmentSlotId, EquipmentSlot> = {
-  helmet: { label: "Helmet", majorCategory: "armor" },
-  necklace: { label: "Necklace", majorCategory: "jewelry" },
-  upperArmor: { label: "Upper Armor", majorCategory: "armor" },
-  belt: { label: "Belt", majorCategory: "armor" },
-  ringLeft: { label: "Ring I", majorCategory: "jewelry" },
-  weapon: { label: "Weapon", majorCategory: "weapon" },
-  pauldrons: { label: "Pauldrons", majorCategory: "armor" },
-  gloves: { label: "Gloves", majorCategory: "armor" },
-  lowerArmor: { label: "Lower Armor", majorCategory: "armor" },
-  boots: { label: "Boots", majorCategory: "armor" },
-  ringRight: { label: "Ring II", majorCategory: "jewelry" },
-  vestige1: { label: "Vestige I", majorCategory: "vestige" },
-  vestige2: { label: "Vestige II", majorCategory: "vestige" },
-  vestige3: { label: "Vestige III", majorCategory: "vestige" }
+  helmet: { labelKey: "slots.helmet", majorCategory: "armor" },
+  necklace: { labelKey: "slots.necklace", majorCategory: "jewelry" },
+  upperArmor: { labelKey: "slots.upperArmor", majorCategory: "armor" },
+  belt: { labelKey: "slots.belt", majorCategory: "armor" },
+  ringLeft: { labelKey: "slots.ringLeft", majorCategory: "jewelry" },
+  weapon: { labelKey: "slots.weapon", majorCategory: "weapon" },
+  pauldrons: { labelKey: "slots.pauldrons", majorCategory: "armor" },
+  gloves: { labelKey: "slots.gloves", majorCategory: "armor" },
+  lowerArmor: { labelKey: "slots.lowerArmor", majorCategory: "armor" },
+  boots: { labelKey: "slots.boots", majorCategory: "armor" },
+  ringRight: { labelKey: "slots.ringRight", majorCategory: "jewelry" },
+  vestige1: { labelKey: "slots.vestige1", majorCategory: "vestige" },
+  vestige2: { labelKey: "slots.vestige2", majorCategory: "vestige" },
+  vestige3: { labelKey: "slots.vestige3", majorCategory: "vestige" }
 };
 const ENCYCLOPEDIA_ARMOR_SLOT_ORDER: string[] = [
   "helmet",
@@ -841,13 +845,13 @@ function createMockMeleeWeaponItems(): MockInventoryItemSeed[] {
 
 function formatModifierStatLabel(stat: string): string {
   const knownLabels: Record<string, string> = {
-    melee_damage: "Melee Damage",
-    ranged_damage: "Ranged Damage",
-    spell_damage: "Spell Damage",
-    crit_damage: "Crit Damage",
-    crit_chance: "Crit Chance",
-    extra_attack_chance: "Extra Attack Chance",
-    double_attack_chance: "Extra Attack Chance"
+    melee_damage: i18n.t("profile.meleeDamage"),
+    ranged_damage: i18n.t("profile.rangedDamage"),
+    spell_damage: i18n.t("profile.spellDamage"),
+    crit_damage: i18n.t("profile.critDamage"),
+    crit_chance: i18n.t("profile.critChance"),
+    extra_attack_chance: i18n.t("profile.extraAttackChance"),
+    double_attack_chance: i18n.t("profile.extraAttackChance")
   };
   if (knownLabels[stat]) {
     return knownLabels[stat];
@@ -895,6 +899,26 @@ function getBaseItemNameFromDisplay(
     }
   }
   return baseName.trim() || displayName;
+}
+
+function localizeKnownLabel(label: string): string {
+  const keyByLabel: Record<string, string> = {
+    "Melee Damage": "profile.meleeDamage",
+    "Ranged Damage": "profile.rangedDamage",
+    "Spell Damage": "profile.spellDamage",
+    "Crit Damage": "profile.critDamage",
+    "Crit Chance": "profile.critChance",
+    "Extra Attack Chance": "profile.extraAttackChance",
+    "Armor": "profile.armor",
+    "Spell Shield": "profile.spellShield",
+    "Missile Resistance": "profile.missileResistance",
+    "Max Hitpoints": "profile.maxHitpoints",
+  };
+  const key = keyByLabel[label];
+  if (key) {
+    return i18n.t(key);
+  }
+  return label;
 }
 
 function normalizeItemNameForArtLookup(itemName: string): string {
@@ -1259,25 +1283,29 @@ function renderMenuIcon(tab: LandingTab) {
 }
 
 function formatClassLabel(playerClass: PlayerState["class"]): string {
-  return playerClass.charAt(0).toUpperCase() + playerClass.slice(1);
+  return i18n.t(`class.${playerClass}`);
 }
 
 function formatRarityLabel(rarity: Rarity): string {
-  return rarity.charAt(0).toUpperCase() + rarity.slice(1);
+  return i18n.t(`rarity.${rarity}`);
 }
 
 function formatArchetypeLabel(value: string): string {
+  const translated = i18n.t(`archetype.${value}`);
+  if (translated && translated !== `archetype.${value}`) {
+    return translated;
+  }
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function formatTokenLabel(value: unknown): string {
   const normalized = typeof value === "string" ? value : String(value ?? "");
   if (!normalized) {
-    return "Unknown";
+    return i18n.t("item.unknown");
   }
   const cleaned = normalized.trim();
   if (!cleaned) {
-    return "Unknown";
+    return i18n.t("item.unknown");
   }
   return cleaned
     .split(/[_\s]+/)
@@ -1286,15 +1314,31 @@ function formatTokenLabel(value: unknown): string {
     .join(" ");
 }
 
+function formatMenuLabel(tab: LandingTab): string {
+  return i18n.t(`menu.${tab}`);
+}
+
+function formatEquipmentSlotLabel(slotId: EquipmentSlotId): string {
+  return i18n.t(EQUIPMENT_SLOTS[slotId].labelKey);
+}
+
+function formatChatChannelLabel(channel: ChatChannel): string {
+  return i18n.t(CHAT_CHANNEL_LABEL_KEYS[channel]);
+}
+
 function sanitizeEncyclopediaItem(raw: GeneratedEncyclopediaItem): GeneratedEncyclopediaItem {
   return {
     key: typeof raw.key === "string" && raw.key.length > 0 ? raw.key : `unknown:${Math.random().toString(36).slice(2)}`,
+    contentId:
+      typeof raw.contentId === "string" && raw.contentId.length > 0
+        ? raw.contentId
+        : `unknown:${Math.random().toString(36).slice(2)}`,
     majorCategory: typeof raw.majorCategory === "string" ? raw.majorCategory : "unknown",
     archetype: typeof raw.archetype === "string" ? raw.archetype : "unknown",
     family: typeof raw.family === "string" ? raw.family : "unknown",
     slotFamily: typeof raw.slotFamily === "string" ? raw.slotFamily : "unknown",
-    itemType: typeof raw.itemType === "string" ? raw.itemType : "Unknown",
-    itemName: typeof raw.itemName === "string" ? raw.itemName : "Unknown Item",
+    itemType: typeof raw.itemType === "string" ? raw.itemType : i18n.t("item.unknown"),
+    itemName: typeof raw.itemName === "string" ? raw.itemName : i18n.t("item.missingItem"),
     flavorText: typeof raw.flavorText === "string" ? raw.flavorText : "",
     baseLevel: Number.isFinite(raw.baseLevel) ? raw.baseLevel : 0,
     dropMinLevel: Number.isFinite(raw.dropMinLevel) ? raw.dropMinLevel : 0,
@@ -1315,10 +1359,10 @@ function normalizeEncyclopediaItems(input: GeneratedEncyclopediaItem[]): Generat
 function getItemSubtypeLabel(item: InventoryItem): string {
   const majorCategory = item.archetype?.majorCategory;
   if (majorCategory === "armor" && item.archetype?.armorArchetype) {
-    return `${formatArchetypeLabel(item.archetype.armorArchetype)} Armor`;
+    return `${formatArchetypeLabel(item.archetype.armorArchetype)} ${i18n.t("profile.armor")}`;
   }
   if (majorCategory === "weapon" && item.archetype?.weaponArchetype) {
-    return `${formatArchetypeLabel(item.archetype.weaponArchetype)} Weapon`;
+    return `${formatArchetypeLabel(item.archetype.weaponArchetype)} ${i18n.t("slots.weapon")}`;
   }
   return item.category;
 }
@@ -1376,8 +1420,15 @@ function getWeaponDamageSummary(item: InventoryItem): { damageLine: string; roll
   }
   const { minRollRange, maxRollRange, rolledMin, rolledMax, averageDamage } = item.damageRoll;
   return {
-    damageLine: `Damage: ${formatOneDecimal(averageDamage)}`,
-    rollLine: `Roll: [${minRollRange[0]}-${minRollRange[1]}] ${rolledMin} - ${rolledMax} [${maxRollRange[0]}-${maxRollRange[1]}]`
+    damageLine: i18n.t("item.damage", { value: formatOneDecimal(averageDamage) }),
+    rollLine: i18n.t("item.roll", {
+      minLow: minRollRange[0],
+      minHigh: minRollRange[1],
+      rolledMin,
+      rolledMax,
+      maxLow: maxRollRange[0],
+      maxHigh: maxRollRange[1]
+    })
   };
 }
 
@@ -1430,7 +1481,7 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
               <p key={line.id} className="inventoryCardModifierLine">
                 <span className={`inventoryModifierTier ${getModifierTierClassName(line.tier)}`}>({line.tier})</span>{" "}
                 <span>
-                  {line.label} {line.value}
+                  {localizeKnownLabel(line.label)} {line.value}
                 </span>
               </p>
             ))}
@@ -1440,8 +1491,8 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
       <div className="inventoryCardDetails">
         <p className="inventoryCardDescription inventoryCardFlavor">{item.description}</p>
         <div className="inventoryCardFooter">
-          <span className="inventoryCardPower">Power {item.power}</span>
-          <span className="inventoryCardLevel">Level {item.levelRequirement}</span>
+          <span className="inventoryCardPower">{i18n.t("inventory.power", { value: item.power })}</span>
+          <span className="inventoryCardLevel">{i18n.t("inventory.requiredLevel", { value: item.levelRequirement })}</span>
         </div>
       </div>
     </>
@@ -1526,7 +1577,7 @@ function renderItemIcon(args: {
 
 function getDisplayName(playerState: PlayerState): string {
   const idSuffix = playerState.playerId.slice(-6).toUpperCase();
-  return `Warden ${idSuffix}`;
+  return i18n.t("profile.namePattern", { id: idSuffix });
 }
 
 function getTrainingCost(baseValue: number): number {
@@ -1542,11 +1593,11 @@ function formatPercentRatio(ratio: number): string {
 }
 
 function formatDerivedFlat(value: number): string {
-  return `+${formatOneDecimal(value)} flat`;
+  return i18n.t("profile.derivedFlat", { value: formatOneDecimal(value) });
 }
 
 function formatDerivedPercent(value: number): string {
-  return `+${formatOneDecimal(value)}%`;
+  return i18n.t("profile.derivedPercent", { value: formatOneDecimal(value) });
 }
 
 function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
@@ -1570,12 +1621,12 @@ function getStatContributionLines(
     case "strength":
       return [
         {
-          label: mainOffenseStat === "strength" ? "Main Damage" : "Melee Damage",
+          label: mainOffenseStat === "strength" ? i18n.t("profile.mainDamage") : i18n.t("profile.meleeDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
         },
         {
-          label: "Armor",
+          label: i18n.t("profile.armor"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
@@ -1583,12 +1634,13 @@ function getStatContributionLines(
     case "intelligence":
       return [
         {
-          label: mainOffenseStat === "intelligence" ? "Main Damage" : "Spell Damage",
+          label:
+            mainOffenseStat === "intelligence" ? i18n.t("profile.mainDamage") : i18n.t("profile.spellDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
         },
         {
-          label: "Spell Shield",
+          label: i18n.t("profile.spellShield"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
@@ -1596,12 +1648,12 @@ function getStatContributionLines(
     case "dexterity":
       return [
         {
-          label: mainOffenseStat === "dexterity" ? "Main Damage" : "Ranged Damage",
+          label: mainOffenseStat === "dexterity" ? i18n.t("profile.mainDamage") : i18n.t("profile.rangedDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
         },
         {
-          label: "Missile Resistance",
+          label: i18n.t("profile.missileResistance"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
@@ -1609,12 +1661,12 @@ function getStatContributionLines(
     case "luck":
       return [
         {
-          label: "Crit Chance",
+          label: i18n.t("profile.critChance"),
           ratioLabel: `${formatOneDecimal(LUCK_CRIT_CHANCE_PERCENT_PER_POINT)}%/pt`,
           valueLabel: formatDerivedPercent(statValue * LUCK_CRIT_CHANCE_PERCENT_PER_POINT)
         },
         {
-          label: "Crit Damage",
+          label: i18n.t("profile.critDamage"),
           ratioLabel: `${formatOneDecimal(LUCK_CRIT_DAMAGE_PERCENT_PER_POINT)}%/pt`,
           valueLabel: formatDerivedPercent(statValue * LUCK_CRIT_DAMAGE_PERCENT_PER_POINT)
         }
@@ -1622,12 +1674,12 @@ function getStatContributionLines(
     case "initiative":
       return [
         {
-          label: "Combat Speed",
+          label: i18n.t("profile.combatSpeed"),
           ratioLabel: `${formatOneDecimal(INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT)}%/pt`,
           valueLabel: formatDerivedPercent(statValue * INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT)
         },
         {
-          label: "Extra Attack Chance",
+          label: i18n.t("profile.extraAttackChance"),
           ratioLabel: `${formatOneDecimal(INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT)}%/pt`,
           valueLabel: formatDerivedPercent(statValue * INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT)
         }
@@ -1635,7 +1687,7 @@ function getStatContributionLines(
     case "vitality":
       return [
         {
-          label: "Max Hitpoints",
+          label: i18n.t("profile.maxHitpoints"),
           ratioLabel: `${formatOneDecimal(VITALITY_MAX_HP_PER_POINT)}/pt`,
           valueLabel: `+${Math.round(statValue * VITALITY_MAX_HP_PER_POINT)} HP`
         }
@@ -1698,6 +1750,7 @@ function createContractSlots(nowMs: number): ContractSlotState[] {
 }
 
 export function App() {
+  useTranslation();
   const initialContractSlots = useMemo(() => createContractSlots(Date.now()), []);
   const landingPageRef = useRef<HTMLDivElement | null>(null);
   const leftPanelRef = useRef<HTMLElement | null>(null);
@@ -1709,6 +1762,9 @@ export function App() {
   const chatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | null>(
     () => window.localStorage.getItem("ebonkeep.dev.token")
+  );
+  const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(() =>
+    normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY) ?? i18n.resolvedLanguage ?? i18n.language)
   );
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
@@ -1759,8 +1815,10 @@ export function App() {
     }
     return Math.floor(Math.random() * total);
   });
+  const [isSavingLocale, setIsSavingLocale] = useState(false);
+  const [localeStatusMessage, setLocaleStatusMessage] = useState<string | null>(null);
 
-  const profileName = playerState ? getDisplayName(playerState) : "Warden";
+  const profileName = playerState ? getDisplayName(playerState) : i18n.t("profile.defaultName");
   const avatarInitial = profileName.charAt(0);
 
   const availableContractSlots = useMemo(
@@ -1861,6 +1919,10 @@ export function App() {
       window.removeEventListener("resize", updateLayoutMode);
     };
   }, []);
+
+  useEffect(() => {
+    setLocale(preferredLocale);
+  }, [preferredLocale]);
 
   useEffect(() => {
     if (activeTab !== "inventory") {
@@ -1985,12 +2047,15 @@ export function App() {
       .then((state) => {
         if (active) {
           setPlayerState(applyMockPlayerStateOverrides(state));
+          const resolvedLocale = normalizeLocale(state.preferredLocale);
+          setPreferredLocale(resolvedLocale);
+          setLocaleStatusMessage(null);
         }
       })
       .catch((err: unknown) => {
         if (active) {
           setPlayerState(null);
-          setError(err instanceof Error ? err.message : "State load failed.");
+          setError(err instanceof Error ? err.message : i18n.t("errors.stateLoadFailed"));
         }
       })
       .finally(() => {
@@ -2089,7 +2154,7 @@ export function App() {
       setActiveTab("inventory");
       setToken(login.accessToken);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login failed.");
+      setError(err instanceof Error ? err.message : i18n.t("errors.loginFailed"));
     }
   }
 
@@ -2119,18 +2184,41 @@ export function App() {
     setContractSlots(createContractSlots(Date.now()));
   }
 
+  async function handleLocaleChange(nextLocale: SupportedLocale) {
+    if (nextLocale === preferredLocale) {
+      return;
+    }
+    setPreferredLocale(nextLocale);
+    setLocaleStatusMessage(null);
+
+    if (!token) {
+      return;
+    }
+
+    try {
+      setIsSavingLocale(true);
+      const payload = await updatePlayerPreferences(token, { preferredLocale: nextLocale });
+      setPreferredLocale(normalizeLocale(payload.preferredLocale));
+      setLocaleStatusMessage(i18n.t("settings.saveSuccess"));
+    } catch {
+      setLocaleStatusMessage(i18n.t("settings.saveFailed"));
+    } finally {
+      setIsSavingLocale(false);
+    }
+  }
+
   function startStatTraining(stat: TrainableStatKey) {
     if (!baseStats || !currencies) {
       return;
     }
     if (activeStatTraining) {
-      setError("Training already in progress.");
+      setError(i18n.t("training.alreadyInProgress"));
       return;
     }
 
     const trainingCost = getTrainingCost(baseStats[stat]);
     if (currencies.ducats < trainingCost) {
-      setError("Not enough ducats for training.");
+      setError(i18n.t("training.notEnoughDucats"));
       return;
     }
 
@@ -2243,24 +2331,24 @@ export function App() {
 
   function getEquipValidationError(item: InventoryItem, targetSlotId: EquipmentSlotId): string | null {
     if (!item.equipable) {
-      return "Item cannot be equipped.";
+      return i18n.t("errors.itemCannotBeEquipped");
     }
     if (item.equipSlotId !== targetSlotId) {
-      return `Wrong slot. This item fits ${EQUIPMENT_SLOTS[item.equipSlotId].label}.`;
+      return i18n.t("errors.wrongSlot", { slotLabel: formatEquipmentSlotLabel(item.equipSlotId) });
     }
 
     if (!playerState) {
-      return "Player state unavailable.";
+      return i18n.t("errors.playerStateUnavailable");
     }
 
     if (item.levelRequirement > playerState.level) {
-      return `Requires level ${item.levelRequirement}.`;
+      return i18n.t("errors.requiresLevel", { level: item.levelRequirement });
     }
 
     if (item.archetype) {
       const archetypeClassKey = item.archetype.weaponArchetype ?? item.archetype.armorArchetype;
       if (!isItemUsableByClass(playerState.class, item.archetype.majorCategory, archetypeClassKey)) {
-        return "Class restriction: your class cannot equip this item.";
+        return i18n.t("errors.classRestriction");
       }
 
       if (item.archetype.majorCategory === "vestige" && item.archetype.vestigeId) {
@@ -2271,7 +2359,7 @@ export function App() {
           equippedVestigeIds.includes(item.archetype.vestigeId) &&
           equippedItems[targetSlotId]?.archetype?.vestigeId !== item.archetype.vestigeId
         ) {
-          return "Duplicate vestige cannot be equipped.";
+          return i18n.t("errors.duplicateVestige");
         }
       }
     }
@@ -2317,7 +2405,7 @@ export function App() {
     }
 
     if (nextInventory.length > INVENTORY_ITEM_LIMIT) {
-      setError("Inventory is full. Clear space before swapping.");
+      setError(i18n.t("errors.inventoryFullSwap"));
       return;
     }
 
@@ -2340,7 +2428,7 @@ export function App() {
     }
 
     if (inventoryItems.length >= INVENTORY_ITEM_LIMIT) {
-      setError("Inventory is full. Cannot unequip item.");
+      setError(i18n.t("errors.inventoryFullUnequip"));
       return;
     }
 
@@ -2600,7 +2688,7 @@ export function App() {
     }
 
     const sourceItem = getItemById(payload.itemId);
-    const validationError = sourceItem ? getEquipValidationError(sourceItem, targetSlotId) : "Invalid item.";
+    const validationError = sourceItem ? getEquipValidationError(sourceItem, targetSlotId) : i18n.t("errors.invalidItem");
     event.dataTransfer.dropEffect = validationError ? "none" : "move";
     setEquipmentDropTargetSlotId(targetSlotId);
     setEquipmentDropState(validationError ? "invalid" : "valid");
@@ -2688,11 +2776,11 @@ export function App() {
   }
 
   function formatContractDifficulty(difficulty: ContractDifficulty): string {
-    return difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+    return i18n.t(`contracts.difficulty${difficulty.charAt(0).toUpperCase()}${difficulty.slice(1)}`);
   }
 
   function formatContractRoll(roll: ContractRoll): string {
-    return roll.charAt(0).toUpperCase() + roll.slice(1);
+    return i18n.t(`contracts.roll${roll.charAt(0).toUpperCase()}${roll.slice(1)}`);
   }
 
   function abandonContractSlot(slotIndex: number) {
@@ -2717,6 +2805,7 @@ export function App() {
     tooltipPlacement: "left" | "right" | "top" = "right"
   ) {
     const slot = EQUIPMENT_SLOTS[slotId];
+    const slotLabel = i18n.t(slot.labelKey);
     const equippedItem = equippedItems[slotId];
     const displayItemName = equippedItem ? getDisplayItemName(equippedItem) : null;
     const hasItem = equippedItem !== null;
@@ -2755,14 +2844,14 @@ export function App() {
         onDragLeave={(event) => handleEquipmentSlotDragLeave(event, slotId)}
         onDoubleClick={hasItem ? () => handleEquipmentSlotDoubleClick(slotId) : undefined}
         onDragEnd={handleInventoryCardDragEnd}
-        aria-label={hasItem ? `${slot.label}: ${displayItemName}` : `${slot.label}: Empty`}
+        aria-label={hasItem ? `${slotLabel}: ${displayItemName}` : `${slotLabel}: ${i18n.t("item.empty")}`}
       >
         {hasItem ? (
           <div className="inventoryCardVisual equipmentSlotVisual">
             {renderItemIcon({
               majorCategory: equippedItem?.archetype?.majorCategory ?? slot.majorCategory,
-              category: equippedItem?.category ?? slot.label,
-              itemName: displayItemName ?? slot.label,
+              category: equippedItem?.category ?? slotLabel,
+              itemName: displayItemName ?? slotLabel,
               iconAssetPath: equippedItem?.iconAssetPath,
               className: useImageOnlyIcon ? undefined : "equipmentItemIcon",
               renderMode: useImageOnlyIcon ? "imageOnly" : "default"
@@ -2791,8 +2880,8 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Inventory</h2>
-              <p>Loading player state...</p>
+              <h2>{i18n.t("menu.inventory")}</h2>
+              <p>{i18n.t("inventory.loading")}</p>
             </article>
           </section>
         </section>
@@ -2804,8 +2893,8 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Inventory</h2>
-              <p>Player state unavailable. Login again to refresh your data.</p>
+              <h2>{i18n.t("menu.inventory")}</h2>
+              <p>{i18n.t("inventory.unavailable")}</p>
             </article>
           </section>
         </section>
@@ -2837,7 +2926,7 @@ export function App() {
       <section className="contentShell">
         <section className="contentStack">
           <article className="contentCard">
-            <h2>Inventory</h2>
+            <h2>{i18n.t("menu.inventory")}</h2>
           </article>
 
           <article className="contentCard">
@@ -2852,7 +2941,7 @@ export function App() {
                     {activeCharacterVisualPath ? (
                       <img
                         src={activeCharacterVisualPath}
-                        alt={`${activeCharacterVisualName ?? profileName} portrait`}
+                        alt={`${activeCharacterVisualName ?? profileName} ${i18n.t("profile.portraitSuffix")}`}
                         className="characterVisualImage"
                         draggable={false}
                       />
@@ -2874,7 +2963,7 @@ export function App() {
                               return (safeIndex - 1 + total) % total;
                             });
                           }}
-                          aria-label="Show previous character portrait"
+                          aria-label={i18n.t("profile.showPreviousPortrait")}
                         >
                           <span aria-hidden="true">{"<"}</span>
                         </button>
@@ -2891,7 +2980,7 @@ export function App() {
                               return (safeIndex + 1) % total;
                             });
                           }}
-                          aria-label="Show next character portrait"
+                          aria-label={i18n.t("profile.showNextPortrait")}
                         >
                           <span aria-hidden="true">{">"}</span>
                         </button>
@@ -2918,21 +3007,21 @@ export function App() {
                 <span className="currencyIcon ducatIcon" aria-hidden="true">
                   ◎
                 </span>
-                <span>Ducats</span>
+                <span>{i18n.t("currencies.ducats")}</span>
                 <strong>{effectiveCurrencies.ducats}</strong>
               </div>
               <div className="economyItem">
                 <span className="currencyIcon imperialIcon" aria-hidden="true">
                   ◇
                 </span>
-                <span>Imperials</span>
+                <span>{i18n.t("currencies.imperials")}</span>
                 <strong>{effectiveCurrencies.imperials}</strong>
               </div>
               <div className="economyItem">
                 <span className="currencyIcon gearScoreIcon" aria-hidden="true">
                   ⛨
                 </span>
-                <span>Gear Score</span>
+                <span>{i18n.t("currencies.gearScore")}</span>
                 <strong>{playerState.gearScore}</strong>
               </div>
             </div>
@@ -2982,7 +3071,7 @@ export function App() {
                         className={`statTrainingTooltip${statTooltipAnchorClass ? ` ${statTooltipAnchorClass}` : ""}`}
                         role="tooltip"
                       >
-                        <p className="statTrainingTooltipTitle">Derived Contributions</p>
+                        <p className="statTrainingTooltipTitle">{i18n.t("training.derivedContributions")}</p>
                         {statContributionLines.map((line) => (
                           <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
                             <span>
@@ -3008,14 +3097,18 @@ export function App() {
                           onClick={() => startStatTraining(statColumn.key)}
                           disabled={!hasEnoughDucats || isTrainingAnyStat}
                         >
-                          {isTrainingThisStat ? "Training" : isTrainingAnyStat ? "Busy" : "Train"}
+                          {isTrainingThisStat
+                            ? i18n.t("training.training")
+                            : isTrainingAnyStat
+                              ? i18n.t("training.busy")
+                              : i18n.t("training.train")}
                         </button>
                         {isTrainingThisStat ? (
                           <>
                             <div
                               className="statTrainingProgressTrack"
                               role="progressbar"
-                              aria-label={`${statColumn.label} training progress`}
+                              aria-label={i18n.t("training.progressAria", { stat: statColumn.label })}
                               aria-valuemin={0}
                               aria-valuemax={100}
                               aria-valuenow={trainingProgressPercent}
@@ -3045,7 +3138,7 @@ export function App() {
 
   function renderInventoryCards(items: InventoryItem[], allowDrag: boolean) {
     if (items.length === 0) {
-      return <p>No items available.</p>;
+      return <p>{i18n.t("inventory.noItems")}</p>;
     }
 
     return (
@@ -3086,8 +3179,8 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Profile Panel</h2>
-              <p>Loading profile data...</p>
+              <h2>{i18n.t("profile.panel")}</h2>
+              <p>{i18n.t("profile.loading")}</p>
             </article>
           </section>
         </section>
@@ -3099,15 +3192,15 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Profile Panel</h2>
-              <p>Player state unavailable. Login again to refresh your data.</p>
+              <h2>{i18n.t("profile.panel")}</h2>
+              <p>{i18n.t("inventory.unavailable")}</p>
             </article>
           </section>
         </section>
       );
     }
 
-    const unavailableLabel = "Defined in docs (API pending)";
+    const unavailableLabel = i18n.t("profile.definedInDocs");
     const mainOffenseStat =
       playerState.class === "mage"
         ? playerState.stats.intelligence
@@ -3116,10 +3209,10 @@ export function App() {
           : playerState.stats.strength;
     const mainOffenseTypeLabel =
       playerState.class === "mage"
-        ? "Spell Damage"
+        ? i18n.t("profile.spellDamage")
         : playerState.class === "ranger"
-          ? "Ranged Attack Damage"
-          : "Melee Damage";
+          ? i18n.t("profile.rangedAttackDamage")
+          : i18n.t("profile.meleeDamage");
     const flatBonusDamage = (mainOffenseStat * 0.1).toFixed(1);
 
     const groupedStats: Array<{
@@ -3127,23 +3220,23 @@ export function App() {
       rows: Array<{ label: string; value: string | number }>;
     }> = [
       {
-        title: "Defensive",
+        title: i18n.t("profile.defensive"),
         rows: [
-          { label: "Armor", value: unavailableLabel },
-          { label: "Spell Shield", value: unavailableLabel },
-          { label: "Missile Resistance", value: unavailableLabel },
-          { label: "Max Hitpoints", value: unavailableLabel }
+          { label: i18n.t("profile.armor"), value: unavailableLabel },
+          { label: i18n.t("profile.spellShield"), value: unavailableLabel },
+          { label: i18n.t("profile.missileResistance"), value: unavailableLabel },
+          { label: i18n.t("profile.maxHitpoints"), value: unavailableLabel }
         ]
       },
       {
-        title: "Offensive",
+        title: i18n.t("profile.offensive"),
         rows: [
           { label: mainOffenseTypeLabel, value: unavailableLabel },
-          { label: "Crit Chance", value: unavailableLabel },
-          { label: "Crit Damage", value: unavailableLabel },
-          { label: "Combat Speed", value: unavailableLabel },
-          { label: "Chance to Extra Attack", value: unavailableLabel },
-          { label: "Flat Bonus Damage (Main Stat x 0.10)", value: flatBonusDamage }
+          { label: i18n.t("profile.critChance"), value: unavailableLabel },
+          { label: i18n.t("profile.critDamage"), value: unavailableLabel },
+          { label: i18n.t("profile.combatSpeed"), value: unavailableLabel },
+          { label: i18n.t("profile.chanceToExtraAttack"), value: unavailableLabel },
+          { label: i18n.t("profile.flatBonusMainStat"), value: flatBonusDamage }
         ]
       }
     ];
@@ -3159,19 +3252,19 @@ export function App() {
                 className={`profileSwitchButton${profileSideTab === "inventory" ? " active" : ""}`}
                 onClick={() => setProfileSideTab("inventory")}
               >
-                Inventory
+                {i18n.t("profile.inventoryTab")}
               </button>
               <button
                 className={`profileSwitchButton${profileSideTab === "consumables" ? " active" : ""}`}
                 onClick={() => setProfileSideTab("consumables")}
               >
-                Consumables
+                {i18n.t("profile.consumablesTab")}
               </button>
               <button
                 className={`profileSwitchButton${profileSideTab === "stats" ? " active" : ""}`}
                 onClick={() => setProfileSideTab("stats")}
               >
-                Stats
+                {i18n.t("profile.statsTab")}
               </button>
             </div>
           </article>
@@ -3193,7 +3286,7 @@ export function App() {
                           type="button"
                           className="inventoryIconButton"
                           onClick={toggleInventoryPowerSort}
-                          aria-label="Sort by power"
+                          aria-label={i18n.t("inventory.sortByPower")}
                           aria-describedby="inventory-power-sort-tooltip"
                         >
                           <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
@@ -3205,7 +3298,7 @@ export function App() {
                           className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
                           role="tooltip"
                         >
-                          <p className="uiHoverTooltipTitle">SORT ITEMS</p>
+                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.sortItems")}</p>
                         </div>
                       </div>
 
@@ -3215,7 +3308,7 @@ export function App() {
                             type="button"
                             className={`inventoryIconButton${showOnlyWeapons ? " active" : ""}`}
                             onClick={() => toggleExclusiveInventoryCategoryFilter("weapon")}
-                            aria-label="Filter weapons"
+                            aria-label={i18n.t("inventory.filterWeaponsAria")}
                             aria-pressed={showOnlyWeapons}
                             aria-describedby="inventory-filter-weapons-tooltip"
                           >
@@ -3228,7 +3321,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">WEAPONS FILTER</p>
+                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterWeapons")}</p>
                           </div>
                         </div>
                         <div className="inventoryControlWithTooltip">
@@ -3236,7 +3329,7 @@ export function App() {
                             type="button"
                             className={`inventoryIconButton${showOnlyArmor ? " active" : ""}`}
                             onClick={() => toggleExclusiveInventoryCategoryFilter("armor")}
-                            aria-label="Filter armor"
+                            aria-label={i18n.t("inventory.filterArmorAria")}
                             aria-pressed={showOnlyArmor}
                             aria-describedby="inventory-filter-armor-tooltip"
                           >
@@ -3249,7 +3342,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">ARMOR FILTER</p>
+                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterArmor")}</p>
                           </div>
                         </div>
                         <div className="inventoryControlWithTooltip">
@@ -3257,7 +3350,7 @@ export function App() {
                             type="button"
                             className={`inventoryIconButton${showOnlyJewelry ? " active" : ""}`}
                             onClick={() => toggleExclusiveInventoryCategoryFilter("jewelry")}
-                            aria-label="Filter jewelry"
+                            aria-label={i18n.t("inventory.filterJewelryAria")}
                             aria-pressed={showOnlyJewelry}
                             aria-describedby="inventory-filter-jewelry-tooltip"
                           >
@@ -3270,7 +3363,7 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">JEWELRY FILTER</p>
+                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterJewelry")}</p>
                           </div>
                         </div>
                         <div className="inventoryControlWithTooltip">
@@ -3278,7 +3371,7 @@ export function App() {
                             type="button"
                             className={`inventoryIconButton${showOnlyWearable ? " active" : ""}`}
                             onClick={() => setShowOnlyWearable((previous) => !previous)}
-                            aria-label="Filter wearable items"
+                            aria-label={i18n.t("inventory.filterWearableAria")}
                             aria-pressed={showOnlyWearable}
                             aria-describedby="inventory-filter-wearable-tooltip"
                           >
@@ -3291,13 +3384,16 @@ export function App() {
                             className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
                             role="tooltip"
                           >
-                            <p className="uiHoverTooltipTitle">WEARABLE FILTER</p>
+                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterWearable")}</p>
                           </div>
                         </div>
                       </div>
                     </div>
                     <p className="inventoryFilterSummary">
-                      Showing {filteredInventoryItems.length}/{inventoryItems.length}
+                      {i18n.t("inventory.summary", {
+                        shown: filteredInventoryItems.length,
+                        total: inventoryItems.length
+                      })}
                     </p>
                   </div>
                   {renderInventoryCards(filteredInventoryItems, true)}
@@ -3307,8 +3403,8 @@ export function App() {
               {profileSideTab === "consumables" ? (
                 <>
                   <div className="inventoryHeader">
-                    <h3>Consumables</h3>
-                    <p>{consumableItems.length} items</p>
+                    <h3>{i18n.t("inventory.consumables")}</h3>
+                    <p>{i18n.t("inventory.itemCount", { count: consumableItems.length })}</p>
                   </div>
                   {renderInventoryCards(consumableItems, false)}
                 </>
@@ -3318,10 +3414,10 @@ export function App() {
                 <>
                   <div className="profileMeta">
                     <p>
-                      Class: <strong>{formatClassLabel(playerState.class)}</strong>
+                      {i18n.t("profile.class")}: <strong>{formatClassLabel(playerState.class)}</strong>
                     </p>
                     <p>
-                      Level: <strong>{playerState.level}</strong>
+                      {i18n.t("profile.level")}: <strong>{playerState.level}</strong>
                     </p>
                   </div>
                   <div className="statsGroups">
@@ -3355,8 +3451,8 @@ export function App() {
         <section className="contentStack statsViewportStack chatPanelStack">
           <article className="contentCard chatPanelTabsCard">
             <div className="chatPanelHeaderRow">
-              <div className="chatChannelTabs" role="tablist" aria-label="Chat channels">
-                {Object.entries(CHAT_CHANNEL_LABELS).map(([channel, label]) => (
+              <div className="chatChannelTabs" role="tablist" aria-label={i18n.t("chat.channels")}>
+                {Object.keys(CHAT_CHANNEL_LABEL_KEYS).map((channel) => (
                   <button
                     key={channel}
                     className={`profileSwitchButton${activeChatChannel === channel ? " active" : ""}`}
@@ -3364,11 +3460,11 @@ export function App() {
                     role="tab"
                     aria-selected={activeChatChannel === channel}
                   >
-                    {label}
+                    {formatChatChannelLabel(channel as ChatChannel)}
                   </button>
                 ))}
               </div>
-              <button className="chatOverlayCloseButton" onClick={closeInventoryChat} aria-label="Close chat">
+              <button className="chatOverlayCloseButton" onClick={closeInventoryChat} aria-label={i18n.t("chat.close")}>
                 x
               </button>
             </div>
@@ -3389,7 +3485,7 @@ export function App() {
                   ))}
                 </ul>
               ) : (
-                <p className="chatEmptyState">No messages yet.</p>
+                <p className="chatEmptyState">{i18n.t("chat.empty")}</p>
               )}
             </div>
 
@@ -3398,11 +3494,13 @@ export function App() {
                 type="text"
                 value={chatDraft}
                 onChange={(event) => setChatDraft(event.currentTarget.value)}
-                placeholder={`Message ${CHAT_CHANNEL_LABELS[activeChatChannel]}...`}
+                placeholder={i18n.t("chat.messagePlaceholder", {
+                  channel: formatChatChannelLabel(activeChatChannel)
+                })}
                 maxLength={180}
               />
               <button type="submit" disabled={chatDraft.trim().length === 0}>
-                Send
+                {i18n.t("chat.send")}
               </button>
             </form>
           </article>
@@ -3417,8 +3515,8 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Contracts</h2>
-              <p>Loading contracts board...</p>
+              <h2>{i18n.t("menu.contracts")}</h2>
+              <p>{i18n.t("contracts.loading")}</p>
             </article>
           </section>
         </section>
@@ -3430,8 +3528,8 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard">
-              <h2>Contracts</h2>
-              <p>Player state unavailable. Login again to refresh your data.</p>
+              <h2>{i18n.t("menu.contracts")}</h2>
+              <p>{i18n.t("inventory.unavailable")}</p>
             </article>
           </section>
         </section>
@@ -3443,16 +3541,16 @@ export function App() {
         <section className="contentStack">
           <article className="contentCard">
             <div className="contractsHeader">
-              <h2>Contracts</h2>
+              <h2>{i18n.t("menu.contracts")}</h2>
               <p>
-                Available: {availableContractSlots.length}/{CONTRACT_SLOT_COUNT} | Replenishing:{" "}
-                {replenishingContractSlots.length}
+                {i18n.t("contracts.available", {
+                  available: availableContractSlots.length,
+                  total: CONTRACT_SLOT_COUNT,
+                  replenishing: replenishingContractSlots.length
+                })}
               </p>
             </div>
-            <p>
-              Contracts expire when their availability timer ends. Abandoning a contract starts its refill timer
-              immediately.
-            </p>
+            <p>{i18n.t("contracts.description")}</p>
           </article>
 
           <article className="contentCard">
@@ -3460,15 +3558,15 @@ export function App() {
               <table className="contractsTable">
                 <thead>
                   <tr>
-                    <th>Contract</th>
-                    <th>Difficulty</th>
-                    <th>Experience Roll</th>
-                    <th>Ducats Roll</th>
-                    <th>Materials Roll</th>
-                    <th>Item Drop Roll</th>
-                    <th>Stamina Roll</th>
-                    <th>Expires In</th>
-                    <th>Action</th>
+                    <th>{i18n.t("contracts.table.contract")}</th>
+                    <th>{i18n.t("contracts.table.difficulty")}</th>
+                    <th>{i18n.t("contracts.table.experienceRoll")}</th>
+                    <th>{i18n.t("contracts.table.ducatsRoll")}</th>
+                    <th>{i18n.t("contracts.table.materialsRoll")}</th>
+                    <th>{i18n.t("contracts.table.itemDropRoll")}</th>
+                    <th>{i18n.t("contracts.table.staminaRoll")}</th>
+                    <th>{i18n.t("contracts.table.expiresIn")}</th>
+                    <th>{i18n.t("contracts.table.action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3476,17 +3574,18 @@ export function App() {
                     if (!slot.offer) {
                       return (
                         <tr key={slot.slotIndex} className="contractsReplenishRow">
-                          <td data-label="Contract">
+                          <td data-label={i18n.t("contracts.table.contract")}>
                             <div className="contractsNameCell">
-                              <strong>Slot {slot.slotIndex}</strong>
-                              <span>Replenishing</span>
+                              <strong>{i18n.t("contracts.slot", { index: slot.slotIndex })}</strong>
+                              <span>{i18n.t("contracts.replenishing")}</span>
                             </div>
                           </td>
                           <td data-label="Status" colSpan={8} className="contractsReplenishMessage">
-                            New contract available in{" "}
-                            {slot.replenishReadyAt
-                              ? formatDurationFromMs(slot.replenishReadyAt - nowMs)
-                              : "00m 00s"}
+                            {i18n.t("contracts.newIn", {
+                              duration: slot.replenishReadyAt
+                                ? formatDurationFromMs(slot.replenishReadyAt - nowMs)
+                                : "00m 00s"
+                            })}
                           </td>
                         </tr>
                       );
@@ -3496,28 +3595,28 @@ export function App() {
 
                     return (
                       <tr key={slot.slotIndex}>
-                        <td data-label="Contract">
+                        <td data-label={i18n.t("contracts.table.contract")}>
                           <div className="contractsNameCell">
                             <strong>{template.name}</strong>
-                            <span>Slot {slot.slotIndex}</span>
+                            <span>{i18n.t("contracts.slot", { index: slot.slotIndex })}</span>
                           </div>
                         </td>
-                        <td data-label="Difficulty">
+                        <td data-label={i18n.t("contracts.table.difficulty")}>
                           <span className={`contractDifficulty contractDifficulty-${template.difficulty}`}>
                             {formatContractDifficulty(template.difficulty)}
                           </span>
                         </td>
-                        <td data-label="Experience Roll">{formatContractRoll(rollCue.experience)}</td>
-                        <td data-label="Ducats Roll">{formatContractRoll(rollCue.ducats)}</td>
-                        <td data-label="Materials Roll">{formatContractRoll(rollCue.materials)}</td>
-                        <td data-label="Item Drop Roll">{formatContractRoll(rollCue.itemDrop)}</td>
-                        <td data-label="Stamina Roll">{formatContractRoll(rollCue.staminaCost)}</td>
-                        <td data-label="Expires In" className="contractsTimeCell">
+                        <td data-label={i18n.t("contracts.table.experienceRoll")}>{formatContractRoll(rollCue.experience)}</td>
+                        <td data-label={i18n.t("contracts.table.ducatsRoll")}>{formatContractRoll(rollCue.ducats)}</td>
+                        <td data-label={i18n.t("contracts.table.materialsRoll")}>{formatContractRoll(rollCue.materials)}</td>
+                        <td data-label={i18n.t("contracts.table.itemDropRoll")}>{formatContractRoll(rollCue.itemDrop)}</td>
+                        <td data-label={i18n.t("contracts.table.staminaRoll")}>{formatContractRoll(rollCue.staminaCost)}</td>
+                        <td data-label={i18n.t("contracts.table.expiresIn")} className="contractsTimeCell">
                           {formatDurationFromMs(slot.offer.expiresAt - nowMs)}
                         </td>
-                        <td data-label="Action">
+                        <td data-label={i18n.t("contracts.table.action")}>
                           <button className="contractAbandonButton" onClick={() => abandonContractSlot(slot.slotIndex)}>
-                            Abandon
+                            {i18n.t("contracts.abandon")}
                           </button>
                         </td>
                       </tr>
@@ -3545,6 +3644,38 @@ export function App() {
     );
   }
 
+  function renderSettingsPanel() {
+    return (
+      <section className="contentShell">
+        <section className="contentStack">
+          <article className="contentCard">
+            <h2>{i18n.t("settings.title")}</h2>
+            <p>{i18n.t("settings.description")}</p>
+          </article>
+          <article className="contentCard">
+            <div className="settingsRow">
+              <label htmlFor="language-select">{i18n.t("settings.languageLabel")}</label>
+              <select
+                id="language-select"
+                value={preferredLocale}
+                onChange={(event) => void handleLocaleChange(normalizeLocale(event.currentTarget.value))}
+                disabled={isSavingLocale}
+              >
+                {LOCALE_OPTIONS.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.nativeName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {isSavingLocale ? <p>{i18n.t("settings.saving")}</p> : null}
+            {localeStatusMessage ? <p>{localeStatusMessage}</p> : null}
+          </article>
+        </section>
+      </section>
+    );
+  }
+
   function renderEncyclopediaItemCard(
     item: GeneratedEncyclopediaItem | null,
     fallbackLabel: string | null = null
@@ -3557,13 +3688,13 @@ export function App() {
           {item?.iconPath ? (
             <img className="encyclopediaItemImage" src={item.iconPath} alt={item.itemName} loading="lazy" />
           ) : (
-            <div className="encyclopediaItemPlaceholder">Art pending</div>
+            <div className="encyclopediaItemPlaceholder">{i18n.t("item.artPending")}</div>
           )}
         </div>
         <div className="encyclopediaItemBody">
           <p className="encyclopediaItemMeta">{cardLabel}</p>
-          <h3 className="encyclopediaItemName">{item?.itemName ?? "Missing Item"}</h3>
-          <p className="encyclopediaItemFlavor">{item?.flavorText || "No entry available for this slot yet."}</p>
+          <h3 className="encyclopediaItemName">{item?.itemName ?? i18n.t("item.missingItem")}</h3>
+          <p className="encyclopediaItemFlavor">{item?.flavorText || i18n.t("item.noEntry")}</p>
         </div>
       </article>
     );
@@ -3576,8 +3707,8 @@ export function App() {
         <section className="contentShell">
           <section className="contentStack">
             <article className="contentCard encyclopediaControlsCard">
-              <h2>Encyclopedia</h2>
-              <p>Browse all defined weapons, armor sets, and jewelry with generated item art.</p>
+              <h2>{i18n.t("menu.encyclopedia")}</h2>
+              <p>{i18n.t("encyclopedia.description")}</p>
               <div className="encyclopediaTabRow">
                 {ENCYCLOPEDIA_CATEGORY_ORDER.map((category) => (
                   <button
@@ -3632,7 +3763,7 @@ export function App() {
                 if (levels.length === 0) {
                   return (
                     <article className="contentCard">
-                      <p className="encyclopediaEmptyState">No armor entries found for this archetype.</p>
+                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyArmor")}</p>
                     </article>
                   );
                 }
@@ -3647,8 +3778,12 @@ export function App() {
                             key={`armor-${encyclopediaArmorArchetype}-${baseLevel}`}
                           >
                             <div className="encyclopediaSetHeader">
-                              <h3>{formatTokenLabel(encyclopediaArmorArchetype)} Set</h3>
-                              <span className="encyclopediaSetBadge">Base {baseLevel}</span>
+                              <h3>
+                                {i18n.t("encyclopedia.armorSet", {
+                                  archetype: formatTokenLabel(encyclopediaArmorArchetype)
+                                })}
+                              </h3>
+                              <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: baseLevel })}</span>
                             </div>
                             <div className="encyclopediaSetGrid">
                               {ENCYCLOPEDIA_ARMOR_SLOT_ORDER.map((slotFamily) => (
@@ -3690,12 +3825,12 @@ export function App() {
                   if (left.baseLevel !== right.baseLevel) {
                     return left.baseLevel - right.baseLevel;
                   }
-                  return String(left.family).localeCompare(String(right.family));
+                  return String(left.family).localeCompare(String(right.family), preferredLocale);
                 });
                 if (groups.length === 0) {
                   return (
                     <article className="contentCard">
-                      <p className="encyclopediaEmptyState">No weapon entries found for this archetype.</p>
+                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyWeapon")}</p>
                     </article>
                   );
                 }
@@ -3709,12 +3844,12 @@ export function App() {
                         >
                           <div className="encyclopediaSetHeader">
                             <h3>{formatTokenLabel(group.family)}</h3>
-                            <span className="encyclopediaSetBadge">Base {group.baseLevel}</span>
+                            <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: group.baseLevel })}</span>
                           </div>
                           <div className="encyclopediaGroupGrid">
                             {group.items
                               .slice()
-                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName)))
+                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName), preferredLocale))
                               .map((item) => (
                                 <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
                               ))}
@@ -3733,7 +3868,7 @@ export function App() {
                 if (jewelryItems.length === 0) {
                   return (
                     <article className="contentCard">
-                      <p className="encyclopediaEmptyState">No jewelry entries found.</p>
+                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyJewelry")}</p>
                     </article>
                   );
                 }
@@ -3754,7 +3889,7 @@ export function App() {
                 }
                 const groups = [...byGroup.values()].sort((left, right) => {
                   if (left.family !== right.family) {
-                    return String(left.family).localeCompare(String(right.family));
+                    return String(left.family).localeCompare(String(right.family), preferredLocale);
                   }
                   return left.baseLevel - right.baseLevel;
                 });
@@ -3765,12 +3900,12 @@ export function App() {
                         <section className="encyclopediaGroupSection" key={`jewelry-${group.family}-${group.baseLevel}`}>
                           <div className="encyclopediaSetHeader">
                             <h3>{formatTokenLabel(group.family)}</h3>
-                            <span className="encyclopediaSetBadge">Base {group.baseLevel}</span>
+                            <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: group.baseLevel })}</span>
                           </div>
                           <div className="encyclopediaGroupGrid">
                             {group.items
                               .slice()
-                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName)))
+                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName), preferredLocale))
                               .map((item) => (
                                 <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
                               ))}
@@ -3787,8 +3922,8 @@ export function App() {
       );
     } catch {
       return renderPlaceholderPanel(
-        "Encyclopedia",
-        "Encyclopedia data could not be rendered. Rebuild manifests and reload the page."
+        i18n.t("menu.encyclopedia"),
+        i18n.t("encyclopedia.renderError")
       );
     }
   }
@@ -3802,29 +3937,26 @@ export function App() {
       case "contracts":
         return renderContractsPanel();
       case "missions":
-        return renderPlaceholderPanel("Missions", "Mission selection and launch board will appear here.");
+        return renderPlaceholderPanel(i18n.t("menu.missions"), i18n.t("placeholders.missions"));
       case "arena":
-        return renderPlaceholderPanel("Arena", "Arena matchmaking and battle history will appear here.");
+        return renderPlaceholderPanel(i18n.t("menu.arena"), i18n.t("placeholders.arena"));
       case "guild":
-        return renderPlaceholderPanel("Guild", "Guild management and clan tools will appear here.");
+        return renderPlaceholderPanel(i18n.t("menu.guild"), i18n.t("placeholders.guild"));
       case "castles":
-        return renderPlaceholderPanel("Castles", "Castle conquest systems and holdings will appear here.");
+        return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
         return renderPlaceholderPanel(
-          "Auction House",
-          "Marketplace listings will appear here. This is a placeholder panel for the first iteration."
+          i18n.t("menu.auctionHouse"),
+          i18n.t("placeholders.auctionHouse")
         );
       case "merchant":
-        return renderPlaceholderPanel("Merchant", "Merchant offers, rerolls, and purchases will appear here.");
+        return renderPlaceholderPanel(i18n.t("menu.merchant"), i18n.t("placeholders.merchant"));
       case "leaderboards":
-        return renderPlaceholderPanel("Leaderboards", "Season rankings and score ladders will appear here.");
+        return renderPlaceholderPanel(i18n.t("menu.leaderboards"), i18n.t("placeholders.leaderboards"));
       case "settings":
-        return renderPlaceholderPanel(
-          "Settings",
-          "Account and gameplay options will appear here. This is a placeholder panel for now."
-        );
+        return renderSettingsPanel();
       default:
-        return renderPlaceholderPanel("Panel", "Panel unavailable.");
+        return renderPlaceholderPanel(i18n.t("settings.title"), i18n.t("placeholders.panelUnavailable"));
     }
   }
 
@@ -3834,10 +3966,10 @@ export function App() {
         <div className="appSurface">
           <section className="authPage">
             <section className="authCard">
-              <h1>Ebonkeep</h1>
-              <p>Login to open your post-login landing page.</p>
-              <button onClick={handleGuestLogin}>Login as Guest</button>
-              {error ? <div className="error">Error: {error}</div> : null}
+              <h1>{i18n.t("app.title")}</h1>
+              <p>{i18n.t("auth.subtitle")}</p>
+              <button onClick={handleGuestLogin}>{i18n.t("auth.loginGuest")}</button>
+              {error ? <div className="error">{i18n.t("app.errorPrefix")}: {error}</div> : null}
             </section>
           </section>
         </div>
@@ -3858,20 +3990,20 @@ export function App() {
                   </div>
                   <div className="identityText">
                     <h1>{profileName}</h1>
-                    <p>{playerState ? formatClassLabel(playerState.class) : "Class unknown"}</p>
-                    <p>Level {playerState?.level ?? "-"}</p>
+                    <p>{playerState ? formatClassLabel(playerState.class) : i18n.t("player.classUnknown")}</p>
+                    <p>{i18n.t("player.level", { value: playerState?.level ?? "-" })}</p>
                   </div>
                 </div>
 
                 <div className="barBlock">
-                  <p className="barLabel">Health</p>
+                  <p className="barLabel">{i18n.t("bars.health")}</p>
                   <div className="barShell">
                     <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
                   </div>
                 </div>
 
                 <div className="barBlock">
-                  <p className="barLabel">Experience</p>
+                  <p className="barLabel">{i18n.t("bars.experience")}</p>
                   <div className="barShell">
                     <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
                   </div>
@@ -3879,23 +4011,23 @@ export function App() {
               </section>
 
               <section className="menuCard">
-                <h2>Menu</h2>
+                <h2>{i18n.t("menu.title")}</h2>
                 <nav className="menuList">
-                  {MENU_ITEMS.map((menuItem) => (
+                  {MENU_ITEMS.map((menuItemId) => (
                     <button
-                      key={menuItem.id}
-                      className={`menuButton${activeTab === menuItem.id ? " active" : ""}`}
-                      onClick={() => setActiveTab(menuItem.id)}
+                      key={menuItemId}
+                      className={`menuButton${activeTab === menuItemId ? " active" : ""}`}
+                      onClick={() => setActiveTab(menuItemId)}
                     >
                       <span className="menuButtonIcon" aria-hidden="true">
-                        {renderMenuIcon(menuItem.id)}
+                        {renderMenuIcon(menuItemId)}
                       </span>
-                      <span className="menuButtonLabel">{menuItem.label}</span>
+                      <span className="menuButtonLabel">{formatMenuLabel(menuItemId)}</span>
                     </button>
                   ))}
                 </nav>
                 <button className="logoutButton" onClick={handleLogout}>
-                  Logout
+                  {i18n.t("menu.logout")}
                 </button>
               </section>
             </div>
@@ -3937,7 +4069,7 @@ export function App() {
               <button
                 className="inventoryChatFloatingToggle"
                 onClick={openInventoryChat}
-                aria-label="Show chat panel"
+                aria-label={i18n.t("inventory.messageShowChat")}
                 aria-pressed="false"
               >
                 <svg
@@ -3952,7 +4084,7 @@ export function App() {
             </>
           ) : null}
 
-          {error ? <div className="error floatingError">Error: {error}</div> : null}
+          {error ? <div className="error floatingError">{i18n.t("app.errorPrefix")}: {error}</div> : null}
         </div>
       </div>
     </main>
