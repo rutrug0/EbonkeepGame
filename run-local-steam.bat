@@ -140,19 +140,19 @@ echo [7/8] Launching API and Web dev servers...
 start "Ebonkeep API" cmd /k "cd /d %ROOT% && npm.cmd run dev:api"
 start "Ebonkeep Web" cmd /k "cd /d %ROOT% && npm.cmd run dev:web"
 
-echo [8/8] Waiting for web client...
+echo [8/8] Waiting for web client and launching desktop shell...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-port.ps1" -HostName "localhost" -Port 5173 -TimeoutSeconds 120
 if errorlevel 1 (
   echo Web server did not start in time.
   set "FAILED=1"
   goto :fail
 )
-start "" "http://localhost:5173"
+start "Ebonkeep Desktop (Steam Sim)" cmd /k "cd /d %ROOT% && npm.cmd run dev:desktop"
 
 echo Local stack started.
 echo API: http://localhost:4000
-echo Web: http://localhost:5173
-echo Desktop shell is not auto-started by run-local.bat.
+echo Web dev server: http://localhost:5173
+echo Desktop: launched in separate Electron window.
 echo Run stop-local.bat to stop services and spawned windows.
 exit /b 0
 
@@ -160,7 +160,7 @@ exit /b 0
 if "%FAILED%"=="1" (
   echo.
   echo Local stack startup failed.
-  echo If this window was opened by double-click, run run-local.bat from an existing terminal to keep logs visible.
+  echo If this window was opened by double-click, run run-local-steam.bat from an existing terminal to keep logs visible.
   pause
 )
 exit /b 1
