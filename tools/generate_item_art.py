@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate item art assets from docs/data CSV definitions via OpenAI Images API.
+"""Generate art assets from docs/data CSV definitions via OpenAI Images API.
 
 Behavior:
 - One item per API request.
@@ -122,6 +122,8 @@ class ItemRecord:
     item_type: str
     base_level: int
     level_band: str
+    family_prompt: str
+    prompt_prefix_blocks: list[str]
     prompt_item_description: str
     flavor_text: str
 
@@ -163,10 +165,10 @@ def load_config(config_path: Path) -> dict[str, Any]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate item art assets from docs/data CSV files.")
+    parser = argparse.ArgumentParser(description="Generate art assets from docs/data CSV files.")
     parser.add_argument(
         "--sources",
-        choices=["all", "weapons", "armor", "jewelry", "characters"],
+        choices=["all", "weapons", "armor", "jewelry", "characters", "monsters"],
         default="all",
         help="Subset of configured sources to process.",
     )
@@ -216,6 +218,11 @@ def parse_args() -> argparse.Namespace:
         "--armor-archetype",
         default=None,
         help="Only include armor rows matching this archetype (case-insensitive), e.g. heavy.",
+    )
+    parser.add_argument(
+        "--monster-family",
+        default=None,
+        help="Only include monster rows matching this family_id (case-insensitive), e.g. tallow_cellar_00.",
     )
     parser.add_argument(
         "--ca-bundle",
@@ -273,6 +280,54 @@ def character_output_name(row: dict[str, str], fallback_sequence: int) -> str:
     return f"{stat_code}{max(fallback_sequence, 1)}"
 
 
+def merge_source_lookups(
+    *,
+    source: dict[str, Any],
+    row: dict[str, str],
+    repo_root: Path,
+    lookup_cache: dict[tuple[str, str], dict[str, dict[str, str]]],
+) -> dict[str, str]:
+    lookups = source.get("lookups")
+    if not isinstance(lookups, list):
+        return row
+
+    merged_row = dict(row)
+    for lookup in lookups:
+        if not isinstance(lookup, dict):
+            continue
+        lookup_path_raw = str(lookup.get("path", "")).strip()
+        source_key = str(lookup.get("source_key", "")).strip()
+        lookup_key = str(lookup.get("lookup_key", "")).strip()
+        if not lookup_path_raw or not source_key or not lookup_key:
+            continue
+
+        lookup_value = (merged_row.get(source_key) or "").strip()
+        if not lookup_value:
+            continue
+
+        lookup_path = Path(lookup_path_raw)
+        if not lookup_path.is_absolute():
+            lookup_path = (repo_root / lookup_path).resolve()
+        cache_key = (str(lookup_path), lookup_key)
+        indexed_rows = lookup_cache.get(cache_key)
+        if indexed_rows is None:
+            indexed_rows = {}
+            for lookup_row in read_csv_rows(lookup_path):
+                indexed_value = (lookup_row.get(lookup_key) or "").strip()
+                if indexed_value:
+                    indexed_rows[indexed_value] = {
+                        str(k): ("" if v is None else str(v)) for k, v in lookup_row.items()
+                    }
+            lookup_cache[cache_key] = indexed_rows
+
+        matched_row = indexed_rows.get(lookup_value)
+        if not matched_row:
+            continue
+        merged_row = dict(matched_row) | merged_row
+
+    return merged_row
+
+
 def asset_family_for(record: ItemRecord) -> str:
     if record.major_category == "armor":
         parts = record.family_key.split(":")
@@ -292,6 +347,9 @@ def asset_family_for(record: ItemRecord) -> str:
         family = re.sub(r"_v\d+$", "", family)
         family = re.sub(r"_manual$", "", family)
         return family
+
+    if record.major_category == "monster":
+        return "monster"
 
     return slugify_underscore(record.major_category)
 
@@ -333,10 +391,97 @@ def build_family_key(source: dict[str, Any], row: dict[str, str], major_category
         return f"jewelry:{row.get('archetype', '').strip()}"
     if major_category == "character":
         return f"character:{(row.get('main_stat') or '').strip().lower()}"
+    if major_category == "monster":
+        family_id = (row.get("family_id") or "").strip()
+        return f"monster:{family_id}" if family_id else "monster"
     return major_category
 
 
-def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int) -> ItemRecord | None:
+def resolve_family_prompt(
+    source: dict[str, Any],
+    row: dict[str, str],
+    family_key: str,
+    config: dict[str, Any],
+) -> str:
+    family_prompts = config.get("families", {})
+    if isinstance(family_prompts, dict):
+        exact_prompt = str(family_prompts.get(family_key, "")).strip()
+        if exact_prompt:
+            return exact_prompt
+
+    source_prompt = str(source.get("family_prompt", "")).strip()
+    if source_prompt:
+        try:
+            return source_prompt.format(**{k: (v or "") for k, v in row.items()}).strip()
+        except KeyError:
+            return source_prompt
+
+    return ""
+
+
+def collect_prompt_prefix_blocks(source: dict[str, Any], row: dict[str, str]) -> list[str]:
+    fields = source.get("prompt_prefix_fields")
+    if not isinstance(fields, list):
+        return []
+
+    blocks: list[str] = []
+    for field in fields:
+        field_name = str(field).strip()
+        if not field_name:
+            continue
+        value = (row.get(field_name) or "").strip()
+        if value:
+            blocks.append(value)
+    return blocks
+
+
+def monster_level_direction(base_level: int) -> str:
+    if base_level <= 8:
+        return (
+            "Monster Tier Direction:\n\n"
+            "very low-tier enemy\n\n"
+            "should look weak, shabby, underfed, badly equipped, and locally dangerous at most\n\n"
+            "avoid intimidating elite presence\n\n"
+            "avoid heroic menace\n\n"
+            "avoid oversized anatomy, exaggerated musculature, or horror-heavy distortion\n\n"
+            "prefer poor posture, crude gear, thin limbs, worn cloth, scavenged tools, and low social status readability"
+        )
+    if base_level <= 20:
+        return (
+            "Monster Tier Direction:\n\n"
+            "low-tier enemy\n\n"
+            "should look rough, dangerous, and more capable than common rabble, but still clearly mortal and limited\n\n"
+            "avoid elite commander presence\n\n"
+            "avoid overt supernatural grandeur"
+        )
+    if base_level <= 60:
+        return (
+            "Monster Tier Direction:\n\n"
+            "mid-tier enemy\n\n"
+            "should look battle-capable, organized, and genuinely threatening\n\n"
+            "grounded martial danger is preferred over spectacle"
+        )
+    if base_level <= 80:
+        return (
+            "Monster Tier Direction:\n\n"
+            "high-tier enemy\n\n"
+            "may include restrained arcane elements, ritual marks, subtle glow lines, or controlled supernatural cues\n\n"
+            "keep the design grounded and readable"
+        )
+    return (
+        "Monster Tier Direction:\n\n"
+        "top-tier enemy\n\n"
+        "may approach mythic or legendary presence\n\n"
+        "preserve grounded dark fantasy discipline and readable silhouette while allowing rare and elevated visual distinction"
+    )
+
+
+def build_item_record(
+    source: dict[str, Any],
+    row: dict[str, str],
+    row_idx: int,
+    config: dict[str, Any],
+) -> ItemRecord | None:
     major = infer_major_category(source, row)
 
     sequence_raw = (row.get("sequence") or "").strip() or str(row_idx)
@@ -350,6 +495,9 @@ def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int)
         item_type = (row.get("weapon_type") or "").strip()
     elif major == "character":
         display_name = (row.get("character_name") or "").strip()
+        item_type = (row.get("main_stat") or "").strip()
+    elif major == "monster":
+        display_name = (row.get("monster_name") or "").strip()
         item_type = (row.get("main_stat") or "").strip()
     else:
         display_name = (row.get("item_name") or "").strip()
@@ -385,6 +533,10 @@ def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int)
         output_name = character_output_name(row, sequence_int)
 
     family_key = build_family_key(source, row, major)
+    family_prompt = resolve_family_prompt(source, row, family_key, config)
+    prompt_prefix_blocks = collect_prompt_prefix_blocks(source, row)
+    if major == "monster":
+        prompt_prefix_blocks.append(monster_level_direction(base_level_int))
     source_id = str(source["id"])
     item_id = f"{source_id}_{sequence_int:03d}_{slugify(display_name)}"
 
@@ -401,6 +553,8 @@ def build_item_record(source: dict[str, Any], row: dict[str, str], row_idx: int)
         item_type=item_type,
         base_level=base_level_int,
         level_band=level_band(base_level_int),
+        family_prompt=family_prompt,
+        prompt_prefix_blocks=prompt_prefix_blocks,
         prompt_item_description=prompt_desc,
         flavor_text=(row.get("flavor_text") or "").strip(),
     )
@@ -410,10 +564,10 @@ def compose_prompt(record: ItemRecord, config: dict[str, Any]) -> str:
     group_general_prompts = config.get("group_general_prompts", {})
     group_prompt = str(group_general_prompts.get(record.source_group, "")).strip()
     general_prompt = group_prompt or str(config.get("general_prompt", "")).strip()
-    family_prompts = config.get("families", {})
-    family_prompt = str(family_prompts.get(record.family_key, "")).strip()
     if record.major_category == "weapon":
         design_block = f"Weapon Design:\n\n{record.prompt_item_description.strip()}"
+    elif record.major_category == "monster":
+        design_block = f"Monster Design:\n\n{record.prompt_item_description.strip()}"
     else:
         design_block = record.prompt_item_description.strip()
 
@@ -421,7 +575,8 @@ def compose_prompt(record: ItemRecord, config: dict[str, Any]) -> str:
     if record.source_group == "characters":
         blocks.append(CHARACTER_SERIOUS_STYLE_GUARDRAILS)
         blocks.append(character_gaze_block(record.item_id))
-    blocks.extend([family_prompt, design_block])
+    blocks.extend(record.prompt_prefix_blocks)
+    blocks.extend([record.family_prompt, design_block])
     return "\n\n".join(block for block in blocks if block)
 
 
@@ -565,6 +720,7 @@ def main() -> int:
     load_dotenv(DEFAULT_ENV_PATH)
     weapon_type_filter = (args.weapon_type or "").strip().lower()
     armor_archetype_filter = (args.armor_archetype or "").strip().lower()
+    monster_family_filter = (args.monster_family or "").strip().lower()
 
     config_path = Path(args.config)
     if not config_path.is_absolute():
@@ -602,6 +758,7 @@ def main() -> int:
     state_items = state.get("items") if isinstance(state.get("items"), dict) else {}
 
     planned: list[tuple[ItemRecord, str, str, str, dict[str, str]]] = []
+    lookup_cache: dict[tuple[str, str], dict[str, dict[str, str]]] = {}
     counts: dict[str, int] = {
         "total_rows": 0,
         "eligible_rows": 0,
@@ -610,6 +767,7 @@ def main() -> int:
         "skipped_weapon_type_filter": 0,
         "skipped_base_level_filter": 0,
         "skipped_armor_archetype_filter": 0,
+        "skipped_monster_family_filter": 0,
         "skipped_family_prompt": 0,
         "skipped_unchanged": 0,
         "generated": 0,
@@ -619,6 +777,9 @@ def main() -> int:
 
     for source in sources:
         if not isinstance(source, dict):
+            continue
+        if source.get("enabled") is False:
+            counts["skipped_source_filter"] += 1
             continue
         source_group = str(source.get("group", "other"))
         if not should_include_source(source_group, args.sources):
@@ -640,9 +801,10 @@ def main() -> int:
         for idx, row in enumerate(rows, start=1):
             counts["total_rows"] += 1
             row = {str(k): ("" if v is None else str(v)) for k, v in row.items()}
+            row = merge_source_lookups(source=source, row=row, repo_root=REPO_ROOT, lookup_cache=lookup_cache)
             source_copy = dict(source)
             source_copy["path"] = str(csv_path)
-            record = build_item_record(source_copy, row, idx)
+            record = build_item_record(source_copy, row, idx, config)
             if record is None:
                 counts["skipped_missing_prompt"] += 1
                 continue
@@ -663,9 +825,14 @@ def main() -> int:
                     counts["skipped_armor_archetype_filter"] += 1
                     continue
 
-            family_prompts = config.get("families", {})
-            family_prompt = str(family_prompts.get(record.family_key, "")).strip()
-            if not family_prompt:
+            if monster_family_filter:
+                family_parts = record.family_key.split(":")
+                record_monster_family = family_parts[1].strip().lower() if len(family_parts) > 1 else ""
+                if record.major_category != "monster" or record_monster_family != monster_family_filter:
+                    counts["skipped_monster_family_filter"] += 1
+                    continue
+
+            if not record.family_prompt:
                 counts["skipped_family_prompt"] += 1
                 continue
 
@@ -863,6 +1030,7 @@ def main() -> int:
         "weapon_type_filter": weapon_type_filter,
         "base_level_filter": args.base_level,
         "armor_archetype_filter": armor_archetype_filter,
+        "monster_family_filter": monster_family_filter,
         "dry_run": args.dry_run,
         "force": args.force,
         "regenerate_changed": args.regenerate_changed,

@@ -1,7 +1,9 @@
 {
-  "general_prompt": "Rendering Model (Strict):\n\n2D game asset illustration\n\nhard cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp shadow edges, no gradient blending\n\nno soft lighting\n\nno volumetric light\n\nno bloom outside silhouette\n\nno painterly brush texture\n\nno realistic rendering\n\nno 3D render look\n\nflat color fills\n\nminimal surface noise (subtle 5-10% texture only)\n\nLine & Shape Control:\n\nmedium-weight outer contour line\n\nthinner internal detail lines\n\nclean ink-style linework\n\nbold, readable silhouette\n\nsimplified surface detail\n\nno micro-detail rendering\n\nMaterial Definition:\n\nmetal rendered with flat highlight bands (no soft reflections)\n\nhighlights are graphic shapes, not gradients\n\nsteel tone slightly desaturated\n\nno high-gloss photoreal reflections\n\nColor System:\n\nmuted earthy palette\n\nsaturation restrained (moderate, not vibrant)\n\nselective accent highlight only\n\nglow restricted to thin contained lines\n\nglow does not spill beyond object silhouette\n\nRealism Control:\n\nsemi-realistic proportions (grounded but clearly illustrative)\n\nrealism level 4/10\n\nnot cartoon exaggerated\n\nnot photorealistic\n\nProhibited:\n\nno painterly rendering\n\nno soft gradient shading\n\nno dramatic cinematic lighting\n\nno heavy texture noise\n\nno environmental lighting\n\nno background elements\n\nAsset Presentation Rules (Locked)\n\nsingle isolated item\n\ncentered composition\n\ntransparent background (alpha channel)\n\nno environment\n\nno floor\n\nno cast shadow outside silhouette\n\nclean UI-ready presentation",
+  "general_prompt": "Rendering Model (Strict):\n\n2D game asset illustration\n\nmedium cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp but slightly moderated shadow edges, no gradient blending\n\nno soft lighting\n\nno volumetric light\n\nno bloom outside silhouette\n\nno painterly brush texture\n\nno realistic rendering\n\nno 3D render look\n\nflat color fills\n\nminimal surface noise (subtle 5-10% texture only)\n\nLine & Shape Control:\n\nmedium-weight outer contour line\n\nthinner internal detail lines\n\nclean ink-style linework\n\nbold, readable silhouette\n\nsimplified surface detail\n\nno micro-detail rendering\n\nMaterial Definition:\n\nmetal rendered with flat highlight bands (no soft reflections)\n\nhighlights are graphic shapes, not gradients\n\nsteel tone slightly desaturated\n\nno high-gloss photoreal reflections\n\nColor System:\n\nmuted earthy palette\n\nsaturation restrained (moderate, not vibrant)\n\nselective accent highlight only\n\nglow restricted to thin contained lines\n\nglow does not spill beyond object silhouette\n\nRealism Control:\n\nsemi-realistic proportions (grounded but clearly illustrative)\n\nrealism level 4/10\n\nnot cartoon exaggerated\n\nnot photorealistic\n\nProhibited:\n\nno painterly rendering\n\nno soft gradient shading\n\nno dramatic cinematic lighting\n\nno heavy texture noise\n\nno environmental lighting\n\nno background elements\n\nAsset Presentation Rules (Locked)\n\nsingle isolated item\n\ncentered composition\n\ntransparent background (alpha channel)\n\nno environment\n\nno floor\n\nno cast shadow outside silhouette\n\nclean UI-ready presentation",
   "group_general_prompts": {
-    "characters": "Rendering Model (Strict):\n\n2D painted UI character portrait\n\nhard cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp shadow edges, no gradient blending\n\nno soft lighting\n\nno volumetric light\n\nno painterly brush texture\n\nsemi-realistic grounded medieval fantasy proportions\n\nmuted earthy palette with restrained accent color\n\nPortrait Presentation Rules (Locked)\n\nsingle character only\n\nwaist-up portrait\n\ncentered composition\n\ncamera distance must include upper torso to waistline, not chest-only close crop\n\nentire head and full hair silhouette must fit fully in frame\n\nkeep full head and hair inside a safe frame area with clear top margin\n\nleave clear margin above the hairline\n\nnever crop top of head, forehead, or hair by frame boundary\n\ntransparent background (alpha channel)\n\nhigh readability at small UI size\n\nno text, no logo\n\nno scene background clutter\n\nno weapons visible\n\nno shields, no staves, no bows, no daggers\n\nno hands holding any objects"
+    "characters": "Rendering Model (Strict):\n\n2D painted UI character portrait\n\nmedium cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp but slightly moderated shadow edges, no gradient blending\n\nno soft lighting\n\nno volumetric light\n\nno painterly brush texture\n\nsemi-realistic grounded medieval fantasy proportions\n\nmuted earthy palette with restrained accent color\n\nPortrait Presentation Rules (Locked)\n\nsingle character only\n\nwaist-up portrait\n\ncentered composition\n\ncamera distance must include upper torso to waistline, not chest-only close crop\n\nentire head and full hair silhouette must fit fully in frame\n\nkeep full head and hair inside a safe frame area with clear top margin\n\nleave clear margin above the hairline\n\nnever crop top of head, forehead, or hair by frame boundary\n\ntransparent background (alpha channel)\n\nhigh readability at small UI size\n\nno text, no logo\n\nno scene background clutter\n\nno weapons visible\n\nno shields, no staves, no bows, no daggers\n\nno hands holding any objects"
+    ,
+    "monsters": "Rendering Model (Strict):\n\n2D illustrated enemy concept render\n\nmedium cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp but slightly moderated shadow edges, no gradient blending\n\nno soft lighting bloom\n\nno painterly brush texture\n\nsemi-realistic grounded medieval fantasy proportions\n\nmuted earthy palette with restrained accent color\n\nColor Control Rules:\n\navoid sepia scene tint\n\navoid overall yellow wash\n\navoid nicotine-stained or amber-brown color grading across the whole frame\n\nkeep whites, greys, and pale surfaces neutral rather than yellowed unless a family prompt explicitly requires warmth\n\nprefer cool grey or neutral ambient light by default\n\nVisibility and Separation Rules:\n\nmonster silhouette must read clearly against the environment\n\nbackground values must stay slightly lighter or quieter than the monster focal silhouette\n\npreserve clear edge separation around the monster\n\navoid excessively dark murk that hides anatomy or gear\n\nuse readable ambient light from the environment without turning cinematic\n\nMonster Presentation Rules (Locked)\n\nsingle monster only\n\nfull-body view\n\nclear readable silhouette\n\ngrounded stance and anatomy\n\ninclude environment background appropriate to the family prompt\n\nbackground must support the monster and not overpower it\n\nkeep the scene a bit clearer and less oppressive than a pure horror render\n\nno crowd scenes\n\nno additional monsters\n\nno hero pose exaggeration\n\nno text, no logo\n\nmaintain hostile enemy readability at game-icon scale"
   },
   "render_defaults": {
     "model": "gpt-image-1.5",
@@ -11,6 +13,10 @@
   },
   "group_render_overrides": {
     "characters": {
+      "quality": "high"
+    },
+    "monsters": {
+      "background": "opaque",
       "quality": "high"
     }
   },
@@ -111,6 +117,27 @@
       "prompt_field": "prompt_character_avatar",
       "item_type_field": "main_stat",
       "family_key_template": "character:{main_stat}"
+    },
+    {
+      "id": "monster_family_members_v1",
+      "group": "monsters",
+      "path": "docs/data/monster_family_members_v1.csv",
+      "major_category": "monster",
+      "display_name_field": "monster_name",
+      "prompt_field": "prompt_monster_fullbody",
+      "item_type_field": "main_stat",
+      "family_key_template": "monster:{family_id}",
+      "family_prompt": "One monster only. Hostile enemy presentation. Keep the monster fully readable in a grounded full-body pose. Preserve the family environment consistently across this family while allowing small per-monster placement variation within the same location. Keep the monster visually distinct from the background with clear silhouette separation and readable local contrast.",
+      "prompt_prefix_fields": [
+        "background_prompt_shared"
+      ],
+      "lookups": [
+        {
+          "path": "docs/data/monster_families_v1.csv",
+          "source_key": "family_id",
+          "lookup_key": "family_id"
+        }
+      ]
     }
   ]
 }

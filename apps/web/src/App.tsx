@@ -52,7 +52,7 @@ type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
 type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
 type ChatChannel = "world" | "guild";
-type EncyclopediaCategory = "armor" | "weapon" | "jewelry";
+type EncyclopediaCategory = "armor" | "weapon" | "jewelry" | "monster";
 type EncyclopediaArmorArchetype = "heavy" | "light" | "robe";
 type EncyclopediaWeaponArchetype = "melee" | "ranged" | "arcane";
 
@@ -340,7 +340,7 @@ const ENCYCLOPEDIA_ARMOR_SLOT_ORDER: string[] = [
   "lower_armor",
   "boots"
 ];
-const ENCYCLOPEDIA_CATEGORY_ORDER: EncyclopediaCategory[] = ["armor", "weapon", "jewelry"];
+const ENCYCLOPEDIA_CATEGORY_ORDER: EncyclopediaCategory[] = ["armor", "weapon", "jewelry", "monster"];
 const ENCYCLOPEDIA_ARMOR_ARCHETYPE_ORDER: EncyclopediaArmorArchetype[] = ["heavy", "light", "robe"];
 const ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER: EncyclopediaWeaponArchetype[] = ["melee", "ranged", "arcane"];
 
@@ -1336,6 +1336,7 @@ function sanitizeEncyclopediaItem(raw: GeneratedEncyclopediaItem): GeneratedEncy
     majorCategory: typeof raw.majorCategory === "string" ? raw.majorCategory : "unknown",
     archetype: typeof raw.archetype === "string" ? raw.archetype : "unknown",
     family: typeof raw.family === "string" ? raw.family : "unknown",
+    familyId: typeof raw.familyId === "string" ? raw.familyId : "",
     slotFamily: typeof raw.slotFamily === "string" ? raw.slotFamily : "unknown",
     itemType: typeof raw.itemType === "string" ? raw.itemType : i18n.t("item.unknown"),
     itemName: typeof raw.itemName === "string" ? raw.itemName : i18n.t("item.missingItem"),
@@ -1346,6 +1347,8 @@ function sanitizeEncyclopediaItem(raw: GeneratedEncyclopediaItem): GeneratedEncy
     iconPath: typeof raw.iconPath === "string" ? raw.iconPath : null,
     sourceId: typeof raw.sourceId === "string" ? raw.sourceId : "unknown",
     sequence: Number.isFinite(raw.sequence) ? raw.sequence : 0,
+    locationName: typeof raw.locationName === "string" ? raw.locationName : "",
+    isBoss: raw.isBoss === true,
   };
 }
 
@@ -3680,10 +3683,18 @@ export function App() {
     item: GeneratedEncyclopediaItem | null,
     fallbackLabel: string | null = null
   ): ReactElement {
-    const labelToken = item?.slotFamily || item?.family || item?.itemType || fallbackLabel || "item";
-    const cardLabel = formatTokenLabel(labelToken);
+    const isMonster = item?.majorCategory === "monster";
+    const cardLabel = isMonster
+      ? [item?.isBoss ? i18n.t("encyclopedia.boss") : formatTokenLabel(item?.slotFamily), formatTokenLabel(item?.itemType)]
+          .filter((value) => typeof value === "string" && value.length > 0)
+          .join(" • ")
+      : formatTokenLabel(item?.slotFamily || item?.family || item?.itemType || fallbackLabel || "item");
     return (
-      <article className={`encyclopediaItemCard${item ? "" : " isMissing"}`}>
+      <article
+        className={`encyclopediaItemCard${item ? "" : " isMissing"}${isMonster ? " isMonster" : ""}${
+          item?.isBoss ? " isBoss" : ""
+        }`}
+      >
         <div className="encyclopediaItemImageWrap" aria-hidden="true">
           {item?.iconPath ? (
             <img className="encyclopediaItemImage" src={item.iconPath} alt={item.itemName} loading="lazy" />
@@ -3906,6 +3917,77 @@ export function App() {
                             {group.items
                               .slice()
                               .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName), preferredLocale))
+                              .map((item) => (
+                                <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
+                              ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })()
+            ) : null}
+
+            {encyclopediaCategory === "monster" ? (
+              (() => {
+                const monsterItems = allItems.filter((item) => item.majorCategory === "monster");
+                if (monsterItems.length === 0) {
+                  return (
+                    <article className="contentCard">
+                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyMonster")}</p>
+                    </article>
+                  );
+                }
+                type MonsterGroup = {
+                  familyId: string;
+                  familyName: string;
+                  locationName: string;
+                  baseLevel: number;
+                  items: GeneratedEncyclopediaItem[];
+                };
+                const byGroup = new Map<string, MonsterGroup>();
+                for (const item of monsterItems) {
+                  const key = item.familyId || `${item.family}:${item.baseLevel}`;
+                  const current = byGroup.get(key);
+                  if (current) {
+                    current.items.push(item);
+                    continue;
+                  }
+                  byGroup.set(key, {
+                    familyId: item.familyId,
+                    familyName: item.family,
+                    locationName: item.locationName,
+                    baseLevel: item.baseLevel,
+                    items: [item]
+                  });
+                }
+                const groups = [...byGroup.values()].sort((left, right) => {
+                  if (left.baseLevel !== right.baseLevel) {
+                    return left.baseLevel - right.baseLevel;
+                  }
+                  return String(left.familyName).localeCompare(String(right.familyName), preferredLocale);
+                });
+                return (
+                  <article className="contentCard encyclopediaGroupListCard">
+                    <div className="encyclopediaGroupList">
+                      {groups.map((group) => (
+                        <section className="encyclopediaGroupSection" key={`monster-${group.familyId}-${group.baseLevel}`}>
+                          <div className="encyclopediaSetHeader">
+                            <div className="encyclopediaSectionHeading">
+                              <h3>{group.familyName}</h3>
+                              {group.locationName ? (
+                                <p className="encyclopediaSectionSubline">
+                                  {i18n.t("encyclopedia.location", { value: group.locationName })}
+                                </p>
+                              ) : null}
+                            </div>
+                            <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: group.baseLevel })}</span>
+                          </div>
+                          <div className="encyclopediaGroupGrid encyclopediaMonsterGrid">
+                            {group.items
+                              .slice()
+                              .sort((left, right) => left.sequence - right.sequence)
                               .map((item) => (
                                 <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
                               ))}

@@ -1,7 +1,7 @@
 # Item Art Generation Pipeline
 
 ## Purpose
-Generate item art assets from `docs/data` with a deterministic, resumable pipeline.
+Generate curated art assets from `docs/data` with a deterministic, resumable pipeline.
 
 This pipeline composes prompts from:
 - a general art-direction prompt
@@ -31,17 +31,21 @@ Current sources include:
 - `docs/data/jewelry_ring_name_ranges_v1.csv`
 - `docs/data/jewelry_necklace_name_ranges_v1.csv`
 - `docs/data/character_avatar_prompt_templates_v1.csv` (characters)
+- `docs/data/monster_family_members_v1.csv` joined with `docs/data/monster_families_v1.csv` (monsters)
 
 Rows missing `prompt_item_description` are skipped by design.
 Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
 Character sources can map a different prompt column (for example `prompt_character_avatar`) via source config.
+Monster sources can merge shared family-row fields such as `background_prompt_shared` before prompt assembly.
+This is still a single render per monster row, not a separate background compositing pass.
 
 ## Prompt Layering
 Final prompt is assembled in this order:
 1. `general_prompt`
-2. family prompt by computed `family_key`
-3. item design block from `prompt_item_description` (`Weapon Design:` wrapper for weapon rows)
-4. render constraints (single item, transparent background, no text/logo)
+2. source-specific prompt prefix blocks (for example monster family background prompt rows and built-in level-tier direction for monsters)
+3. family prompt by computed `family_key` or source-level family prompt
+4. item design block from the configured prompt field (`Weapon Design:` wrapper for weapon rows, `Monster Design:` wrapper for monster rows)
+5. render constraints from the selected group/general prompt rules
 
 ## Weapon Framing Rules
 Weapon family prompts enforce a consistent composition language:
@@ -65,6 +69,7 @@ From `render_defaults` in `tools/item_art_prompts.yaml`:
 Group overrides can supersede defaults via `group_render_overrides`.
 Current override:
 - `characters` -> `quality: high`
+- `monsters` -> `background: opaque`, `quality: high`
 
 ## Environment
 Set in `.env` (see `.env.example`):
@@ -77,6 +82,7 @@ Set in `.env` (see `.env.example`):
 python tools/generate_item_art.py --dry-run
 python tools/generate_item_art.py --sources weapons
 python tools/generate_item_art.py --sources armor --armor-archetype heavy --base-level 0
+python tools/generate_item_art.py --sources monsters --monster-family tallow_cellar_00 --dry-run --verbose
 python tools/generate_item_art.py --sources all --limit 10 --verbose
 python tools/generate_item_art.py --force
 python tools/generate_item_art.py --regenerate-changed
@@ -85,11 +91,12 @@ python tools/generate_item_art.py --insecure
 ```
 
 Arguments:
-- `--sources all|weapons|armor|jewelry|characters`
+- `--sources all|weapons|armor|jewelry|characters|monsters`
 - `--output-dir <path>`
 - `--limit <n>`
 - `--base-level <n>`
 - `--armor-archetype <heavy|light|robe>`
+- `--monster-family <family_id>`
 - `--dry-run`
 - `--force`
 - `--regenerate-changed`
@@ -131,10 +138,16 @@ Character naming convention:
 - Pattern: `character_<stat_code><n>.png` where stat code is `str`, `int`, or `dex`.
 - Examples: `character_str1.png`, `character_int3.png`, `character_dex10.png`.
 
+Monster naming convention:
+- Monster filenames are family-scoped.
+- Pattern: `monster/<family_id>/monster_<monster_name>.png`
+- Example: `monster/tallow_cellar_00/monster_grease_gnawer.png`
+
 Examples:
 - `.../weapon/melee/sword/warrior_melee_iron_shortsword.png`
 - `.../armor/heavy/helmet/heavy_armor_crude_cap.png`
 - `.../jewelry/ring/ring_tin_ring.png`
+- `.../monster/tallow_cellar_00/monster_grease_gnawer.png`
 
 ## Operational Notes
 - One API request per item.
@@ -150,3 +163,8 @@ Examples:
 ## Writing Guidance (Curated Tables)
 - `flavor_text` is lore metadata for item text systems and is not injected into image prompts.
 - Encode arcane cues, glow behavior, and heroic relic qualities primarily in `prompt_item_description`, gated by item level (subtle around `50+`, stronger around `80+`).
+- For monsters, keep family-wide environment direction in `background_prompt_shared` on the family table and keep monster-specific anatomy, gear, stance, and threat cues in `prompt_monster_fullbody`.
+- Each monster family should feel like a distinct zone in ambience. Preserve strong internal consistency within one family, but make different zones clearly distinct from one another in mood, palette bias, landmark language, and environmental feel.
+- Monster prompts should stay grounded at low levels, grow tougher and more disciplined through mid levels, introduce restrained arcane elements around `60+`, and reserve mythic language for `80+`.
+- Very low levels such as `0`, `4`, and `8` should read weak, poorly equipped, and only locally dangerous. Avoid intimidating elite silhouettes at those tiers.
+- Monster scenes should be a little clearer and less oppressive than pure horror art so the monster remains easy to read against the family background.

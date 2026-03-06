@@ -83,6 +83,12 @@ def parse_int(raw: str | None, fallback: int = 0) -> int:
         return fallback
 
 
+def parse_bool(raw: str | None) -> bool:
+    if raw is None:
+        return False
+    return raw.strip().lower() in {"1", "true", "yes", "y"}
+
+
 def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
     parts = rel.parts
     if len(parts) < 3:
@@ -129,6 +135,15 @@ def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
             return None
         stat_family = parts[1].lower()
         key = f"character:{stat_family}:{filename}"
+        return key, f"/assets/items/generated/{rel.as_posix()}"
+
+    if major == "monster":
+        if len(parts) < 3:
+            return None
+        family_id = parts[1].lower()
+        family_prefix = "monster_"
+        item_slug = filename[len(family_prefix) :] if filename.startswith(family_prefix) else filename
+        key = f"monster:{family_id}:{normalize_name_for_key(item_slug.replace('_', ' '))}"
         return key, f"/assets/items/generated/{rel.as_posix()}"
 
     return None
@@ -214,7 +229,74 @@ def derive_catalog_fields(major_category: str, row: dict[str, str]) -> dict[str,
             "itemName": item_name,
         }
 
+    if major_category == "monster":
+        family_id = normalize_identifier(row.get("family_id", ""))
+        family_name = (row.get("family_name") or "").strip()
+        monster_name = (row.get("monster_name") or "").strip()
+        if not family_id or not monster_name:
+            return None
+        main_stat = normalize_identifier(row.get("main_stat", ""))
+        monster_role = normalize_identifier(row.get("monster_role", ""))
+        return {
+            "key": f"monster:{family_id}:{normalize_name_for_key(monster_name)}",
+            "archetype": "monster",
+            "family": family_name or normalize_text(family_id),
+            "familyId": family_id,
+            "slotFamily": monster_role,
+            "itemType": normalize_text(row.get("main_stat", "") or "monster"),
+            "itemName": monster_name,
+        }
+
     return None
+
+
+def merge_source_lookups(
+    *,
+    source: dict[str, Any],
+    row: dict[str, str],
+    repo_root: Path,
+    lookup_cache: dict[tuple[str, str], dict[str, dict[str, str]]],
+) -> dict[str, str]:
+    lookups = source.get("lookups")
+    if not isinstance(lookups, list):
+        return row
+
+    merged_row = dict(row)
+    for lookup in lookups:
+        if not isinstance(lookup, dict):
+            continue
+        lookup_path_raw = str(lookup.get("path", "")).strip()
+        source_key = str(lookup.get("source_key", "")).strip()
+        lookup_key = str(lookup.get("lookup_key", "")).strip()
+        if not lookup_path_raw or not source_key or not lookup_key:
+            continue
+
+        lookup_value = (merged_row.get(source_key) or "").strip()
+        if not lookup_value:
+            continue
+
+        lookup_path = Path(lookup_path_raw)
+        if not lookup_path.is_absolute():
+            lookup_path = (repo_root / lookup_path).resolve()
+
+        cache_key = (str(lookup_path), lookup_key)
+        indexed_rows = lookup_cache.get(cache_key)
+        if indexed_rows is None:
+            indexed_rows = {}
+            for lookup_row in read_csv_rows(lookup_path):
+                indexed_value = (lookup_row.get(lookup_key) or "").strip()
+                if indexed_value:
+                    indexed_rows[indexed_value] = {
+                        str(k): ("" if v is None else str(v)) for k, v in lookup_row.items()
+                    }
+            lookup_cache[cache_key] = indexed_rows
+
+        matched_row = indexed_rows.get(lookup_value)
+        if not matched_row:
+            continue
+        merged_row = dict(matched_row) | merged_row
+
+    return merged_row
 
 
 def build_encyclopedia_entries(
@@ -228,11 +310,12 @@ def build_encyclopedia_entries(
         return []
 
     rows: list[dict[str, Any]] = []
+    lookup_cache: dict[tuple[str, str], dict[str, dict[str, str]]] = {}
     for source in sources:
         if not isinstance(source, dict):
             continue
         major_category = str(source.get("major_category", "")).strip().lower()
-        if major_category not in {"weapon", "armor", "jewelry"}:
+        if major_category not in {"weapon", "armor", "jewelry", "monster"}:
             continue
 
         source_id = str(source.get("id", "")).strip()
@@ -246,6 +329,7 @@ def build_encyclopedia_entries(
             continue
 
         for row in read_csv_rows(csv_path):
+            row = merge_source_lookups(source=source, row=row, repo_root=repo_root, lookup_cache=lookup_cache)
             fields = derive_catalog_fields(major_category, row)
             if not fields:
                 continue
@@ -259,6 +343,7 @@ def build_encyclopedia_entries(
                     "majorCategory": major_category,
                     "archetype": fields["archetype"],
                     "family": fields["family"],
+                    "familyId": fields.get("familyId", ""),
                     "slotFamily": fields["slotFamily"],
                     "itemType": fields["itemType"],
                     "itemName": fields["itemName"],
@@ -269,6 +354,8 @@ def build_encyclopedia_entries(
                     "iconPath": manifest.get(key),
                     "sourceId": source_id,
                     "sequence": sequence,
+                    "locationName": (row.get("location_name") or "").strip(),
+                    "isBoss": parse_bool(row.get("is_boss")),
                 }
             )
 
@@ -277,6 +364,7 @@ def build_encyclopedia_entries(
             item["majorCategory"],
             item["archetype"],
             item["baseLevel"],
+            item.get("familyId", ""),
             item["family"],
             item["sequence"],
             item["itemName"].lower(),
@@ -302,6 +390,7 @@ def write_encyclopedia_outputs(
         "  majorCategory: string;\n"
         "  archetype: string;\n"
         "  family: string;\n"
+        "  familyId: string;\n"
         "  slotFamily: string;\n"
         "  itemType: string;\n"
         "  itemName: string;\n"
@@ -312,6 +401,8 @@ def write_encyclopedia_outputs(
         "  iconPath: string | null;\n"
         "  sourceId: string;\n"
         "  sequence: number;\n"
+        "  locationName: string;\n"
+        "  isBoss: boolean;\n"
         "};\n\n"
         "export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = "
         f"{body};\n"

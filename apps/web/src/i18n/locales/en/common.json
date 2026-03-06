@@ -157,12 +157,15 @@
     "invalidItem": "Invalid item."
   },
   "encyclopedia": {
-    "description": "Browse all defined weapons, armor sets, and jewelry with generated item art.",
+    "description": "Browse all defined weapons, armor sets, jewelry, and monster families with generated art.",
     "base": "Base {{value}}",
     "armorSet": "{{archetype}} Set",
+    "boss": "Boss",
+    "location": "Location: {{value}}",
     "emptyArmor": "No armor entries found for this archetype.",
     "emptyWeapon": "No weapon entries found for this archetype.",
     "emptyJewelry": "No jewelry entries found.",
+    "emptyMonster": "No monster entries found.",
     "renderError": "Encyclopedia data could not be rendered. Rebuild manifests and reload the page."
   },
   "settings": {

@@ -645,10 +645,21 @@ button:focus-visible {
   gap: var(--space-2);
 }
 
+.encyclopediaSectionHeading {
+  display: grid;
+  gap: 2px;
+}
+
 .encyclopediaSetHeader h3 {
   margin: 0;
   font-size: 1.08rem;
   line-height: 1.3;
+}
+
+.encyclopediaSectionSubline {
+  margin: 0;
+  font-size: 0.84rem;
+  color: color-mix(in srgb, var(--text-soft) 82%, var(--accent-info) 18%);
 }
 
 .encyclopediaSetBadge {
@@ -674,6 +685,10 @@ button:focus-visible {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
+.encyclopediaMonsterGrid {
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+}
+
 .encyclopediaItemCard {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -683,6 +698,14 @@ button:focus-visible {
   background: rgba(22, 30, 38, 0.82);
   padding: var(--space-2);
   min-height: 280px;
+}
+
+.encyclopediaItemCard.isMonster {
+  min-height: 390px;
+}
+
+.encyclopediaItemCard.isBoss {
+  border-color: color-mix(in srgb, var(--accent-warn) 48%, var(--border-soft) 52%);
 }
 
 .encyclopediaItemCard.isMissing {
@@ -699,6 +722,13 @@ button:focus-visible {
   display: grid;
   place-items: center;
   overflow: hidden;
+}
+
+.encyclopediaItemCard.isMonster .encyclopediaItemImageWrap {
+  height: 220px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(211, 187, 144, 0.08), transparent 52%),
+    rgba(17, 23, 30, 0.84);
 }
 
 .encyclopediaItemImage {
