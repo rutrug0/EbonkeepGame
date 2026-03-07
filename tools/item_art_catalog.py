@@ -245,6 +245,7 @@ def derive_catalog_fields(major_category: str, row: dict[str, str]) -> dict[str,
             "slotFamily": monster_role,
             "itemType": normalize_text(row.get("main_stat", "") or "monster"),
             "itemName": monster_name,
+            "bossKind": normalize_identifier(row.get("boss_kind", "")),
         }
 
     return None
@@ -356,6 +357,7 @@ def build_encyclopedia_entries(
                     "sequence": sequence,
                     "locationName": (row.get("location_name") or "").strip(),
                     "isBoss": parse_bool(row.get("is_boss")),
+                    "bossKind": fields.get("bossKind", ""),
                 }
             )
 
@@ -403,6 +405,7 @@ def write_encyclopedia_outputs(
         "  sequence: number;\n"
         "  locationName: string;\n"
         "  isBoss: boolean;\n"
+        "  bossKind: string;\n"
         "};\n\n"
         "export const GENERATED_ITEM_ENCYCLOPEDIA_DATA: GeneratedEncyclopediaItem[] = "
         f"{body};\n"

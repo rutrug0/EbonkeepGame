@@ -1682,6 +1682,7 @@ function sanitizeEncyclopediaItem(raw: GeneratedEncyclopediaItem): GeneratedEncy
     sequence: Number.isFinite(raw.sequence) ? raw.sequence : 0,
     locationName: typeof raw.locationName === "string" ? raw.locationName : "",
     isBoss: raw.isBoss === true,
+    bossKind: typeof raw.bossKind === "string" ? raw.bossKind : "",
   };
 }
 

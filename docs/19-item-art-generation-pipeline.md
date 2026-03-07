@@ -37,6 +37,7 @@ Rows missing `prompt_item_description` are skipped by design.
 Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
 Character sources can map a different prompt column (for example `prompt_character_avatar`) via source config.
 Monster sources can merge shared family-row fields such as `background_prompt_shared` before prompt assembly.
+Monster rows may optionally provide `background_prompt_override` for setpiece encounters that need their own scene scale or composition.
 This is still a single render per monster row, not a separate background compositing pass.
 
 ## Prompt Layering
@@ -164,6 +165,7 @@ Examples:
 - `flavor_text` is lore metadata for item text systems and is not injected into image prompts.
 - Encode arcane cues, glow behavior, and heroic relic qualities primarily in `prompt_item_description`, gated by item level (subtle around `50+`, stronger around `80+`).
 - For monsters, keep family-wide environment direction in `background_prompt_shared` on the family table and keep monster-specific anatomy, gear, stance, and threat cues in `prompt_monster_fullbody`.
+- Use row-level `background_prompt_override` sparingly for exceptional encounters such as group bosses that need a wider chamber, altered framing, or stronger environmental scale cues than the base family scene.
 - Each monster family should feel like a distinct zone in ambience. Preserve strong internal consistency within one family, but make different zones clearly distinct from one another in mood, palette bias, landmark language, and environmental feel.
 - Monster prompts should stay grounded at low levels, grow tougher and more disciplined through mid levels, introduce restrained arcane elements around `60+`, and reserve mythic language for `80+`.
 - Very low levels such as `0`, `4`, and `8` should read weak, poorly equipped, and only locally dangerous. Avoid intimidating elite silhouettes at those tiers.

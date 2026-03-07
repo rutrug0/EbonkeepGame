@@ -425,11 +425,14 @@ def collect_prompt_prefix_blocks(source: dict[str, Any], row: dict[str, str]) ->
         return []
 
     blocks: list[str] = []
+    background_override = (row.get("background_prompt_override") or "").strip()
     for field in fields:
         field_name = str(field).strip()
         if not field_name:
             continue
         value = (row.get(field_name) or "").strip()
+        if field_name == "background_prompt_shared" and background_override:
+            value = background_override
         if value:
             blocks.append(value)
     return blocks
