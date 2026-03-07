@@ -327,6 +327,144 @@ export const shopPurchaseResponseSchema = z.object({
 });
 export type ShopPurchaseResponse = z.infer<typeof shopPurchaseResponseSchema>;
 
+// Auth schemas
+export const registerBodySchema = z.object({
+  username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+  email: z.string().email().min(3).max(255),
+  password: z.string().min(8).max(100),
+  class: playerClassSchema
+});
+export type RegisterBody = z.infer<typeof registerBodySchema>;
+
+export const registerResponseSchema = z.object({
+  accessToken: z.string(),
+  accountId: z.string(),
+  playerId: z.string()
+});
+export type RegisterResponse = z.infer<typeof registerResponseSchema>;
+
+export const loginBodySchema = z.object({
+  email: z.string().email(),
+  password: z.string()
+});
+export type LoginBody = z.infer<typeof loginBodySchema>;
+
+export const loginResponseSchema = z.object({
+  accessToken: z.string(),
+  accountId: z.string(),
+  playerId: z.string()
+});
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+export const accountOverviewResponseSchema = z.object({
+  accountId: z.string(),
+  username: z.string().nullable(),
+  email: z.string().nullable(),
+  emailVerified: z.boolean(),
+  provider: z.string(),
+  createdAt: z.string(),
+  profile: z.object({
+    playerId: z.string(),
+    class: playerClassSchema,
+    level: z.number().int().min(1),
+    gearScore: z.number().int().min(0)
+  }).nullable(),
+  currency: z.object({
+    ducats: z.number().int().min(0),
+    imperials: z.number().int().min(0)
+  }).nullable()
+});
+export type AccountOverviewResponse = z.infer<typeof accountOverviewResponseSchema>;
+
+export const verifyEmailBodySchema = z.object({
+  token: z.string().min(1)
+});
+export type VerifyEmailBody = z.infer<typeof verifyEmailBodySchema>;
+
+export const verifyEmailResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string()
+});
+export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
+
+export const forgotPasswordBodySchema = z.object({
+  email: z.string().email()
+});
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordBodySchema>;
+
+export const forgotPasswordResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string()
+});
+export type ForgotPasswordResponse = z.infer<typeof forgotPasswordResponseSchema>;
+
+export const resetPasswordBodySchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(8).max(100)
+});
+export type ResetPasswordBody = z.infer<typeof resetPasswordBodySchema>;
+
+export const resetPasswordResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string()
+});
+export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
+
+// Combat playback schemas
+export const combatPlaybackActorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  maxHp: z.number(),
+  avatarPath: z.string().optional(),
+  usesSilhouetteFallback: z.boolean().optional()
+});
+export type CombatPlaybackActor = z.infer<typeof combatPlaybackActorSchema>;
+
+export const combatPlaybackEncounterSchema = z.object({
+  encounterId: z.string(),
+  contractInstanceId: z.string(),
+  contractName: z.string(),
+  difficulty: z.string(),
+  locationName: z.string(),
+  travelImagePath: z.string(),
+  travelImageMode: z.enum(["contain", "cover"]),
+  player: combatPlaybackActorSchema,
+  enemies: z.array(combatPlaybackActorSchema)
+});
+export type CombatPlaybackEncounter = z.infer<typeof combatPlaybackEncounterSchema>;
+
+export const combatPlaybackActionResolvedSchema = z.object({
+  type: z.literal("CombatPlaybackActionResolved"),
+  eventId: z.string(),
+  encounterId: z.string(),
+  turnIndex: z.number(),
+  actorId: z.string(),
+  targetId: z.string(),
+  actionType: z.string(),
+  damage: z.number(),
+  targetHpAfter: z.number(),
+  attackerLungeDirection: z.enum(["left-to-right", "right-to-left"]).optional(),
+  logLine: z.string()
+});
+export type CombatPlaybackActionResolved = z.infer<typeof combatPlaybackActionResolvedSchema>;
+
+export const combatPlaybackEventSchema = z.union([
+  z.object({
+    type: z.literal("CombatPlaybackStarted"),
+    eventId: z.string(),
+    encounterId: z.string()
+  }),
+  combatPlaybackActionResolvedSchema,
+  z.object({
+    type: z.literal("CombatPlaybackEnded"),
+    eventId: z.string(),
+    encounterId: z.string(),
+    winnerSide: z.enum(["player", "enemy"]),
+    summaryLine: z.string()
+  })
+]);
+export type CombatPlaybackEvent = z.infer<typeof combatPlaybackEventSchema>;
+
 export const serverEventSchemas = {
   ServerTimeSync: z.object({
     type: z.literal("ServerTimeSync"),

@@ -16,6 +16,7 @@ import {
   combatPlaybackEventSchema,
   isItemUsableByClass,
   mainStatToFlatDamageRatio,
+  type AccountOverviewResponse,
   type ArmorArchetype,
   type CombatPlaybackActionResolved,
   type CombatPlaybackEncounter,
@@ -29,7 +30,7 @@ import {
   type WeaponFamily
 } from "@ebonkeep/shared";
 
-import { devGuestLogin, fetchPlayerState, updatePlayerPreferences } from "./api";
+import { devGuestLogin, fetchPlayerState, forgotPassword, getAccountOverview, login, register, resendVerificationEmail, resetPassword, updatePlayerPreferences, verifyEmail } from "./api";
 import { CombatEncounterPanel } from "./components/CombatEncounterPanel";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
@@ -1143,9 +1144,8 @@ function createMockInventoryItems(devWeapons?: PlayerState["devWeapons"]): Inven
 
 function applyMockPlayerStateOverrides(state: PlayerState): PlayerState {
   return {
-    ...state,
-    class: MOCK_WARRIOR_CLASS,
-    level: MOCK_WARRIOR_LEVEL
+    ...state
+    // Removed mock overrides for class and level - using real data from registration
   };
 }
 
@@ -2110,6 +2110,24 @@ export function App() {
     useState<EncyclopediaWeaponArchetype>("melee");
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authUsername, setAuthUsername] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authRepeatPassword, setAuthRepeatPassword] = useState("");
+  const [authClass, setAuthClass] = useState<PlayerClass>("warrior");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetPasswordMessage, setResetPasswordMessage] = useState<string | null>(null);
+  const [emailVerified, setEmailVerified] = useState(true); // assume true until we check
+  const [verifyEmailMessage, setVerifyEmailMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  const [accountInfo, setAccountInfo] = useState<AccountOverviewResponse | null>(null);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
     createMockInventoryItems().slice(0, INVENTORY_ITEM_LIMIT)
   );
@@ -2155,7 +2173,7 @@ export function App() {
   const [isSavingLocale, setIsSavingLocale] = useState(false);
   const [localeStatusMessage, setLocaleStatusMessage] = useState<string | null>(null);
 
-  const profileName = playerState ? getDisplayName(playerState) : i18n.t("profile.defaultName");
+  const profileName = accountInfo?.username ?? (playerState ? getDisplayName(playerState) : i18n.t("profile.defaultName"));
   const avatarInitial = profileName.charAt(0);
 
   const availableContractSlots = useMemo(
@@ -2255,6 +2273,29 @@ export function App() {
     return () => {
       window.removeEventListener("resize", updateLayoutMode);
     };
+  }, []);
+
+  // Check for reset password token in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("resetToken");
+    if (token) {
+      setResetToken(token);
+    }
+    // Check for email verification token
+    const verifyToken = params.get("verifyToken");
+    if (verifyToken && !token) {
+      (async () => {
+        try {
+          const response = await verifyEmail({ token: verifyToken });
+          setVerifyEmailMessage(response.message);
+          // Remove token from URL after verification
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (err: unknown) {
+          setVerifyEmailMessage(err instanceof Error ? err.message : "Email verification failed");
+        }
+      })();
+    }
   }, []);
 
   useEffect(() => {
@@ -2401,10 +2442,35 @@ export function App() {
         }
       });
 
+    // Fetch account info
+    void getAccountOverview(token)
+      .then((info) => {
+        if (active) {
+          setAccountInfo(info);
+          setEmailVerified(info.emailVerified);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          console.error("Failed to fetch account info:", err);
+        }
+      });
+
     return () => {
       active = false;
     };
   }, [token]);
+
+  useEffect(() => {
+    // Clear form fields when switching between login and register
+    setAuthEmail("");
+    setAuthPassword("");
+    setAuthRepeatPassword("");
+    setAuthUsername("");
+    setShowPassword(false);
+    setShowRepeatPassword(false);
+    setError(null);
+  }, [authMode]);
 
   useEffect(() => {
     if (!playerState) {
@@ -2805,12 +2871,123 @@ export function App() {
   async function handleGuestLogin() {
     try {
       setError(null);
-      const login = await devGuestLogin();
-      window.localStorage.setItem("ebonkeep.dev.token", login.accessToken);
+      const loginResponse = await devGuestLogin();
+      window.localStorage.setItem("ebonkeep.dev.token", loginResponse.accessToken);
       setActiveTab("inventory");
-      setToken(login.accessToken);
+      setToken(loginResponse.accessToken);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : i18n.t("errors.loginFailed"));
+    }
+  }
+
+  async function handleRegister(e: FormEvent) {
+    e.preventDefault();
+    try {
+      setError(null);
+      
+      // Validate passwords match
+      if (authPassword !== authRepeatPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+      
+      const response = await register({
+        username: authUsername,
+        email: authEmail,
+        password: authPassword,
+        class: authClass
+      });
+      window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
+      setActiveTab("inventory");
+      setToken(response.accessToken);
+      // Check email verification status
+      try {
+        const accountInfo = await getAccountOverview(response.accessToken);
+        setEmailVerified(accountInfo.emailVerified);
+        setAccountInfo(accountInfo);
+      } catch {
+        // Ignore if we can't fetch account info
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : i18n.t("errors.registrationFailed"));
+    }
+  }
+
+  async function handleLogin(e: FormEvent) {
+    e.preventDefault();
+    try {
+      setError(null);
+      const response = await login({
+        email: authEmail,
+        password: authPassword
+      });
+      window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
+      setActiveTab("inventory");
+      setToken(response.accessToken);
+      // Check email verification status
+      try {
+        const accountInfo = await getAccountOverview(response.accessToken);
+        setEmailVerified(accountInfo.emailVerified);
+        setAccountInfo(accountInfo);
+      } catch {
+        // Ignore if we can't fetch account info
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : i18n.t("errors.loginFailed"));
+    }
+  }
+
+  async function handleForgotPassword(e: FormEvent) {
+    e.preventDefault();
+    try {
+      setForgotPasswordMessage(null);
+      const response = await forgotPassword({
+        email: forgotPasswordEmail
+      });
+      setForgotPasswordMessage(response.message);
+    } catch (err: unknown) {
+      setForgotPasswordMessage(err instanceof Error ? err.message : "Request failed");
+    }
+  }
+
+  async function handleResetPasswordForm(e: FormEvent) {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setResetPasswordMessage("Passwords do not match");
+      return;
+    }
+    if (!resetToken) {
+      setResetPasswordMessage("Invalid reset token");
+      return;
+    }
+    try {
+      setResetPasswordMessage(null);
+      const response = await resetPassword({
+        token: resetToken,
+        newPassword
+      });
+      setResetPasswordMessage(response.message);
+      // Clear the form and token after 2 seconds, redirect to login
+      setTimeout(() => {
+        setResetToken(null);
+        setNewPassword("");
+        setConfirmPassword("");
+        setResetPasswordMessage(null);
+        // Remove the token from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 2000);
+    } catch (err: unknown) {
+      setResetPasswordMessage(err instanceof Error ? err.message : "Password reset failed");
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!token) return;
+    try {
+      const response = await resendVerificationEmail(token);
+      alert(response.message || "Verification email sent!");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to resend verification email");
     }
   }
 
@@ -4408,6 +4585,58 @@ export function App() {
             <h2>{i18n.t("settings.title")}</h2>
             <p>{i18n.t("settings.description")}</p>
           </article>
+          {accountInfo && (
+            <article className="contentCard">
+              <h3 style={{ marginTop: 0 }}>Account Information</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
+                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Username</span>
+                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.username || "Not set"}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
+                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Email</span>
+                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.email || "Not set"}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
+                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Email Verified</span>
+                  <span style={{ flex: "0 0 60%", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontWeight: "bold", color: accountInfo.emailVerified ? "#6f8d5f" : "#97504a" }}>
+                      {accountInfo.emailVerified ? "✓ Verified" : "✗ Not Verified"}
+                    </span>
+                    {!accountInfo.emailVerified && (
+                      <button
+                        onClick={handleResendVerification}
+                        style={{
+                          padding: "4px 12px",
+                          fontSize: "12px",
+                          background: "var(--accent-focus)",
+                          color: "var(--bg-stone)",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontWeight: "600"
+                        }}
+                      >
+                        Resend Email
+                      </button>
+                    )}
+                  </span>
+                </div>
+                {accountInfo.currency && (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
+                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Ducats</span>
+                      <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#be9651" }}>{accountInfo.currency.ducats.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", padding: "8px 0" }}>
+                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Imperials</span>
+                      <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#9d7bb8" }}>{accountInfo.currency.imperials.toLocaleString()}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </article>
+          )}
           <article className="contentCard">
             <div className="settingsRow">
               <label htmlFor="language-select">{i18n.t("settings.languageLabel")}</label>
@@ -4803,9 +5032,241 @@ export function App() {
             <section className="authCard">
               <h1>{i18n.t("app.title")}</h1>
               <p>{i18n.t("auth.subtitle")}</p>
-              <button onClick={handleGuestLogin}>{i18n.t("auth.loginGuest")}</button>
+              
+              {resetToken ? (
+                <>
+                  <h2 style={{ marginTop: 0 }}>Reset Your Password</h2>
+                  <form onSubmit={handleResetPasswordForm} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    <input
+                      type="password"
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      style={{ padding: "8px", fontSize: "16px" }}
+                    />
+                    <input
+                      type="password"
+                      placeholder="Confirm New Password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      style={{ padding: "8px", fontSize: "16px" }}
+                    />
+                    <button type="submit" style={{ padding: "10px", fontSize: "16px", fontWeight: "bold" }}>
+                      Reset Password
+                    </button>
+                  </form>
+                  {resetPasswordMessage && (
+                    <div style={{ 
+                      marginTop: "12px", 
+                      padding: "8px", 
+                      background: resetPasswordMessage.includes("success") ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)", 
+                      borderRadius: "4px" 
+                    }}>
+                      {resetPasswordMessage}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
+                    <button 
+                      onClick={() => setAuthMode("login")}
+                      style={{ 
+                        flex: 1,
+                        opacity: authMode === "login" ? 1 : 0.6,
+                        fontWeight: authMode === "login" ? "bold" : "normal"
+                      }}
+                    >
+                      Login
+                    </button>
+                    <button 
+                      onClick={() => setAuthMode("register")}
+                      style={{ 
+                        flex: 1,
+                        opacity: authMode === "register" ? 1 : 0.6,
+                        fontWeight: authMode === "register" ? "bold" : "normal"
+                      }}
+                    >
+                      Register
+                    </button>
+                  </div>
+
+                  <form onSubmit={authMode === "login" ? handleLogin : handleRegister} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                    {authMode === "register" && (
+                      <input
+                        type="text"
+                        placeholder="Username"
+                        value={authUsername}
+                        onChange={(e) => setAuthUsername(e.target.value)}
+                        required
+                        minLength={3}
+                        maxLength={32}
+                        pattern="[a-zA-Z0-9_]+"
+                        title="Username can only contain letters, numbers, and underscores"
+                        style={{ padding: "8px", fontSize: "16px" }}
+                      />
+                    )}
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      required
+                      style={{ padding: "8px", fontSize: "16px" }}
+                    />
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        required
+                        minLength={authMode === "register" ? 8 : 6}
+                        style={{ padding: "8px", paddingRight: "40px", fontSize: "16px", width: "100%", boxSizing: "border-box" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        style={{
+                          position: "absolute",
+                          right: "8px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "18px",
+                          padding: "4px"
+                        }}
+                        title={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? "👁️" : "👁️‍🗨️"}
+                      </button>
+                    </div>
+                    
+                    {authMode === "register" && (
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type={showRepeatPassword ? "text" : "password"}
+                          placeholder="Repeat Password"
+                          value={authRepeatPassword}
+                          onChange={(e) => setAuthRepeatPassword(e.target.value)}
+                          required
+                          minLength={8}
+                          style={{ padding: "8px", paddingRight: "40px", fontSize: "16px", width: "100%", boxSizing: "border-box" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRepeatPassword(!showRepeatPassword)}
+                          style={{
+                            position: "absolute",
+                            right: "8px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "18px",
+                            padding: "4px"
+                          }}
+                          title={showRepeatPassword ? "Hide password" : "Show password"}
+                        >
+                          {showRepeatPassword ? "👁️" : "👁️‍🗨️"}
+                        </button>
+                      </div>
+                    )}
+                
+                {authMode === "login" && (
+                  <div style={{ textAlign: "right" }}>
+                    <button 
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      style={{ 
+                        background: "none", 
+                        border: "none", 
+                        color: "#60a5fa", 
+                        cursor: "pointer", 
+                        fontSize: "14px",
+                        textDecoration: "underline",
+                        padding: 0
+                      }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
+                
+                {authMode === "register" && (
+                  <select
+                    value={authClass}
+                    onChange={(e) => setAuthClass(e.target.value as PlayerClass)}
+                    style={{ padding: "8px", fontSize: "16px" }}
+                  >
+                    <option value="warrior">Warrior</option>
+                    <option value="ranger">Ranger</option>
+                    <option value="mage">Mage</option>
+                  </select>
+                )}
+
+                <button type="submit" style={{ padding: "10px", fontSize: "16px", fontWeight: "bold" }}>
+                  {authMode === "login" ? "Login" : "Create Account"}
+                </button>
+              </form>
+
+              <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
+                <button onClick={handleGuestLogin} style={{ width: "100%", opacity: 0.7 }}>
+                  {i18n.t("auth.loginGuest")}
+                </button>
+              </div>
+
               {error ? <div className="error">{i18n.t("app.errorPrefix")}: {error}</div> : null}
+                </>
+              )}
             </section>
+
+            {showForgotPassword && (
+              <section className="authCard" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 10, minWidth: "400px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <h2 style={{ margin: 0 }}>Reset Password</h2>
+                  <button 
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setForgotPasswordMessage(null);
+                      setForgotPasswordEmail("");
+                    }}
+                    style={{ background: "none", border: "none", fontSize: "24px", cursor: "pointer", padding: "0 8px" }}
+                  >
+                    ×
+                  </button>
+                </div>
+                
+                <p style={{ marginBottom: "16px" }}>Enter your email address and we'll send you a link to reset your password.</p>
+                
+                <form onSubmit={handleForgotPassword} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                    required
+                    style={{ padding: "8px", fontSize: "16px" }}
+                  />
+                  <button type="submit" style={{ padding: "10px", fontSize: "16px", fontWeight: "bold" }}>
+                    Send Reset Link
+                  </button>
+                </form>
+
+                {forgotPasswordMessage && (
+                  <div style={{ marginTop: "12px", padding: "8px", background: "rgba(96, 165, 250, 0.2)", borderRadius: "4px" }}>
+                    {forgotPasswordMessage}
+                  </div>
+                )}
+              </section>
+            )}
           </section>
         </div>
       </main>
@@ -4815,6 +5276,54 @@ export function App() {
   return (
       <main className={`appRoot layout-${layoutMode}`}>
         <div className="appSurface">
+        {!emailVerified && (
+          <div style={{ 
+            position: "fixed", 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000, 
+            background: "rgba(234, 179, 8, 0.9)", 
+            color: "#000", 
+            padding: "12px 20px", 
+            textAlign: "center",
+            fontWeight: "bold",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+          }}>
+            ⚠️ Please verify your email address. Check your inbox for the verification link.
+          </div>
+        )}
+        {verifyEmailMessage && (
+          <div style={{ 
+            position: "fixed", 
+            top: emailVerified ? 0 : "52px", 
+            left: 0, 
+            right: 0, 
+            zIndex: 999, 
+            background: verifyEmailMessage.includes("success") ? "rgba(34, 197, 94, 0.9)" : "rgba(239, 68, 68, 0.9)", 
+            color: "#fff", 
+            padding: "12px 20px", 
+            textAlign: "center",
+            fontWeight: "bold",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+          }}>
+            {verifyEmailMessage}
+            <button 
+              onClick={() => setVerifyEmailMessage(null)}
+              style={{ 
+                marginLeft: "16px", 
+                background: "rgba(255,255,255,0.2)", 
+                border: "1px solid rgba(255,255,255,0.5)", 
+                color: "#fff", 
+                padding: "4px 12px", 
+                borderRadius: "4px", 
+                cursor: "pointer" 
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         <div className="landingPage" ref={landingPageRef}>
           <aside className="leftPanel" ref={leftPanelRef}>
             <div className="leftPanelShell">

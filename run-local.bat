@@ -77,9 +77,9 @@ if errorlevel 1 (
 )
 
 echo [3/8] Resetting local services/data and starting Postgres and Redis...
-call "%ROOT%stop-local.bat" --purge-data >nul 2>&1
+call "%ROOT%stop-local.bat" >nul 2>&1
 if errorlevel 1 (
-  echo Failed to reset local services and volumes.
+  echo Failed to stop local services.
   set "FAILED=1"
   goto :fail
 )

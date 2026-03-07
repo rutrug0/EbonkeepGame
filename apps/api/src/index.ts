@@ -4,6 +4,7 @@ import Fastify from "fastify";
 
 import { getEnv } from "./config/env.js";
 import { authRoutes } from "./modules/auth/routes.js";
+import { initEmailService } from "./modules/auth/services/email.js";
 import { combatRoutes } from "./modules/combat/routes.js";
 import { economyRoutes } from "./modules/economy/routes.js";
 import { inventoryRoutes } from "./modules/inventory/routes.js";
@@ -17,6 +18,16 @@ import { websocketRoutes } from "./routes/ws.js";
 
 async function buildServer() {
   const env = getEnv();
+  
+  // Initialize email service
+  initEmailService({
+    host: process.env.EMAIL_HOST ?? "smtp.gmail.com",
+    port: process.env.EMAIL_PORT ? Number(process.env.EMAIL_PORT) : 587,
+    secure: process.env.EMAIL_SECURE === "true",
+    user: process.env.EMAIL_USER ?? "",
+    password: process.env.EMAIL_PASSWORD ?? ""
+  });
+
   const fastify = Fastify({
     logger: {
       level: "info"

@@ -1,15 +1,32 @@
 import type {
+  AccountOverviewResponse,
   DevGuestLoginResponse,
+  ForgotPasswordBody,
+  ForgotPasswordResponse,
   InventoryMoveResponse,
+  LoginBody,
+  LoginResponse,
   PlayerPreferences,
   PlayerState,
-  UpdatePlayerPreferencesBody
+  RegisterBody,
+  RegisterResponse,
+  ResetPasswordBody,
+  ResetPasswordResponse,
+  UpdatePlayerPreferencesBody,
+  VerifyEmailBody,
+  VerifyEmailResponse
 } from "@ebonkeep/shared";
 import {
+  accountOverviewResponseSchema,
   devGuestLoginResponseSchema,
+  forgotPasswordResponseSchema,
   inventoryMoveResponseSchema,
+  loginResponseSchema,
   playerPreferencesSchema,
-  playerStateSchema
+  playerStateSchema,
+  registerResponseSchema,
+  resetPasswordResponseSchema,
+  verifyEmailResponseSchema
 } from "@ebonkeep/shared";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
@@ -21,6 +38,114 @@ function authHeaders(token: string | null): HeadersInit {
   return {
     Authorization: `Bearer ${token}`
   };
+}
+
+export async function register(body: RegisterBody): Promise<RegisterResponse> {
+  const response = await fetch(`${API_URL}/v1/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Registration failed" }));
+    throw new Error(error.error || `Registration failed (${response.status})`);
+  }
+  const data = await response.json();
+  return registerResponseSchema.parse(data);
+}
+
+export async function login(body: LoginBody): Promise<LoginResponse> {
+  const response = await fetch(`${API_URL}/v1/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Login failed" }));
+    throw new Error(error.error || `Login failed (${response.status})`);
+  }
+  const data = await response.json();
+  return loginResponseSchema.parse(data);
+}
+
+export async function getAccountOverview(token: string): Promise<AccountOverviewResponse> {
+  const response = await fetch(`${API_URL}/v1/account/overview`, {
+    method: "GET",
+    headers: {
+      ...authHeaders(token)
+    }
+  });
+  if (!response.ok) {
+    throw new Error(`Account overview failed (${response.status})`);
+  }
+  const data = await response.json();
+  return accountOverviewResponseSchema.parse(data);
+}
+
+export async function verifyEmail(body: VerifyEmailBody): Promise<VerifyEmailResponse> {
+  const response = await fetch(`${API_URL}/v1/auth/verify-email`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Email verification failed" }));
+    throw new Error(error.error || `Email verification failed (${response.status})`);
+  }
+  const data = await response.json();
+  return verifyEmailResponseSchema.parse(data);
+}
+
+export async function forgotPassword(body: ForgotPasswordBody): Promise<ForgotPasswordResponse> {
+  const response = await fetch(`${API_URL}/v1/auth/forgot-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Request failed" }));
+    throw new Error(error.error || `Request failed (${response.status})`);
+  }
+  const data = await response.json();
+  return forgotPasswordResponseSchema.parse(data);
+}
+
+export async function resetPassword(body: ResetPasswordBody): Promise<ResetPasswordResponse> {
+  const response = await fetch(`${API_URL}/v1/auth/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Password reset failed" }));
+    throw new Error(error.error || `Password reset failed (${response.status})`);
+  }
+  const data = await response.json();
+  return resetPasswordResponseSchema.parse(data);
+}
+
+export async function resendVerificationEmail(token: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_URL}/v1/auth/resend-verification`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(token)
+    }
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Failed to resend verification email" }));
+    throw new Error(error.error || `Failed to resend verification email (${response.status})`);
+  }
+  return await response.json();
 }
 
 export async function devGuestLogin(): Promise<DevGuestLoginResponse> {
