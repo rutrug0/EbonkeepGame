@@ -5,14 +5,21 @@ import {
   useState,
   type DragEvent,
   type FormEvent,
+  type KeyboardEvent,
   type ReactElement
 } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  combatPlaybackActionResolvedSchema,
+  combatPlaybackEncounterSchema,
+  combatPlaybackEventSchema,
   isItemUsableByClass,
   mainStatToFlatDamageRatio,
   type ArmorArchetype,
+  type CombatPlaybackActionResolved,
+  type CombatPlaybackEncounter,
+  type CombatPlaybackEvent,
   type ItemMajorCategory,
   type PlayerClass,
   type PlayerState,
@@ -23,6 +30,7 @@ import {
 } from "@ebonkeep/shared";
 
 import { devGuestLogin, fetchPlayerState, updatePlayerPreferences } from "./api";
+import { CombatEncounterPanel } from "./components/CombatEncounterPanel";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
   GENERATED_ITEM_ENCYCLOPEDIA_DATA,
@@ -184,6 +192,32 @@ type ContractSlotState = {
   replenishReadyAt: number | null;
 };
 
+type ContractEncounterPhase = "board" | "travel" | "combat";
+
+type CombatEncounterResolutionState = "playing" | "summarizing" | "awaiting_return";
+
+type ActiveContractEncounterState = {
+  slotIndex: number;
+  offer: ContractOffer;
+  phase: ContractEncounterPhase;
+  travelEndsAt: number | null;
+  encounter: CombatPlaybackEncounter;
+  travelDescription: string;
+  timeline: CombatPlaybackEvent[];
+  currentEventIndex: number;
+  hpByActorId: Record<string, number>;
+  combatLogEntries: string[];
+  activeAction: CombatPlaybackActionResolved | null;
+  impactTargetId: string | null;
+  resolutionState: CombatEncounterResolutionState;
+  finalSummaryLine: string | null;
+  typedSummaryLine: string;
+  playbackRate: 1 | 5;
+  segmentPlaybackRate: 1 | 5;
+  playbackProgressMs: number;
+  lastPlaybackTickAtMs: number | null;
+};
+
 type StatContributionLine = {
   label: string;
   ratioLabel: string;
@@ -202,6 +236,12 @@ const INVENTORY_ITEM_LIMIT = 20;
 const CONTRACT_SLOT_COUNT = 6;
 const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
 const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
+const CONTRACT_TRAVEL_DURATION_MS = 5 * 1000;
+const COMBAT_PLAYBACK_START_DELAY_MS = 500;
+const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 1140;
+const COMBAT_PLAYBACK_BEAT_MS = 2200;
+const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
+const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
 const TEST_MIN_DUCATS = 1000;
 const MAIN_STAT_DEFENSE_RATIO = 0.2;
@@ -1178,6 +1218,299 @@ const CONTRACT_AVAILABILITY_WINDOWS: Record<ContractDifficulty, { minMs: number;
   hard: { minMs: 20 * 60 * 1000, maxMs: 60 * 60 * 1000 }
 };
 
+function getMonsterAssetPath(key: string): string | undefined {
+  return GENERATED_ITEM_ICON_PATHS[key];
+}
+
+function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
+  switch (difficulty) {
+    case "easy":
+      return "Torch smoke drifts through cramped goblin tunnels ahead. The hollow is close, noisy, and badly kept.";
+    case "medium":
+      return "Cold mirewater gathers around reed roots and black pools. Something in the hollow is already listening.";
+    case "hard":
+      return "Dead furnaces and ash-choked brick lie ahead. The kiln yard looks abandoned until the heat shifts.";
+    default:
+      return "The path ahead tightens toward the contract target.";
+  }
+}
+
+function getEncounterPreset(difficulty: ContractDifficulty): {
+  locationName: string;
+  enemyId: string;
+  enemyName: string;
+  enemyMaxHp: number;
+  travelImagePath?: string;
+  travelImageMode: "image" | "silhouette";
+  avatarPath?: string;
+  usesSilhouetteFallback?: boolean;
+} {
+  switch (difficulty) {
+    case "easy":
+      return {
+        locationName: "Snagtooth Hollow",
+        enemyId: "enemy-snagtooth-boss",
+        enemyName: "Snagtooth Boss",
+        enemyMaxHp: 72,
+        travelImagePath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss"),
+        travelImageMode: "image",
+        avatarPath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss")
+      };
+    case "medium":
+      return {
+        locationName: "Mirepool Hollow",
+        enemyId: "enemy-mire-croaker",
+        enemyName: "The Mire Croaker",
+        enemyMaxHp: 88,
+        travelImagePath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker"),
+        travelImageMode: "image",
+        avatarPath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker")
+      };
+    case "hard":
+      return {
+        locationName: "The Cinder Kiln",
+        enemyId: "enemy-kiln-master",
+        enemyName: "The Kiln Master",
+        enemyMaxHp: 102,
+        travelImageMode: "silhouette",
+        usesSilhouetteFallback: true
+      };
+    default:
+      return {
+        locationName: "Unknown Reach",
+        enemyId: "enemy-unknown",
+        enemyName: "Unknown Enemy",
+        enemyMaxHp: 80,
+        travelImageMode: "silhouette",
+        usesSilhouetteFallback: true
+      };
+  }
+}
+
+function buildMockCombatEncounterState(args: {
+  offer: ContractOffer;
+  slotIndex: number;
+  playerName: string;
+  playerAvatarPath?: string | null;
+  nowMs: number;
+}): ActiveContractEncounterState {
+  const { offer, slotIndex, playerName, playerAvatarPath, nowMs } = args;
+  const preset = getEncounterPreset(offer.template.difficulty);
+  const playerMaxHp = 100;
+  const playerActor = {
+    id: "player-warden",
+    side: "player" as const,
+    name: playerName,
+    maxHp: playerMaxHp,
+    avatarPath: playerAvatarPath ?? undefined
+  };
+  const enemyActor = {
+    id: preset.enemyId,
+    side: "enemy" as const,
+    name: preset.enemyName,
+    maxHp: preset.enemyMaxHp,
+    avatarPath: preset.avatarPath,
+    usesSilhouetteFallback: preset.usesSilhouetteFallback
+  };
+  const encounter = combatPlaybackEncounterSchema.parse({
+    encounterId: `${offer.instanceId}-encounter`,
+    contractInstanceId: offer.instanceId,
+    contractName: offer.template.name,
+    difficulty: offer.template.difficulty,
+    locationName: preset.locationName,
+    travelImagePath: preset.travelImagePath,
+    travelImageMode: preset.travelImageMode,
+    player: playerActor,
+    enemies: [enemyActor]
+  });
+  const timeline = combatPlaybackEventSchema.array().parse([
+    {
+      type: "CombatPlaybackStarted",
+      eventId: `${encounter.encounterId}-start`,
+      encounterId: encounter.encounterId
+    },
+    {
+      type: "CombatPlaybackActionResolved",
+      eventId: `${encounter.encounterId}-turn-1`,
+      encounterId: encounter.encounterId,
+      turnIndex: 1,
+      actorId: playerActor.id,
+      targetId: enemyActor.id,
+      actionType: "basic_attack",
+      damage: 18,
+      targetHpAfter: Math.max(0, enemyActor.maxHp - 18),
+      attackerLungeDirection: "left-to-right",
+      logLine: `${playerActor.name} strikes ${enemyActor.name} for 18 damage.`
+    },
+    {
+      type: "CombatPlaybackActionResolved",
+      eventId: `${encounter.encounterId}-turn-2`,
+      encounterId: encounter.encounterId,
+      turnIndex: 2,
+      actorId: enemyActor.id,
+      targetId: playerActor.id,
+      actionType: "basic_attack",
+      damage: 9,
+      targetHpAfter: Math.max(0, playerActor.maxHp - 9),
+      attackerLungeDirection: "right-to-left",
+      logLine: `${enemyActor.name} clips ${playerActor.name} for 9 damage.`
+    },
+    {
+      type: "CombatPlaybackActionResolved",
+      eventId: `${encounter.encounterId}-turn-3`,
+      encounterId: encounter.encounterId,
+      turnIndex: 3,
+      actorId: playerActor.id,
+      targetId: enemyActor.id,
+      actionType: "basic_attack",
+      damage: 17,
+      targetHpAfter: Math.max(0, enemyActor.maxHp - 35),
+      attackerLungeDirection: "left-to-right",
+      logLine: `${playerActor.name} presses forward and deals 17 damage to ${enemyActor.name}.`
+    },
+    {
+      type: "CombatPlaybackActionResolved",
+      eventId: `${encounter.encounterId}-turn-4`,
+      encounterId: encounter.encounterId,
+      turnIndex: 4,
+      actorId: enemyActor.id,
+      targetId: playerActor.id,
+      actionType: "basic_attack",
+      damage: 8,
+      targetHpAfter: Math.max(0, playerActor.maxHp - 17),
+      attackerLungeDirection: "right-to-left",
+      logLine: `${enemyActor.name} catches ${playerActor.name} for 8 damage.`
+    },
+    {
+      type: "CombatPlaybackActionResolved",
+      eventId: `${encounter.encounterId}-turn-5`,
+      encounterId: encounter.encounterId,
+      turnIndex: 5,
+      actorId: playerActor.id,
+      targetId: enemyActor.id,
+      actionType: "basic_attack",
+      damage: Math.max(0, enemyActor.maxHp - 35),
+      targetHpAfter: 0,
+      attackerLungeDirection: "left-to-right",
+      logLine: `${playerActor.name} finishes ${enemyActor.name} with a final blow.`
+    },
+    {
+      type: "CombatPlaybackEnded",
+      eventId: `${encounter.encounterId}-end`,
+      encounterId: encounter.encounterId,
+      winnerSide: "player",
+      summaryLine: `${offer.template.name} is complete. ${enemyActor.name} has been driven off.`
+    }
+  ]);
+
+  return {
+    slotIndex,
+    offer,
+    phase: "travel",
+    travelEndsAt: nowMs + CONTRACT_TRAVEL_DURATION_MS,
+    encounter,
+    travelDescription: getEncounterTravelDescription(offer.template.difficulty),
+    timeline,
+    currentEventIndex: 0,
+    hpByActorId: {
+      [playerActor.id]: playerActor.maxHp,
+      [enemyActor.id]: enemyActor.maxHp
+    },
+    combatLogEntries: [],
+    activeAction: null,
+    impactTargetId: null,
+    resolutionState: "playing",
+    finalSummaryLine: null,
+    typedSummaryLine: "",
+    playbackRate: 1,
+    segmentPlaybackRate: 1,
+    playbackProgressMs: 0,
+    lastPlaybackTickAtMs: null
+  };
+}
+
+function resetCombatEncounterPlayback(previousEncounter: ActiveContractEncounterState): ActiveContractEncounterState {
+  return {
+    ...previousEncounter,
+    phase: "combat",
+    travelEndsAt: null,
+    currentEventIndex: 0,
+    hpByActorId: {
+      [previousEncounter.encounter.player.id]: previousEncounter.encounter.player.maxHp,
+      ...Object.fromEntries(
+        previousEncounter.encounter.enemies.map((enemy) => [enemy.id, enemy.maxHp] as const)
+      )
+    },
+    combatLogEntries: [],
+    activeAction: null,
+    impactTargetId: null,
+    resolutionState: "playing",
+    finalSummaryLine: null,
+    typedSummaryLine: "",
+    playbackRate: previousEncounter.playbackRate,
+    segmentPlaybackRate: previousEncounter.playbackRate,
+    playbackProgressMs: 0,
+    lastPlaybackTickAtMs: null
+  };
+}
+
+function getEncounterPlaybackProgress(encounter: ActiveContractEncounterState, nowMs: number = Date.now()): number {
+  if (encounter.lastPlaybackTickAtMs === null) {
+    return encounter.playbackProgressMs;
+  }
+  return encounter.playbackProgressMs + Math.max(0, nowMs - encounter.lastPlaybackTickAtMs) * encounter.segmentPlaybackRate;
+}
+
+function snapshotEncounterPlayback(encounter: ActiveContractEncounterState, nowMs: number = Date.now()) {
+  return {
+    ...encounter,
+    playbackProgressMs: getEncounterPlaybackProgress(encounter, nowMs),
+    lastPlaybackTickAtMs: nowMs
+  };
+}
+
+function getEncounterAnimationRate(encounter: ActiveContractEncounterState): number {
+  if (encounter.segmentPlaybackRate === 5) {
+    return COMBAT_FAST_FORWARD_ANIMATION_RATE;
+  }
+  return encounter.segmentPlaybackRate;
+}
+
+function getEncounterPlaybackThresholdMs(baseMs: number, encounter: ActiveContractEncounterState): number {
+  return (baseMs * encounter.segmentPlaybackRate) / getEncounterAnimationRate(encounter);
+}
+
+function getDisplayedEncounterTurn(encounter: ActiveContractEncounterState): number | null {
+  if (encounter.phase !== "combat") {
+    return null;
+  }
+
+  if (encounter.activeAction) {
+    return encounter.activeAction.turnIndex;
+  }
+
+  const currentEvent = encounter.timeline[encounter.currentEventIndex] ?? null;
+  if (currentEvent?.type === "CombatPlaybackActionResolved") {
+    return currentEvent.turnIndex;
+  }
+
+  for (let index = encounter.currentEventIndex - 1; index >= 0; index -= 1) {
+    const event = encounter.timeline[index];
+    if (event?.type === "CombatPlaybackActionResolved") {
+      return event.turnIndex;
+    }
+  }
+
+  for (let index = encounter.currentEventIndex + 1; index < encounter.timeline.length; index += 1) {
+    const event = encounter.timeline[index];
+    if (event?.type === "CombatPlaybackActionResolved") {
+      return event.turnIndex;
+    }
+  }
+
+  return null;
+}
+
 function getLayoutMode(viewportWidth: number): LayoutMode {
   if (viewportWidth < 900) {
     return "compact";
@@ -1782,6 +2115,7 @@ export function App() {
   );
   const [equippedItems, setEquippedItems] = useState<EquippedItems>(() => createEmptyEquippedItems());
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
+  const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
   const [profileSideTab, setProfileSideTab] = useState<ProfileSideTab>("inventory");
@@ -2101,6 +2435,7 @@ export function App() {
       imperials: playerState.currency.imperials
     });
     setActiveStatTraining(null);
+    setActiveContractEncounter(null);
   }, [playerState]);
 
   useEffect(() => {
@@ -2128,6 +2463,324 @@ export function App() {
       return hasChanges ? nextSlots : previousSlots;
     });
   }, [nowMs]);
+
+  useEffect(() => {
+    if (!activeContractEncounter || activeContractEncounter.phase !== "travel" || activeContractEncounter.travelEndsAt === null) {
+      return;
+    }
+    if (nowMs < activeContractEncounter.travelEndsAt) {
+      return;
+    }
+    setActiveContractEncounter((previousEncounter) => {
+      if (!previousEncounter || previousEncounter.phase !== "travel") {
+        return previousEncounter;
+      }
+      return {
+        ...previousEncounter,
+        phase: "combat",
+        travelEndsAt: null,
+        segmentPlaybackRate: previousEncounter.playbackRate,
+        playbackProgressMs: 0,
+        lastPlaybackTickAtMs: null
+      };
+    });
+  }, [activeContractEncounter?.phase, activeContractEncounter?.travelEndsAt, nowMs]);
+
+  useEffect(() => {
+    if (!activeContractEncounter || activeContractEncounter.phase !== "combat") {
+      return;
+    }
+    if (activeContractEncounter.resolutionState === "awaiting_return") {
+      return;
+    }
+
+    const nowMs = Date.now();
+
+    if (activeContractEncounter.lastPlaybackTickAtMs === null) {
+      setActiveContractEncounter((previousEncounter) => {
+        if (!previousEncounter || previousEncounter.phase !== "combat" || previousEncounter.lastPlaybackTickAtMs !== null) {
+          return previousEncounter;
+        }
+        return {
+          ...previousEncounter,
+          segmentPlaybackRate: previousEncounter.playbackRate,
+          lastPlaybackTickAtMs: nowMs
+        };
+      });
+      return;
+    }
+
+    const effectiveProgressMs = getEncounterPlaybackProgress(activeContractEncounter, nowMs);
+
+    if (activeContractEncounter.resolutionState === "summarizing") {
+      if (activeContractEncounter.finalSummaryLine === null) {
+        return;
+      }
+
+      const typedLength = Math.min(
+        activeContractEncounter.finalSummaryLine.length,
+        Math.floor(effectiveProgressMs / COMBAT_SUMMARY_TYPE_DELAY_MS)
+      );
+      const nextTypedSummaryLine = activeContractEncounter.finalSummaryLine.slice(0, typedLength);
+
+      if (nextTypedSummaryLine !== activeContractEncounter.typedSummaryLine) {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.resolutionState !== "summarizing" ||
+            previousEncounter.finalSummaryLine === null
+          ) {
+            return previousEncounter;
+          }
+
+          const snapshot = snapshotEncounterPlayback(previousEncounter);
+          const finalSummaryLine = snapshot.finalSummaryLine;
+          if (finalSummaryLine === null) {
+            return snapshot;
+          }
+          const snapshotTypedLength = Math.min(
+            finalSummaryLine.length,
+            Math.floor(snapshot.playbackProgressMs / COMBAT_SUMMARY_TYPE_DELAY_MS)
+          );
+
+          return {
+            ...snapshot,
+            typedSummaryLine: finalSummaryLine.slice(0, snapshotTypedLength)
+          };
+        });
+        return;
+      }
+
+      if (typedLength >= activeContractEncounter.finalSummaryLine.length) {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.resolutionState !== "summarizing"
+          ) {
+            return previousEncounter;
+          }
+          return {
+            ...snapshotEncounterPlayback(previousEncounter),
+            resolutionState: "awaiting_return"
+          };
+        });
+        return;
+      }
+
+      const nextCharacterThresholdMs = (typedLength + 1) * COMBAT_SUMMARY_TYPE_DELAY_MS;
+      const remainingRealMs = Math.max(
+        0,
+        (nextCharacterThresholdMs - effectiveProgressMs) / activeContractEncounter.segmentPlaybackRate
+      );
+      const summaryTimer = window.setTimeout(() => {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.resolutionState !== "summarizing"
+          ) {
+            return previousEncounter;
+          }
+          return snapshotEncounterPlayback(previousEncounter);
+        });
+      }, remainingRealMs);
+
+      return () => {
+        window.clearTimeout(summaryTimer);
+      };
+    }
+
+    const currentEvent = activeContractEncounter.timeline[activeContractEncounter.currentEventIndex] ?? null;
+    if (!currentEvent) {
+      return;
+    }
+
+    if (currentEvent.type === "CombatPlaybackStarted") {
+      if (effectiveProgressMs >= COMBAT_PLAYBACK_START_DELAY_MS) {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.timeline[previousEncounter.currentEventIndex]?.type !== "CombatPlaybackStarted"
+          ) {
+            return previousEncounter;
+          }
+          return {
+            ...previousEncounter,
+            currentEventIndex: previousEncounter.currentEventIndex + 1,
+            playbackProgressMs: 0,
+            lastPlaybackTickAtMs: null
+          };
+        });
+        return;
+      }
+
+      const startTimer = window.setTimeout(() => {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.timeline[previousEncounter.currentEventIndex]?.type !== "CombatPlaybackStarted"
+          ) {
+            return previousEncounter;
+          }
+          return snapshotEncounterPlayback(previousEncounter);
+        });
+      }, Math.max(0, (COMBAT_PLAYBACK_START_DELAY_MS - effectiveProgressMs) / activeContractEncounter.segmentPlaybackRate));
+
+      return () => {
+        window.clearTimeout(startTimer);
+      };
+    }
+
+    if (currentEvent.type === "CombatPlaybackActionResolved") {
+      const impactThresholdMs = getEncounterPlaybackThresholdMs(COMBAT_PLAYBACK_IMPACT_DELAY_MS, activeContractEncounter);
+      const beatThresholdMs = getEncounterPlaybackThresholdMs(COMBAT_PLAYBACK_BEAT_MS, activeContractEncounter);
+
+      if (activeContractEncounter.activeAction?.eventId !== currentEvent.eventId) {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.timeline[previousEncounter.currentEventIndex]?.eventId !== currentEvent.eventId
+          ) {
+            return previousEncounter;
+          }
+          return {
+            ...snapshotEncounterPlayback(previousEncounter),
+            segmentPlaybackRate: previousEncounter.playbackRate,
+            activeAction: combatPlaybackActionResolvedSchema.parse(currentEvent),
+            impactTargetId: null
+          };
+        });
+        return;
+      }
+
+      const impactApplied =
+        activeContractEncounter.impactTargetId === currentEvent.targetId &&
+        activeContractEncounter.hpByActorId[currentEvent.targetId] === currentEvent.targetHpAfter &&
+        activeContractEncounter.combatLogEntries.includes(currentEvent.logLine);
+
+      if (!impactApplied && effectiveProgressMs >= impactThresholdMs) {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.timeline[previousEncounter.currentEventIndex]?.eventId !== currentEvent.eventId
+          ) {
+            return previousEncounter;
+          }
+          const snapshot = snapshotEncounterPlayback(previousEncounter);
+          return {
+            ...snapshot,
+            hpByActorId: {
+              ...snapshot.hpByActorId,
+              [currentEvent.targetId]: currentEvent.targetHpAfter
+            },
+            combatLogEntries: snapshot.combatLogEntries.includes(currentEvent.logLine)
+              ? snapshot.combatLogEntries
+              : [...snapshot.combatLogEntries, currentEvent.logLine],
+            impactTargetId: currentEvent.targetId
+          };
+        });
+        return;
+      }
+
+      if (effectiveProgressMs >= beatThresholdMs) {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.timeline[previousEncounter.currentEventIndex]?.eventId !== currentEvent.eventId
+          ) {
+            return previousEncounter;
+          }
+          return {
+            ...previousEncounter,
+            activeAction: null,
+            impactTargetId: null,
+            currentEventIndex: previousEncounter.currentEventIndex + 1,
+            playbackProgressMs: 0,
+            lastPlaybackTickAtMs: null
+          };
+        });
+        return;
+      }
+
+      const nextThresholdMs = impactApplied ? beatThresholdMs : impactThresholdMs;
+      const actionTimer = window.setTimeout(() => {
+        setActiveContractEncounter((previousEncounter) => {
+          if (
+            !previousEncounter ||
+            previousEncounter.phase !== "combat" ||
+            previousEncounter.timeline[previousEncounter.currentEventIndex]?.eventId !== currentEvent.eventId
+          ) {
+            return previousEncounter;
+          }
+          return snapshotEncounterPlayback(previousEncounter);
+        });
+      }, Math.max(0, (nextThresholdMs - effectiveProgressMs) / activeContractEncounter.segmentPlaybackRate));
+
+      return () => {
+        window.clearTimeout(actionTimer);
+      };
+    }
+
+    if (effectiveProgressMs >= COMBAT_PLAYBACK_START_DELAY_MS) {
+      setActiveContractEncounter((previousEncounter) => {
+        if (
+          !previousEncounter ||
+          previousEncounter.phase !== "combat" ||
+          previousEncounter.timeline[previousEncounter.currentEventIndex]?.type !== "CombatPlaybackEnded"
+        ) {
+          return previousEncounter;
+        }
+        return {
+          ...previousEncounter,
+          activeAction: null,
+          impactTargetId: null,
+          currentEventIndex: previousEncounter.currentEventIndex + 1,
+          segmentPlaybackRate: previousEncounter.playbackRate,
+          resolutionState: "summarizing",
+          finalSummaryLine: currentEvent.summaryLine,
+          typedSummaryLine: "",
+          playbackProgressMs: 0,
+          lastPlaybackTickAtMs: null
+        };
+      });
+      return;
+    }
+
+    const endTimer = window.setTimeout(() => {
+      setActiveContractEncounter((previousEncounter) => {
+        if (
+          !previousEncounter ||
+          previousEncounter.phase !== "combat" ||
+          previousEncounter.timeline[previousEncounter.currentEventIndex]?.type !== "CombatPlaybackEnded"
+        ) {
+          return previousEncounter;
+        }
+        return snapshotEncounterPlayback(previousEncounter);
+      });
+    }, Math.max(0, (COMBAT_PLAYBACK_START_DELAY_MS - effectiveProgressMs) / activeContractEncounter.segmentPlaybackRate));
+
+    return () => {
+      window.clearTimeout(endTimer);
+    };
+  }, [
+    activeContractEncounter?.activeAction?.eventId,
+    activeContractEncounter?.combatLogEntries.length,
+    activeContractEncounter?.currentEventIndex,
+    activeContractEncounter?.impactTargetId,
+    activeContractEncounter?.lastPlaybackTickAtMs,
+    activeContractEncounter?.phase,
+    activeContractEncounter?.playbackProgressMs,
+    activeContractEncounter?.playbackRate,
+    activeContractEncounter?.resolutionState,
+    activeContractEncounter?.typedSummaryLine
+  ]);
 
   useEffect(() => {
     if (!activeStatTraining) {
@@ -2185,6 +2838,7 @@ export function App() {
     setCurrencies(null);
     setActiveStatTraining(null);
     setContractSlots(createContractSlots(Date.now()));
+    setActiveContractEncounter(null);
   }
 
   async function handleLocaleChange(nextLocale: SupportedLocale) {
@@ -2786,6 +3440,45 @@ export function App() {
     return i18n.t(`contracts.roll${roll.charAt(0).toUpperCase()}${roll.slice(1)}`);
   }
 
+  function startContractEncounter(slotIndex: number, offer: ContractOffer) {
+    setActiveContractEncounter(
+      buildMockCombatEncounterState({
+        offer,
+        slotIndex,
+        playerName: profileName,
+        playerAvatarPath: activeCharacterVisualPath,
+        nowMs: Date.now()
+      })
+    );
+  }
+
+  function returnToContractsBoard() {
+    setActiveContractEncounter(null);
+  }
+
+  function replayContractEncounter() {
+    setActiveContractEncounter((previousEncounter) => {
+      if (!previousEncounter || previousEncounter.phase !== "combat") {
+        return previousEncounter;
+      }
+      return resetCombatEncounterPlayback(previousEncounter);
+    });
+  }
+
+  function toggleCombatFastForward() {
+    setActiveContractEncounter((previousEncounter) => {
+      if (!previousEncounter || previousEncounter.phase !== "combat") {
+        return previousEncounter;
+      }
+      const toggledAtMs = Date.now();
+      return {
+        ...snapshotEncounterPlayback(previousEncounter, toggledAtMs),
+        playbackRate: previousEncounter.playbackRate === 5 ? 1 : 5,
+        lastPlaybackTickAtMs: toggledAtMs
+      };
+    });
+  }
+
   function abandonContractSlot(slotIndex: number) {
     const startedAt = Date.now();
     setContractSlots((previousSlots) =>
@@ -2800,6 +3493,18 @@ export function App() {
         };
       })
     );
+  }
+
+  function handleContractRowKeyDown(
+    event: KeyboardEvent<HTMLTableRowElement>,
+    slotIndex: number,
+    offer: ContractOffer
+  ) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    startContractEncounter(slotIndex, offer);
   }
 
   function renderEquipmentSlotCell(
@@ -3539,6 +4244,32 @@ export function App() {
       );
     }
 
+    if (activeContractEncounter && activeContractEncounter.phase !== "board") {
+      return (
+        <CombatEncounterPanel
+          phase={activeContractEncounter.phase}
+          encounter={activeContractEncounter.encounter}
+          nowMs={nowMs}
+          travelEndsAt={activeContractEncounter.travelEndsAt}
+          travelDescription={activeContractEncounter.travelDescription}
+          hpByActorId={activeContractEncounter.hpByActorId}
+          combatLogEntries={activeContractEncounter.combatLogEntries}
+          currentAction={activeContractEncounter.activeAction}
+          currentTurnIndex={getDisplayedEncounterTurn(activeContractEncounter)}
+          impactTargetId={activeContractEncounter.impactTargetId}
+          resolutionState={activeContractEncounter.resolutionState}
+          typedSummaryLine={activeContractEncounter.typedSummaryLine}
+          playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+          isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+          onToggleFastForward={toggleCombatFastForward}
+          onReplayCombat={replayContractEncounter}
+          onBackToBoard={returnToContractsBoard}
+          formatContractDifficulty={formatContractDifficulty}
+          formatDurationFromMs={formatDurationFromMs}
+        />
+      );
+    }
+
     return (
       <section className="contentShell">
         <section className="contentStack">
@@ -3597,7 +4328,20 @@ export function App() {
                     const { template, rollCue } = slot.offer;
 
                     return (
-                      <tr key={slot.slotIndex}>
+                      <tr
+                        key={slot.slotIndex}
+                        className="contractsActionRow"
+                        tabIndex={0}
+                        role="button"
+                        aria-label={i18n.t("contracts.enterAria", {
+                          contract: template.name,
+                          difficulty: formatContractDifficulty(template.difficulty)
+                        })}
+                        onClick={() => startContractEncounter(slot.slotIndex, slot.offer as ContractOffer)}
+                        onKeyDown={(event) =>
+                          handleContractRowKeyDown(event, slot.slotIndex, slot.offer as ContractOffer)
+                        }
+                      >
                         <td data-label={i18n.t("contracts.table.contract")}>
                           <div className="contractsNameCell">
                             <strong>{template.name}</strong>
@@ -3618,7 +4362,16 @@ export function App() {
                           {formatDurationFromMs(slot.offer.expiresAt - nowMs)}
                         </td>
                         <td data-label={i18n.t("contracts.table.action")}>
-                          <button className="contractAbandonButton" onClick={() => abandonContractSlot(slot.slotIndex)}>
+                          <button
+                            className="contractAbandonButton"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              abandonContractSlot(slot.slotIndex);
+                            }}
+                            onKeyDown={(event) => {
+                              event.stopPropagation();
+                            }}
+                          >
                             {i18n.t("contracts.abandon")}
                           </button>
                         </td>
