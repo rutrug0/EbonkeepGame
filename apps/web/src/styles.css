@@ -1229,7 +1229,8 @@ button:focus-visible {
 }
 
 .combatLogShell,
-.combatEncounterShell {
+.combatEncounterShell,
+.travelEncounterShell {
   height: 100%;
   min-height: 0;
 }
@@ -1379,36 +1380,55 @@ button:focus-visible {
   text-transform: uppercase;
 }
 
-.travelEncounterHero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
-  gap: var(--space-3);
-  margin-top: var(--space-3);
+.travelEncounterShell {
+  border: none;
+  background: transparent;
 }
 
-.travelEncounterArt {
+.travelEncounterShell .contentStack {
+  min-height: 100%;
+  height: 100%;
+}
+
+.travelEncounterCard {
+  min-width: 0;
+  min-height: 100%;
+  padding: 0;
+  border-bottom: none;
+}
+
+.travelEncounterStage {
   position: relative;
-  min-height: 320px;
-  border: 1px solid rgba(191, 174, 145, 0.18);
-  border-radius: calc(var(--soft-radius) + 6px);
+  min-height: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(91, 114, 138, 0.26), transparent 54%),
-    linear-gradient(180deg, rgba(21, 29, 36, 0.96), rgba(14, 19, 25, 0.98));
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(18, 24, 31, 0.96), rgba(11, 15, 20, 0.98));
 }
 
+.travelEncounterArt,
 .travelEncounterArt img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+}
+
+.travelEncounterArt {
+  position: absolute;
+  inset: 0;
+}
+
+.travelEncounterArt img {
   display: block;
+  object-fit: cover;
+  filter: saturate(0.92) brightness(0.8);
 }
 
 .travelEncounterArt::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(11, 15, 20, 0.05), rgba(11, 15, 20, 0.58));
+  background:
+    linear-gradient(180deg, rgba(8, 11, 15, 0.16), rgba(8, 11, 15, 0.34)),
+    radial-gradient(circle at center, rgba(8, 11, 15, 0.08), rgba(8, 11, 15, 0.28));
   pointer-events: none;
 }
 
@@ -1417,37 +1437,55 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   background: rgba(49, 61, 72, 0.94);
+  position: absolute;
+  inset: 0;
 }
 
-.travelEncounterSummary {
-  display: grid;
-  gap: var(--space-3);
-  align-content: center;
-}
-
-.travelEncounterLocation {
-  margin: 0;
-  color: color-mix(in srgb, var(--text-main) 86%, var(--accent-info) 14%);
-  font-size: 1.08rem;
-  font-weight: 700;
-}
-
-.travelEncounterDescription,
 .victoryEncounterSummary {
   margin: 0;
   color: var(--text-soft);
   line-height: 1.6;
 }
 
-.travelEncounterCountdownBlock {
+.travelEncounterOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: clamp(1rem, 2.4vw, 1.6rem) clamp(1rem, 2.4vw, 1.6rem) clamp(2.8rem, 8vh, 5.5rem);
+}
+
+.travelEncounterProgressCluster {
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid rgba(191, 174, 145, 0.16);
-  border-radius: var(--soft-radius);
-  background: rgba(19, 25, 31, 0.88);
-  color: var(--text-main);
-  font-weight: 700;
+  gap: 0.62rem;
+  width: min(100%, 620px);
+  justify-items: stretch;
+}
+
+.travelEncounterTimer {
+  margin: 0;
+  justify-self: center;
+  min-width: 148px;
+  padding: 0.4rem 0.9rem 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 46%, transparent);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(39, 30, 20, 0.82), rgba(18, 23, 29, 0.92));
+  color: color-mix(in srgb, #f6efe1 78%, var(--accent-warn) 22%);
+  font-size: clamp(1.02rem, 1rem + 0.32vw, 1.24rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.78),
+    0 2px 8px rgba(0, 0, 0, 0.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 220, 0.08),
+    0 10px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(8px);
 }
 
 .travelEncounterCountdownBar,
@@ -1457,6 +1495,21 @@ button:focus-visible {
   border-radius: 999px;
   overflow: hidden;
   background: rgba(8, 11, 14, 0.74);
+}
+
+.travelEncounterCountdownBar {
+  position: relative;
+  height: 18px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 38%, var(--border-soft) 62%);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 1px 0 rgba(246, 237, 218, 0.06),
+    inset 0 1px 4px rgba(0, 0, 0, 0.56),
+    0 12px 28px rgba(0, 0, 0, 0.16);
+  background:
+    linear-gradient(180deg, rgba(18, 23, 29, 0.96), rgba(10, 14, 18, 0.96));
+  backdrop-filter: blur(8px);
 }
 
 .travelEncounterCountdownFill,
@@ -1476,7 +1529,24 @@ button:focus-visible {
 }
 
 .travelEncounterCountdownFill {
-  background: linear-gradient(90deg, rgba(94, 130, 162, 0.96), rgba(149, 197, 215, 0.98));
+  position: relative;
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--accent-warn) 42%, #6d8396 58%),
+      color-mix(in srgb, var(--accent-warn) 72%, #d9b97a 28%)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 220, 0.16),
+    inset 0 -1px 0 rgba(54, 36, 14, 0.18);
+}
+
+.travelEncounterCountdownFill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 248, 232, 0.14), rgba(255, 248, 232, 0));
+  pointer-events: none;
 }
 
 .combatBattlefield {
@@ -2195,10 +2265,6 @@ button:focus-visible {
   background: transparent;
 }
 
-.appRoot.layout-compact .travelEncounterHero {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .appRoot.layout-compact .combatEncounterStack {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -2242,6 +2308,21 @@ button:focus-visible {
 .appRoot.layout-compact .combatBattlefieldCenter {
   min-height: 0;
 }
+
+.appRoot.layout-compact .travelEncounterProgressCluster {
+  width: min(100%, 520px);
+  gap: 0.62rem;
+}
+
+.appRoot.layout-compact .travelEncounterTimer {
+  min-width: 132px;
+  font-size: 0.96rem;
+}
+
+.appRoot.layout-compact .travelEncounterCountdownBar {
+  height: 16px;
+}
+
 
 .appRoot.layout-compact .combatLogCard {
   max-height: none;

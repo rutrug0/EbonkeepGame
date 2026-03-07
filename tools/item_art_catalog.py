@@ -150,7 +150,18 @@ def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
         if len(parts) < 3:
             return None
         family_id = parts[1].lower()
-        key = f"combat_stage:{family_id}"
+        stage_prefix = "combat_stage_"
+        stage_slug = filename[len(stage_prefix) :] if filename.startswith(stage_prefix) else filename
+        key = f"combat_stage:{family_id}:{normalize_name_for_key(stage_slug.replace('_', ' '))}"
+        return key, f"/assets/items/generated/{rel.as_posix()}"
+
+    if major == "travel_stage":
+        if len(parts) < 3:
+            return None
+        family_id = parts[1].lower()
+        stage_prefix = "travel_stage_"
+        stage_slug = filename[len(stage_prefix) :] if filename.startswith(stage_prefix) else filename
+        key = f"travel_stage:{family_id}:{normalize_name_for_key(stage_slug.replace('_', ' '))}"
         return key, f"/assets/items/generated/{rel.as_posix()}"
 
     return None

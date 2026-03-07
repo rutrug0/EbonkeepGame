@@ -17,6 +17,7 @@ export type CombatEncounterPanelProps = {
   currentEventIndex: number;
   nowMs: number;
   travelEndsAt: number | null;
+  travelDurationMs: number;
   travelDescription: string;
   hpByActorId: Record<string, number>;
   combatLogEntries: string[];
@@ -42,8 +43,9 @@ export function CombatEncounterTravelPanel({
   currentEventIndex: _currentEventIndex,
   nowMs,
   travelEndsAt,
+  travelDurationMs,
   travelDescription,
-  formatContractDifficulty,
+  formatContractDifficulty: _formatContractDifficulty,
   formatDurationFromMs
 }: Pick<
   CombatEncounterPanelProps,
@@ -52,52 +54,37 @@ export function CombatEncounterTravelPanel({
   | "currentEventIndex"
   | "nowMs"
   | "travelEndsAt"
+  | "travelDurationMs"
   | "travelDescription"
   | "formatContractDifficulty"
   | "formatDurationFromMs"
 >) {
-  const { t } = useTranslation();
   const countdownLabel =
     travelEndsAt !== null ? formatDurationFromMs(Math.max(0, travelEndsAt - nowMs)) : null;
+  const progressPercent =
+    travelEndsAt === null
+      ? 100
+      : Math.max(0, Math.min(100, ((travelDurationMs - Math.max(0, travelEndsAt - nowMs)) / travelDurationMs) * 100));
 
   return (
-    <section className="contentShell">
+    <section className="contentShell travelEncounterShell">
       <section className="contentStack">
         <article className="contentCard travelEncounterCard">
-          <div className="combatEncounterHeader">
-            <div>
-              <p className="combatEncounterEyebrow">{t("contracts.travelingTitle")}</p>
-              <h2>{encounter.contractName}</h2>
-            </div>
-            <span className={`contractDifficulty contractDifficulty-${encounter.difficulty}`}>
-              {formatContractDifficulty(encounter.difficulty)}
-            </span>
-          </div>
-          <div className="travelEncounterHero">
+          <div className="travelEncounterStage">
             <div className="travelEncounterArt">
               {encounter.travelImagePath && encounter.travelImageMode === "image" ? (
-                <img src={encounter.travelImagePath} alt={encounter.locationName} draggable={false} />
+                <img src={encounter.travelImagePath} alt="" draggable={false} />
               ) : (
                 <div className="travelEncounterSilhouette" aria-hidden="true" />
               )}
             </div>
-            <div className="travelEncounterSummary">
-              <p className="travelEncounterLocation">
-                {t("contracts.travelingTo", { location: encounter.locationName })}
-              </p>
-              <p className="travelEncounterDescription">{travelDescription}</p>
-              <div className="travelEncounterCountdownBlock">
-                <span>{t("contracts.arrivingIn", { duration: countdownLabel ?? "00m 00s" })}</span>
+            <div className="travelEncounterOverlay">
+              <div className="travelEncounterProgressCluster">
+                <p className="travelEncounterTimer">{countdownLabel ?? "00m 00s"}</p>
                 <div className="travelEncounterCountdownBar" aria-hidden="true">
                   <div
                     className="travelEncounterCountdownFill"
-                    style={{
-                      width: `${
-                        travelEndsAt === null
-                          ? 0
-                          : Math.max(0, Math.min(100, ((travelEndsAt - nowMs) / 5000) * 100))
-                      }%`
-                    }}
+                    style={{ width: `${progressPercent}%` }}
                   />
                 </div>
               </div>
@@ -322,6 +309,7 @@ export function CombatEncounterPanel(props: CombatEncounterPanelProps) {
       currentEventIndex={props.currentEventIndex}
       nowMs={props.nowMs}
       travelEndsAt={props.travelEndsAt}
+      travelDurationMs={props.travelDurationMs}
       travelDescription={props.travelDescription}
       formatContractDifficulty={props.formatContractDifficulty}
       formatDurationFromMs={props.formatDurationFromMs}

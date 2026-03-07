@@ -5,6 +5,8 @@
     ,
     "monsters": "Rendering Model (Strict):\n\n2D illustrated enemy concept render\n\nmedium cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp but slightly moderated shadow edges, no gradient blending\n\nno soft lighting bloom\n\nno painterly brush texture\n\nsemi-realistic grounded medieval fantasy proportions\n\nmuted earthy palette with restrained accent color\n\nColor Control Rules:\n\navoid sepia scene tint\n\navoid overall yellow wash\n\navoid nicotine-stained or amber-brown color grading across the whole frame\n\nkeep whites, greys, and pale surfaces neutral rather than yellowed unless a family prompt explicitly requires warmth\n\nprefer cool grey or neutral ambient light by default\n\nVisibility and Separation Rules:\n\nmonster silhouette must read clearly against the environment\n\nbackground values must stay slightly lighter or quieter than the monster focal silhouette\n\npreserve clear edge separation around the monster\n\navoid excessively dark murk that hides anatomy or gear\n\nuse readable ambient light from the environment without turning cinematic\n\nMonster Presentation Rules (Locked)\n\nsingle monster only\n\nfull-body view\n\nclear readable silhouette\n\ngrounded stance and anatomy\n\ninclude environment background appropriate to the family prompt\n\nbackground must support the monster and not overpower it\n\nkeep the scene a bit clearer and less oppressive than a pure horror render\n\nno crowd scenes\n\nno additional monsters\n\nno hero pose exaggeration\n\nno text, no logo\n\nmaintain hostile enemy readability at game-icon scale",
     "combat_stages": "Rendering Model (Strict):\n\n2D illustrated combat field background\n\nmedium cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp but slightly moderated shadow edges, no gradient blending\n\nno soft lighting bloom\n\nno painterly brush texture\n\nsemi-realistic grounded medieval fantasy proportions\n\nmuted earthy palette with restrained accent color\n\nField Composition Rules:\n\nwide horizontal battlefield feel inside a square frame\n\nread as a game stage or board rather than a story illustration\n\nstrong depth from enemy side to player side without extreme perspective distortion\n\ncenter lane must remain calmer and less cluttered than the edges\n\npush visual detail toward side edges, far wall, corners, and background landmarks\n\nleave enough clean playable space for two opposing rows of combat cards and large hit animations\n\nno characters\n\nno monsters\n\nno crowd\n\nno hero focal subject\n\nno text, no logo\n\nbackground must support UI readability first"
+    ,
+    "travel_stages": "Rendering Model (Strict):\n\n2D illustrated travel scene background\n\nmedium cel shading only\n\nmaximum three value groups per material (light, mid, shadow)\n\nsharp but slightly moderated shadow edges, no gradient blending\n\nno soft lighting bloom\n\nno painterly brush texture\n\nsemi-realistic grounded medieval fantasy proportions\n\nmuted earthy palette with restrained accent color\n\nTravel Scene Composition Rules:\n\nread as a journey or approach scene rather than a combat field\n\nclear sense of route, destination, or forward movement through the environment\n\npreserve an open readable center for UI overlay content\n\nstrong environmental identity for the zone without a single hero focal subject\n\nmore scenic and atmospheric than combat stages, but still restrained and readable\n\nno characters\n\nno monsters\n\nno crowd\n\nno text, no logo\n\nbackground must support travel UI readability first"
   },
   "render_defaults": {
     "model": "gpt-image-1.5",
@@ -17,6 +19,10 @@
       "quality": "high"
     },
     "monsters": {
+      "background": "opaque",
+      "quality": "high"
+    },
+    "travel_stages": {
       "background": "opaque",
       "quality": "high"
     }
@@ -153,6 +159,20 @@
       "family_prompt": "One combat field background only. No monsters, no players, no cards, no UI, and no single central subject. Build a readable location stage that supports two opposing rows of combat units in a card-based battle layout.",
       "prompt_prefix_fields": [
         "combat_stage_background_prompt"
+      ]
+    },
+    {
+      "id": "travel_stage_scenes_v1",
+      "group": "monsters",
+      "prompt_group": "travel_stages",
+      "path": "docs/data/travel_stage_scenes_v1.csv",
+      "major_category": "travel_stage",
+      "display_name_field": "scene_name",
+      "prompt_field": "prompt_travel_stage",
+      "family_key_template": "travel_stage:{family_id}",
+      "family_prompt": "One travel stage background only. No monsters, no players, no cards, no UI, and no single central subject. Build a readable journey scene for the contract travel screen with a clear sense of destination and a clean center for overlay text.",
+      "prompt_prefix_fields": [
+        "travel_stage_background_prompt"
       ]
     }
   ]

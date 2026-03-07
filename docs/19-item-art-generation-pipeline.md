@@ -33,6 +33,7 @@ Current sources include:
 - `docs/data/character_avatar_prompt_templates_v1.csv` (characters)
 - `docs/data/monster_family_members_v1.csv` joined with `docs/data/monster_families_v1.csv` (monsters)
 - `docs/data/monster_families_v1.csv` rows with `prompt_combat_stage` (monster combat stages)
+- `docs/data/travel_stage_scenes_v1.csv` (monster-family travel stages)
 
 Rows missing `prompt_item_description` are skipped by design.
 Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
@@ -40,6 +41,7 @@ Character sources can map a different prompt column (for example `prompt_charact
 Monster sources can merge shared family-row fields such as `background_prompt_shared` before prompt assembly.
 Monster rows may optionally provide `background_prompt_override` for setpiece encounters that need their own scene scale or composition.
 Monster family rows may also provide `combat_stage_background_prompt` and `prompt_combat_stage` to generate a separate battlefield image for card-based combat.
+Travel stage rows may provide `travel_stage_background_prompt` and `prompt_travel_stage` to generate a separate scenic journey image for the contracts travel screen.
 This is still a single render per monster row for portraits, plus an optional separate combat-stage render per family row.
 
 ## Prompt Layering
@@ -151,12 +153,18 @@ Combat stage naming convention:
 - Pattern: `combat_stage/<family_id>/combat_stage_<stage_name>.png`
 - Example: `combat_stage/snagtooth_hollow_00/combat_stage_snagtooth_hollow_field.png`
 
+Travel stage naming convention:
+- Travel stage filenames are family-scoped.
+- Pattern: `travel_stage/<family_id>/travel_stage_<scene_name>.png`
+- Example: `travel_stage/snagtooth_hollow_00/travel_stage_default.png`
+
 Examples:
 - `.../weapon/melee/sword/warrior_melee_iron_shortsword.png`
 - `.../armor/heavy/helmet/heavy_armor_crude_cap.png`
 - `.../jewelry/ring/ring_tin_ring.png`
 - `.../monster/tallow_cellar_00/monster_grease_gnawer.png`
 - `.../combat_stage/snagtooth_hollow_00/combat_stage_snagtooth_hollow_field.png`
+- `.../travel_stage/snagtooth_hollow_00/travel_stage_default.png`
 
 ## Operational Notes
 - One API request per item.
@@ -175,6 +183,7 @@ Examples:
 - For monsters, keep family-wide environment direction in `background_prompt_shared` on the family table and keep monster-specific anatomy, gear, stance, and threat cues in `prompt_monster_fullbody`.
 - Use row-level `background_prompt_override` sparingly for exceptional encounters such as group bosses that need a wider chamber, altered framing, or stronger environmental scale cues than the base family scene.
 - Use family-row `prompt_combat_stage` for separate battlefield plates when the UI fights on top of cards rather than directly on top of the monster portrait scene.
+- Use `travel_stage` rows for separate approach/journey scenes when the UI needs a dedicated travel screen rather than reusing a monster portrait.
 - Each monster family should feel like a distinct zone in ambience. Preserve strong internal consistency within one family, but make different zones clearly distinct from one another in mood, palette bias, landmark language, and environmental feel.
 - Monster prompts should stay grounded at low levels, grow tougher and more disciplined through mid levels, introduce restrained arcane elements around `60+`, and reserve mythic language for `80+`.
 - Very low levels such as `0`, `4`, and `8` should read weak, poorly equipped, and only locally dangerous. Avoid intimidating elite silhouettes at those tiers.

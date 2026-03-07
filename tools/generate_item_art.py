@@ -332,6 +332,8 @@ def merge_source_lookups(
 def asset_family_for(record: ItemRecord) -> str:
     if record.major_category == "combat_stage":
         return "combat_stage"
+    if record.major_category == "travel_stage":
+        return "travel_stage"
 
     if record.major_category == "armor":
         parts = record.family_key.split(":")
@@ -401,6 +403,9 @@ def build_family_key(source: dict[str, Any], row: dict[str, str], major_category
     if major_category == "combat_stage":
         family_id = (row.get("family_id") or "").strip()
         return f"combat_stage:{family_id}" if family_id else "combat_stage"
+    if major_category == "travel_stage":
+        family_id = (row.get("family_id") or "").strip()
+        return f"travel_stage:{family_id}" if family_id else "travel_stage"
     return major_category
 
 

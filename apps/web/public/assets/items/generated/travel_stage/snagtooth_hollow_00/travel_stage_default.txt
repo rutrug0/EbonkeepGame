@@ -1,0 +1,45 @@
+Rendering Model (Strict):
+
+2D illustrated travel scene background
+
+medium cel shading only
+
+maximum three value groups per material (light, mid, shadow)
+
+sharp but slightly moderated shadow edges, no gradient blending
+
+no soft lighting bloom
+
+no painterly brush texture
+
+semi-realistic grounded medieval fantasy proportions
+
+muted earthy palette with restrained accent color
+
+Travel Scene Composition Rules:
+
+read as a journey or approach scene rather than a combat field
+
+clear sense of route, destination, or forward movement through the environment
+
+preserve an open readable center for UI overlay content
+
+strong environmental identity for the zone without a single hero focal subject
+
+more scenic and atmospheric than combat stages, but still restrained and readable
+
+no characters
+
+no monsters
+
+no crowd
+
+no text, no logo
+
+background must support travel UI readability first
+
+Grounded medieval fantasy travel scene for Snagtooth Hollow, cave-approach composition rather than a combat field, damp slate rock, crooked cave mouth, weak resin torches tied to crude stakes, thin torch smoke drifting outward, broken crates, fungus baskets, bedroll scraps, bone litter, shallow mud, slime traces near the entrance, cool blue-grey ambience with only small warm torch accents, no monsters, no characters, no crowd, no heroic framing, clear readable path leading inward.
+
+One travel stage background only. No monsters, no players, no cards, no UI, and no single central subject. Build a readable journey scene for the contract travel screen with a clear sense of destination and a clean center for overlay text.
+
+Travel stage background for a contract journey into Snagtooth Hollow, show the viewer approaching a low goblin cave entrance along a muddy worn path, cave mouth should feel inhabited and foul but still readable, emphasize route and destination rather than combat space, path should visually pull inward toward the cave, keep the center readable for UI overlay, scenic but grounded, no central hero subject, no monsters visible, no text, no logo.

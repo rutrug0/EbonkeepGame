@@ -242,7 +242,7 @@ const INVENTORY_ITEM_LIMIT = 20;
 const CONTRACT_SLOT_COUNT = 6;
 const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
 const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
-const CONTRACT_TRAVEL_DURATION_MS = 5 * 1000;
+const CONTRACT_TRAVEL_DURATION_MS = 10 * 1000;
 const COMBAT_PLAYBACK_START_DELAY_MS = 330;
 const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 760;
 const COMBAT_PLAYBACK_BEAT_MS = 1470;
@@ -1227,8 +1227,24 @@ function getMonsterAssetPath(key: string): string | undefined {
   return GENERATED_ITEM_ICON_PATHS[key];
 }
 
+function getGeneratedStageAssetPath(prefix: string, legacyExactKey?: string): string | undefined {
+  if (legacyExactKey) {
+    const legacyAssetPath = GENERATED_ITEM_ICON_PATHS[legacyExactKey];
+    if (legacyAssetPath) {
+      return legacyAssetPath;
+    }
+  }
+
+  const matchedEntry = Object.entries(GENERATED_ITEM_ICON_PATHS).find(([key]) => key.startsWith(prefix));
+  return matchedEntry?.[1];
+}
+
 function getCombatStageAssetPath(familyId: string): string | undefined {
-  return GENERATED_ITEM_ICON_PATHS[`combat_stage:${familyId}`];
+  return getGeneratedStageAssetPath(`combat_stage:${familyId}:`, `combat_stage:${familyId}`);
+}
+
+function getTravelStageAssetPath(familyId: string): string | undefined {
+  return getGeneratedStageAssetPath(`travel_stage:${familyId}:default`, `travel_stage:${familyId}`);
 }
 
 function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
@@ -1259,7 +1275,10 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
   usesSilhouetteFallback?: boolean;
 } {
   switch (difficulty) {
-    case "easy":
+    case "easy": {
+      const easyTravelImagePath =
+        getTravelStageAssetPath("snagtooth_hollow_00") ??
+        getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss");
       return {
         familyId: "snagtooth_hollow_00",
         locationName: "Snagtooth Hollow",
@@ -1268,12 +1287,16 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         enemyMaxHp: 72,
         enemyPower: 84,
         enemyCombatStat: "strength",
-        travelImagePath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss"),
+        travelImagePath: easyTravelImagePath,
         combatBackgroundPath: getCombatStageAssetPath("snagtooth_hollow_00"),
-        travelImageMode: "image",
+        travelImageMode: easyTravelImagePath ? "image" : "silhouette",
         avatarPath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss")
       };
-    case "medium":
+    }
+    case "medium": {
+      const mediumTravelImagePath =
+        getTravelStageAssetPath("mirepool_boglings_04") ??
+        getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker");
       return {
         familyId: "mirepool_boglings_04",
         locationName: "Mirepool Hollow",
@@ -1282,12 +1305,14 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         enemyMaxHp: 88,
         enemyPower: 112,
         enemyCombatStat: "dexterity",
-        travelImagePath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker"),
+        travelImagePath: mediumTravelImagePath,
         combatBackgroundPath: getCombatStageAssetPath("mirepool_boglings_04"),
-        travelImageMode: "image",
+        travelImageMode: mediumTravelImagePath ? "image" : "silhouette",
         avatarPath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker")
       };
-    case "hard":
+    }
+    case "hard": {
+      const hardTravelImagePath = getTravelStageAssetPath("cinder_kiln_hands_08");
       return {
         familyId: "cinder_kiln_hands_08",
         locationName: "The Cinder Kiln",
@@ -1296,10 +1321,12 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         enemyMaxHp: 102,
         enemyPower: 136,
         enemyCombatStat: "intelligence",
+        travelImagePath: hardTravelImagePath,
         combatBackgroundPath: getCombatStageAssetPath("cinder_kiln_hands_08"),
-        travelImageMode: "silhouette",
-        usesSilhouetteFallback: true
+        travelImageMode: hardTravelImagePath ? "image" : "silhouette",
+        usesSilhouetteFallback: !hardTravelImagePath
       };
+    }
     default:
       return {
         familyId: "unknown_reach",
@@ -4456,6 +4483,7 @@ export function App() {
           currentEventIndex={activeContractEncounter.currentEventIndex}
           nowMs={nowMs}
           travelEndsAt={activeContractEncounter.travelEndsAt}
+          travelDurationMs={CONTRACT_TRAVEL_DURATION_MS}
           travelDescription={activeContractEncounter.travelDescription}
           hpByActorId={activeContractEncounter.hpByActorId}
           combatLogEntries={activeContractEncounter.combatLogEntries}
@@ -5429,6 +5457,12 @@ export function App() {
                 {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
                   <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
                 ) : null}
+              </div>
+            ) : activeTab === "contracts" &&
+              activeContractEncounter &&
+              activeContractEncounter.phase === "travel" ? (
+              <div className="panelViewport contractsCombatViewportExpanded">
+                {renderContractsPanel()}
               </div>
             ) : activeTab === "contracts" &&
               activeContractEncounter &&
