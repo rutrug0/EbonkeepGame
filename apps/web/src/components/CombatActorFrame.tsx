@@ -6,6 +6,8 @@ type CombatActorFrameProps = {
   label: string;
   isAttacking: boolean;
   isHit: boolean;
+  isReferenced: boolean;
+  isDead: boolean;
 };
 
 function formatCombatStatLabel(combatStat: "strength" | "dexterity" | "intelligence"): string {
@@ -51,14 +53,18 @@ export function CombatActorFrame({
   currentHp,
   label,
   isAttacking,
-  isHit
+  isHit,
+  isReferenced,
+  isDead
 }: CombatActorFrameProps) {
   const hpPercent = Math.max(0, Math.min(100, Math.round((currentHp / actor.maxHp) * 100)));
   const frameClassName = [
     "combatActorFrame",
     `combatActorFrame-${actor.side}`,
     isAttacking ? "isAttacking" : "",
-    isHit ? "isHit" : ""
+    isHit ? "isHit" : "",
+    isReferenced ? "isReferenced" : "",
+    isDead ? "isDead" : ""
   ]
     .filter(Boolean)
     .join(" ");

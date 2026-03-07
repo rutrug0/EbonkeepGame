@@ -34,7 +34,8 @@ import { devGuestLogin, fetchPlayerState, forgotPassword, getAccountOverview, lo
 import {
   CombatEncounterArenaPanel,
   CombatEncounterLogPanel,
-  CombatEncounterPanel
+  CombatEncounterPanel,
+  CombatEncounterTurnTrackPanel
 } from "./components/CombatEncounterPanel";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
@@ -2164,6 +2165,7 @@ export function App() {
   const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
   const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
   const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
+  const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
   const [activeStatTraining, setActiveStatTraining] = useState<{
@@ -3637,6 +3639,7 @@ export function App() {
       return;
     }
     setIsCombatLogVisible(true);
+    setHoveredCombatActorId(null);
     setActiveContractEncounter(
       buildMockCombatEncounterState({
         offer,
@@ -3651,10 +3654,12 @@ export function App() {
   }
 
   function returnToContractsBoard() {
+    setHoveredCombatActorId(null);
     setActiveContractEncounter(null);
   }
 
   function replayContractEncounter() {
+    setHoveredCombatActorId(null);
     setActiveContractEncounter((previousEncounter) => {
       if (!previousEncounter || previousEncounter.phase !== "combat") {
         return previousEncounter;
@@ -4448,6 +4453,7 @@ export function App() {
           phase={activeContractEncounter.phase}
           encounter={activeContractEncounter.encounter}
           timeline={activeContractEncounter.timeline}
+          currentEventIndex={activeContractEncounter.currentEventIndex}
           nowMs={nowMs}
           travelEndsAt={activeContractEncounter.travelEndsAt}
           travelDescription={activeContractEncounter.travelDescription}
@@ -5431,21 +5437,36 @@ export function App() {
                 {isCombatLogVisible ? (
                   <div className="panelViewportGroup contractsCombatViewportGroup">
                     <div className="panelViewportProfileMain contractsCombatViewportMain">
-                      <CombatEncounterArenaPanel
-                        encounter={activeContractEncounter.encounter}
-                        timeline={activeContractEncounter.timeline}
-                        hpByActorId={activeContractEncounter.hpByActorId}
-                        currentAction={activeContractEncounter.activeAction}
-                        impactTargetId={activeContractEncounter.impactTargetId}
-                        playbackRate={getEncounterAnimationRate(activeContractEncounter)}
-                        isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
-                        onToggleFastForward={toggleCombatFastForward}
-                      />
+                      <div className="contractsCombatViewportMainStack">
+                        <CombatEncounterTurnTrackPanel
+                          encounter={activeContractEncounter.encounter}
+                          timeline={activeContractEncounter.timeline}
+                          currentEventIndex={activeContractEncounter.currentEventIndex}
+                          hpByActorId={activeContractEncounter.hpByActorId}
+                          currentAction={activeContractEncounter.activeAction}
+                          resolutionState={activeContractEncounter.resolutionState}
+                          hoveredActorId={hoveredCombatActorId}
+                          onHoverActor={setHoveredCombatActorId}
+                        />
+                        <CombatEncounterArenaPanel
+                          encounter={activeContractEncounter.encounter}
+                          timeline={activeContractEncounter.timeline}
+                          currentEventIndex={activeContractEncounter.currentEventIndex}
+                          hpByActorId={activeContractEncounter.hpByActorId}
+                          currentAction={activeContractEncounter.activeAction}
+                          impactTargetId={activeContractEncounter.impactTargetId}
+                          playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+                          isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+                          hoveredActorId={hoveredCombatActorId}
+                          onToggleFastForward={toggleCombatFastForward}
+                        />
+                      </div>
                     </div>
                     <div className="panelViewportSide contractsCombatViewportSide">
                       <CombatEncounterLogPanel
                         encounter={activeContractEncounter.encounter}
                         timeline={activeContractEncounter.timeline}
+                        currentEventIndex={activeContractEncounter.currentEventIndex}
                         combatLogEntries={activeContractEncounter.combatLogEntries}
                         resolutionState={activeContractEncounter.resolutionState}
                         typedSummaryLine={activeContractEncounter.typedSummaryLine}
@@ -5457,16 +5478,30 @@ export function App() {
                   </div>
                 ) : (
                   <div className="panelViewport contractsCombatViewportExpanded">
-                    <CombatEncounterArenaPanel
-                      encounter={activeContractEncounter.encounter}
-                      timeline={activeContractEncounter.timeline}
-                      hpByActorId={activeContractEncounter.hpByActorId}
-                      currentAction={activeContractEncounter.activeAction}
-                      impactTargetId={activeContractEncounter.impactTargetId}
-                      playbackRate={getEncounterAnimationRate(activeContractEncounter)}
-                      isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
-                      onToggleFastForward={toggleCombatFastForward}
-                    />
+                    <div className="contractsCombatViewportMainStack">
+                      <CombatEncounterTurnTrackPanel
+                        encounter={activeContractEncounter.encounter}
+                        timeline={activeContractEncounter.timeline}
+                        currentEventIndex={activeContractEncounter.currentEventIndex}
+                        hpByActorId={activeContractEncounter.hpByActorId}
+                        currentAction={activeContractEncounter.activeAction}
+                        resolutionState={activeContractEncounter.resolutionState}
+                        hoveredActorId={hoveredCombatActorId}
+                        onHoverActor={setHoveredCombatActorId}
+                      />
+                      <CombatEncounterArenaPanel
+                        encounter={activeContractEncounter.encounter}
+                        timeline={activeContractEncounter.timeline}
+                        currentEventIndex={activeContractEncounter.currentEventIndex}
+                        hpByActorId={activeContractEncounter.hpByActorId}
+                        currentAction={activeContractEncounter.activeAction}
+                        impactTargetId={activeContractEncounter.impactTargetId}
+                        playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+                        isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+                        hoveredActorId={hoveredCombatActorId}
+                        onToggleFastForward={toggleCombatFastForward}
+                      />
+                    </div>
                   </div>
                 )}
               </>

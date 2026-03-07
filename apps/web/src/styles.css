@@ -589,6 +589,15 @@ button:focus-visible {
   max-width: none;
 }
 
+.contractsCombatViewportMainStack {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
 .contractsCombatViewportMain .contentShell,
 .contractsCombatViewportMain .contentCard {
   width: 100%;
@@ -1225,6 +1234,131 @@ button:focus-visible {
   min-height: 0;
 }
 
+.combatTurnTrackShell {
+  background: var(--panel-soft-solid);
+  border-color: var(--border-soft);
+  --combat-turn-chip-size: 54px;
+  --combat-turn-chip-gap: 4px;
+  --combat-turn-shift-distance: calc((var(--combat-turn-chip-size) + var(--combat-turn-chip-gap)) * -1);
+}
+
+.combatTurnTrackCard {
+  gap: 0;
+  padding: 3px 4px;
+  border-bottom: none;
+  background: transparent;
+}
+
+.combatTurnTrackRow {
+  display: block;
+  overflow: hidden;
+  min-height: 54px;
+}
+
+.combatTurnTrackTrack {
+  display: flex;
+  align-items: center;
+  gap: var(--combat-turn-chip-gap);
+  width: max-content;
+  transform: translate3d(0, 0, 0);
+}
+
+.combatTurnTrackTrack.isShifting {
+  transform: translate3d(var(--combat-turn-shift-distance), 0, 0);
+  transition: transform 260ms cubic-bezier(0.22, 0.72, 0.22, 1);
+}
+
+.combatTurnChip {
+  flex: 0 0 auto;
+  width: var(--combat-turn-chip-size);
+  height: var(--combat-turn-chip-size);
+  padding: 0;
+  border: 1px solid rgba(125, 136, 145, 0.32);
+  border-radius: 3px;
+  background: rgba(15, 19, 23, 0.98);
+  opacity: 1;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.combatTurnChip.isNext {
+  transform: translateY(-1px);
+  border-color: rgba(214, 192, 149, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(214, 192, 149, 0.12),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.combatTurnChip:hover,
+.combatTurnChip:focus-visible,
+.combatTurnChip.isReferenced {
+  border-color: rgba(214, 192, 149, 0.6);
+  box-shadow:
+    0 0 0 2px rgba(214, 192, 149, 0.14),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+.combatTurnChip:focus-visible {
+  outline: none;
+}
+
+.combatTurnChip.isDead {
+  border-color: rgba(108, 116, 124, 0.3);
+  background: rgba(13, 16, 20, 0.98);
+}
+
+.combatTurnChipPortrait {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(15, 19, 23, 0.98);
+}
+
+.combatTurnChipPortraitImage,
+.combatTurnChipPortraitFallback {
+  width: 100%;
+  height: 100%;
+}
+
+.combatTurnChipPortraitImage {
+  display: block;
+  object-fit: cover;
+  object-position: 50% 12%;
+  transform: scale(2.1);
+  transform-origin: center top;
+}
+
+.combatTurnChipPortraitFallback {
+  background: rgba(49, 61, 72, 0.94);
+}
+
+.combatTurnChip.isDead .combatTurnChipPortraitImage,
+.combatTurnChip.isDead .combatTurnChipPortraitFallback {
+  filter: grayscale(1) saturate(0.18) brightness(0.52) contrast(0.9);
+}
+
+.combatTurnChip.isEntering {
+  opacity: 0;
+  transform: translate3d(14px, 0, 0);
+}
+
+.combatTurnTrackTrack.isShifting .combatTurnChip.isEntering {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 260ms cubic-bezier(0.22, 0.72, 0.22, 1),
+    opacity 220ms ease;
+}
+
+.combatTurnTrackTrack.isShifting .combatTurnChip.isExiting {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
 .combatEncounterShell {
   border: none;
   background: transparent;
@@ -1474,8 +1608,23 @@ button:focus-visible {
   width: min(100%, 280px);
   flex: 0 1 280px;
   transform: translate3d(0, 0, 0);
+  transform-origin: center center;
   will-change: transform;
   z-index: 0;
+}
+
+.combatActorFrame::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1px solid rgba(214, 192, 149, 0);
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 0 rgba(214, 192, 149, 0),
+    0 0 0 0 rgba(214, 192, 149, 0),
+    0 0 0 0 rgba(214, 192, 149, 0);
 }
 
 .combatActorFrameShell {
@@ -1488,6 +1637,7 @@ button:focus-visible {
   background: rgba(25, 31, 37, 0.96);
   box-shadow: 0 12px 24px rgba(6, 8, 10, 0.24);
   transform: translate3d(0, 0, 0);
+  transform-origin: center center;
   will-change: transform, box-shadow;
 }
 
@@ -1497,12 +1647,12 @@ button:focus-visible {
 }
 
 .combatActorFrame-player {
-  transform-origin: center bottom;
+  transform-origin: center center;
   --combat-hit-push-distance: 22px;
 }
 
 .combatActorFrame-enemy {
-  transform-origin: center top;
+  transform-origin: center center;
   --combat-hit-push-distance: -22px;
 }
 
@@ -1620,6 +1770,47 @@ button:focus-visible {
 
 .combatActorFrame.isHit .combatActorFrameShell {
   animation: combatHitKnockback var(--combat-hit-duration) both;
+}
+
+.combatActorFrame.isReferenced::after {
+  animation: combatActorReferencePulse 1320ms ease-in-out infinite;
+}
+
+.combatActorFrame.isDead .combatActorFrameShell {
+  border-color: rgba(108, 116, 124, 0.34);
+  background: rgba(18, 22, 27, 0.94);
+  box-shadow: 0 8px 18px rgba(6, 8, 10, 0.18);
+}
+
+.combatActorFrame.isDead .combatActorPortraitWrap {
+  border-color: rgba(108, 116, 124, 0.28);
+}
+
+.combatActorFrame.isDead .combatActorPortrait {
+  filter: grayscale(1) saturate(0.18) brightness(0.52) contrast(0.92);
+}
+
+.combatActorFrame.isDead .combatActorPortraitWrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 12, 14, 0.14), rgba(10, 12, 14, 0.36)),
+    radial-gradient(circle at center, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.24));
+  pointer-events: none;
+}
+
+.combatActorFrame.isDead .combatActorMeta,
+.combatActorFrame.isDead .combatActorHpLabel {
+  color: rgba(226, 231, 235, 0.78);
+}
+
+.combatActorFrame.isDead .combatActorHpBar {
+  opacity: 0.9;
+}
+
+.combatActorFrame.isDead .combatActorHpFill {
+  background: rgba(97, 103, 109, 0.92);
 }
 
 .combatLogBody {
@@ -1880,6 +2071,33 @@ button:focus-visible {
   }
   100% {
     transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes combatActorReferencePulse {
+  0% {
+    opacity: 0.38;
+    border-color: rgba(214, 192, 149, 0.34);
+    box-shadow:
+      0 0 0 1px rgba(214, 192, 149, 0.18),
+      0 0 0 3px rgba(214, 192, 149, 0.08),
+      0 0 10px 1px rgba(214, 192, 149, 0.06);
+  }
+  55% {
+    opacity: 0.78;
+    border-color: rgba(214, 192, 149, 0.58);
+    box-shadow:
+      0 0 0 2px rgba(214, 192, 149, 0.22),
+      0 0 0 8px rgba(214, 192, 149, 0.1),
+      0 0 24px 7px rgba(214, 192, 149, 0.14);
+  }
+  100% {
+    opacity: 0.28;
+    border-color: rgba(214, 192, 149, 0.14);
+    box-shadow:
+      0 0 0 2px rgba(214, 192, 149, 0.06),
+      0 0 0 14px rgba(214, 192, 149, 0),
+      0 0 34px 10px rgba(214, 192, 149, 0);
   }
 }
 

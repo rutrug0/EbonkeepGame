@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import type {
@@ -14,6 +14,7 @@ export type CombatEncounterPanelProps = {
   phase: "travel" | "combat";
   encounter: CombatPlaybackEncounter;
   timeline: CombatPlaybackEvent[];
+  currentEventIndex: number;
   nowMs: number;
   travelEndsAt: number | null;
   travelDescription: string;
@@ -25,6 +26,8 @@ export type CombatEncounterPanelProps = {
   typedSummaryLine: string;
   playbackRate: number;
   isFastForwardEnabled: boolean;
+  hoveredActorId?: string | null;
+  onHoverActor?: (actorId: string | null) => void;
   onToggleFastForward: () => void;
   onCloseLog?: () => void;
   onReplayCombat: () => void;
@@ -36,6 +39,7 @@ export type CombatEncounterPanelProps = {
 export function CombatEncounterTravelPanel({
   encounter,
   timeline: _timeline,
+  currentEventIndex: _currentEventIndex,
   nowMs,
   travelEndsAt,
   travelDescription,
@@ -45,6 +49,7 @@ export function CombatEncounterTravelPanel({
   CombatEncounterPanelProps,
   | "encounter"
   | "timeline"
+  | "currentEventIndex"
   | "nowMs"
   | "travelEndsAt"
   | "travelDescription"
@@ -107,21 +112,25 @@ export function CombatEncounterTravelPanel({
 export function CombatEncounterArenaPanel({
   encounter,
   timeline: _timeline,
+  currentEventIndex: _currentEventIndex,
   hpByActorId,
   currentAction,
   impactTargetId,
   playbackRate,
   isFastForwardEnabled,
+  hoveredActorId,
   onToggleFastForward
 }: Pick<
   CombatEncounterPanelProps,
   | "encounter"
   | "timeline"
+  | "currentEventIndex"
   | "hpByActorId"
   | "currentAction"
   | "impactTargetId"
   | "playbackRate"
   | "isFastForwardEnabled"
+  | "hoveredActorId"
   | "onToggleFastForward"
 >) {
   const { t } = useTranslation();
@@ -164,6 +173,8 @@ export function CombatEncounterArenaPanel({
                   label={t("contracts.enemyLabel")}
                   isAttacking={currentAction?.actorId === enemy.id}
                   isHit={impactTargetId === enemy.id}
+                  isReferenced={hoveredActorId === enemy.id}
+                  isDead={(hpByActorId[enemy.id] ?? enemy.maxHp) <= 0}
                 />
               ))}
             </div>
@@ -175,6 +186,8 @@ export function CombatEncounterArenaPanel({
                 label={t("contracts.playerLabel")}
                 isAttacking={currentAction?.actorId === player.id}
                 isHit={impactTargetId === player.id}
+                isReferenced={hoveredActorId === player.id}
+                isDead={(hpByActorId[player.id] ?? player.maxHp) <= 0}
               />
             </div>
           </div>
@@ -187,6 +200,7 @@ export function CombatEncounterArenaPanel({
 export function CombatEncounterLogPanel({
   encounter,
   timeline,
+  currentEventIndex: _currentEventIndex,
   combatLogEntries,
   resolutionState,
   typedSummaryLine,
@@ -197,6 +211,7 @@ export function CombatEncounterLogPanel({
   CombatEncounterPanelProps,
   | "encounter"
   | "timeline"
+  | "currentEventIndex"
   | "combatLogEntries"
   | "resolutionState"
   | "typedSummaryLine"
@@ -304,11 +319,192 @@ export function CombatEncounterPanel(props: CombatEncounterPanelProps) {
     <CombatEncounterTravelPanel
       encounter={props.encounter}
       timeline={props.timeline}
+      currentEventIndex={props.currentEventIndex}
       nowMs={props.nowMs}
       travelEndsAt={props.travelEndsAt}
       travelDescription={props.travelDescription}
       formatContractDifficulty={props.formatContractDifficulty}
       formatDurationFromMs={props.formatDurationFromMs}
     />
+  );
+}
+
+export function CombatEncounterTurnTrackPanel({
+  encounter,
+  timeline,
+  currentEventIndex,
+  hpByActorId,
+  currentAction,
+  resolutionState,
+  hoveredActorId,
+  onHoverActor
+}: Pick<
+  CombatEncounterPanelProps,
+  | "encounter"
+  | "timeline"
+  | "currentEventIndex"
+  | "hpByActorId"
+  | "currentAction"
+  | "resolutionState"
+  | "hoveredActorId"
+  | "onHoverActor"
+>) {
+  type ProjectedTurnChip = {
+    id: string;
+    actor: CombatPlaybackActor;
+    projectedIndex: number;
+  };
+  type RenderedTurnChip = ProjectedTurnChip & {
+    state: "steady" | "entering" | "exiting";
+  };
+  const TURN_TRACK_VISIBLE_COUNT = 14;
+  const actorById = new Map<string, CombatPlaybackActor>([
+    [encounter.player.id, encounter.player],
+    ...encounter.enemies.map((enemy) => [enemy.id, enemy] as const)
+  ]);
+  const aliveActorIds = new Set(
+    [encounter.player, ...encounter.enemies]
+      .filter((actor) => (hpByActorId[actor.id] ?? actor.maxHp) > 0)
+      .map((actor) => actor.id)
+  );
+  const hasAlivePlayerActors = (hpByActorId[encounter.player.id] ?? encounter.player.maxHp) > 0;
+  const hasAliveEnemyActors = encounter.enemies.some((enemy) => (hpByActorId[enemy.id] ?? enemy.maxHp) > 0);
+  const actionEvents = timeline.filter(
+    (event): event is CombatPlaybackActionResolved => event.type === "CombatPlaybackActionResolved"
+  );
+  const shouldFilterDeadActors =
+    resolutionState === "playing" && hasAlivePlayerActors && hasAliveEnemyActors && aliveActorIds.size > 0;
+  const projectedSourceEvents = shouldFilterDeadActors
+    ? actionEvents.filter((event) => aliveActorIds.has(event.actorId))
+    : actionEvents;
+  const actionTimelineIndexById = new Map<string, number>();
+  timeline.forEach((event, index) => {
+    actionTimelineIndexById.set(event.eventId, index);
+  });
+
+  const currentActionIndex =
+    currentAction !== null
+      ? projectedSourceEvents.findIndex((event) => event.eventId === currentAction.eventId)
+      : -1;
+  const resolvedActionCount = projectedSourceEvents.filter((event) => {
+    const timelineIndex = actionTimelineIndexById.get(event.eventId);
+    return typeof timelineIndex === "number" && timelineIndex < currentEventIndex;
+  }).length;
+  const projectedStartIndex = currentActionIndex >= 0 ? currentActionIndex : resolvedActionCount;
+  const projectedActions: ProjectedTurnChip[] =
+    projectedSourceEvents.length > 0
+      ? Array.from({ length: TURN_TRACK_VISIBLE_COUNT }, (_, offset) => {
+          const wrappedIndex = (projectedStartIndex + offset) % projectedSourceEvents.length;
+          const actor = actorById.get(projectedSourceEvents[wrappedIndex].actorId);
+          if (!actor) {
+            return null;
+          }
+          return {
+            id: `${projectedSourceEvents[wrappedIndex].eventId}-${projectedStartIndex + offset}`,
+            actor,
+            projectedIndex: projectedStartIndex + offset
+          };
+        }).filter((chip): chip is ProjectedTurnChip => chip !== null)
+      : [];
+  const projectedActionSignature = projectedActions.map((chip) => chip.id).join("|");
+  const [visibleChips, setVisibleChips] = useState<RenderedTurnChip[]>(() =>
+    projectedActions.map((chip) => ({ ...chip, state: "steady" }))
+  );
+  const [isAnimatingShift, setIsAnimatingShift] = useState(false);
+  const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (shiftTimeoutRef.current !== null) {
+        clearTimeout(shiftTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const nextChips = projectedActions.map((chip) => ({ ...chip, state: "steady" as const }));
+
+    if (shiftTimeoutRef.current !== null) {
+      clearTimeout(shiftTimeoutRef.current);
+      shiftTimeoutRef.current = null;
+    }
+
+    setVisibleChips((currentChips) => {
+      if (currentChips.length === 0 || nextChips.length === 0) {
+        setIsAnimatingShift(false);
+        return nextChips;
+      }
+
+      const canAnimateShift =
+        nextChips.length === currentChips.length &&
+        currentChips.length > 1 &&
+        currentChips.slice(1).every((chip, index) => chip.id === nextChips[index].id);
+
+      if (!canAnimateShift) {
+        setIsAnimatingShift(false);
+        return nextChips;
+      }
+
+      const animatedChips: RenderedTurnChip[] = [
+        { ...currentChips[0], state: "exiting" as const },
+        ...currentChips.slice(1).map((chip) => ({ ...chip, state: "steady" as const })),
+        { ...nextChips[nextChips.length - 1], state: "entering" as const }
+      ];
+
+      setIsAnimatingShift(true);
+      shiftTimeoutRef.current = setTimeout(() => {
+        setVisibleChips(nextChips);
+        setIsAnimatingShift(false);
+        shiftTimeoutRef.current = null;
+      }, 260);
+
+      return animatedChips;
+    });
+  }, [projectedActionSignature]);
+
+  return (
+    <section className="contentShell combatTurnTrackShell">
+      <section className="contentStack">
+        <article className="contentCard combatTurnTrackCard">
+          <div className="combatTurnTrackRow">
+            <div className={`combatTurnTrackTrack${isAnimatingShift ? " isShifting" : ""}`}>
+              {visibleChips.map((chip, index) => {
+              return (
+                <div
+                  key={chip.id}
+                  className={`combatTurnChip combatTurnChip-${chip.actor.side}${index === 0 ? " isNext" : ""}${
+                    (hpByActorId[chip.actor.id] ?? chip.actor.maxHp) <= 0 ? " isDead" : ""
+                  }${
+                    hoveredActorId === chip.actor.id ? " isReferenced" : ""
+                  }${
+                    chip.state === "entering" ? " isEntering" : ""
+                  }${chip.state === "exiting" ? " isExiting" : ""}`}
+                  aria-label={`${chip.actor.name} projected turn ${chip.projectedIndex + 1}`}
+                  onMouseEnter={() => onHoverActor?.(chip.actor.id)}
+                  onMouseLeave={() => onHoverActor?.(null)}
+                  onFocus={() => onHoverActor?.(chip.actor.id)}
+                  onBlur={() => onHoverActor?.(null)}
+                  tabIndex={0}
+                >
+                  <div className="combatTurnChipPortrait">
+                    {chip.actor.avatarPath && !chip.actor.usesSilhouetteFallback ? (
+                      <img
+                        src={chip.actor.avatarPath}
+                        alt=""
+                        className="combatTurnChipPortraitImage"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div className="combatActorSilhouette combatTurnChipPortraitFallback" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+        </article>
+      </section>
+    </section>
   );
 }
