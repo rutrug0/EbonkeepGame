@@ -31,7 +31,11 @@ import {
 } from "@ebonkeep/shared";
 
 import { devGuestLogin, fetchPlayerState, forgotPassword, getAccountOverview, login, register, resendVerificationEmail, resetPassword, updatePlayerPreferences, verifyEmail } from "./api";
-import { CombatEncounterPanel } from "./components/CombatEncounterPanel";
+import {
+  CombatEncounterArenaPanel,
+  CombatEncounterLogPanel,
+  CombatEncounterPanel
+} from "./components/CombatEncounterPanel";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
   GENERATED_ITEM_ENCYCLOPEDIA_DATA,
@@ -238,9 +242,9 @@ const CONTRACT_SLOT_COUNT = 6;
 const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
 const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
 const CONTRACT_TRAVEL_DURATION_MS = 5 * 1000;
-const COMBAT_PLAYBACK_START_DELAY_MS = 500;
-const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 1140;
-const COMBAT_PLAYBACK_BEAT_MS = 2200;
+const COMBAT_PLAYBACK_START_DELAY_MS = 330;
+const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 760;
+const COMBAT_PLAYBACK_BEAT_MS = 1470;
 const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
 const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
@@ -1222,6 +1226,10 @@ function getMonsterAssetPath(key: string): string | undefined {
   return GENERATED_ITEM_ICON_PATHS[key];
 }
 
+function getCombatStageAssetPath(familyId: string): string | undefined {
+  return GENERATED_ITEM_ICON_PATHS[`combat_stage:${familyId}`];
+}
+
 function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
   switch (difficulty) {
     case "easy":
@@ -1236,11 +1244,15 @@ function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
 }
 
 function getEncounterPreset(difficulty: ContractDifficulty): {
+  familyId: string;
   locationName: string;
   enemyId: string;
   enemyName: string;
   enemyMaxHp: number;
+  enemyPower: number;
+  enemyCombatStat: "strength" | "dexterity" | "intelligence";
   travelImagePath?: string;
+  combatBackgroundPath?: string;
   travelImageMode: "image" | "silhouette";
   avatarPath?: string;
   usesSilhouetteFallback?: boolean;
@@ -1248,39 +1260,54 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
   switch (difficulty) {
     case "easy":
       return {
+        familyId: "snagtooth_hollow_00",
         locationName: "Snagtooth Hollow",
         enemyId: "enemy-snagtooth-boss",
         enemyName: "Snagtooth Boss",
         enemyMaxHp: 72,
+        enemyPower: 84,
+        enemyCombatStat: "strength",
         travelImagePath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss"),
+        combatBackgroundPath: getCombatStageAssetPath("snagtooth_hollow_00"),
         travelImageMode: "image",
         avatarPath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss")
       };
     case "medium":
       return {
+        familyId: "mirepool_boglings_04",
         locationName: "Mirepool Hollow",
         enemyId: "enemy-mire-croaker",
         enemyName: "The Mire Croaker",
         enemyMaxHp: 88,
+        enemyPower: 112,
+        enemyCombatStat: "dexterity",
         travelImagePath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker"),
+        combatBackgroundPath: getCombatStageAssetPath("mirepool_boglings_04"),
         travelImageMode: "image",
         avatarPath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker")
       };
     case "hard":
       return {
+        familyId: "cinder_kiln_hands_08",
         locationName: "The Cinder Kiln",
         enemyId: "enemy-kiln-master",
         enemyName: "The Kiln Master",
         enemyMaxHp: 102,
+        enemyPower: 136,
+        enemyCombatStat: "intelligence",
+        combatBackgroundPath: getCombatStageAssetPath("cinder_kiln_hands_08"),
         travelImageMode: "silhouette",
         usesSilhouetteFallback: true
       };
     default:
       return {
+        familyId: "unknown_reach",
         locationName: "Unknown Reach",
         enemyId: "enemy-unknown",
         enemyName: "Unknown Enemy",
         enemyMaxHp: 80,
+        enemyPower: 100,
+        enemyCombatStat: "strength",
         travelImageMode: "silhouette",
         usesSilhouetteFallback: true
       };
@@ -1291,17 +1318,23 @@ function buildMockCombatEncounterState(args: {
   offer: ContractOffer;
   slotIndex: number;
   playerName: string;
+  playerClass: PlayerClass;
+  playerPower: number;
   playerAvatarPath?: string | null;
   nowMs: number;
 }): ActiveContractEncounterState {
-  const { offer, slotIndex, playerName, playerAvatarPath, nowMs } = args;
+  const { offer, slotIndex, playerName, playerClass, playerPower, playerAvatarPath, nowMs } = args;
   const preset = getEncounterPreset(offer.template.difficulty);
   const playerMaxHp = 100;
+  const playerCombatStat: "strength" | "dexterity" | "intelligence" =
+    playerClass === "mage" ? "intelligence" : playerClass === "ranger" ? "dexterity" : "strength";
   const playerActor = {
     id: "player-warden",
     side: "player" as const,
     name: playerName,
     maxHp: playerMaxHp,
+    power: playerPower,
+    combatStat: playerCombatStat,
     avatarPath: playerAvatarPath ?? undefined
   };
   const enemyActor = {
@@ -1309,6 +1342,8 @@ function buildMockCombatEncounterState(args: {
     side: "enemy" as const,
     name: preset.enemyName,
     maxHp: preset.enemyMaxHp,
+    power: preset.enemyPower,
+    combatStat: preset.enemyCombatStat,
     avatarPath: preset.avatarPath,
     usesSilhouetteFallback: preset.usesSilhouetteFallback
   };
@@ -1319,6 +1354,7 @@ function buildMockCombatEncounterState(args: {
     difficulty: offer.template.difficulty,
     locationName: preset.locationName,
     travelImagePath: preset.travelImagePath,
+    combatBackgroundPath: preset.combatBackgroundPath,
     travelImageMode: preset.travelImageMode,
     player: playerActor,
     enemies: [enemyActor]
@@ -1478,37 +1514,6 @@ function getEncounterAnimationRate(encounter: ActiveContractEncounterState): num
 
 function getEncounterPlaybackThresholdMs(baseMs: number, encounter: ActiveContractEncounterState): number {
   return (baseMs * encounter.segmentPlaybackRate) / getEncounterAnimationRate(encounter);
-}
-
-function getDisplayedEncounterTurn(encounter: ActiveContractEncounterState): number | null {
-  if (encounter.phase !== "combat") {
-    return null;
-  }
-
-  if (encounter.activeAction) {
-    return encounter.activeAction.turnIndex;
-  }
-
-  const currentEvent = encounter.timeline[encounter.currentEventIndex] ?? null;
-  if (currentEvent?.type === "CombatPlaybackActionResolved") {
-    return currentEvent.turnIndex;
-  }
-
-  for (let index = encounter.currentEventIndex - 1; index >= 0; index -= 1) {
-    const event = encounter.timeline[index];
-    if (event?.type === "CombatPlaybackActionResolved") {
-      return event.turnIndex;
-    }
-  }
-
-  for (let index = encounter.currentEventIndex + 1; index < encounter.timeline.length; index += 1) {
-    const event = encounter.timeline[index];
-    if (event?.type === "CombatPlaybackActionResolved") {
-      return event.turnIndex;
-    }
-  }
-
-  return null;
 }
 
 function getLayoutMode(viewportWidth: number): LayoutMode {
@@ -2158,6 +2163,7 @@ export function App() {
   const [canDockInventoryChat, setCanDockInventoryChat] = useState(false);
   const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
   const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
+  const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
   const [activeStatTraining, setActiveStatTraining] = useState<{
@@ -3325,6 +3331,14 @@ export function App() {
     setIsInventoryChatOverlayOpen(false);
   }
 
+  function openCombatLog() {
+    setIsCombatLogVisible(true);
+  }
+
+  function closeCombatLog() {
+    setIsCombatLogVisible(false);
+  }
+
   function sendChatMessage() {
     const trimmedMessage = chatDraft.trim();
     if (!trimmedMessage) {
@@ -3619,11 +3633,17 @@ export function App() {
   }
 
   function startContractEncounter(slotIndex: number, offer: ContractOffer) {
+    if (!playerState) {
+      return;
+    }
+    setIsCombatLogVisible(true);
     setActiveContractEncounter(
       buildMockCombatEncounterState({
         offer,
         slotIndex,
         playerName: profileName,
+        playerClass: playerState.class,
+        playerPower: playerState.gearScore,
         playerAvatarPath: activeCharacterVisualPath,
         nowMs: Date.now()
       })
@@ -4422,18 +4442,18 @@ export function App() {
       );
     }
 
-    if (activeContractEncounter && activeContractEncounter.phase !== "board") {
+    if (activeContractEncounter && activeContractEncounter.phase === "travel") {
       return (
         <CombatEncounterPanel
           phase={activeContractEncounter.phase}
           encounter={activeContractEncounter.encounter}
+          timeline={activeContractEncounter.timeline}
           nowMs={nowMs}
           travelEndsAt={activeContractEncounter.travelEndsAt}
           travelDescription={activeContractEncounter.travelDescription}
           hpByActorId={activeContractEncounter.hpByActorId}
           combatLogEntries={activeContractEncounter.combatLogEntries}
           currentAction={activeContractEncounter.activeAction}
-          currentTurnIndex={getDisplayedEncounterTurn(activeContractEncounter)}
           impactTargetId={activeContractEncounter.impactTargetId}
           resolutionState={activeContractEncounter.resolutionState}
           typedSummaryLine={activeContractEncounter.typedSummaryLine}
@@ -5404,6 +5424,52 @@ export function App() {
                   <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
                 ) : null}
               </div>
+            ) : activeTab === "contracts" &&
+              activeContractEncounter &&
+              activeContractEncounter.phase === "combat" ? (
+              <>
+                {isCombatLogVisible ? (
+                  <div className="panelViewportGroup contractsCombatViewportGroup">
+                    <div className="panelViewportProfileMain contractsCombatViewportMain">
+                      <CombatEncounterArenaPanel
+                        encounter={activeContractEncounter.encounter}
+                        timeline={activeContractEncounter.timeline}
+                        hpByActorId={activeContractEncounter.hpByActorId}
+                        currentAction={activeContractEncounter.activeAction}
+                        impactTargetId={activeContractEncounter.impactTargetId}
+                        playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+                        isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+                        onToggleFastForward={toggleCombatFastForward}
+                      />
+                    </div>
+                    <div className="panelViewportSide contractsCombatViewportSide">
+                      <CombatEncounterLogPanel
+                        encounter={activeContractEncounter.encounter}
+                        timeline={activeContractEncounter.timeline}
+                        combatLogEntries={activeContractEncounter.combatLogEntries}
+                        resolutionState={activeContractEncounter.resolutionState}
+                        typedSummaryLine={activeContractEncounter.typedSummaryLine}
+                        onCloseLog={closeCombatLog}
+                        onReplayCombat={replayContractEncounter}
+                        onBackToBoard={returnToContractsBoard}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="panelViewport contractsCombatViewportExpanded">
+                    <CombatEncounterArenaPanel
+                      encounter={activeContractEncounter.encounter}
+                      timeline={activeContractEncounter.timeline}
+                      hpByActorId={activeContractEncounter.hpByActorId}
+                      currentAction={activeContractEncounter.activeAction}
+                      impactTargetId={activeContractEncounter.impactTargetId}
+                      playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+                      isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+                      onToggleFastForward={toggleCombatFastForward}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="panelViewport">{renderActivePanel()}</div>
             )}
@@ -5427,6 +5493,28 @@ export function App() {
                 </svg>
               </button>
             </>
+          ) : null}
+
+          {activeTab === "contracts" &&
+          activeContractEncounter &&
+          activeContractEncounter.phase === "combat" &&
+          !isCombatLogVisible ? (
+            <button
+              className="inventoryChatFloatingToggle combatLogFloatingToggle"
+              onClick={openCombatLog}
+              aria-label={i18n.t("contracts.combatLog")}
+              aria-pressed="false"
+              type="button"
+            >
+              <svg
+                className="inventoryChatFloatingToggleIcon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M7 3h8l3 3v14H7V3Zm2 4h6V5H9v2Zm0 4h7V9H9v2Zm0 4h7v-2H9v2Zm0 4h5v-2H9v2Z" />
+              </svg>
+            </button>
           ) : null}
 
           {error ? <div className="error floatingError">{i18n.t("app.errorPrefix")}: {error}</div> : null}

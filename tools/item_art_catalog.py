@@ -146,6 +146,13 @@ def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
         key = f"monster:{family_id}:{normalize_name_for_key(item_slug.replace('_', ' '))}"
         return key, f"/assets/items/generated/{rel.as_posix()}"
 
+    if major == "combat_stage":
+        if len(parts) < 3:
+            return None
+        family_id = parts[1].lower()
+        key = f"combat_stage:{family_id}"
+        return key, f"/assets/items/generated/{rel.as_posix()}"
+
     return None
 
 

@@ -569,6 +569,43 @@ button:focus-visible {
   min-height: 0;
 }
 
+.contractsCombatViewportMain,
+.contractsCombatViewportSide {
+  min-height: 0;
+}
+
+.contractsCombatViewportGroup {
+  width: 100%;
+  min-width: 0;
+  max-width: var(--panel-viewport-max);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.contractsCombatViewportMain {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+}
+
+.contractsCombatViewportMain .contentShell,
+.contractsCombatViewportMain .contentCard {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.contractsCombatViewportSide {
+  width: 360px;
+  min-width: 300px;
+  max-width: 360px;
+}
+
+.contractsCombatViewportExpanded {
+  max-width: var(--panel-viewport-max);
+}
+
 .statsViewportShell {
   height: 100%;
 }
@@ -1151,7 +1188,11 @@ button:focus-visible {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.75fr);
   align-items: start;
-  gap: var(--space-3);
+  gap: clamp(1.25rem, 2.4vw, 2rem);
+}
+
+.combatEncounterStackSingle {
+  width: 100%;
 }
 
 .combatEncounterCard,
@@ -1163,36 +1204,36 @@ button:focus-visible {
 
 .combatEncounterCard {
   min-width: 0;
+  min-height: 100%;
+  padding: 0;
+  border-bottom: none;
 }
 
 .combatLogCard {
   min-width: 0;
-  max-height: min(78vh, 920px);
+  height: 100%;
+  max-height: none;
+  align-self: stretch;
+  border: 1px solid var(--border-soft);
+  background: var(--panel-soft-solid);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
-.combatEncounterHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--space-3);
+.combatLogShell,
+.combatEncounterShell {
+  height: 100%;
+  min-height: 0;
 }
 
-.combatEncounterHeaderMeta {
-  display: grid;
-  justify-items: end;
-  gap: var(--space-1);
-  color: var(--text-soft);
-  font-size: 0.92rem;
-  font-weight: 600;
+.combatEncounterShell {
+  border: none;
+  background: transparent;
 }
 
-.combatTurnBadge {
-  min-width: 86px;
-  text-align: right;
-}
-
-.combatTurnBadge.isHidden {
-  visibility: hidden;
+.combatLogShell .contentStack,
+.combatEncounterShell .contentStack {
+  min-height: 100%;
+  height: 100%;
 }
 
 .combatEncounterEyebrow {
@@ -1241,11 +1282,7 @@ button:focus-visible {
 .combatActorSilhouette {
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(circle at top, rgba(135, 152, 171, 0.28), transparent 34%),
-    radial-gradient(circle at 50% 32%, rgba(221, 228, 234, 0.14), transparent 12%),
-    radial-gradient(circle at 50% 62%, rgba(221, 228, 234, 0.09), transparent 20%),
-    linear-gradient(180deg, rgba(52, 67, 79, 0.9), rgba(20, 27, 33, 0.98));
+  background: rgba(49, 61, 72, 0.94);
 }
 
 .travelEncounterSummary {
@@ -1254,8 +1291,7 @@ button:focus-visible {
   align-content: center;
 }
 
-.travelEncounterLocation,
-.combatBattlefieldLocation {
+.travelEncounterLocation {
   margin: 0;
   color: color-mix(in srgb, var(--text-main) 86%, var(--accent-info) 14%);
   font-size: 1.08rem;
@@ -1263,7 +1299,6 @@ button:focus-visible {
 }
 
 .travelEncounterDescription,
-.combatBattlefieldDescription,
 .victoryEncounterSummary {
   margin: 0;
   color: var(--text-soft);
@@ -1298,9 +1333,12 @@ button:focus-visible {
 }
 
 .combatActorHpBar {
-  height: 14px;
+  position: relative;
+  height: 24px;
   border: 1px solid rgba(191, 174, 145, 0.12);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.42);
+  border-radius: 3px;
+  background: rgba(8, 11, 14, 0.88);
 }
 
 .travelEncounterCountdownFill {
@@ -1313,18 +1351,107 @@ button:focus-visible {
   --combat-hit-lower-distance: 42px;
   --combat-return-hover-distance: 14px;
   --combat-hit-amplitude: 14px;
-  --combat-animation-duration: 2200ms;
+  --combat-animation-duration: 1470ms;
   --combat-hit-duration: 540ms;
   --combat-summary-cursor-duration: 900ms;
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-rows: auto minmax(120px, auto) auto;
   align-items: center;
   gap: clamp(1.5rem, 4vw, 3.5rem);
-  margin-top: var(--space-3);
+  margin-top: 0;
   min-height: clamp(520px, 72vh, 760px);
+  height: 100%;
+  padding: clamp(0.9rem, 1.8vw, 1.35rem);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(91, 114, 138, 0.18), transparent 52%),
+    linear-gradient(180deg, rgba(16, 22, 28, 0.96), rgba(12, 17, 22, 0.98));
+  box-shadow:
+    inset 0 0 0 10px rgba(9, 13, 17, 0.28),
+    0 18px 34px rgba(5, 7, 10, 0.28);
+}
+
+.combatBattlefield::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: 50%;
+  height: 1px;
+  z-index: 1;
+  background: linear-gradient(90deg, transparent, rgba(212, 221, 228, 0.46), transparent);
+  box-shadow: 0 0 14px rgba(129, 156, 176, 0.22);
+  pointer-events: none;
+}
+
+.combatBattlefield::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(243, 247, 250, 0.06) 0%,
+      rgba(243, 247, 250, 0.02) 44%,
+      rgba(6, 10, 13, 0.14) 56%,
+      rgba(6, 10, 13, 0.18) 100%
+    );
+  pointer-events: none;
+}
+
+.combatBattlefieldBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.combatBattlefieldBackdrop img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: blur(3px) saturate(0.9) brightness(0.72);
+  transform: scale(1.04);
+}
+
+.combatBattlefieldBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(9, 13, 17, 0.16), rgba(9, 13, 17, 0.42)),
+    radial-gradient(circle at center, rgba(9, 13, 17, 0.04), rgba(9, 13, 17, 0.22));
+}
+
+.combatSpeedToggleOverlay {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  min-width: 0;
+  width: 44px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+  background: rgba(15, 20, 26, 0.82);
+  backdrop-filter: blur(8px);
 }
 
 .combatLane {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -1337,19 +1464,9 @@ button:focus-visible {
 }
 
 .combatBattlefieldCenter {
-  display: grid;
-  gap: var(--space-3);
-  justify-items: center;
-  text-align: center;
-  align-content: center;
-  min-height: 140px;
-}
-
-.combatBattlefieldDivider {
-  width: min(100%, 260px);
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(200, 184, 154, 0.72), transparent);
-  box-shadow: 0 0 22px rgba(200, 184, 154, 0.16);
+  position: relative;
+  z-index: 2;
+  min-height: 120px;
 }
 
 .combatActorFrame {
@@ -1362,16 +1479,21 @@ button:focus-visible {
 }
 
 .combatActorFrameShell {
+  position: relative;
   display: grid;
   gap: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid rgba(191, 174, 145, 0.18);
-  border-radius: calc(var(--soft-radius) + 8px);
-  background:
-    linear-gradient(180deg, rgba(31, 41, 51, 0.96), rgba(17, 23, 29, 0.99));
-  box-shadow: 0 20px 40px rgba(6, 8, 10, 0.28);
+  padding: 9px;
+  border: 1px solid rgba(133, 145, 157, 0.4);
+  border-radius: 3px;
+  background: rgba(25, 31, 37, 0.96);
+  box-shadow: 0 12px 24px rgba(6, 8, 10, 0.24);
   transform: translate3d(0, 0, 0);
   will-change: transform, box-shadow;
+}
+
+.combatActorFrame-enemy .combatActorFrameShell {
+  background: rgba(21, 25, 29, 0.96);
+  border-color: rgba(121, 129, 138, 0.44);
 }
 
 .combatActorFrame-player {
@@ -1385,11 +1507,12 @@ button:focus-visible {
 }
 
 .combatActorPortraitWrap {
+  position: relative;
   aspect-ratio: 4 / 5;
-  border: 1px solid rgba(191, 174, 145, 0.14);
-  border-radius: calc(var(--soft-radius) + 2px);
+  border: 1px solid rgba(125, 136, 145, 0.4);
+  border-radius: 2px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(17, 23, 28, 0.98), rgba(12, 16, 20, 1));
+  background: rgba(15, 19, 23, 0.98);
 }
 
 .combatActorPortrait {
@@ -1399,8 +1522,90 @@ button:focus-visible {
   display: block;
 }
 
+.combatActorMeta {
+  position: absolute;
+  bottom: 8px;
+  z-index: 1;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #eef2f5;
+  font-size: 1.42rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.8),
+    0 4px 10px rgba(0, 0, 0, 0.65);
+}
+
+.combatActorMetaPower {
+  left: 8px;
+}
+
+.combatActorMetaType {
+  right: 8px;
+  overflow: visible;
+}
+
+.combatActorMetaType svg {
+  width: 40px;
+  height: 40px;
+  fill: currentColor;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.8)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+}
+
+.combatActorMetaType:focus-visible {
+  outline: none;
+}
+
+.combatActorMetaTooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  padding: 0.28rem 0.45rem;
+  border: 1px solid rgba(154, 164, 173, 0.42);
+  border-radius: 3px;
+  background: rgba(10, 13, 16, 0.94);
+  color: #f4f7f8;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  pointer-events: none;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
+}
+
+.combatActorMetaType:hover .combatActorMetaTooltip,
+.combatActorMetaType:focus-visible .combatActorMetaTooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .combatActorHpFill {
-  background: linear-gradient(90deg, rgba(110, 166, 108, 0.96), rgba(186, 213, 134, 0.98));
+  background: rgba(107, 165, 105, 0.96);
+}
+
+.combatActorHpLabel {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f4f7f8;
+  font-size: 1.04rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
+  pointer-events: none;
 }
 
 .combatActorFrame.isAttacking.combatActorFrame-player {
@@ -1418,20 +1623,67 @@ button:focus-visible {
 }
 
 .combatLogBody {
-  margin-top: var(--space-2);
-  display: grid;
-  gap: var(--space-3);
-  max-height: calc(min(78vh, 920px) - 92px);
+  margin-top: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--space-2);
   overflow-y: auto;
   padding-right: 0.25rem;
 }
 
 .combatLogList {
   margin: 0;
-  padding-left: 1.2rem;
+  padding: 0;
+  list-style: none;
   display: grid;
-  gap: var(--space-2);
+  gap: 6px;
   color: var(--text-main);
+}
+
+.combatLogMessage {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  padding: 6px;
+  background: linear-gradient(160deg, rgba(24, 32, 41, 0.92), rgba(17, 23, 31, 0.95));
+}
+
+.combatLogPortrait {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(125, 136, 145, 0.32);
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(15, 19, 23, 0.98);
+}
+
+.combatLogPortraitImage,
+.combatLogPortraitFallback {
+  width: 100%;
+  height: 100%;
+}
+
+.combatLogPortraitImage {
+  display: block;
+  object-fit: cover;
+  object-position: 50% 12%;
+  transform: scale(2.1);
+  transform-origin: center top;
+}
+
+.combatLogPortraitFallback {
+  background: rgba(49, 61, 72, 0.94);
+}
+
+.combatLogMessageText {
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.24;
 }
 
 .combatLogEmpty {
@@ -1441,11 +1693,11 @@ button:focus-visible {
 
 .combatSummaryBlock {
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid rgba(191, 174, 145, 0.14);
+  gap: 6px;
+  padding: var(--space-2);
+  border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
-  background: linear-gradient(180deg, rgba(25, 33, 40, 0.94), rgba(16, 22, 27, 0.98));
+  background: rgba(24, 32, 41, 0.92);
 }
 
 .combatSummaryEyebrow {
@@ -1461,7 +1713,7 @@ button:focus-visible {
   margin: 0;
   min-height: 3.2em;
   color: var(--text-main);
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 .combatSummaryCursor {
@@ -1506,11 +1758,6 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.combatBackButton {
-  min-width: 220px;
-  justify-self: start;
-}
-
 .combatSpeedToggle {
   min-width: 160px;
   padding-inline: 0.9rem;
@@ -1525,10 +1772,45 @@ button:focus-visible {
   box-shadow: 0 0 0 1px rgba(226, 182, 111, 0.18);
 }
 
-.combatEndActions {
+.combatLogToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.combatLogCloseButton {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.combatLogActionsBar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.combatLogActionButton {
+  min-width: 0;
+  padding: 0.38rem 0.72rem;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  border-color: rgba(191, 174, 145, 0.18);
+  background: rgba(21, 28, 35, 0.92);
+}
+
+.combatLogFloatingToggle {
+  z-index: 39;
 }
 
 @keyframes combatStrikePlayer {
@@ -1703,6 +1985,17 @@ button:focus-visible {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.appRoot.layout-compact .contractsCombatViewportGroup {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: none;
+}
+
+.appRoot.layout-compact .contractsCombatViewportSide {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
 .appRoot.layout-compact .combatBattlefield {
   --combat-attack-travel: 164px;
   --combat-lift-distance: 22px;
@@ -1711,6 +2004,11 @@ button:focus-visible {
   --combat-hit-amplitude: 10px;
   gap: var(--space-4);
   min-height: auto;
+}
+
+.appRoot.layout-compact .combatSpeedToggleOverlay {
+  top: 10px;
+  right: 10px;
 }
 
 .appRoot.layout-compact .combatLane {
@@ -1735,14 +2033,6 @@ button:focus-visible {
   max-height: none;
   overflow-y: visible;
   padding-right: 0;
-}
-
-.appRoot.layout-compact .combatEncounterHeader {
-  flex-direction: column;
-}
-
-.appRoot.layout-compact .combatEncounterHeaderMeta {
-  justify-items: start;
 }
 
 .statsGrid {

@@ -296,6 +296,8 @@ export const combatPlaybackActorSchema = z.object({
   side: z.enum(["player", "enemy"]),
   name: z.string(),
   maxHp: z.number().int().min(1),
+  power: z.number().int().min(0).optional(),
+  combatStat: z.enum(["strength", "dexterity", "intelligence"]).optional(),
   avatarPath: z.string().optional(),
   usesSilhouetteFallback: z.boolean().optional()
 });
@@ -308,6 +310,7 @@ export const combatPlaybackEncounterSchema = z.object({
   difficulty: z.enum(["easy", "medium", "hard"]),
   locationName: z.string(),
   travelImagePath: z.string().optional(),
+  combatBackgroundPath: z.string().optional(),
   travelImageMode: z.enum(["image", "silhouette"]),
   player: combatPlaybackActorSchema,
   enemies: z.array(combatPlaybackActorSchema).min(1)

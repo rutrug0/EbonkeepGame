@@ -248,6 +248,7 @@ export const GENERATED_ITEM_ICON_PATHS: Record<string, string> = {
   "character:strength:character_str7": "/assets/items/generated/character/strength/character_str7.png",
   "character:strength:character_str8": "/assets/items/generated/character/strength/character_str8.png",
   "character:strength:character_str9": "/assets/items/generated/character/strength/character_str9.png",
+  "combat_stage:snagtooth_hollow_00": "/assets/items/generated/combat_stage/snagtooth_hollow_00/combat_stage_snagtooth_hollow_field.png",
   "jewelry:necklace:bastion medal": "/assets/items/generated/jewelry/necklace/necklace_bastion_medal.png",
   "jewelry:necklace:bone pendant": "/assets/items/generated/jewelry/necklace/necklace_bone_pendant.png",
   "jewelry:necklace:moon talisman": "/assets/items/generated/jewelry/necklace/necklace_moon_talisman.png",

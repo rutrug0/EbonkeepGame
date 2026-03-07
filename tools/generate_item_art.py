@@ -113,6 +113,7 @@ class ItemRecord:
     item_id: str
     source_id: str
     source_group: str
+    prompt_group: str
     csv_path: str
     row_number: int
     major_category: str
@@ -329,6 +330,9 @@ def merge_source_lookups(
 
 
 def asset_family_for(record: ItemRecord) -> str:
+    if record.major_category == "combat_stage":
+        return "combat_stage"
+
     if record.major_category == "armor":
         parts = record.family_key.split(":")
         archetype = parts[1] if len(parts) > 1 else "armor"
@@ -394,6 +398,9 @@ def build_family_key(source: dict[str, Any], row: dict[str, str], major_category
     if major_category == "monster":
         family_id = (row.get("family_id") or "").strip()
         return f"monster:{family_id}" if family_id else "monster"
+    if major_category == "combat_stage":
+        family_id = (row.get("family_id") or "").strip()
+        return f"combat_stage:{family_id}" if family_id else "combat_stage"
     return major_category
 
 
@@ -547,6 +554,7 @@ def build_item_record(
         item_id=item_id,
         source_id=source_id,
         source_group=str(source.get("group", "other")),
+        prompt_group=str(source.get("prompt_group", source.get("group", "other"))),
         csv_path=str(source["path"]),
         row_number=row_idx,
         major_category=major,
@@ -565,7 +573,7 @@ def build_item_record(
 
 def compose_prompt(record: ItemRecord, config: dict[str, Any]) -> str:
     group_general_prompts = config.get("group_general_prompts", {})
-    group_prompt = str(group_general_prompts.get(record.source_group, "")).strip()
+    group_prompt = str(group_general_prompts.get(record.prompt_group, "")).strip()
     general_prompt = group_prompt or str(config.get("general_prompt", "")).strip()
     if record.major_category == "weapon":
         design_block = f"Weapon Design:\n\n{record.prompt_item_description.strip()}"
