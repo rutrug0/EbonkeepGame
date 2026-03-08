@@ -11,13 +11,14 @@
 2. Script will:
    - stop existing local processes and reset docker volumes (`stop-local.bat --purge-data`)
    - create `.env` from `.env.example` (if missing)
+   - select a usable local Postgres host port and write it to `.env` as `EBONKEEP_POSTGRES_HOST_PORT`
    - boot Postgres and Redis with Docker Compose
    - run Prisma generate/migrate/seed
    - start API and Web windows
 
 ## Manual Commands
 - Install dependencies: `npm install`
-- Start infra: `docker compose -f infra/docker/docker-compose.yml up -d`
+- Start infra: `docker compose --env-file .env -f infra/docker/docker-compose.yml up -d`
 - Run API: `npm run dev:api`
 - Run web: `npm run dev:web`
 - Run desktop wrapper: `npm run dev:desktop`
@@ -31,7 +32,7 @@
 - Docker not running:
   - Start Docker Desktop and rerun `run-local.bat`.
 - Port already in use (`4000`, `5173`, `55432`, `6379`):
-  - stop conflicting process or edit `.env` + compose ports.
+  - stop conflicting process or rerun `run-local.bat`; it will rewrite `.env` to a bindable Postgres host port when possible.
 - Prisma migration errors:
   - verify `DATABASE_URL` in `.env`.
   - if you get `P1000` auth failures after changing local credentials, reset local db volume:

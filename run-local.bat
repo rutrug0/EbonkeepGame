@@ -55,13 +55,15 @@ if not exist ".env" (
   echo [2/8] Creating .env from .env.example...
   copy /y ".env.example" ".env" >nul
 )
-echo [2/8] Normalizing default local DB URL...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$path='.env'; if (Test-Path $path) { $raw=Get-Content -Raw $path; $old='DATABASE_URL=postgresql://ebonkeep:ebonkeep@localhost:5432/ebonkeep?schema=public'; $new='DATABASE_URL=postgresql://ebonkeep:ebonkeep@localhost:55432/ebonkeep?schema=public'; if ($raw.Contains($old)) { $raw=$raw.Replace($old,$new); Set-Content -Path $path -Value $raw -Encoding UTF8 -NoNewline; Write-Output 'Updated DATABASE_URL port to 55432 in .env'; } }"
+echo [2/8] Selecting local Postgres host port...
+for /f %%p in ('powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\sync-local-postgres-port.ps1" -EnvPath ".env"') do set "POSTGRES_HOST_PORT=%%p"
 if errorlevel 1 (
-  echo Failed to normalize .env database URL.
+  echo Failed to select a usable Postgres host port.
   set "FAILED=1"
   goto :fail
 )
+set "EBONKEEP_POSTGRES_HOST_PORT=%POSTGRES_HOST_PORT%"
+echo [2/8] Using Postgres on localhost:%POSTGRES_HOST_PORT%
 echo [2/8] Syncing app env files...
 copy /y ".env" "apps\api\.env" >nul
 if errorlevel 1 (
@@ -84,7 +86,7 @@ if errorlevel 1 (
   goto :fail
 )
 timeout /t 2 /nobreak >nul
-docker compose -f "infra\docker\docker-compose.yml" up -d
+docker compose --env-file ".env" -f "infra\docker\docker-compose.yml" up -d
 if errorlevel 1 (
   echo Failed to start docker services.
   set "FAILED=1"
@@ -92,7 +94,7 @@ if errorlevel 1 (
 )
 
 echo [4/8] Waiting for services...
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-port.ps1" -HostName "localhost" -Port 55432 -TimeoutSeconds 90
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-port.ps1" -HostName "localhost" -Port %POSTGRES_HOST_PORT% -TimeoutSeconds 90
 if errorlevel 1 (
   set "FAILED=1"
   goto :fail

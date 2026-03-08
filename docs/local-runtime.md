@@ -2,7 +2,7 @@
 
 ## Overview
 Local runtime starts:
-- Postgres (`localhost:55432`)
+- Postgres (`localhost:<EBONKEEP_POSTGRES_HOST_PORT from .env>`, prefers `55432` and falls back automatically if Windows blocks it)
 - Redis (`localhost:6379`)
 - API (`http://localhost:4000`)
 - Web (`http://localhost:5173`)

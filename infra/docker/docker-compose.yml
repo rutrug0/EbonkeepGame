@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ebonkeep
       POSTGRES_DB: ebonkeep
     ports:
-      - "55432:5432"
+      - "${EBONKEEP_POSTGRES_HOST_PORT:-55432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

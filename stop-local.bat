@@ -12,9 +12,9 @@ for %%T in ("Ebonkeep API" "Ebonkeep Web" "Ebonkeep Desktop") do (
 
 echo Stopping docker services...
 if "%PURGE_DATA%"=="1" (
-  docker compose -f "infra\docker\docker-compose.yml" down -v
+  docker compose --env-file ".env" -f "infra\docker\docker-compose.yml" down -v
 ) else (
-  docker compose -f "infra\docker\docker-compose.yml" down
+  docker compose --env-file ".env" -f "infra\docker\docker-compose.yml" down
 )
 
 echo Local stack stopped.
