@@ -856,6 +856,171 @@ button:focus-visible {
   font-size: 0.98rem;
 }
 
+.ledgerControlsCard,
+.ledgerZoneSummaryCard,
+.ledgerListCard {
+  align-content: start;
+}
+
+.ledgerZoneSummary {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.ledgerZoneSummaryCopy {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ledgerZoneSummaryCopy h3 {
+  margin: 0;
+  font-size: 1.14rem;
+}
+
+.ledgerZoneSummaryCopy p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.ledgerZoneSummaryStats {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+}
+
+.ledgerZoneBadge {
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 44%, transparent);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-main) 90%, var(--accent-warn) 10%);
+  background: rgba(39, 31, 22, 0.55);
+}
+
+.ledgerEntryList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.ledgerEntryCard {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: stretch;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background:
+    linear-gradient(180deg, rgba(34, 42, 50, 0.92), rgba(18, 24, 30, 0.96)),
+    linear-gradient(130deg, rgba(109, 88, 54, 0.08), rgba(36, 46, 59, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(246, 230, 198, 0.04),
+    inset 0 -8px 16px rgba(7, 10, 14, 0.18);
+  padding: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ledgerEntryCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 42%, rgba(8, 10, 13, 0.18) 100%);
+  pointer-events: none;
+}
+
+.ledgerEntryCard.isBoss {
+  border-color: color-mix(in srgb, var(--accent-warn) 44%, var(--border-soft) 56%);
+}
+
+.ledgerEntryImageWrap {
+  position: relative;
+  min-height: 148px;
+  border: 1px solid color-mix(in srgb, var(--border) 76%, transparent);
+  border-radius: calc(var(--soft-radius) - 2px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(193, 165, 112, 0.12), transparent 48%),
+    linear-gradient(180deg, rgba(40, 32, 23, 0.84), rgba(18, 24, 30, 0.92));
+}
+
+.ledgerEntryImageWrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(14, 11, 8, 0.04), rgba(222, 197, 153, 0.06));
+  pointer-events: none;
+}
+
+.ledgerEntryImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: sepia(0.36) grayscale(0.18) contrast(1.08) brightness(0.94) saturate(0.82);
+}
+
+.ledgerEntryBody {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  min-width: 0;
+}
+
+.ledgerEntryMeta {
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: color-mix(in srgb, var(--text-main) 68%, var(--accent-info) 32%);
+}
+
+.ledgerEntryName {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.24;
+}
+
+.ledgerEntryFlavor {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.42;
+  color: color-mix(in srgb, var(--text-main) 84%, white 16%);
+}
+
+.ledgerEntryStats {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.ledgerEntryStat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(191, 174, 145, 0.12);
+}
+
+.ledgerEntryStat span {
+  color: var(--text-soft);
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ledgerEntryStat strong {
+  text-align: right;
+  font-size: 0.88rem;
+  line-height: 1.2;
+  color: color-mix(in srgb, var(--text-main) 92%, var(--accent-warn) 8%);
+}
+
 .profileSwitchBar {
   display: flex;
   justify-content: space-between;
@@ -2236,6 +2401,27 @@ button:focus-visible {
 
 .appRoot.layout-compact .encyclopediaSetGrid {
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+.appRoot.layout-compact .ledgerZoneSummary {
+  flex-direction: column;
+}
+
+.appRoot.layout-compact .ledgerZoneSummaryStats {
+  justify-items: start;
+}
+
+.appRoot.layout-compact .ledgerEntryCard {
+  grid-template-columns: 1fr;
+}
+
+.appRoot.layout-compact .ledgerEntryImageWrap {
+  min-height: 214px;
+}
+
+.appRoot.layout-standard .ledgerEntryList,
+.appRoot.layout-compact .ledgerEntryList {
+  grid-template-columns: 1fr;
 }
 
 .appRoot.layout-compact .contractsTableWrap {

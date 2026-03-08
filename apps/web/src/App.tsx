@@ -73,6 +73,13 @@ type ChatChannel = "world" | "guild";
 type EncyclopediaCategory = "armor" | "weapon" | "jewelry" | "monster";
 type EncyclopediaArmorArchetype = "heavy" | "light" | "robe";
 type EncyclopediaWeaponArchetype = "melee" | "ranged" | "arcane";
+type LedgerZoneGroup = {
+  zoneId: string;
+  zoneName: string;
+  familyName: string;
+  baseLevel: number;
+  items: GeneratedEncyclopediaItem[];
+};
 
 type EquipmentSlotId =
   | "helmet"
@@ -393,6 +400,11 @@ const ENCYCLOPEDIA_ARMOR_SLOT_ORDER: string[] = [
 const ENCYCLOPEDIA_CATEGORY_ORDER: EncyclopediaCategory[] = ["armor", "weapon", "jewelry", "monster"];
 const ENCYCLOPEDIA_ARMOR_ARCHETYPE_ORDER: EncyclopediaArmorArchetype[] = ["heavy", "light", "robe"];
 const ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER: EncyclopediaWeaponArchetype[] = ["melee", "ranged", "arcane"];
+const LEDGER_MOCK_DISCOVERED_ZONE_IDS: string[] = [
+  "snagtooth_hollow_00",
+  "mirepool_boglings_04",
+  "cinder_kiln_hands_08"
+];
 
 function createEmptyEquippedItems(): EquippedItems {
   return ALL_EQUIPMENT_SLOTS.reduce(
@@ -1756,6 +1768,25 @@ function normalizeEncyclopediaItems(input: GeneratedEncyclopediaItem[]): Generat
   return input.map((item) => sanitizeEncyclopediaItem(item));
 }
 
+function getLedgerMockKillCount(item: GeneratedEncyclopediaItem): number {
+  const zoneIndex = Math.max(0, LEDGER_MOCK_DISCOVERED_ZONE_IDS.indexOf(item.familyId));
+  if (item.isBoss) {
+    return zoneIndex + 1;
+  }
+  const roleBonus =
+    item.itemType === "strength" ? 4 : item.itemType === "intelligence" ? 2 : item.slotFamily === "ambusher" ? 3 : 0;
+  return Math.max(1, 24 - item.sequence + zoneIndex * 6 + roleBonus);
+}
+
+function getLedgerMockFamilyBonusPercent(totalKills: number): number {
+  const milestoneCount = Math.floor(totalKills / 40);
+  return Math.min(3, 0.4 + milestoneCount * 0.2);
+}
+
+function formatLedgerBonusPercent(value: number): string {
+  return Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1);
+}
+
 function getItemSubtypeLabel(item: InventoryItem): string {
   const majorCategory = item.archetype?.majorCategory;
   if (majorCategory === "armor" && item.archetype?.armorArchetype) {
@@ -2169,6 +2200,7 @@ export function App() {
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
   const [characterHubTab, setCharacterHubTab] = useState<CharacterHubTab>("character");
+  const [selectedLedgerZoneId, setSelectedLedgerZoneId] = useState<string>(LEDGER_MOCK_DISCOVERED_ZONE_IDS[0]);
   const [encyclopediaCategory, setEncyclopediaCategory] = useState<EncyclopediaCategory>("armor");
   const [encyclopediaArmorArchetype, setEncyclopediaArmorArchetype] = useState<EncyclopediaArmorArchetype>("heavy");
   const [encyclopediaWeaponArchetype, setEncyclopediaWeaponArchetype] =
@@ -3921,12 +3953,139 @@ export function App() {
     );
   }
 
-  function renderLedgerPanel(): ReactElement {
-    return renderCharacterHubPlaceholderPanel(
-      "Ledger",
-      "Discovered zones and encountered monsters will be recorded here as a growing account knowledge compendium.",
-      "Each entry will show the monster portrait, flavor text, name, slain count, and the current passive bonus granted against its type or family."
+  function renderLedgerEntryCard(
+    item: GeneratedEncyclopediaItem,
+    killCount: number
+  ): ReactElement {
+    const cardLabel = [
+      item.isBoss ? i18n.t("encyclopedia.boss") : formatTokenLabel(item.slotFamily),
+      formatTokenLabel(item.itemType)
+    ]
+      .filter((value) => typeof value === "string" && value.length > 0)
+      .join(" • ");
+
+    return (
+      <article className={`ledgerEntryCard${item.isBoss ? " isBoss" : ""}`}>
+        <div className="ledgerEntryImageWrap" aria-hidden="true">
+          {item.iconPath ? (
+            <img className="ledgerEntryImage" src={item.iconPath} alt={item.itemName} loading="lazy" />
+          ) : (
+            <div className="encyclopediaItemPlaceholder">{i18n.t("item.artPending")}</div>
+          )}
+        </div>
+        <div className="ledgerEntryBody">
+          <p className="ledgerEntryMeta">{cardLabel}</p>
+          <h3 className="ledgerEntryName">{item.itemName}</h3>
+          <p className="ledgerEntryFlavor">{item.flavorText || i18n.t("item.noEntry")}</p>
+          <div className="ledgerEntryStats">
+            <p className="ledgerEntryStat">
+              <span>Slain</span>
+              <strong>{killCount}</strong>
+            </p>
+          </div>
+        </div>
+      </article>
     );
+  }
+
+  function renderLedgerPanel(): ReactElement {
+    try {
+      const monsterItems = normalizeEncyclopediaItems(GENERATED_ITEM_ENCYCLOPEDIA_DATA).filter(
+        (item) => item.majorCategory === "monster"
+      );
+      const byZone = new Map<string, LedgerZoneGroup>();
+      for (const item of monsterItems) {
+        const zoneId = item.familyId || item.locationName || item.family || item.key;
+        const current = byZone.get(zoneId);
+        if (current) {
+          current.items.push(item);
+          continue;
+        }
+        byZone.set(zoneId, {
+          zoneId,
+          zoneName: item.locationName || formatTokenLabel(zoneId),
+          familyName: item.family || item.locationName || formatTokenLabel(zoneId),
+          baseLevel: item.baseLevel,
+          items: [item]
+        });
+      }
+
+      const discoveredZones = [...byZone.values()]
+        .filter((zone) => LEDGER_MOCK_DISCOVERED_ZONE_IDS.includes(zone.zoneId))
+        .sort((left, right) => {
+          if (left.baseLevel !== right.baseLevel) {
+            return left.baseLevel - right.baseLevel;
+          }
+          return left.zoneName.localeCompare(right.zoneName, preferredLocale);
+        });
+
+      if (discoveredZones.length === 0) {
+        return renderCharacterHubPlaceholderPanel(
+          "Ledger",
+          "Discovered zones and encountered monsters will be recorded here as a growing account knowledge compendium.",
+          "Each entry will show the monster portrait, flavor text, name, slain count, and the current passive bonus granted against its family."
+        );
+      }
+
+      const activeZone =
+        discoveredZones.find((zone) => zone.zoneId === selectedLedgerZoneId) ?? discoveredZones[0];
+      const sortedItems = activeZone.items.slice().sort((left, right) => left.sequence - right.sequence);
+      const familyKillTotal = sortedItems.reduce((sum, item) => sum + getLedgerMockKillCount(item), 0);
+      const familyBonusPercent = getLedgerMockFamilyBonusPercent(familyKillTotal);
+      const familyBonusLabel = `+${formatLedgerBonusPercent(familyBonusPercent)}% damage vs ${activeZone.familyName}`;
+
+      return (
+        <section className="contentShell">
+          <section className="contentStack">
+            {renderCharacterHubTabs()}
+            <article className="contentCard ledgerControlsCard">
+              <h2>Ledger</h2>
+              <p>
+                A growing field record of known threats. Undiscovered regions do not appear here until first contact.
+              </p>
+              <div className="encyclopediaTabRow">
+                {discoveredZones.map((zone) => (
+                  <button
+                    key={zone.zoneId}
+                    type="button"
+                    className={`profileSwitchButton${activeZone.zoneId === zone.zoneId ? " active" : ""}`}
+                    onClick={() => setSelectedLedgerZoneId(zone.zoneId)}
+                  >
+                    {zone.zoneName}
+                  </button>
+                ))}
+              </div>
+            </article>
+            <article className="contentCard ledgerZoneSummaryCard">
+              <div className="ledgerZoneSummary">
+                <div className="ledgerZoneSummaryCopy">
+                  <h3>{activeZone.zoneName}</h3>
+                  <p>
+                    {sortedItems.length} known threats entered under {activeZone.familyName}. Every confirmed kill sharpens
+                    the record and improves the family-wide countermeasure bonus.
+                  </p>
+                </div>
+                <div className="ledgerZoneSummaryStats">
+                  <span className="ledgerZoneBadge">{familyKillTotal} kills logged</span>
+                  <span className="ledgerZoneBadge">{familyBonusLabel}</span>
+                </div>
+              </div>
+            </article>
+            <article className="contentCard ledgerListCard">
+              <div className="ledgerEntryList">
+                {sortedItems.map((item) => renderLedgerEntryCard(item, getLedgerMockKillCount(item)))}
+              </div>
+            </article>
+          </section>
+        </section>
+      );
+    } catch {
+      return renderCharacterHubPlaceholderPanel(
+        "Ledger",
+        "Discovered zones and encountered monsters will be recorded here as a growing account knowledge compendium.",
+        "The ledger mockup could not be rendered from the generated monster data."
+      );
+    }
   }
 
   function renderProfilePanel() {
