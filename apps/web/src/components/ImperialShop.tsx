@@ -7,12 +7,15 @@ import {
   IMPERIALS_ICON_PATH,
   QUARTERMASTERS_CHARTER_ICON_PATH
 } from "../constants/uiAssets";
-import { PaymentMethodSelector, type PaymentMethod } from "./PaymentMethodSelector";
+import { PaymentMethodSelector, type PaymentMethod, type PaymentMethodSelection } from "./PaymentMethodSelector";
 
 export interface ImperialShopProps {
   token: string | null;
   currentImperials: number;
 }
+
+const IMPERIALS_FLAVOR_TEXT =
+  "Minted for privilege, counted for certainty, and spent where ordinary coin is ignored.";
 
 type ImperialOffer = {
   id: string;
@@ -27,21 +30,21 @@ const IMPERIAL_SHOP_OFFERS: readonly ImperialOffer[] = [
     id: "imperial_tribute_wagon",
     name: "Imperial Tribute Wagon",
     flavorText: "A locked road-chest on iron wheels says the Empire prefers steady tribute over loud promises.",
-    price: 200,
+    price: 10,
     iconPath: IMPERIAL_TRIBUTE_WAGON_ICON_PATH
   },
   {
     id: "quartermasters_charter",
     name: "Quartermaster's Charter",
     flavorText: "Privilege arrives rolled, sealed, and numbered long before mercy does.",
-    price: 200,
+    price: 10,
     iconPath: QUARTERMASTERS_CHARTER_ICON_PATH
   },
   {
     id: "daily_provision_crate",
     name: "Daily Provision Crate",
     flavorText: "Some gifts arrive with trumpets. This one arrives ready for use.",
-    price: 30,
+    price: 2,
     iconPath: DAILY_PROVISION_CRATE_ICON_PATH
   }
 ] as const;
@@ -74,6 +77,7 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
   const [capturing, setCapturing] = useState(false);
   const [successData, setSuccessData] = useState<{ imperials: number; newBalance: number } | null>(null);
   const [selectedBundle, setSelectedBundle] = useState<ImperialBundle | null>(null);
+  const [selectedOffer, setSelectedOffer] = useState<ImperialOffer | null>(null);
   const baseImperialsPerDollar = IMPERIAL_BUNDLES[0].imperials / IMPERIAL_BUNDLES[0].price;
 
   useEffect(() => {
@@ -151,6 +155,21 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
     await handlePurchase(selectedBundle);
   };
 
+  const handleOfferPaymentMethodSelect = (method: PaymentMethod) => {
+    if (!selectedOffer) {
+      return;
+    }
+
+    if (method !== "paypal") {
+      setError(t("shop.errorPaymentMethod", { method }));
+      setSelectedOffer(null);
+      return;
+    }
+
+    setSelectedOffer(null);
+    setError(`${selectedOffer.name} is not purchasable yet.`);
+  };
+
   const handlePurchase = async (bundle: ImperialBundle) => {
     if (!token) {
       setError("You must be logged in to purchase Imperials");
@@ -189,16 +208,40 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
   };
 
   const handleOfferPurchase = (offer: ImperialOffer) => {
-    setError(`${offer.name} is not purchasable yet.`);
+    if (!token) {
+      setError(t("shop.errorAuthRequired"));
+      return;
+    }
+
+    setSelectedOffer(offer);
   };
+
+  const selectedPurchase: PaymentMethodSelection | null = selectedBundle
+    ? {
+        title: `${selectedBundle.imperials.toLocaleString()} ${t("shop.imperials")}`,
+        subtitle: IMPERIALS_FLAVOR_TEXT,
+        price: selectedBundle.price,
+        imagePath: IMPERIALS_ICON_PATH
+      }
+    : selectedOffer
+      ? {
+          title: selectedOffer.name,
+          subtitle: selectedOffer.flavorText,
+          price: selectedOffer.price,
+          imagePath: selectedOffer.iconPath
+        }
+      : null;
 
   return (
     <>
-      {selectedBundle && (
+      {selectedPurchase && (
         <PaymentMethodSelector
-          bundle={selectedBundle}
-          onClose={() => setSelectedBundle(null)}
-          onSelectMethod={handlePaymentMethodSelect}
+          selection={selectedPurchase}
+          onClose={() => {
+            setSelectedBundle(null);
+            setSelectedOffer(null);
+          }}
+          onSelectMethod={selectedBundle ? handlePaymentMethodSelect : handleOfferPaymentMethodSelect}
         />
       )}
 
@@ -311,8 +354,7 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
                           <p>{offer.flavorText}</p>
                         </div>
                         <div className="imperialOfferPriceRow">
-                          <img className="imperialOfferPriceIcon" src={IMPERIALS_ICON_PATH} alt="" aria-hidden="true" />
-                          <strong>{offer.price.toLocaleString()}</strong>
+                          <strong>${offer.price.toFixed(2)}</strong>
                         </div>
                       </div>
                     </div>
