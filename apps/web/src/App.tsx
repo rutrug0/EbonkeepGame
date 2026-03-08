@@ -64,6 +64,7 @@ type Rarity = "common" | "uncommon" | "rare" | "epic";
 type ContractDifficulty = "easy" | "medium" | "hard";
 type ContractRoll = "low" | "medium" | "high";
 type LayoutMode = "compact" | "standard" | "wide";
+type CharacterHubTab = "character" | "renown" | "ledger" | "encyclopedia";
 type ProfileSideTab = "inventory" | "consumables" | "stats";
 type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
@@ -329,7 +330,6 @@ function createInitialChatMessages(nowMs: number = Date.now()): Record<ChatChann
 
 const MENU_ITEMS: LandingTab[] = [
   "inventory",
-  "encyclopedia",
   "contracts",
   "missions",
   "arena",
@@ -1572,8 +1572,8 @@ function renderMenuIcon(tab: LandingTab) {
     case "inventory":
       return (
         <svg {...iconProps}>
-          <path d="M4 9h16v10H4z" />
-          <path d="M4 13h16M10 9V7h4v2M11 13h2" />
+          <circle cx="12" cy="8" r="3" />
+          <path d="M5.5 20c1.8-3.3 4.2-5 6.5-5s4.7 1.7 6.5 5" />
         </svg>
       );
     case "encyclopedia":
@@ -1693,7 +1693,25 @@ function formatTokenLabel(value: unknown): string {
 }
 
 function formatMenuLabel(tab: LandingTab): string {
+  if (tab === "inventory") {
+    return "Character";
+  }
   return i18n.t(`menu.${tab}`);
+}
+
+function formatCharacterHubTabLabel(tab: CharacterHubTab): string {
+  switch (tab) {
+    case "character":
+      return "Character";
+    case "renown":
+      return "Renown";
+    case "ledger":
+      return "Ledger";
+    case "encyclopedia":
+      return "Encyclopedia";
+    default:
+      return tab;
+  }
 }
 
 function formatEquipmentSlotLabel(slotId: EquipmentSlotId): string {
@@ -2150,6 +2168,7 @@ export function App() {
   );
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
+  const [characterHubTab, setCharacterHubTab] = useState<CharacterHubTab>("character");
   const [encyclopediaCategory, setEncyclopediaCategory] = useState<EncyclopediaCategory>("armor");
   const [encyclopediaArmorArchetype, setEncyclopediaArmorArchetype] = useState<EncyclopediaArmorArchetype>("heavy");
   const [encyclopediaWeaponArchetype, setEncyclopediaWeaponArchetype] =
@@ -2367,17 +2386,19 @@ export function App() {
 
 
   useEffect(() => {
-    if (activeTab !== "inventory") {
+    if (activeTab !== "inventory" || characterHubTab !== "character") {
       setDraggingInventoryCardId(null);
       setDraggingEquipmentSlotId(null);
       setDropTargetInventoryCardId(null);
       setEquipmentDropTargetSlotId(null);
       setEquipmentDropState(null);
       setInventoryComparisonHover(null);
+    }
+    if (activeTab !== "inventory") {
       setCanDockInventoryChat(false);
       setIsInventoryChatOverlayOpen(false);
     }
-  }, [activeTab]);
+  }, [activeTab, characterHubTab]);
 
   useEffect(() => {
     if (profileSideTab !== "inventory") {
@@ -2392,6 +2413,7 @@ export function App() {
 
   useEffect(() => {
     if (activeTab !== "inventory") {
+      setCanDockInventoryChat(false);
       return;
     }
 
@@ -2403,10 +2425,8 @@ export function App() {
 
       const landingPage = landingPageRef.current;
       const leftPanel = leftPanelRef.current;
-      const panelGroup = panelViewportGroupRef.current;
       const mainPanel = panelViewportMainRef.current;
-      const sidePanel = panelViewportSideRef.current;
-      if (!landingPage || !leftPanel || !panelGroup || !mainPanel || !sidePanel) {
+      if (!landingPage || !leftPanel || !mainPanel) {
         setCanDockInventoryChat(false);
         return;
       }
@@ -2417,10 +2437,15 @@ export function App() {
       const landingColumnGap = Number.parseFloat(landingPageStyle.columnGap || landingPageStyle.gap || "0") || 0;
       const availableRightPanelWidth = Math.max(0, landingPageWidth - leftPanelWidth - landingColumnGap);
       const mainPanelWidth = mainPanel.getBoundingClientRect().width;
-      const sidePanelWidth = sidePanel.getBoundingClientRect().width;
-      const groupStyle = window.getComputedStyle(panelGroup);
-      const groupColumnGap = Number.parseFloat(groupStyle.columnGap || groupStyle.gap || "0") || 0;
-      const requiredWidth = mainPanelWidth + sidePanelWidth * 2 + groupColumnGap * 2;
+      const inheritedSpace = Number.parseFloat(landingPageStyle.getPropertyValue("--space-3") || "0") || 0;
+      const sidePanelWidth =
+        Number.parseFloat(landingPageStyle.getPropertyValue("--panel-stats-max") || "0") ||
+        panelViewportSideRef.current?.getBoundingClientRect().width ||
+        0;
+      const requiredWidth =
+        characterHubTab === "character"
+          ? mainPanelWidth + sidePanelWidth * 2 + inheritedSpace * 2
+          : mainPanelWidth + sidePanelWidth + inheritedSpace;
       setCanDockInventoryChat(availableRightPanelWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
     };
 
@@ -2436,11 +2461,11 @@ export function App() {
       if (rightPanelRef.current) {
         resizeObserver.observe(rightPanelRef.current);
       }
-      if (panelViewportGroupRef.current) {
-        resizeObserver.observe(panelViewportGroupRef.current);
-      }
       if (panelViewportMainRef.current) {
         resizeObserver.observe(panelViewportMainRef.current);
+      }
+      if (panelViewportGroupRef.current) {
+        resizeObserver.observe(panelViewportGroupRef.current);
       }
       if (panelViewportSideRef.current) {
         resizeObserver.observe(panelViewportSideRef.current);
@@ -2455,7 +2480,7 @@ export function App() {
       window.removeEventListener("resize", recalculateChatDocking);
       resizeObserver?.disconnect();
     };
-  }, [activeTab, layoutMode]);
+  }, [activeTab, characterHubTab, layoutMode]);
 
   useEffect(() => {
     if (canDockInventoryChat) {
@@ -2938,6 +2963,7 @@ export function App() {
       const loginResponse = await devGuestLogin();
       window.localStorage.setItem("ebonkeep.dev.token", loginResponse.accessToken);
       setActiveTab("inventory");
+      setCharacterHubTab("character");
       setToken(loginResponse.accessToken);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : i18n.t("errors.loginFailed"));
@@ -2963,6 +2989,7 @@ export function App() {
       });
       window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
       setActiveTab("inventory");
+      setCharacterHubTab("character");
       setToken(response.accessToken);
       // Check email verification status
       try {
@@ -2987,6 +3014,7 @@ export function App() {
       });
       window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
       setActiveTab("inventory");
+      setCharacterHubTab("character");
       setToken(response.accessToken);
       // Check email verification status
       try {
@@ -3060,6 +3088,7 @@ export function App() {
     setToken(null);
     setPlayerState(null);
     setActiveTab("inventory");
+    setCharacterHubTab("character");
     setError(null);
     setInventoryItems(createMockInventoryItems().slice(0, INVENTORY_ITEM_LIMIT));
     setEquippedItems(createEmptyEquippedItems());
@@ -3840,13 +3869,74 @@ export function App() {
     );
   }
 
+  function renderCharacterHubTabs(): ReactElement {
+    const tabs: CharacterHubTab[] = ["character", "renown", "ledger", "encyclopedia"];
+
+    return (
+      <article className="contentCard">
+        <div className="profileSwitchBar">
+          <div className="profileSwitchButtons characterHubSwitchButtons">
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={`profileSwitchButton${characterHubTab === tab ? " active" : ""}`}
+                onClick={() => setCharacterHubTab(tab)}
+              >
+                {formatCharacterHubTabLabel(tab)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  function renderCharacterHubPlaceholderPanel(
+    title: string,
+    description: string,
+    details: string
+  ): ReactElement {
+    return (
+      <section className="contentShell">
+        <section className="contentStack">
+          {renderCharacterHubTabs()}
+          <article className="contentCard">
+            <h2>{title}</h2>
+            <p>{description}</p>
+          </article>
+          <article className="contentCard">
+            <p>{details}</p>
+          </article>
+        </section>
+      </section>
+    );
+  }
+
+  function renderRenownPanel(): ReactElement {
+    return renderCharacterHubPlaceholderPanel(
+      "Renown",
+      "Cross-server passive metaprogression will live here as a persistent unlock tree shared across server lifespans.",
+      "This panel will show the Renown tree, unlocked passive nodes, current progression, and long-horizon account bonuses."
+    );
+  }
+
+  function renderLedgerPanel(): ReactElement {
+    return renderCharacterHubPlaceholderPanel(
+      "Ledger",
+      "Discovered zones and encountered monsters will be recorded here as a growing account knowledge compendium.",
+      "Each entry will show the monster portrait, flavor text, name, slain count, and the current passive bonus granted against its type or family."
+    );
+  }
+
   function renderProfilePanel() {
     if (isLoadingState) {
       return (
         <section className="contentShell">
           <section className="contentStack">
+            {renderCharacterHubTabs()}
             <article className="contentCard">
-              <h2>{i18n.t("menu.inventory")}</h2>
+              <h2>Character</h2>
               <p>{i18n.t("inventory.loading")}</p>
             </article>
           </section>
@@ -3858,8 +3948,9 @@ export function App() {
       return (
         <section className="contentShell">
           <section className="contentStack">
+            {renderCharacterHubTabs()}
             <article className="contentCard">
-              <h2>{i18n.t("menu.inventory")}</h2>
+              <h2>Character</h2>
               <p>{i18n.t("inventory.unavailable")}</p>
             </article>
           </section>
@@ -3891,9 +3982,7 @@ export function App() {
     return (
       <section className="contentShell">
         <section className="contentStack">
-          <article className="contentCard">
-            <h2>{i18n.t("menu.inventory")}</h2>
-          </article>
+          {renderCharacterHubTabs()}
 
           <article className="contentCard">
             <div className="equipmentBoard">
@@ -4776,12 +4865,13 @@ export function App() {
     );
   }
 
-  function renderEncyclopediaPanel() {
+  function renderEncyclopediaPanel(embedCharacterHubTabs = false) {
     try {
       const allItems = normalizeEncyclopediaItems(GENERATED_ITEM_ENCYCLOPEDIA_DATA);
       return (
         <section className="contentShell">
           <section className="contentStack">
+            {embedCharacterHubTabs ? renderCharacterHubTabs() : null}
             <article className="contentCard encyclopediaControlsCard">
               <h2>{i18n.t("menu.encyclopedia")}</h2>
               <p>{i18n.t("encyclopedia.description")}</p>
@@ -5069,16 +5159,31 @@ export function App() {
       );
     } catch {
       return renderPlaceholderPanel(
-        i18n.t("menu.encyclopedia"),
+        embedCharacterHubTabs ? "Encyclopedia" : i18n.t("menu.encyclopedia"),
         i18n.t("encyclopedia.renderError")
       );
+    }
+  }
+
+  function renderCharacterHubActivePanel(): ReactElement {
+    switch (characterHubTab) {
+      case "character":
+        return renderProfilePanel();
+      case "renown":
+        return renderRenownPanel();
+      case "ledger":
+        return renderLedgerPanel();
+      case "encyclopedia":
+        return renderEncyclopediaPanel(true);
+      default:
+        return renderProfilePanel();
     }
   }
 
   function renderActivePanel() {
     switch (activeTab) {
       case "inventory":
-        return renderProfilePanel();
+        return renderCharacterHubActivePanel();
       case "encyclopedia":
         return renderEncyclopediaPanel();
       case "contracts":
@@ -5446,7 +5551,12 @@ export function App() {
                     <button
                       key={menuItemId}
                       className={`menuButton${activeTab === menuItemId ? " active" : ""}`}
-                      onClick={() => setActiveTab(menuItemId)}
+                      onClick={() => {
+                        setActiveTab(menuItemId);
+                        if (menuItemId === "inventory") {
+                          setCharacterHubTab("character");
+                        }
+                      }}
                     >
                       <span className="menuButtonIcon" aria-hidden="true">
                         {renderMenuIcon(menuItemId)}
@@ -5463,7 +5573,7 @@ export function App() {
           </aside>
 
           <section className="rightPanel" ref={rightPanelRef}>
-            {activeTab === "inventory" ? (
+            {activeTab === "inventory" && characterHubTab === "character" ? (
               <div
                 className={`panelViewportGroup${
                   canDockInventoryChat && isInventoryChatDockedVisible ? " panelViewportGroupWithChat" : ""
@@ -5486,6 +5596,27 @@ export function App() {
                 ) : null}
                 {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
                   <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
+                ) : null}
+              </div>
+            ) : activeTab === "inventory" ? (
+              <div
+                className={`characterHubViewportGroup${
+                  canDockInventoryChat && isInventoryChatDockedVisible ? " characterHubViewportGroupWithChat" : ""
+                }`}
+                ref={panelViewportGroupRef}
+              >
+                <div className="panelViewport characterHubExpandedViewport" ref={panelViewportMainRef}>
+                  {renderCharacterHubActivePanel()}
+                </div>
+                {canDockInventoryChat && isInventoryChatDockedVisible ? (
+                  <div className="panelViewportSide panelViewportChat" ref={panelViewportSideRef}>
+                    {renderChatPanel()}
+                  </div>
+                ) : null}
+                {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
+                  <section className="inventoryChatPanelOverlayViewport inventoryChatPanelOverlayViewportRight">
+                    {renderChatPanel()}
+                  </section>
                 ) : null}
               </div>
             ) : activeTab === "contracts" &&
