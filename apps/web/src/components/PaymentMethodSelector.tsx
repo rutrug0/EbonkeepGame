@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ImperialBundle } from "@ebonkeep/shared";
+import { IMPERIALS_ICON_PATH } from "../constants/uiAssets";
 
 export interface PaymentMethodSelectorProps {
   bundle: ImperialBundle;
@@ -29,7 +30,9 @@ export function PaymentMethodSelector({ bundle, onClose, onSelectMethod }: Payme
 
         <div className="payment-method-bundle-info">
           <div className="bundle-summary">
-            <div className="bundle-summary-icon">💎</div>
+            <div className="bundle-summary-icon">
+              <img src={IMPERIALS_ICON_PATH} alt="" />
+            </div>
             <div className="bundle-summary-details">
               <div className="bundle-summary-name">{bundle.name}</div>
               <div className="bundle-summary-amount">{bundle.imperials.toLocaleString()} {t("shop.imperials")}</div>
@@ -146,7 +149,17 @@ export function PaymentMethodSelector({ bundle, onClose, onSelectMethod }: Payme
         }
 
         .bundle-summary-icon {
-          font-size: 3em;
+          width: 56px;
+          height: 56px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+        }
+
+        .bundle-summary-icon img {
+          width: 48px;
+          height: 48px;
+          object-fit: contain;
         }
 
         .bundle-summary-details {

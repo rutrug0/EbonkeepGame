@@ -38,6 +38,7 @@ import {
   CombatEncounterTurnTrackPanel
 } from "./components/CombatEncounterPanel";
 import { ImperialShop } from "./components/ImperialShop";
+import { IMPERIALS_ICON_PATH } from "./constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
   GENERATED_ITEM_ENCYCLOPEDIA_DATA,
@@ -3977,7 +3978,7 @@ export function App() {
               </div>
               <div className="economyItem">
                 <span className="currencyIcon imperialIcon" aria-hidden="true">
-                  ◇
+                  <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
                 </span>
                 <span>{i18n.t("currencies.imperials")}</span>
                 <strong>{effectiveCurrencies.imperials}</strong>

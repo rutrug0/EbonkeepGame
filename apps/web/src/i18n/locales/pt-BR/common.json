@@ -37,6 +37,8 @@
     "selectPaymentMethod": "Selecionar Método de Pagamento",
     "allPaymentsSecure": "Todos os pagamentos são processados com segurança através de provedores de pagamento confiáveis.",
     "allPurchasesFinal": "Todas as compras são finais. Imperiais são uma moeda premium usada no Ebonkeep. Os pagamentos são processados com segurança através de provedores de pagamento confiáveis.",
+    "bundleBonus": "Bônus +{{amount}}",
+    "bundleBaseRate": "Valor base",
     "comingSoon": "Em Breve",
     "processingPayment": "Processando Pagamento...",
     "pleaseWait": "Por favor aguarde enquanto confirmamos sua transação",

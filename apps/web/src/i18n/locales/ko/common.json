@@ -37,6 +37,8 @@
     "selectPaymentMethod": "결제 방법 선택",
     "allPaymentsSecure": "모든 결제는 신뢰할 수 있는 결제 제공업체를 통해 안전하게 처리됩니다.",
     "allPurchasesFinal": "모든 구매는 최종입니다. 임페리얼은 Ebonkeep에서 사용되는 프리미엄 화폐입니다. 결제는 신뢰할 수 있는 결제 제공업체를 통해 안전하게 처리됩니다.",
+    "bundleBonus": "보너스 +{{amount}}",
+    "bundleBaseRate": "기본 지급량",
     "comingSoon": "출시 예정",
     "processingPayment": "결제 처리 중...",
     "pleaseWait": "거래를 확인하는 동안 잠시 기다려 주세요",

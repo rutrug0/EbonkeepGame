@@ -463,8 +463,10 @@ export type ImperialBundle = z.infer<typeof imperialBundleSchema>;
 
 export const IMPERIAL_BUNDLES: readonly ImperialBundle[] = [
   { id: "bundle_100", name: "100 Imperials", imperials: 100, price: 5.00, currency: "USD" },
-  { id: "bundle_400", name: "400 Imperials", imperials: 400, price: 15.00, currency: "USD" },
-  { id: "bundle_900", name: "900 Imperials", imperials: 900, price: 30.00, currency: "USD" }
+  { id: "bundle_400", name: "330 Imperials", imperials: 330, price: 15.00, currency: "USD" },
+  { id: "bundle_900", name: "700 Imperials", imperials: 700, price: 30.00, currency: "USD" },
+  { id: "bundle_3000", name: "2,100 Imperials", imperials: 2100, price: 90.00, currency: "USD" },
+  { id: "bundle_12000", name: "7,000 Imperials", imperials: 7000, price: 300.00, currency: "USD" }
 ] as const;
 
 export const createPaymentBodySchema = z.object({

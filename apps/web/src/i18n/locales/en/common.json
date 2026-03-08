@@ -212,6 +212,8 @@
     "selectPaymentMethod": "Select Payment Method",
     "allPaymentsSecure": "All payments are processed securely through trusted payment providers.",
     "allPurchasesFinal": "All purchases are final. Imperials are a premium currency used in Ebonkeep. Payments are processed securely through trusted payment providers.",
+    "bundleBonus": "Bonus +{{amount}}",
+    "bundleBaseRate": "Base rate",
     "comingSoon": "Coming Soon",
     "processingPayment": "Processing Payment...",
     "pleaseWait": "Please wait while we confirm your transaction",

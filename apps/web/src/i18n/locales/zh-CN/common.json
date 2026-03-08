@@ -37,6 +37,8 @@
     "selectPaymentMethod": "选择付款方式",
     "allPaymentsSecure": "所有付款均通过可信的支付提供商安全处理。",
     "allPurchasesFinal": "所有购买均为最终交易。帝国币是黑堡中使用的高级货币。付款通过可信的支付提供商安全处理。",
+    "bundleBonus": "额外 +{{amount}}",
+    "bundleBaseRate": "基础档",
     "comingSoon": "即将推出",
     "processingPayment": "正在处理付款...",
     "pleaseWait": "请稍候，我们正在确认您的交易",

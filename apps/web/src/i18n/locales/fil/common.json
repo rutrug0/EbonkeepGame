@@ -37,6 +37,8 @@
     "selectPaymentMethod": "Pumili ng Paraan ng Pagbayad",
     "allPaymentsSecure": "Lahat ng pagbabayad ay ligtas na pinoproseso sa pamamagitan ng pinagkakatiwalaang payment providers.",
     "allPurchasesFinal": "Lahat ng pagbili ay final. Ang Mga Imperial ay premium currency na ginagamit sa Ebonkeep. Ang mga pagbabayad ay ligtas na pinoproseso sa pamamagitan ng pinagkakatiwalaang payment providers.",
+    "bundleBonus": "Bonus +{{amount}}",
+    "bundleBaseRate": "Batayang rate",
     "comingSoon": "Coming Soon",
     "processingPayment": "Pinoproseso ang Pagbayad...",
     "pleaseWait": "Mangyaring maghintay habang kami ay nagko-confirm ng iyong transaksyon",
