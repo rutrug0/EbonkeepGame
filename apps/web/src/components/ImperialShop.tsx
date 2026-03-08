@@ -1,12 +1,70 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { IMPERIAL_BUNDLES, type ImperialBundle } from "@ebonkeep/shared";
-import { IMPERIALS_ICON_PATH } from "../constants/uiAssets";
+import {
+  DAILY_PROVISION_CRATE_ICON_PATH,
+  IMPERIAL_TRIBUTE_WAGON_ICON_PATH,
+  IMPERIALS_ICON_PATH,
+  QUARTERMASTERS_CHARTER_ICON_PATH
+} from "../constants/uiAssets";
 import { PaymentMethodSelector, type PaymentMethod } from "./PaymentMethodSelector";
 
 export interface ImperialShopProps {
   token: string | null;
   currentImperials: number;
+}
+
+type ImperialOffer = {
+  id: string;
+  name: string;
+  flavorText: string;
+  price: number;
+  iconPath: string;
+};
+
+const IMPERIAL_SHOP_OFFERS: readonly ImperialOffer[] = [
+  {
+    id: "imperial_tribute_wagon",
+    name: "Imperial Tribute Wagon",
+    flavorText: "A locked road-chest on iron wheels says the Empire prefers steady tribute over loud promises.",
+    price: 200,
+    iconPath: IMPERIAL_TRIBUTE_WAGON_ICON_PATH
+  },
+  {
+    id: "quartermasters_charter",
+    name: "Quartermaster's Charter",
+    flavorText: "Privilege arrives rolled, sealed, and numbered long before mercy does.",
+    price: 200,
+    iconPath: QUARTERMASTERS_CHARTER_ICON_PATH
+  },
+  {
+    id: "daily_provision_crate",
+    name: "Daily Provision Crate",
+    flavorText: "Some gifts arrive with trumpets. This one arrives ready for use.",
+    price: 30,
+    iconPath: DAILY_PROVISION_CRATE_ICON_PATH
+  }
+] as const;
+
+function ShopOfferIcon({ src, alt }: { src: string; alt: string }) {
+  const [iconSrc, setIconSrc] = useState(src);
+
+  useEffect(() => {
+    setIconSrc(src);
+  }, [src]);
+
+  return (
+    <img
+      className="imperialOfferIconImage"
+      src={iconSrc}
+      alt={alt}
+      onError={() => {
+        if (iconSrc !== IMPERIALS_ICON_PATH) {
+          setIconSrc(IMPERIALS_ICON_PATH);
+        }
+      }}
+    />
+  );
 }
 
 export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
@@ -130,6 +188,10 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
     }
   };
 
+  const handleOfferPurchase = (offer: ImperialOffer) => {
+    setError(`${offer.name} is not purchasable yet.`);
+  };
+
   return (
     <>
       {selectedBundle && (
@@ -224,6 +286,45 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
                       </>
                     );
                   })()}
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="contentCard imperialShopOffersCard">
+            <div className="imperialShopSectionHeader">
+              <h3>Special Offers</h3>
+            </div>
+            <div className="imperialOfferGrid">
+              {IMPERIAL_SHOP_OFFERS.map((offer) => (
+                <div key={offer.id} className="imperialOfferCard">
+                  <div className="imperialOfferBody">
+                    <div className="imperialOfferText">
+                      <h4>{offer.name}</h4>
+                    </div>
+                    <div className="imperialOfferContent">
+                      <div className="imperialOfferIconFrame" aria-hidden="true">
+                        <ShopOfferIcon src={offer.iconPath} alt="" />
+                      </div>
+                      <div className="imperialOfferDetails">
+                        <div className="imperialOfferFlavorText">
+                          <p>{offer.flavorText}</p>
+                        </div>
+                        <div className="imperialOfferPriceRow">
+                          <img className="imperialOfferPriceIcon" src={IMPERIALS_ICON_PATH} alt="" aria-hidden="true" />
+                          <strong>{offer.price.toLocaleString()}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="imperialOfferFooter">
+                      <button
+                        className="imperialShopPrimaryButton imperialOfferBuyButton"
+                        onClick={() => handleOfferPurchase(offer)}
+                      >
+                        {t("shop.buyNow")}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
