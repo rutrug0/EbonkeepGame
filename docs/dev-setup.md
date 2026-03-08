@@ -22,6 +22,8 @@
 - Run API: `npm run dev:api`
 - Run web: `npm run dev:web`
 - Run desktop wrapper: `npm run dev:desktop`
+- Run Android-local stack: `run-local-android.bat`
+- Launch Android emulator: `run-android-emulator.bat` or `run-android-emulator.bat <AVD_NAME>`
 
 ## DB Operations
 - Generate Prisma client: `npm run db:generate`
@@ -38,5 +40,14 @@
   - if you get `P1000` auth failures after changing local credentials, reset local db volume:
     - `stop-local.bat --purge-data`
     - then rerun `run-local.bat`
+- Prisma `query_engine-windows.dll.node` rename `EPERM` on Windows:
+  - `run-local*.bat` now treats the locked engine DLL as recoverable if the existing Prisma client still loads
+  - if it still persists outside the launcher, fully stop repo-local Node dev servers and rerun
 - App windows left open:
   - run `stop-local.bat`.
+- Android emulator cannot be found:
+  - install an Android SDK + AVD through Android Studio
+  - ensure `ANDROID_SDK_ROOT` or `ANDROID_HOME` points to that SDK, or use the default `%LOCALAPPDATA%\Android\Sdk`
+
+See also:
+- [`android-testing.md`](./android-testing.md)

@@ -10,6 +10,7 @@ Local runtime starts:
 
 ## Start
 - `run-local.bat`
+- `run-local-android.bat` for Android emulator browser testing
 
 ## Stop
 - `stop-local.bat`
@@ -27,3 +28,8 @@ Local runtime starts:
 - Endpoint: `ws://localhost:4000/ws`
 - Sends `ServerTimeSync` heartbeat payload.
 - Echoes incoming messages in a `SystemStatusChanged` envelope for connectivity checks.
+
+Android emulator testing:
+- Use `http://10.0.2.2:5173` for the web app.
+- Use `run-local-android.bat` so the frontend talks to `10.0.2.2` instead of `localhost`.
+- See [`android-testing.md`](./android-testing.md) for setup and SDK/AVD instructions.

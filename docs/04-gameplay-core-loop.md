@@ -12,6 +12,7 @@
 - Economy loop: buy low-value upgrades, sell excess gear, plan next refresh.
 - Inventory loop: optimize grid space and stash usage.
 - Consumable loop: time boosts for high-yield sessions.
+- Metaprogression loop: advance Renown unlocks and fill monster intelligence records through repeated encounters and long-tail account play.
 
 ## Session Archetypes
 - 5-minute session:

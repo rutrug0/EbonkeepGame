@@ -27,11 +27,13 @@ This document set defines the high-level, implementation-ready blueprint for Ebo
 13. [13-experience-requirements-scaling.md](./13-experience-requirements-scaling.md)
 14. [14-warrior-melee-weapon-tables.md](./14-warrior-melee-weapon-tables.md)
 15. [15-contracts-board-and-refresh-mechanics.md](./15-contracts-board-and-refresh-mechanics.md)
-16. [17-armor-name-range-tables.md](./17-armor-name-range-tables.md)
-17. [18-jewelry-name-range-tables.md](./18-jewelry-name-range-tables.md)
-18. [19-item-art-generation-pipeline.md](./19-item-art-generation-pipeline.md)
-19. [dev-setup.md](./dev-setup.md)
-20. [local-runtime.md](./local-runtime.md)
+16. [16-non-combat-progression-systems.md](./16-non-combat-progression-systems.md)
+17. [17-armor-name-range-tables.md](./17-armor-name-range-tables.md)
+18. [18-jewelry-name-range-tables.md](./18-jewelry-name-range-tables.md)
+19. [19-item-art-generation-pipeline.md](./19-item-art-generation-pipeline.md)
+20. [20-ledger-and-knowledge-progression.md](./20-ledger-and-knowledge-progression.md)
+21. [dev-setup.md](./dev-setup.md)
+22. [local-runtime.md](./local-runtime.md)
 
 ## Decision Log (Locked)
 Date: 2026-02-28

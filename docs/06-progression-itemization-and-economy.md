@@ -4,6 +4,46 @@
 - Primary axes: account level + gear score.
 - Level grants baseline stat growth and feature unlock pacing.
 - Gear score controls encounter viability and upgrade chase.
+- Account-wide cross-server metaprogression sits above individual server progress through `Renown`, a long-horizon passive unlock tree.
+
+## Renown
+- `Renown` is the name for the account-wide cross-server metaprogression system.
+- Renown persists across server lifespans and is not reset with normal server-bound character progression.
+- Renown unlocks are passive and tree-structured rather than consumable one-off rewards.
+- Renown should favor broad utility, account quality-of-life, and controlled long-tail bonuses over immediate hard power spikes.
+- Renown progression should be earned through ongoing play across multiple systems rather than a single grind lane.
+
+Suggested Renown reward categories:
+- non-combat system improvements
+- consumable support efficiency
+- inventory or resource handling utility
+- selected PvE preparation bonuses
+- long-tail account progression perks
+
+Guardrails:
+- Renown should not invalidate fresh server starts.
+- Renown should not create extreme combat gaps between old and new accounts.
+- Renown should feel meaningful over months, not mandatory in the first days of play.
+
+## Ledger
+- `Ledger` is the working name for the account knowledge compendium system.
+- In its first scope, Ledger focuses on monsters, encounter discovery, and kill history.
+- Ledger is intentionally named broadly so it can later expand to additional knowledge domains such as equipment.
+- Players unlock entries by encountering monsters and deepen entries by defeating them over time.
+- Progress can track both individual monsters and whole monster families.
+- Ledger progress can unlock small passive combat bonuses such as bonus damage or efficiency against known targets or families.
+
+Recommended structure:
+- first encounter: reveal basic identity
+- repeated kills: reveal traits, behaviors, and record data
+- family milestones: unlock modest passive bonuses against that family
+- elite or boss kills: unlock rarer intelligence tiers
+
+Guardrails:
+- bonuses should stay modest and cumulative over long horizons
+- monster knowledge should reward engagement without becoming mandatory for baseline viability
+- family-wide bonuses are preferable to highly granular monster-by-monster tuning for maintainability
+- the system should feel like earned battlefield knowledge, not a universal damage multiplier farm
 
 ## Classes
 - Warrior; Counters rangers (bonus damage vs. them)
