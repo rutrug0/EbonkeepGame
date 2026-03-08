@@ -1,12 +1,58 @@
 ﻿{
   "auth": {"subtitle": "Mag-login para buksan ang iyong pangunahing pahina.", "loginGuest": "Mag-login bilang Guest"},
   "menu": {
-    "title": "Menu", "inventory": "Imbentaryo", "encyclopedia": "Ensiklopedya", "contracts": "Mga Kontrata", "missions": "Mga Misyon", "arena": "Arena", "guild": "Guild", "castles": "Mga Kastilyo", "auctionHouse": "Auction House", "merchant": "Mangangalakal", "leaderboards": "Leaderboards", "settings": "Mga Setting", "logout": "Mag-logout"
+    "title": "Menu", "inventory": "Imbentaryo", "encyclopedia": "Ensiklopedya", "contracts": "Mga Kontrata", "missions": "Mga Misyon", "arena": "Arena", "guild": "Guild", "castles": "Mga Kastilyo", "auctionHouse": "Auction House", "merchant": "Mangangalakal", "shop": "Imperial Shop", "leaderboards": "Leaderboards", "settings": "Mga Setting", "logout": "Mag-logout"
   },
   "bars": {"health": "Kalusugan", "experience": "Karanasan"},
   "chat": {"world": "World", "guild": "Guild", "send": "Ipadala", "empty": "Wala pang mensahe."},
   "contracts": {"table": {"contract": "Kontrata", "difficulty": "Hirap", "action": "Aksyon"}, "abandon": "I-abandon", "replenishing": "Nagre-replenish"},
-  "settings": {"title": "Mga Setting", "description": "Piliin ang wika ng interface. Agad itong ilalapat.", "languageLabel": "Wika", "saving": "Sine-save ang language preference...", "saveFailed": "Na-save ang wika sa local, pero bigo ang account sync.", "saveSuccess": "Na-sync ang wika sa account."},
+  "currencies": {
+    "ducats": "Mga Ducat",
+    "imperials": "Mga Imperial",
+    "gearScore": "Gear Score"
+  },
+  "settings": {
+    "title": "Mga Setting",
+    "description": "Piliin ang wika ng interface. Agad itong ilalapat.",
+    "languageLabel": "Wika",
+    "saving": "Sine-save ang language preference...",
+    "saveFailed": "Na-save ang wika sa local, pero bigo ang account sync.",
+    "saveSuccess": "Na-sync ang wika sa account.",
+    "accountInfo": "Impormasyon ng Account",
+    "username": "Username",
+    "email": "Email",
+    "emailVerified": "Na-verify ang Email",
+    "verified": "✓ Na-verify",
+    "notVerified": "✗ Hindi pa na-verify",
+    "resendEmail": "Ipadala ulit ang Email",
+    "notSet": "Hindi nakatakda"
+  },
+  "shop": {
+    "title": "Imperial Shop",
+    "description": "Bumili ng Mga Imperial para pahusayin ang iyong karanasan sa Ebonkeep",
+    "currentBalance": "Kasalukuyang Balanse",
+    "availableBundles": "Mga Available na Bundle",
+    "buyNow": "Bilhin Ngayon",
+    "processing": "Pinoproseso...",
+    "selectPaymentMethod": "Pumili ng Paraan ng Pagbayad",
+    "allPaymentsSecure": "Lahat ng pagbabayad ay ligtas na pinoproseso sa pamamagitan ng pinagkakatiwalaang payment providers.",
+    "allPurchasesFinal": "Lahat ng pagbili ay final. Ang Mga Imperial ay premium currency na ginagamit sa Ebonkeep. Ang mga pagbabayad ay ligtas na pinoproseso sa pamamagitan ng pinagkakatiwalaang payment providers.",
+    "comingSoon": "Coming Soon",
+    "processingPayment": "Pinoproseso ang Pagbayad...",
+    "pleaseWait": "Mangyaring maghintay habang kami ay nagko-confirm ng iyong transaksyon",
+    "paymentSuccessful": "Matagumpay ang Pagbayad!",
+    "awesome": "Kamangha-mangha!",
+    "newBalance": "Bagong Balanse",
+    "errorAuthRequired": "Dapat kang naka-login para bumili ng Mga Imperial",
+    "errorPaymentMethod": "Ang paraan ng pagbayad na {{method}} ay coming soon!",
+    "imperials": "Mga Imperial",
+    "paymentMethods": {
+      "paypal": "PayPal",
+      "googlepay": "Google Pay",
+      "applepay": "Apple Pay",
+      "card": "Credit Card"
+    }
+  },
   "inventory": {"consumables": "Consumables", "noItems": "Walang available na item."},
   "profile": {"inventoryTab": "Imbentaryo", "consumablesTab": "Consumables", "statsTab": "Stats", "class": "Klase", "level": "Level"},
   "player": {"classUnknown": "Hindi kilalang klase", "level": "Level {{value}}"}

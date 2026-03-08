@@ -8,6 +8,7 @@ import { initEmailService } from "./modules/auth/services/email.js";
 import { combatRoutes } from "./modules/combat/routes.js";
 import { economyRoutes } from "./modules/economy/routes.js";
 import { inventoryRoutes } from "./modules/inventory/routes.js";
+import { paymentsRoutes } from "./modules/payments/routes.js";
 import { playerRoutes } from "./modules/player/routes.js";
 import { schedulerRoutes } from "./modules/scheduler/routes.js";
 import { telemetryRoutes } from "./modules/telemetry/routes.js";
@@ -71,6 +72,7 @@ async function buildServer() {
   await fastify.register(combatRoutes);
   await fastify.register(inventoryRoutes);
   await fastify.register(economyRoutes);
+  await fastify.register(paymentsRoutes);
   await fastify.register(schedulerRoutes);
   await fastify.register(telemetryRoutes);
   await fastify.register(websocketRoutes);

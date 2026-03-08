@@ -1,12 +1,58 @@
 ﻿{
   "auth": {"subtitle": "로그인하여 메인 페이지를 여세요.", "loginGuest": "게스트로 로그인"},
   "menu": {
-    "title": "메뉴", "inventory": "인벤토리", "encyclopedia": "도감", "contracts": "계약", "missions": "임무", "arena": "투기장", "guild": "길드", "castles": "성채", "auctionHouse": "경매장", "merchant": "상인", "leaderboards": "순위", "settings": "설정", "logout": "로그아웃"
+    "title": "메뉴", "inventory": "인벤토리", "encyclopedia": "도감", "contracts": "계약", "missions": "임무", "arena": "투기장", "guild": "길드", "castles": "성채", "auctionHouse": "경매장", "merchant": "상인", "shop": "제국 상점", "leaderboards": "순위", "settings": "설정", "logout": "로그아웃"
   },
   "bars": {"health": "체력", "experience": "경험치"},
   "chat": {"world": "월드", "guild": "길드", "send": "보내기", "empty": "메시지가 없습니다."},
   "contracts": {"table": {"contract": "계약", "difficulty": "난이도", "action": "행동"}, "abandon": "포기", "replenishing": "보충 중"},
-  "settings": {"title": "설정", "description": "인터페이스 언어를 선택하세요. 변경 사항은 즉시 적용됩니다.", "languageLabel": "언어", "saving": "언어 설정 저장 중...", "saveFailed": "로컬에는 저장되었지만 계정 동기화에 실패했습니다.", "saveSuccess": "언어가 계정과 동기화되었습니다."},
+  "currencies": {
+    "ducats": "두캇",
+    "imperials": "임페리얼",
+    "gearScore": "장비 점수"
+  },
+  "settings": {
+    "title": "설정",
+    "description": "인터페이스 언어를 선택하세요. 변경 사항은 즉시 적용됩니다.",
+    "languageLabel": "언어",
+    "saving": "언어 설정 저장 중...",
+    "saveFailed": "로컬에는 저장되었지만 계정 동기화에 실패했습니다.",
+    "saveSuccess": "언어가 계정과 동기화되었습니다.",
+    "accountInfo": "계정 정보",
+    "username": "사용자명",
+    "email": "이메일",
+    "emailVerified": "이메일 인증됨",
+    "verified": "✓ 인증됨",
+    "notVerified": "✗ 미인증",
+    "resendEmail": "이메일 다시 보내기",
+    "notSet": "미설정"
+  },
+  "shop": {
+    "title": "제국 상점",
+    "description": "임페리얼을 구매하여 Ebonkeep 경험을 향상시키세요",
+    "currentBalance": "현재 잔액",
+    "availableBundles": "사용 가능한 번들",
+    "buyNow": "지금 구매",
+    "processing": "처리 중...",
+    "selectPaymentMethod": "결제 방법 선택",
+    "allPaymentsSecure": "모든 결제는 신뢰할 수 있는 결제 제공업체를 통해 안전하게 처리됩니다.",
+    "allPurchasesFinal": "모든 구매는 최종입니다. 임페리얼은 Ebonkeep에서 사용되는 프리미엄 화폐입니다. 결제는 신뢰할 수 있는 결제 제공업체를 통해 안전하게 처리됩니다.",
+    "comingSoon": "출시 예정",
+    "processingPayment": "결제 처리 중...",
+    "pleaseWait": "거래를 확인하는 동안 잠시 기다려 주세요",
+    "paymentSuccessful": "결제 성공!",
+    "awesome": "훌륭합니다!",
+    "newBalance": "새 잔액",
+    "errorAuthRequired": "임페리얼을 구매하려면 로그인해야 합니다",
+    "errorPaymentMethod": "{{method}} 결제 방법이 곧 출시됩니다!",
+    "imperials": "임페리얼",
+    "paymentMethods": {
+      "paypal": "PayPal",
+      "googlepay": "Google Pay",
+      "applepay": "Apple Pay",
+      "card": "신용카드"
+    }
+  },
   "inventory": {"consumables": "소모품", "noItems": "사용 가능한 아이템이 없습니다."},
   "profile": {"inventoryTab": "인벤토리", "consumablesTab": "소모품", "statsTab": "능력치", "class": "직업", "level": "레벨"},
   "player": {"classUnknown": "알 수 없는 직업", "level": "레벨 {{value}}"}

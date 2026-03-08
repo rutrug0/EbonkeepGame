@@ -22,6 +22,7 @@ model Account {
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   profiles              PlayerProfile[]
+  transactions          Transaction[]
 
   @@unique([provider, providerUserId])
   @@index([email])
@@ -175,6 +176,28 @@ model CurrencyBalance {
   player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("currencies")
+}
+
+model Transaction {
+  id                String   @id @default(cuid())
+  accountId         String
+  provider          String
+  providerOrderId   String   @unique
+  providerPayerId   String?
+  status            String
+  amount            String
+  currency          String
+  imperials         Int
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  completedAt       DateTime?
+  account           Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([status])
+  @@index([providerOrderId])
+  @@map("transactions")
 }
 
 model EventProgress {

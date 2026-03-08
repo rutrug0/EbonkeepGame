@@ -1,12 +1,58 @@
 ﻿{
   "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录"},
   "menu": {
-    "title": "菜单", "inventory": "背包", "encyclopedia": "图鉴", "contracts": "契约", "missions": "任务", "arena": "竞技场", "guild": "公会", "castles": "城堡", "auctionHouse": "拍卖行", "merchant": "商人", "leaderboards": "排行榜", "settings": "设置", "logout": "退出登录"
+    "title": "菜单", "inventory": "背包", "encyclopedia": "图鉴", "contracts": "契约", "missions": "任务", "arena": "竞技场", "guild": "公会", "castles": "城堡", "auctionHouse": "拍卖行", "merchant": "商人", "shop": "帝国商店", "leaderboards": "排行榜", "settings": "设置", "logout": "退出登录"
   },
   "bars": {"health": "生命", "experience": "经验"},
   "chat": {"world": "世界", "guild": "公会", "send": "发送", "empty": "暂无消息。"},
   "contracts": {"table": {"contract": "契约", "difficulty": "难度", "action": "操作"}, "abandon": "放弃", "replenishing": "补充中"},
-  "settings": {"title": "设置", "description": "选择界面语言，变更会立即生效。", "languageLabel": "语言", "saving": "正在保存语言偏好...", "saveFailed": "语言已本地保存，但账号同步失败。", "saveSuccess": "语言已同步到账号。"},
+  "currencies": {
+    "ducats": "杜卡特",
+    "imperials": "帝国币",
+    "gearScore": "装备分数"
+  },
+  "settings": {
+    "title": "设置",
+    "description": "选择界面语言，变更会立即生效。",
+    "languageLabel": "语言",
+    "saving": "正在保存语言偏好...",
+    "saveFailed": "语言已本地保存，但账号同步失败。",
+    "saveSuccess": "语言已同步到账号。",
+    "accountInfo": "账户信息",
+    "username": "用户名",
+    "email": "邮箱",
+    "emailVerified": "邮箱验证",
+    "verified": "✓ 已验证",
+    "notVerified": "✗ 未验证",
+    "resendEmail": "重新发送邮件",
+    "notSet": "未设置"
+  },
+  "shop": {
+    "title": "帝国商店",
+    "description": "购买帝国币以增强您的黑堡体验",
+    "currentBalance": "当前余额",
+    "availableBundles": "可用商品包",
+    "buyNow": "立即购买",
+    "processing": "处理中...",
+    "selectPaymentMethod": "选择付款方式",
+    "allPaymentsSecure": "所有付款均通过可信的支付提供商安全处理。",
+    "allPurchasesFinal": "所有购买均为最终交易。帝国币是黑堡中使用的高级货币。付款通过可信的支付提供商安全处理。",
+    "comingSoon": "即将推出",
+    "processingPayment": "正在处理付款...",
+    "pleaseWait": "请稍候，我们正在确认您的交易",
+    "paymentSuccessful": "付款成功！",
+    "awesome": "太棒了！",
+    "newBalance": "新余额",
+    "errorAuthRequired": "您必须登录才能购买帝国币",
+    "errorPaymentMethod": "{{method}}付款方式即将推出！",
+    "imperials": "帝国币",
+    "paymentMethods": {
+      "paypal": "PayPal",
+      "googlepay": "Google Pay",
+      "applepay": "Apple Pay",
+      "card": "信用卡"
+    }
+  },
   "inventory": {"consumables": "消耗品", "noItems": "暂无物品。"},
   "profile": {"inventoryTab": "背包", "consumablesTab": "消耗品", "statsTab": "属性", "class": "职业", "level": "等级"},
   "player": {"classUnknown": "未知职业", "level": "等级 {{value}}"}

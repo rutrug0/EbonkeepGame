@@ -1,12 +1,58 @@
 ﻿{
   "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado"},
   "menu": {
-    "title": "Menú", "inventory": "Inventario", "encyclopedia": "Enciclopedia", "contracts": "Contratos", "missions": "Misiones", "arena": "Arena", "guild": "Gremio", "castles": "Castillos", "auctionHouse": "Casa de Subastas", "merchant": "Mercader", "leaderboards": "Clasificaciones", "settings": "Ajustes", "logout": "Cerrar sesión"
+    "title": "Menú", "inventory": "Inventario", "encyclopedia": "Enciclopedia", "contracts": "Contratos", "missions": "Misiones", "arena": "Arena", "guild": "Gremio", "castles": "Castillos", "auctionHouse": "Casa de Subastas", "merchant": "Mercader", "shop": "Tienda Imperial", "leaderboards": "Clasificaciones", "settings": "Ajustes", "logout": "Cerrar sesión"
   },
   "bars": {"health": "Salud", "experience": "Experiencia"},
   "chat": {"world": "Mundo", "guild": "Gremio", "send": "Enviar", "empty": "Aún no hay mensajes."},
   "contracts": {"table": {"contract": "Contrato", "difficulty": "Dificultad", "action": "Acción"}, "abandon": "Abandonar", "replenishing": "Reponiendo"},
-  "settings": {"title": "Ajustes", "description": "Elige el idioma de la interfaz. Los cambios se aplican al instante.", "languageLabel": "Idioma", "saving": "Guardando preferencia de idioma...", "saveFailed": "Idioma guardado localmente, pero falló la sincronización de cuenta.", "saveSuccess": "Idioma sincronizado con la cuenta."},
+  "currencies": {
+    "ducats": "Ducados",
+    "imperials": "Imperiales",
+    "gearScore": "Puntuación de Equipo"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "description": "Elige el idioma de la interfaz. Los cambios se aplican al instante.",
+    "languageLabel": "Idioma",
+    "saving": "Guardando preferencia de idioma...",
+    "saveFailed": "Idioma guardado localmente, pero falló la sincronización de cuenta.",
+    "saveSuccess": "Idioma sincronizado con la cuenta.",
+    "accountInfo": "Información de Cuenta",
+    "username": "Nombre de usuario",
+    "email": "Correo electrónico",
+    "emailVerified": "Correo verificado",
+    "verified": "✓ Verificado",
+    "notVerified": "✗ No verificado",
+    "resendEmail": "Reenviar correo",
+    "notSet": "No establecido"
+  },
+  "shop": {
+    "title": "Tienda Imperial",
+    "description": "Compra Imperiales para mejorar tu experiencia en Ebonkeep",
+    "currentBalance": "Saldo Actual",
+    "availableBundles": "Paquetes Disponibles",
+    "buyNow": "Comprar Ahora",
+    "processing": "Procesando...",
+    "selectPaymentMethod": "Seleccionar Método de Pago",
+    "allPaymentsSecure": "Todos los pagos se procesan de forma segura a través de proveedores de pago confiables.",
+    "allPurchasesFinal": "Todas las compras son finales. Los Imperiales son una moneda premium utilizada en Ebonkeep. Los pagos se procesan de forma segura a través de proveedores de pago confiables.",
+    "comingSoon": "Próximamente",
+    "processingPayment": "Procesando Pago...",
+    "pleaseWait": "Por favor espera mientras confirmamos tu transacción",
+    "paymentSuccessful": "¡Pago Exitoso!",
+    "awesome": "¡Genial!",
+    "newBalance": "Nuevo Saldo",
+    "errorAuthRequired": "Debes iniciar sesión para comprar Imperiales",
+    "errorPaymentMethod": "¡El método de pago {{method}} estará disponible pronto!",
+    "imperials": "Imperiales",
+    "paymentMethods": {
+      "paypal": "PayPal",
+      "googlepay": "Google Pay",
+      "applepay": "Apple Pay",
+      "card": "Tarjeta de Crédito"
+    }
+  },
   "inventory": {"consumables": "Consumibles", "noItems": "No hay objetos disponibles."},
   "profile": {"inventoryTab": "Inventario", "consumablesTab": "Consumibles", "statsTab": "Estadísticas", "class": "Clase", "level": "Nivel"},
   "player": {"classUnknown": "Clase desconocida", "level": "Nivel {{value}}"}

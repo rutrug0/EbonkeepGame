@@ -18,6 +18,7 @@
     "castles": "Castles",
     "auctionHouse": "Auction House",
     "merchant": "Merchant",
+    "shop": "Imperial Shop",
     "leaderboards": "Leaderboards",
     "settings": "Settings",
     "logout": "Logout"
@@ -191,7 +192,41 @@
     "languageLabel": "Language",
     "saving": "Saving language preference...",
     "saveFailed": "Language saved locally, but account sync failed.",
-    "saveSuccess": "Language synced to account."
+    "saveSuccess": "Language synced to account.",
+    "accountInfo": "Account Information",
+    "username": "Username",
+    "email": "Email",
+    "emailVerified": "Email Verified",
+    "verified": "✓ Verified",
+    "notVerified": "✗ Not Verified",
+    "resendEmail": "Resend Email",
+    "notSet": "Not set"
+  },
+  "shop": {
+    "title": "Imperial Shop",
+    "description": "Purchase Imperials to enhance your Ebonkeep experience",
+    "currentBalance": "Current Balance",
+    "availableBundles": "Available Bundles",
+    "buyNow": "Buy Now",
+    "processing": "Processing...",
+    "selectPaymentMethod": "Select Payment Method",
+    "allPaymentsSecure": "All payments are processed securely through trusted payment providers.",
+    "allPurchasesFinal": "All purchases are final. Imperials are a premium currency used in Ebonkeep. Payments are processed securely through trusted payment providers.",
+    "comingSoon": "Coming Soon",
+    "processingPayment": "Processing Payment...",
+    "pleaseWait": "Please wait while we confirm your transaction",
+    "paymentSuccessful": "Payment Successful!",
+    "awesome": "Awesome!",
+    "newBalance": "New Balance",
+    "errorAuthRequired": "You must be logged in to purchase Imperials",
+    "errorPaymentMethod": "{{method}} payment method coming soon!",
+    "imperials": "Imperials",
+    "paymentMethods": {
+      "paypal": "PayPal",
+      "googlepay": "Google Pay",
+      "applepay": "Apple Pay",
+      "card": "Credit Card"
+    }
   },
   "placeholders": {
     "missions": "Mission selection and launch board will appear here.",

@@ -451,6 +451,63 @@ export const verifyEmailResponseSchema = z.object({
 });
 export type VerifyEmailResponse = z.infer<typeof verifyEmailResponseSchema>;
 
+// PayPal Transaction schemas
+export const imperialBundleSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  imperials: z.number().int().positive(),
+  price: z.number().positive(),
+  currency: z.string().default("USD")
+});
+export type ImperialBundle = z.infer<typeof imperialBundleSchema>;
+
+export const IMPERIAL_BUNDLES: readonly ImperialBundle[] = [
+  { id: "bundle_100", name: "100 Imperials", imperials: 100, price: 5.00, currency: "USD" },
+  { id: "bundle_400", name: "400 Imperials", imperials: 400, price: 15.00, currency: "USD" },
+  { id: "bundle_900", name: "900 Imperials", imperials: 900, price: 30.00, currency: "USD" }
+] as const;
+
+export const createPaymentBodySchema = z.object({
+  bundleId: z.string()
+});
+export type CreatePaymentBody = z.infer<typeof createPaymentBodySchema>;
+
+export const createPaymentResponseSchema = z.object({
+  orderId: z.string(),
+  approvalUrl: z.string().optional()
+});
+export type CreatePaymentResponse = z.infer<typeof createPaymentResponseSchema>;
+
+export const capturePaymentBodySchema = z.object({
+  orderId: z.string()
+});
+export type CapturePaymentBody = z.infer<typeof capturePaymentBodySchema>;
+
+export const capturePaymentResponseSchema = z.object({
+  success: z.boolean(),
+  transactionId: z.string(),
+  imperials: z.number().int().positive(),
+  message: z.string().optional()
+});
+export type CapturePaymentResponse = z.infer<typeof capturePaymentResponseSchema>;
+
+export const transactionStatusSchema = z.enum(["pending", "completed", "failed", "cancelled"]);
+export type TransactionStatus = z.infer<typeof transactionStatusSchema>;
+
+export const transactionSchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  provider: z.string(),
+  providerOrderId: z.string(),
+  status: transactionStatusSchema,
+  amount: z.string(),
+  currency: z.string(),
+  imperials: z.number().int(),
+  createdAt: z.string(),
+  completedAt: z.string().nullable()
+});
+export type Transaction = z.infer<typeof transactionSchema>;
+
 export const forgotPasswordBodySchema = z.object({
   email: z.string().email()
 });

@@ -1,12 +1,58 @@
 ﻿{
   "auth": {"subtitle": "Войдите, чтобы открыть главную страницу.", "loginGuest": "Войти как гость"},
   "menu": {
-    "title": "Меню", "inventory": "Инвентарь", "encyclopedia": "Энциклопедия", "contracts": "Контракты", "missions": "Миссии", "arena": "Арена", "guild": "Гильдия", "castles": "Замки", "auctionHouse": "Аукцион", "merchant": "Торговец", "leaderboards": "Рейтинги", "settings": "Настройки", "logout": "Выйти"
+    "title": "Меню", "inventory": "Инвентарь", "encyclopedia": "Энциклопедия", "contracts": "Контракты", "missions": "Миссии", "arena": "Арена", "guild": "Гильдия", "castles": "Замки", "auctionHouse": "Аукцион", "merchant": "Торговец", "shop": "Имперский магазин", "leaderboards": "Рейтинги", "settings": "Настройки", "logout": "Выйти"
   },
   "bars": {"health": "Здоровье", "experience": "Опыт"},
   "chat": {"world": "Мир", "guild": "Гильдия", "send": "Отправить", "empty": "Сообщений пока нет."},
   "contracts": {"table": {"contract": "Контракт", "difficulty": "Сложность", "action": "Действие"}, "abandon": "Отменить", "replenishing": "Обновляется"},
-  "settings": {"title": "Настройки", "description": "Выберите язык интерфейса. Изменения применяются сразу.", "languageLabel": "Язык", "saving": "Сохранение языковых настроек...", "saveFailed": "Язык сохранён локально, но синхронизация аккаунта не удалась.", "saveSuccess": "Язык синхронизирован с аккаунтом."},
+  "currencies": {
+    "ducats": "Дукаты",
+    "imperials": "Империалы",
+    "gearScore": "Очки снаряжения"
+  },
+  "settings": {
+    "title": "Настройки",
+    "description": "Выберите язык интерфейса. Изменения применяются сразу.",
+    "languageLabel": "Язык",
+    "saving": "Сохранение языковых настроек...",
+    "saveFailed": "Язык сохранён локально, но синхронизация аккаунта не удалась.",
+    "saveSuccess": "Язык синхронизирован с аккаунтом.",
+    "accountInfo": "Информация об аккаунте",
+    "username": "Имя пользователя",
+    "email": "Эл. почта",
+    "emailVerified": "Эл. почта подтверждена",
+    "verified": "✓ Подтверждено",
+    "notVerified": "✗ Не подтверждено",
+    "resendEmail": "Отправить письмо снова",
+    "notSet": "Не установлено"
+  },
+  "shop": {
+    "title": "Имперский магазин",
+    "description": "Купите империалы, чтобы улучшить свой опыт в Ebonkeep",
+    "currentBalance": "Текущий баланс",
+    "availableBundles": "Доступные наборы",
+    "buyNow": "Купить сейчас",
+    "processing": "Обработка...",
+    "selectPaymentMethod": "Выберите способ оплаты",
+    "allPaymentsSecure": "Все платежи обрабатываются безопасно через надёжных платёжных провайдеров.",
+    "allPurchasesFinal": "Все покупки являются окончательными. Империалы — это премиальная валюта, используемая в Ebonkeep. Платежи обрабатываются безопасно через надёжных платёжных провайдеров.",
+    "comingSoon": "Скоро",
+    "processingPayment": "Обработка платежа...",
+    "pleaseWait": "Пожалуйста, подождите, пока мы подтверждаем вашу транзакцию",
+    "paymentSuccessful": "Платёж успешен!",
+    "awesome": "Отлично!",
+    "newBalance": "Новый баланс",
+    "errorAuthRequired": "Вы должны войти в систему, чтобы купить империалы",
+    "errorPaymentMethod": "Способ оплаты {{method}} скоро будет доступен!",
+    "imperials": "Империалы",
+    "paymentMethods": {
+      "paypal": "PayPal",
+      "googlepay": "Google Pay",
+      "applepay": "Apple Pay",
+      "card": "Кредитная карта"
+    }
+  },
   "inventory": {"consumables": "Расходники", "noItems": "Предметы отсутствуют."},
   "profile": {"inventoryTab": "Инвентарь", "consumablesTab": "Расходники", "statsTab": "Характеристики", "class": "Класс", "level": "Уровень"},
   "player": {"classUnknown": "Класс неизвестен", "level": "Уровень {{value}}"}

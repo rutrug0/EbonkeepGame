@@ -6,7 +6,11 @@
     "rootDir": "src",
     "types": [
       "node"
-    ]
+    ],
+    "paths": {
+      "@ebonkeep/shared": ["../../packages/shared/src/index.ts"],
+      "@ebonkeep/transactions/*": ["../../transactions/*"]
+    }
   },
   "include": [
     "src/**/*.ts",

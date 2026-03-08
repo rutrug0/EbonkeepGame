@@ -37,6 +37,7 @@ import {
   CombatEncounterPanel,
   CombatEncounterTurnTrackPanel
 } from "./components/CombatEncounterPanel";
+import { ImperialShop } from "./components/ImperialShop";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
   GENERATED_ITEM_ENCYCLOPEDIA_DATA,
@@ -55,6 +56,7 @@ type LandingTab =
   | "castles"
   | "auctionHouse"
   | "merchant"
+  | "shop"
   | "leaderboards"
   | "settings";
 type Rarity = "common" | "uncommon" | "rare" | "epic";
@@ -334,6 +336,7 @@ const MENU_ITEMS: LandingTab[] = [
   "castles",
   "auctionHouse",
   "merchant",
+  "shop",
   "leaderboards",
   "settings"
 ];
@@ -1629,6 +1632,14 @@ function renderMenuIcon(tab: LandingTab) {
           <path d="M12 6v12M8 6h8M5 10h6l-3 4zM13 10h6l-3 4zM8 20h8" />
         </svg>
       );
+    case "shop":
+      return (
+        <svg {...iconProps}>
+          <path d="M3 9h18M5 9v10h14V9M9 9V6h6v3M12 13v4" />
+          <circle cx="9" cy="16" r="0.5" fill="currentColor" />
+          <circle cx="15" cy="16" r="0.5" fill="currentColor" />
+        </svg>
+      );
     case "leaderboards":
       return (
         <svg {...iconProps}>
@@ -2209,6 +2220,7 @@ export function App() {
   const [isSavingLocale, setIsSavingLocale] = useState(false);
   const [localeStatusMessage, setLocaleStatusMessage] = useState<string | null>(null);
 
+
   const profileName = accountInfo?.username ?? (playerState ? getDisplayName(playerState) : i18n.t("profile.defaultName"));
   const avatarInitial = profileName.charAt(0);
 
@@ -2334,9 +2346,24 @@ export function App() {
     }
   }, []);
 
+  // Handle PayPal return with token parameter
+  useEffect(() => {
+    if (!token) return; // Wait for authentication
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const paypalToken = urlParams.get("token");
+    
+    if (paypalToken) {
+      // Automatically switch to shop tab to trigger payment capture
+      setActiveTab("shop");
+    }
+  }, [token]);
+
   useEffect(() => {
     setLocale(preferredLocale);
   }, [preferredLocale]);
+
+
 
   useEffect(() => {
     if (activeTab !== "inventory") {
@@ -4642,21 +4669,21 @@ export function App() {
           </article>
           {accountInfo && (
             <article className="contentCard">
-              <h3 style={{ marginTop: 0 }}>Account Information</h3>
+              <h3 style={{ marginTop: 0 }}>{i18n.t("settings.accountInfo")}</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Username</span>
-                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.username || "Not set"}</span>
+                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("settings.username")}</span>
+                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.username || i18n.t("settings.notSet")}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Email</span>
-                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.email || "Not set"}</span>
+                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("settings.email")}</span>
+                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.email || i18n.t("settings.notSet")}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Email Verified</span>
+                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("settings.emailVerified")}</span>
                   <span style={{ flex: "0 0 60%", display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontWeight: "bold", color: accountInfo.emailVerified ? "#6f8d5f" : "#97504a" }}>
-                      {accountInfo.emailVerified ? "✓ Verified" : "✗ Not Verified"}
+                      {accountInfo.emailVerified ? i18n.t("settings.verified") : i18n.t("settings.notVerified")}
                     </span>
                     {!accountInfo.emailVerified && (
                       <button
@@ -4672,7 +4699,7 @@ export function App() {
                           fontWeight: "600"
                         }}
                       >
-                        Resend Email
+                        {i18n.t("settings.resendEmail")}
                       </button>
                     )}
                   </span>
@@ -4680,11 +4707,11 @@ export function App() {
                 {accountInfo.currency && (
                   <>
                     <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Ducats</span>
+                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("currencies.ducats")}</span>
                       <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#be9651" }}>{accountInfo.currency.ducats.toLocaleString()}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", padding: "8px 0" }}>
-                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>Imperials</span>
+                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("currencies.imperials")}</span>
                       <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#9d7bb8" }}>{accountInfo.currency.imperials.toLocaleString()}</span>
                     </div>
                   </>
@@ -5070,6 +5097,8 @@ export function App() {
         );
       case "merchant":
         return renderPlaceholderPanel(i18n.t("menu.merchant"), i18n.t("placeholders.merchant"));
+      case "shop":
+        return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
       case "leaderboards":
         return renderPlaceholderPanel(i18n.t("menu.leaderboards"), i18n.t("placeholders.leaderboards"));
       case "settings":
@@ -5587,6 +5616,8 @@ export function App() {
           ) : null}
 
           {error ? <div className="error floatingError">{i18n.t("app.errorPrefix")}: {error}</div> : null}
+
+
         </div>
       </div>
     </main>
