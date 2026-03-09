@@ -20,7 +20,7 @@ Ebonkeep is a web-first, session-flexible fantasy RPG focused on progression loo
 - Classes: Warrior, Mage, Ranger.
 - Level progression + gear score progression.
 - PvE combat encounters (solo and group-enemy variants).
-- Inventory grid management and equipment slots.
+- Bag inventory management and equipment slots.
 - Itemization: base items, rarity, affixes, consumables.
 - Contracts board (timed activity progression).
 - Instanced shops with refresh timers.

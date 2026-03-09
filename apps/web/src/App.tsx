@@ -23,16 +23,23 @@ import {
   type CombatPlaybackActionResolved,
   type CombatPlaybackEncounter,
   type CombatPlaybackEvent,
+  type DevWeapon,
+  type EquipmentState as SharedEquipmentState,
+  type EquipmentSlotId as SharedEquipmentSlotId,
+  type InventoryItem as SharedInventoryItem,
   type ItemMajorCategory,
+  type ItemModifier as SharedItemModifier,
+  type ModifierTier,
   type PlayerClass,
   type PlayerState,
   type SupportedLocale,
   type VestigeId,
+  type WeaponDamageRoll,
   type WeaponArchetype,
   type WeaponFamily
 } from "@ebonkeep/shared";
 
-import { devGuestLogin, fetchPlayerState, forgotPassword, getAccountOverview, login, register, resendVerificationEmail, resetPassword, updatePlayerPreferences, verifyEmail } from "./api";
+import { devGuestLogin, fetchPlayerState, forgotPassword, getAccountOverview, login, moveInventoryItem, register, resendVerificationEmail, resetPassword, updatePlayerPreferences, verifyEmail } from "./api";
 import {
   CombatEncounterArenaPanel,
   CombatEncounterLogPanel,
@@ -131,21 +138,7 @@ type RenownViewState = {
   scale: number;
 };
 
-type EquipmentSlotId =
-  | "helmet"
-  | "necklace"
-  | "upperArmor"
-  | "belt"
-  | "ringLeft"
-  | "weapon"
-  | "pauldrons"
-  | "gloves"
-  | "lowerArmor"
-  | "boots"
-  | "ringRight"
-  | "vestige1"
-  | "vestige2"
-  | "vestige3";
+type EquipmentSlotId = SharedEquipmentSlotId;
 
 type EquipmentSlot = {
   labelKey: string;
@@ -154,6 +147,7 @@ type EquipmentSlot = {
 
 type InventoryItem = {
   id: string;
+  itemCode?: string;
   itemName: string;
   rarity: Rarity;
   category: string;
@@ -167,17 +161,16 @@ type InventoryItem = {
     vestigeId?: VestigeId;
   };
   equipSlotId: EquipmentSlotId;
+  allowedSlotIds?: EquipmentSlotId[];
   levelRequirement: number;
   baseLevel?: number;
-  statBonuses?: Partial<Record<TrainableStatKey, number>>;
+  statBonuses?: Partial<Record<string, number>>;
   damageRoll?: WeaponDamageRoll;
   prefix?: ItemModifier;
   affix?: ItemModifier;
   power: number;
   description: string;
 };
-
-type ModifierTier = "T1" | "T2" | "T3";
 
 type ItemModifier = {
   kind: "prefix" | "affix";
@@ -192,14 +185,6 @@ type ItemModifierStatLine = {
   tier: ModifierTier;
   label: string;
   value: string;
-};
-
-type WeaponDamageRoll = {
-  minRollRange: [number, number];
-  rolledMin: number;
-  rolledMax: number;
-  maxRollRange: [number, number];
-  averageDamage: number;
 };
 
 type MeleeDamageRollWindow = {
@@ -290,7 +275,6 @@ type StatContributionLine = {
   ratioLabel: string;
   valueLabel: string;
 };
-type DevWeaponInventorySeed = NonNullable<PlayerState["devWeapons"]>[number];
 type ChatMessage = {
   id: string;
   channel: ChatChannel;
@@ -298,6 +282,7 @@ type ChatMessage = {
   text: string;
   sentAtMs: number;
 };
+type DevWeaponInventorySeed = DevWeapon;
 
 const INVENTORY_ITEM_LIMIT = 20;
 const CONTRACT_SLOT_COUNT = 6;
@@ -1325,6 +1310,22 @@ function createMockMeleeWeaponItems(): MockInventoryItemSeed[] {
 
 function formatModifierStatLabel(stat: string): string {
   const knownLabels: Record<string, string> = {
+    strength: "Strength",
+    intelligence: "Intelligence",
+    dexterity: "Dexterity",
+    vitality: "Vitality",
+    initiative: "Initiative",
+    luck: "Luck",
+    armor: i18n.t("profile.armor"),
+    spellShield: i18n.t("profile.spellShield"),
+    missileResistance: i18n.t("profile.missileResistance"),
+    maxHitpoints: i18n.t("profile.maxHitpoints"),
+    dodgeChance: "Dodge Chance",
+    damage: i18n.t("profile.mainDamage"),
+    critChance: i18n.t("profile.critChance"),
+    critMultiplier: i18n.t("profile.critDamage"),
+    accuracy: "Accuracy",
+    extraAttackChance: i18n.t("profile.extraAttackChance"),
     melee_damage: i18n.t("profile.meleeDamage"),
     ranged_damage: i18n.t("profile.rangedDamage"),
     spell_damage: i18n.t("profile.spellDamage"),
@@ -1337,6 +1338,7 @@ function formatModifierStatLabel(stat: string): string {
     return knownLabels[stat];
   }
   return stat
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
     .split("_")
     .filter((part) => part.length > 0)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -1455,6 +1457,69 @@ function getGeneratedItemIconPath(args: {
   return undefined;
 }
 
+function toLocalItemModifier(modifier: SharedItemModifier | undefined): ItemModifier | undefined {
+  if (!modifier) {
+    return undefined;
+  }
+  return {
+    kind: modifier.kind,
+    tier: modifier.tier,
+    name: modifier.name,
+    bonusLabel: formatModifierStatLabel(modifier.statKey),
+    bonusValue: formatModifierValue(modifier.value, modifier.unit)
+  };
+}
+
+function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
+  const preferredSlotId = item.allowedSlotIds[0];
+  return {
+    id: item.id,
+    itemCode: item.itemCode,
+    itemName: item.itemName,
+    rarity: item.rarity,
+    category: item.category,
+    iconAssetPath:
+      getGeneratedItemIconPath({
+        majorCategory: item.archetype.majorCategory,
+        weaponArchetype: item.archetype.weaponArchetype,
+        armorArchetype: item.archetype.armorArchetype,
+        itemName: item.itemName,
+        equipSlotId: preferredSlotId
+      }) ?? undefined,
+    equipable: item.equipable,
+    archetype: item.archetype,
+    equipSlotId: preferredSlotId,
+    allowedSlotIds: [...item.allowedSlotIds],
+    levelRequirement: item.levelRequirement,
+    baseLevel: item.baseLevel,
+    statBonuses: item.statBonuses,
+    damageRoll: item.damageRoll,
+    prefix: toLocalItemModifier(item.prefix),
+    affix: toLocalItemModifier(item.affix),
+    power: item.power,
+    description: item.description
+  };
+}
+
+function toLocalEquipmentState(equipment: SharedEquipmentState): EquippedItems {
+  return {
+    helmet: equipment.helmet ? toLocalInventoryItem(equipment.helmet) : null,
+    necklace: equipment.necklace ? toLocalInventoryItem(equipment.necklace) : null,
+    upperArmor: equipment.upperArmor ? toLocalInventoryItem(equipment.upperArmor) : null,
+    belt: equipment.belt ? toLocalInventoryItem(equipment.belt) : null,
+    ringLeft: equipment.ringLeft ? toLocalInventoryItem(equipment.ringLeft) : null,
+    weapon: equipment.weapon ? toLocalInventoryItem(equipment.weapon) : null,
+    pauldrons: equipment.pauldrons ? toLocalInventoryItem(equipment.pauldrons) : null,
+    gloves: equipment.gloves ? toLocalInventoryItem(equipment.gloves) : null,
+    lowerArmor: equipment.lowerArmor ? toLocalInventoryItem(equipment.lowerArmor) : null,
+    boots: equipment.boots ? toLocalInventoryItem(equipment.boots) : null,
+    ringRight: equipment.ringRight ? toLocalInventoryItem(equipment.ringRight) : null,
+    vestige1: equipment.vestige1 ? toLocalInventoryItem(equipment.vestige1) : null,
+    vestige2: equipment.vestige2 ? toLocalInventoryItem(equipment.vestige2) : null,
+    vestige3: equipment.vestige3 ? toLocalInventoryItem(equipment.vestige3) : null
+  };
+}
+
 function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): InventoryItem {
   const prefixAffix = weapon.affixes.find((affix) => affix.source === "prefix");
   const suffixAffix = weapon.affixes.find((affix) => affix.source === "suffix");
@@ -1520,7 +1585,7 @@ function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): I
   };
 }
 
-function createMockInventoryItems(devWeapons?: PlayerState["devWeapons"]): InventoryItem[] {
+function createMockInventoryItems(devWeapons?: DevWeapon[]): InventoryItem[] {
   const baseItems = MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS.map((item) => {
     const modifiers = buildRarityModifiers(item);
     const itemWithModifiers: InventoryItem = {
@@ -1733,7 +1798,7 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker");
       return {
         familyId: "mirepool_boglings_04",
-        locationName: "Mirepool Hollow",
+        locationName: "Mirepool Grotto",
         enemyId: "enemy-mire-croaker",
         enemyName: "The Mire Croaker",
         enemyMaxHp: 88,
@@ -2449,6 +2514,10 @@ function formatDerivedPercent(value: number): string {
   return i18n.t("profile.derivedPercent", { value: formatOneDecimal(value) });
 }
 
+function formatBasisPoints(value: number): string {
+  return `${formatOneDecimal(value / 100)}%`;
+}
+
 function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
   if (playerClass === "mage") {
     return "intelligence";
@@ -2653,10 +2722,9 @@ export function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
   const [accountInfo, setAccountInfo] = useState<AccountOverviewResponse | null>(null);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() =>
-    createMockInventoryItems().slice(0, INVENTORY_ITEM_LIMIT)
-  );
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [equippedItems, setEquippedItems] = useState<EquippedItems>(() => createEmptyEquippedItems());
+  const [isInventoryMutating, setIsInventoryMutating] = useState(false);
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
   const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -2731,7 +2799,7 @@ export function App() {
     return filters;
   }, [showOnlyArmor, showOnlyJewelry, showOnlyWeapons]);
   const filteredInventoryItems = useMemo(() => {
-    return inventoryItems.filter((item) => {
+    const filteredItems = inventoryItems.filter((item) => {
       if (showOnlyWearable && !item.equipable) {
         return false;
       }
@@ -2744,7 +2812,12 @@ export function App() {
       }
       return activeInventoryCategoryFilters.includes(category as InventoryCategoryFilter);
     });
-  }, [activeInventoryCategoryFilters, inventoryItems, showOnlyWearable]);
+    return [...filteredItems].sort((firstItem, secondItem) =>
+      powerSortDirection === "desc"
+        ? secondItem.power - firstItem.power
+        : firstItem.power - secondItem.power
+    );
+  }, [activeInventoryCategoryFilters, inventoryItems, powerSortDirection, showOnlyWearable]);
   const activeChatMessages = chatMessagesByChannel[activeChatChannel];
   const isInventoryChatVisible = canDockInventoryChat ? isInventoryChatDockedVisible : isInventoryChatOverlayOpen;
   const activeCharacterVisual =
@@ -2753,6 +2826,39 @@ export function App() {
     activeCharacterVisual?.path ?? null;
   const activeCharacterVisualName = activeCharacterVisual?.assetName ?? null;
   const canCycleCharacterVisuals = GENERATED_CHARACTER_VISUALS.length > 1;
+
+  function applyAuthoritativePlayerState(nextState: PlayerState | null) {
+    setPlayerState(nextState ? applyMockPlayerStateOverrides(nextState) : null);
+    setInventoryItems(nextState ? nextState.inventory.map((item) => toLocalInventoryItem(item)) : []);
+    setEquippedItems(nextState ? toLocalEquipmentState(nextState.equipment) : createEmptyEquippedItems());
+  }
+
+  function getAllowedSlotIdsForItem(item: InventoryItem): EquipmentSlotId[] {
+    return item.allowedSlotIds && item.allowedSlotIds.length > 0 ? [...item.allowedSlotIds] : [item.equipSlotId];
+  }
+
+  function getPreferredEquipSlot(item: InventoryItem): EquipmentSlotId | null {
+    const allowedSlotIds = getAllowedSlotIdsForItem(item);
+    const emptySlotId = allowedSlotIds.find((slotId) => equippedItems[slotId] === null);
+    return emptySlotId ?? allowedSlotIds[0] ?? null;
+  }
+
+  async function performInventoryMove(itemId: string, fromSlot: string, toSlot: string) {
+    if (!token || isInventoryMutating) {
+      return;
+    }
+
+    try {
+      setIsInventoryMutating(true);
+      const response = await moveInventoryItem(token, itemId, fromSlot, toSlot);
+      applyAuthoritativePlayerState(response.playerState);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : i18n.t("errors.invalidItem"));
+    } finally {
+      setIsInventoryMutating(false);
+    }
+  }
 
   const healthPercent = playerState
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
@@ -3072,7 +3178,7 @@ export function App() {
     let active = true;
 
     if (!token) {
-      setPlayerState(null);
+      applyAuthoritativePlayerState(null);
       setIsLoadingState(false);
       return () => {
         active = false;
@@ -3085,7 +3191,7 @@ export function App() {
     void fetchPlayerState(token)
       .then((state) => {
         if (active) {
-          setPlayerState(applyMockPlayerStateOverrides(state));
+          applyAuthoritativePlayerState(state);
           const resolvedLocale = normalizeLocale(state.preferredLocale);
           setPreferredLocale(resolvedLocale);
           setLocaleStatusMessage(null);
@@ -3093,7 +3199,7 @@ export function App() {
       })
       .catch((err: unknown) => {
         if (active) {
-          setPlayerState(null);
+          applyAuthoritativePlayerState(null);
           setError(err instanceof Error ? err.message : i18n.t("errors.stateLoadFailed"));
         }
       })
@@ -3147,15 +3253,13 @@ export function App() {
     setIsInventoryChatDockedVisible(true);
     setIsInventoryChatOverlayOpen(false);
 
-    setInventoryItems(createMockInventoryItems(playerState.devWeapons).slice(0, INVENTORY_ITEM_LIMIT));
-    setEquippedItems(createEmptyEquippedItems());
     setBaseStats({
-      strength: playerState.stats.strength,
-      intelligence: playerState.stats.intelligence,
-      dexterity: playerState.stats.dexterity,
-      vitality: playerState.stats.vitality,
-      initiative: playerState.stats.initiative,
-      luck: playerState.stats.luck
+      strength: playerState.statSnapshot.base.strength,
+      intelligence: playerState.statSnapshot.base.intelligence,
+      dexterity: playerState.statSnapshot.base.dexterity,
+      vitality: playerState.statSnapshot.base.vitality,
+      initiative: playerState.statSnapshot.base.initiative,
+      luck: playerState.statSnapshot.base.luck
     });
     setCurrencies({
       ducats: Math.max(playerState.currency.ducats, TEST_MIN_DUCATS),
@@ -3163,7 +3267,7 @@ export function App() {
     });
     setActiveStatTraining(null);
     setActiveContractEncounter(null);
-  }, [playerState]);
+  }, [playerState?.playerId]);
 
   useEffect(() => {
     setContractSlots((previousSlots) => {
@@ -3658,12 +3762,10 @@ export function App() {
   function handleLogout() {
     window.localStorage.removeItem("ebonkeep.dev.token");
     setToken(null);
-    setPlayerState(null);
+    applyAuthoritativePlayerState(null);
     setActiveTab("inventory");
     setCharacterHubTab("character");
     setError(null);
-    setInventoryItems(createMockInventoryItems().slice(0, INVENTORY_ITEM_LIMIT));
-    setEquippedItems(createEmptyEquippedItems());
     setDraggingInventoryCardId(null);
     setDraggingEquipmentSlotId(null);
     setDropTargetInventoryCardId(null);
@@ -3832,7 +3934,7 @@ export function App() {
     if (!item.equipable) {
       return i18n.t("errors.itemCannotBeEquipped");
     }
-    if (item.equipSlotId !== targetSlotId) {
+    if (!getAllowedSlotIdsForItem(item).includes(targetSlotId)) {
       return i18n.t("errors.wrongSlot", { slotLabel: formatEquipmentSlotLabel(item.equipSlotId) });
     }
 
@@ -3866,101 +3968,27 @@ export function App() {
     return null;
   }
 
-  function insertItemAroundTarget(
-    items: InventoryItem[],
-    itemToInsert: InventoryItem,
-    targetItemId: string,
-    insertPosition: InventoryInsertPosition
-  ): InventoryItem[] {
-    const targetIndex = items.findIndex((item) => item.id === targetItemId);
-    if (targetIndex < 0) {
-      return [...items, itemToInsert];
-    }
-
-    const insertIndex = insertPosition === "after" ? targetIndex + 1 : targetIndex;
-    const nextItems = [...items];
-    nextItems.splice(insertIndex, 0, itemToInsert);
-    return nextItems;
-  }
-
-  function equipInventoryItemToSlot(itemId: string, targetSlotId: EquipmentSlotId) {
-    const sourceIndex = inventoryItems.findIndex((item) => item.id === itemId);
-    if (sourceIndex < 0) {
-      return;
-    }
-
-    const sourceItem = inventoryItems[sourceIndex];
-    const validationError = getEquipValidationError(sourceItem, targetSlotId);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    const nextInventory = [...inventoryItems];
-    nextInventory.splice(sourceIndex, 1);
-    const displacedItem = equippedItems[targetSlotId];
-    if (displacedItem) {
-      nextInventory.splice(sourceIndex, 0, displacedItem);
-    }
-
-    if (nextInventory.length > INVENTORY_ITEM_LIMIT) {
-      setError(i18n.t("errors.inventoryFullSwap"));
-      return;
-    }
-
-    setInventoryItems(nextInventory);
-    setEquippedItems({
-      ...equippedItems,
-      [targetSlotId]: sourceItem
-    });
-    setError(null);
-  }
-
-  function unequipItemToInventory(
-    sourceSlotId: EquipmentSlotId,
-    targetItemId?: string,
-    insertPosition: InventoryInsertPosition = "after"
-  ) {
-    const sourceItem = equippedItems[sourceSlotId];
-    if (!sourceItem) {
-      return;
-    }
-
-    if (inventoryItems.length >= INVENTORY_ITEM_LIMIT) {
-      setError(i18n.t("errors.inventoryFullUnequip"));
-      return;
-    }
-
-    const nextInventory = targetItemId
-      ? insertItemAroundTarget(inventoryItems, sourceItem, targetItemId, insertPosition)
-      : [...inventoryItems, sourceItem];
-
-    setInventoryItems(nextInventory);
-    setEquippedItems({
-      ...equippedItems,
-      [sourceSlotId]: null
-    });
-    setError(null);
-  }
-
-  function handleInventoryCardDoubleClick(itemId: string) {
+  async function handleInventoryCardDoubleClick(itemId: string) {
     const item = getItemById(itemId);
     if (!item) {
       return;
     }
-    equipInventoryItemToSlot(itemId, item.equipSlotId);
+    const targetSlotId = getPreferredEquipSlot(item);
+    if (!targetSlotId) {
+      setError(i18n.t("errors.invalidItem"));
+      return;
+    }
+    const validationError = getEquipValidationError(item, targetSlotId);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    await performInventoryMove(itemId, "inventory", targetSlotId);
   }
 
   function toggleInventoryPowerSort() {
     const nextDirection = powerSortDirection === "asc" ? "desc" : "asc";
     setPowerSortDirection(nextDirection);
-    setInventoryItems((previousItems) =>
-      [...previousItems].sort((firstItem, secondItem) =>
-        nextDirection === "desc"
-          ? secondItem.power - firstItem.power
-          : firstItem.power - secondItem.power
-      )
-    );
   }
 
   function toggleExclusiveInventoryCategoryFilter(filter: InventoryCategoryFilter) {
@@ -4024,8 +4052,12 @@ export function App() {
     sendChatMessage();
   }
 
-  function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
-    unequipItemToInventory(slotId);
+  async function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
+    const sourceItem = equippedItems[slotId];
+    if (!sourceItem) {
+      return;
+    }
+    await performInventoryMove(sourceItem.id, slotId, "inventory");
   }
 
   function autoScrollInventoryList(pointerY: number) {
@@ -4102,10 +4134,8 @@ export function App() {
   function handleInventoryCardDrop(event: DragEvent<HTMLElement>, targetItemId: string) {
     event.preventDefault();
     const payload = readDragPayload(event);
-    if (payload?.source === "inventory") {
-      reorderInventoryItems(payload.itemId, targetItemId, dropInsertPosition);
-    } else if (payload?.source === "equipment") {
-      unequipItemToInventory(payload.slotId, targetItemId, dropInsertPosition);
+    if (payload?.source === "equipment") {
+      void performInventoryMove(payload.itemId, payload.slotId, "inventory");
     }
     clearDragState();
   }
@@ -4187,14 +4217,12 @@ export function App() {
     }
 
     event.preventDefault();
-    if (payload.source !== "inventory") {
-      event.dataTransfer.dropEffect = "none";
-      setEquipmentDropTargetSlotId(targetSlotId);
-      setEquipmentDropState("invalid");
-      return;
-    }
-
-    const sourceItem = getItemById(payload.itemId);
+    const sourceItem =
+      payload.source === "inventory"
+        ? getItemById(payload.itemId)
+        : payload.slotId
+          ? equippedItems[payload.slotId]
+          : null;
     const validationError = sourceItem ? getEquipValidationError(sourceItem, targetSlotId) : i18n.t("errors.invalidItem");
     event.dataTransfer.dropEffect = validationError ? "none" : "move";
     setEquipmentDropTargetSlotId(targetSlotId);
@@ -4205,7 +4233,9 @@ export function App() {
     event.preventDefault();
     const payload = readDragPayload(event);
     if (payload?.source === "inventory") {
-      equipInventoryItemToSlot(payload.itemId, targetSlotId);
+      void performInventoryMove(payload.itemId, "inventory", targetSlotId);
+    } else if (payload?.source === "equipment") {
+      void performInventoryMove(payload.itemId, payload.slotId, targetSlotId);
     }
     clearDragState();
   }
@@ -4245,40 +4275,10 @@ export function App() {
     }
 
     if (payload.source === "equipment") {
-      if (filteredInventoryItems.length === 0) {
-        unequipItemToInventory(payload.slotId);
-        clearDragState();
-        return;
-      }
-
-      const containerRect = event.currentTarget.getBoundingClientRect();
-      const insertAtEnd = event.clientY >= containerRect.top + containerRect.height / 2;
-      const targetItemId = insertAtEnd
-        ? filteredInventoryItems[filteredInventoryItems.length - 1].id
-        : filteredInventoryItems[0].id;
-      const fallbackPosition: InventoryInsertPosition = insertAtEnd ? "after" : "before";
-      const resolvedPosition =
-        dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
-      unequipItemToInventory(payload.slotId, targetItemId, resolvedPosition);
+      void performInventoryMove(payload.itemId, payload.slotId, "inventory");
       clearDragState();
       return;
     }
-
-    if (filteredInventoryItems.length === 0) {
-      clearDragState();
-      return;
-    }
-
-    const containerRect = event.currentTarget.getBoundingClientRect();
-    const insertAtEnd = event.clientY >= containerRect.top + containerRect.height / 2;
-    const targetItem = insertAtEnd
-      ? filteredInventoryItems[filteredInventoryItems.length - 1]
-      : filteredInventoryItems[0];
-    const fallbackPosition: InventoryInsertPosition = insertAtEnd ? "after" : "before";
-    const resolvedPosition =
-      dropTargetInventoryCardId !== null ? dropInsertPosition : fallbackPosition;
-
-    reorderInventoryItems(payload.itemId, targetItem.id, resolvedPosition);
     clearDragState();
   }
 
@@ -5076,7 +5076,7 @@ export function App() {
       );
     }
 
-    const unavailableLabel = i18n.t("profile.definedInDocs");
+    const totalStats = playerState.statSnapshot.total;
     const mainOffenseStat =
       playerState.class === "mage"
         ? playerState.stats.intelligence
@@ -5098,20 +5098,21 @@ export function App() {
       {
         title: i18n.t("profile.defensive"),
         rows: [
-          { label: i18n.t("profile.armor"), value: unavailableLabel },
-          { label: i18n.t("profile.spellShield"), value: unavailableLabel },
-          { label: i18n.t("profile.missileResistance"), value: unavailableLabel },
-          { label: i18n.t("profile.maxHitpoints"), value: unavailableLabel }
+          { label: i18n.t("profile.armor"), value: totalStats.armor },
+          { label: i18n.t("profile.spellShield"), value: totalStats.spellShield },
+          { label: i18n.t("profile.missileResistance"), value: totalStats.missileResistance },
+          { label: i18n.t("profile.maxHitpoints"), value: totalStats.maxHitpoints },
+          { label: "Dodge Chance", value: formatBasisPoints(totalStats.dodgeChance) }
         ]
       },
       {
         title: i18n.t("profile.offensive"),
         rows: [
-          { label: mainOffenseTypeLabel, value: unavailableLabel },
-          { label: i18n.t("profile.critChance"), value: unavailableLabel },
-          { label: i18n.t("profile.critDamage"), value: unavailableLabel },
-          { label: i18n.t("profile.combatSpeed"), value: unavailableLabel },
-          { label: i18n.t("profile.chanceToExtraAttack"), value: unavailableLabel },
+          { label: mainOffenseTypeLabel, value: totalStats.damage },
+          { label: "Accuracy", value: totalStats.accuracy },
+          { label: i18n.t("profile.critChance"), value: formatBasisPoints(totalStats.critChance) },
+          { label: i18n.t("profile.critDamage"), value: formatBasisPoints(totalStats.critMultiplier) },
+          { label: i18n.t("profile.chanceToExtraAttack"), value: formatBasisPoints(totalStats.extraAttackChance) },
           { label: i18n.t("profile.flatBonusMainStat"), value: flatBonusDamage }
         ]
       }

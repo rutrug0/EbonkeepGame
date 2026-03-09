@@ -6,7 +6,8 @@ import {
   loginBodySchema,
   loginResponseSchema,
   registerBodySchema,
-  registerResponseSchema
+  registerResponseSchema,
+  type PlayerClass
 } from "@ebonkeep/shared";
 import bcrypt from "bcrypt";
 import { z } from "zod";
@@ -14,6 +15,8 @@ import { z } from "zod";
 import type { FastifyPluginAsync } from "fastify";
 
 import { getEnv } from "../../config/env.js";
+import { ensureStarterInventoryItems } from "../inventory/starter-items.js";
+import { ensurePlayerEquipmentSlots } from "../player/state-service.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./services/email.js";
 import { generateToken, getExpiryDate } from "./utils/tokens.js";
 
@@ -86,7 +89,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         accountId: account.id,
         class: body.class,
         level: 1,
-        gearScore: 10
+        gearScore: 0
       }
     });
 
@@ -111,6 +114,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         imperials: 0
       }
     });
+
+    await ensurePlayerEquipmentSlots(fastify.prisma, profile.id);
+    await ensureStarterInventoryItems(fastify.prisma, profile.id, body.class);
 
     // Send verification email
     try {
@@ -220,7 +226,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           accountId: account.id,
           class: body.class,
           level: 1,
-          gearScore: 10
+          gearScore: 0
         }
       });
     }
@@ -250,6 +256,9 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         imperials: 10
       }
     });
+
+    await ensurePlayerEquipmentSlots(fastify.prisma, profile.id);
+    await ensureStarterInventoryItems(fastify.prisma, profile.id, profile.class as PlayerClass);
 
     const accessToken = await reply.jwtSign({
       accountId: account.id,

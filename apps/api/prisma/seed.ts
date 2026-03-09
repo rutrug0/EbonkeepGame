@@ -1,6 +1,23 @@
 import { PrismaClient } from "@prisma/client";
+import { ensureStarterInventoryItems } from "../src/modules/inventory/starter-items.js";
 
 const prisma = new PrismaClient();
+const equipmentSlotIds = [
+  "helmet",
+  "necklace",
+  "upperArmor",
+  "belt",
+  "ringLeft",
+  "weapon",
+  "pauldrons",
+  "gloves",
+  "lowerArmor",
+  "boots",
+  "ringRight",
+  "vestige1",
+  "vestige2",
+  "vestige3"
+] as const;
 
 async function main(): Promise<void> {
   const account = await prisma.account.upsert({
@@ -27,7 +44,7 @@ async function main(): Promise<void> {
       accountId: account.id,
       class: "warrior",
       level: 1,
-      gearScore: 10
+      gearScore: 0
     }
   });
 
@@ -56,6 +73,25 @@ async function main(): Promise<void> {
       imperials: 10
     }
   });
+
+  const existingEquipmentSlots = await prisma.equipmentSlot.findMany({
+    where: { playerId: profile.id },
+    select: { slotType: true }
+  });
+  const existingSlotTypes = new Set(existingEquipmentSlots.map((slot) => slot.slotType));
+  const missingEquipmentSlots = equipmentSlotIds.filter((slotId) => !existingSlotTypes.has(slotId));
+
+  if (missingEquipmentSlots.length > 0) {
+    await prisma.equipmentSlot.createMany({
+      data: missingEquipmentSlots.map((slotId) => ({
+        id: `equip_${profile.id}_${slotId}`,
+        playerId: profile.id,
+        slotType: slotId
+      }))
+    });
+  }
+
+  await ensureStarterInventoryItems(prisma, profile.id, profile.class as "warrior" | "mage" | "ranger");
 
   console.log("Seed complete for local default guest player.");
 }

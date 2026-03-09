@@ -13,7 +13,7 @@
 ## Core Screen Set
 1. Home hub (timers, quick claims, activity launch).
 2. Character (stats, class, loadout).
-3. Inventory grid + stash tabs.
+3. Inventory bag + equipment slots.
 4. Shop (rotating stock, purchase actions).
 5. Missions (selection, stamina cost, rewards preview).
 6. Combat view (turn order, timer, action selection).

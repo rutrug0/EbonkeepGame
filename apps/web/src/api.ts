@@ -215,7 +215,8 @@ export async function moveInventoryItem(
     })
   });
   if (!response.ok) {
-    throw new Error(`Move item failed (${response.status})`);
+    const error = await response.json().catch(() => ({ error: "Move item failed" }));
+    throw new Error(error.error || `Move item failed (${response.status})`);
   }
   const data = await response.json();
   return inventoryMoveResponseSchema.parse(data);
