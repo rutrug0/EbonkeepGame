@@ -3157,6 +3157,9 @@ export function App() {
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
     : 0;
   const xpPercent = playerState ? Math.max(6, (playerState.level * 13) % 100) : 0;
+  const staminaPercent = playerState
+    ? Math.max(12, Math.min(100, Math.round(((playerState.stats.dexterity + playerState.stats.initiative) / 40) * 100)))
+    : 0;
 
   const equipmentStatBonuses = useMemo(() => {
     const totals: Record<TrainableStatKey, number> = {
@@ -4383,6 +4386,7 @@ export function App() {
     if (!item) {
       return;
     }
+    setInventoryComparisonHover(null);
     const targetSlotId = getPreferredEquipSlot(item);
     if (!targetSlotId) {
       setError(i18n.t("errors.invalidItem"));
@@ -7241,16 +7245,21 @@ export function App() {
                 </div>
 
                 <div className="barBlock">
-                  <p className="barLabel">{i18n.t("bars.health")}</p>
-                  <div className="barShell">
+                  <div className="barShell" aria-label={i18n.t("bars.health")} title={i18n.t("bars.health")}>
                     <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
                   </div>
                 </div>
 
                 <div className="barBlock">
-                  <p className="barLabel">{i18n.t("bars.experience")}</p>
-                  <div className="barShell">
+                  <div className="barShell" aria-label={i18n.t("bars.experience")} title={i18n.t("bars.experience")}>
                     <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
+                  </div>
+                </div>
+
+                <div className="barBlock">
+                  <p className="barLabel">{i18n.t("bars.stamina")}</p>
+                  <div className="barShell">
+                    <div className="barFill staminaFill" style={{ width: `${staminaPercent}%` }} />
                   </div>
                 </div>
               </section>

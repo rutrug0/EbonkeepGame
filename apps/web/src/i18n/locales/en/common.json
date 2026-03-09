@@ -29,7 +29,8 @@
   },
   "bars": {
     "health": "Health",
-    "experience": "Experience"
+    "experience": "Experience",
+    "stamina": "Stamina"
   },
   "inventory": {
     "loading": "Loading player state...",

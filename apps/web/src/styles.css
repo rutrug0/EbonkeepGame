@@ -50,6 +50,7 @@
   --accent-focus: #d2ad72;
   --health: #9a433c;
   --xp: #446d84;
+  --stamina: #d8dde4;
   --common: #a39d8f;
   --uncommon: #799866;
   --rare: #c9a559;
@@ -396,6 +397,10 @@ button:focus-visible {
 
 .xpFill {
   background: linear-gradient(90deg, color-mix(in srgb, var(--accent-info) 65%, #25445a), var(--xp));
+}
+
+.staminaFill {
+  background: linear-gradient(90deg, color-mix(in srgb, #f3f5f8 78%, #919baa), var(--stamina));
 }
 
 .menuList {
