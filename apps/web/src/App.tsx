@@ -4903,6 +4903,14 @@ export function App() {
         onDrop={(event) => handleEquipmentSlotDrop(event, slotId)}
         onDragLeave={(event) => handleEquipmentSlotDragLeave(event, slotId)}
         onDoubleClick={hasItem ? () => handleEquipmentSlotDoubleClick(slotId) : undefined}
+        onContextMenu={
+          hasItem
+            ? (event) => {
+                event.preventDefault();
+                void handleEquipmentSlotDoubleClick(slotId);
+              }
+            : undefined
+        }
         onDragEnd={handleInventoryCardDragEnd}
         aria-label={hasItem ? `${slotLabel}: ${displayItemName}` : `${slotLabel}: ${i18n.t("item.empty")}`}
       >
@@ -5552,6 +5560,14 @@ export function App() {
               onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
               onDrop={allowDrag ? (event) => handleInventoryCardDrop(event, item.id) : undefined}
               onDoubleClick={allowDrag ? () => handleInventoryCardDoubleClick(item.id) : undefined}
+              onContextMenu={
+                allowDrag
+                  ? (event) => {
+                      event.preventDefault();
+                      void handleInventoryCardDoubleClick(item.id);
+                    }
+                  : undefined
+              }
               onMouseEnter={
                 allowDrag ? (event) => handleInventoryCardMouseEnter(item, item.id, event.currentTarget, "left") : undefined
               }
@@ -7377,3 +7393,4 @@ export function App() {
     </main>
   );
 }
+
