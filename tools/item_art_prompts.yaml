@@ -134,9 +134,10 @@
       "prompt_field": "prompt_monster_fullbody",
       "item_type_field": "main_stat",
       "family_key_template": "monster:{family_id}",
-      "family_prompt": "One monster only. Hostile enemy presentation. Keep the monster fully readable in a grounded full-body pose. Preserve the family environment consistently across this family while allowing small per-monster placement variation within the same location. Keep the monster visually distinct from the background with clear silhouette separation and readable local contrast.",
+      "family_prompt": "One monster only. Hostile enemy presentation. Keep the monster fully readable in a grounded full-body pose. Preserve the family environment consistently across this family while allowing small per-monster placement variation within the same location. Keep the monster visually distinct from the background with clear silhouette separation and readable local contrast. If the family provides a shared eye-design rule for its core species, keep that eye treatment highly consistent across those related members and do not reinvent it per row.",
       "prompt_prefix_fields": [
-        "background_prompt_shared"
+        "background_prompt_shared",
+        "eye_design_shared"
       ],
       "lookups": [
         {
