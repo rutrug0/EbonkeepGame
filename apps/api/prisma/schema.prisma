@@ -275,17 +275,20 @@ model AuctionItem {
 }
 
 model AuctionBid {
-  id        String      @id @default(cuid())
-  itemId    String
-  playerId  String
-  bidAmount Int
-  status    String      @default("active") // active | outbid | won | refunded
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  item      AuctionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  id          String      @id @default(cuid())
+  itemId      String
+  playerId    String
+  bidAmount   Int
+  status      String      @default("active") // active | outbid | won | refunded
+  isAutoBid   Boolean     @default(false) // Whether this is an auto-bid
+  maxAutoBid  Int? // Maximum amount for auto-bidding (null if not auto-bidding)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  item        AuctionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 
   @@index([itemId, status])
   @@index([playerId, status])
+  @@index([playerId, itemId, status])
   @@index([createdAt])
   @@map("auction_bids")
 }

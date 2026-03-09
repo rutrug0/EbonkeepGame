@@ -10,6 +10,7 @@ type ArmorArchetype = "platemail" | "chainmail" | "leather" | "cloth";
 export interface AuctionHouseProps {
   token: string | null;
   currentDucats: number;
+  onDucatsChange?: (nextDucats: number) => void;
 }
 
 type AuctionStatus = "pending" | "active" | "settling" | "settled";
@@ -36,6 +37,7 @@ interface AuctionItem {
   bidCount: number;
   extensionsUsed: number;
   isPlayerSubmitted: boolean;
+  minimumNextBid?: number;
 }
 
 interface ParsedItemData {
@@ -68,6 +70,8 @@ interface PlayerBid {
   status: string;
   createdAt: string;
   item?: AuctionItem;
+  isAutoBid?: boolean;
+  maxAutoBid?: number;
 }
 
 interface PendingReward {
@@ -88,9 +92,18 @@ interface PlayerSubmission {
   rejectionReason?: string;
 }
 
+interface BidConfirmationState {
+  itemId: string;
+  itemName: string;
+  bidAmount: number;
+  minimumBid: number;
+  currentBid: number;
+  remainingDucats: number;
+}
+
 type AuctionView = "browse" | "myBids" | "submit" | "mySubmissions" | "rewards";
 
-export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
+export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHouseProps) {
   const { t } = useTranslation("common");
   const [activeView, setActiveView] = useState<AuctionView>("browse");
   const [auctions, setAuctions] = useState<AuctionInstance[]>([]);
@@ -109,10 +122,50 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
+  const [bidConfirmation, setBidConfirmation] = useState<BidConfirmationState | null>(null);
+  const [displayDucats, setDisplayDucats] = useState(currentDucats);
   const [itemFilter, setItemFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [autoBidEnabled, setAutoBidEnabled] = useState<Record<string, boolean>>({});
+  const [autoBidMax, setAutoBidMax] = useState<Record<string, string>>({});
+  const [enablingAutoBid, setEnablingAutoBid] = useState<string | null>(null);
+  const [showAutoBidDisableModal, setShowAutoBidDisableModal] = useState(false);
+  const [autoBidDisableTargetId, setAutoBidDisableTargetId] = useState<string | null>(null);
 
   const API_BASE = "http://localhost:4000";
+
+  /**
+   * Map backend error messages to localized translations
+   */
+  const translateBackendError = (errorMessage: string): string => {
+    // Match "Bid must be at least X ducats"
+    const bidMinMatch = errorMessage.match(/^Bid must be at least (\d+) ducats$/);
+    if (bidMinMatch) {
+      return t("auction.errors.bidBelowMinimum", { amount: bidMinMatch[1] });
+    }
+
+    // Match "Rate limit exceeded: max X bids per minute"
+    if (errorMessage.includes("Rate limit exceeded")) {
+      return t("auction.errors.rateLimitExceeded");
+    }
+
+    // Direct mapping for common backend errors
+    const errorMap: Record<string, string> = {
+      "Insufficient ducats": "auction.errors.insufficientDucats",
+      "Item not found": "auction.errors.itemNotFound",
+      "Auction is not active": "auction.errors.auctionNotActive",
+      "Reward not found": "auction.errors.rewardNotFound",
+      "This reward belongs to another player": "auction.errors.rewardBelongsToAnotherPlayer",
+      "This reward has expired": "auction.errors.rewardExpired",
+      "Listing not found": "auction.errors.listingNotFound",
+      "Cannot cancel item with active bids": "auction.errors.cannotCancelWithBids",
+      "Listing is not pending approval": "auction.errors.failedToCancel",
+      "This listing belongs to another player": "auction.errors.failedToCancel"
+    };
+
+    const translationKey = errorMap[errorMessage];
+    return translationKey ? t(translationKey) : errorMessage;
+  };
 
   useEffect(() => {
     if (token) {
@@ -123,6 +176,10 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       void loadInventory();
     }
   }, [token]);
+
+  useEffect(() => {
+    setDisplayDucats(currentDucats);
+  }, [currentDucats]);
 
   const loadActiveAuctions = async () => {
     if (!token) return;
@@ -140,11 +197,19 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       }
 
       const data = await response.json();
-      setAuctions(data.auctions || []);
-      
-      if (data.auctions?.length > 0 && !selectedAuction) {
-        setSelectedAuction(data.auctions[0]);
-      }
+      const nextAuctions = data.auctions || [];
+      setAuctions(nextAuctions);
+      setSelectedAuction((previous) => {
+        if (nextAuctions.length === 0) {
+          return null;
+        }
+
+        if (!previous) {
+          return nextAuctions[0];
+        }
+
+        return nextAuctions.find((auction: AuctionInstance) => auction.id === previous.id) || nextAuctions[0];
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToLoad"));
     } finally {
@@ -220,20 +285,63 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
     }
   };
 
-  const handlePlaceBid = async (itemId: string) => {
-    if (!token || !bidAmount[itemId]) return;
+  const getMinimumNextBid = (item: AuctionItem): number => {
+    if (typeof item.minimumNextBid === "number") {
+      return item.minimumNextBid;
+    }
 
-    const amount = parseInt(bidAmount[itemId], 10);
+    return item.currentBid > 0 ? item.currentBid + 10 : item.startingBid;
+  };
+
+  const getPlayerReservedBidAmount = (itemId: string): number => {
+    return myBids.find((bid) => bid.itemId === itemId)?.bidAmount ?? 0;
+  };
+
+  const handlePlaceBid = (item: AuctionItem) => {
+    if (!token || !bidAmount[item.id]) return;
+
+    const amount = parseInt(bidAmount[item.id], 10);
+    const minimumBid = getMinimumNextBid(item);
+    const additionalReserve = Math.max(0, amount - getPlayerReservedBidAmount(item.id));
     if (isNaN(amount) || amount <= 0) {
       setError(t("auction.errors.invalidBid"));
       return;
     }
 
-    if (amount > currentDucats) {
+    if (amount < minimumBid) {
+      setError(t("auction.errors.bidBelowMinimum", { amount: minimumBid }));
+      return;
+    }
+
+    if (additionalReserve > displayDucats) {
       setError(t("auction.errors.insufficientDucats"));
       return;
     }
 
+    const itemData = parseItemData(item.itemCode);
+    setError(null);
+    setBidConfirmation({
+      itemId: item.id,
+      itemName: itemData.name,
+      bidAmount: amount,
+      minimumBid,
+      currentBid: item.currentBid,
+      remainingDucats: displayDucats - additionalReserve
+    });
+  };
+
+  const confirmBidPlacement = async () => {
+    if (!token || !bidConfirmation) return;
+
+    const { itemId, bidAmount: amount, minimumBid } = bidConfirmation;
+    
+    // Re-validate before submitting
+    if (amount < minimumBid) {
+      setError(t("auction.bidTooLow", { minimum: minimumBid }));
+      setBidConfirmation(null);
+      return;
+    }
+    
     setSubmittingBid(itemId);
     setError(null);
 
@@ -250,17 +358,31 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || t("auction.errors.failedToBid"));
+        const errorMsg = data.error ? translateBackendError(data.error) : t("auction.errors.failedToBid");
+        throw new Error(errorMsg);
       }
 
       setBidAmount((prev) => ({ ...prev, [itemId]: "" }));
-      await loadActiveAuctions();
-      await loadMyBids();
+      setBidConfirmation(null);
+      if (typeof data.remainingDucats === "number") {
+        setDisplayDucats(data.remainingDucats);
+        onDucatsChange?.(data.remainingDucats);
+      }
+      setSuccessMessage(t("auction.bidPlacedSuccess", { amount }));
+      
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
+      await Promise.all([loadActiveAuctions(), loadMyBids()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToBid"));
     } finally {
       setSubmittingBid(null);
     }
+  };
+
+  const cancelBidConfirmation = () => {
+    setBidConfirmation(null);
   };
 
   const handleClaimReward = async (rewardId: string) => {
@@ -279,7 +401,8 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || t("auction.errors.failedToClaim"));
+        const errorMsg = data.error ? translateBackendError(data.error) : t("auction.errors.failedToClaim");
+        throw new Error(errorMsg);
       }
 
       await loadPendingRewards();
@@ -333,7 +456,8 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || t("auction.errors.failedToSubmit"));
+        const errorMsg = data.error ? translateBackendError(data.error) : t("auction.errors.failedToSubmit");
+        throw new Error(errorMsg);
       }
 
       // Clear form and reload data
@@ -344,7 +468,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       ]);
       
       // Show success message and switch to My Submissions view
-      setSuccessMessage(t("auction.submitSuccess") || "Item submitted successfully! It will be listed in the next auction.");
+      setSuccessMessage(t("auction.submitSuccess"));
       setActiveView("mySubmissions");
       
       // Auto-dismiss success message after 5 seconds
@@ -353,6 +477,120 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToSubmit"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEnableAutoBid = async (item: AuctionItem) => {
+    if (!token) return;
+
+    const maxBidInput = autoBidMax[item.id];
+    if (!maxBidInput || maxBidInput.trim() === "") {
+      setError(t("auction.errors.autoBidMaxRequired"));
+      return;
+    }
+
+    const maxBid = parseInt(maxBidInput, 10);
+    const minimumBid = getMinimumNextBid(item);
+
+    if (isNaN(maxBid) || maxBid <= 0) {
+      setError(t("auction.errors.invalidBid"));
+      return;
+    }
+
+    if (maxBid < minimumBid) {
+      setError(t("auction.errors.autoBidMaxTooLow", { amount: minimumBid }));
+      return;
+    }
+
+    const currentReserved = getPlayerReservedBidAmount(item.id);
+    const additionalReserve = Math.max(0, maxBid - currentReserved);
+
+    if (additionalReserve > displayDucats) {
+      setError(t("auction.errors.autoBidInsufficientDucats"));
+      return;
+    }
+
+    setEnablingAutoBid(item.id);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/v1/auction/autobid/enable`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ itemId: item.id, maxBid })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMsg = data.error ? translateBackendError(data.error) : t("auction.errors.autoBidEnableFailed");
+        throw new Error(errorMsg);
+      }
+
+      setAutoBidEnabled((prev) => ({ ...prev, [item.id]: true }));
+      if (typeof data.remainingDucats === "number") {
+        setDisplayDucats(data.remainingDucats);
+        onDucatsChange?.(data.remainingDucats);
+      }
+      setSuccessMessage(t("auction.autoBid.success", { amount: maxBid }));
+      
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
+      await Promise.all([loadActiveAuctions(), loadMyBids()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("auction.errors.autoBidEnableFailed"));
+    } finally {
+      setEnablingAutoBid(null);
+    }
+  };
+
+  const handleDisableAutoBid = async (itemId: string) => {
+    if (!token) return;
+
+    setEnablingAutoBid(itemId);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/v1/auction/autobid/disable`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ itemId })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const errorMsg = data.error ? translateBackendError(data.error) : t("auction.errors.autoBidDisableFailed");
+        throw new Error(errorMsg);
+      }
+
+      setAutoBidEnabled((prev) => ({ ...prev, [itemId]: false }));
+      setAutoBidMax((prev) => ({ ...prev, [itemId]: "" }));
+      if (typeof data.remainingDucats === "number") {
+        setDisplayDucats(data.remainingDucats);
+        onDucatsChange?.(data.remainingDucats);
+      }
+      
+      const refunded = data.refundedDucats || 0;
+      if (refunded > 0) {
+        setSuccessMessage(t("auction.autoBid.disabled", { amount: refunded }));
+      } else {
+        setSuccessMessage(t("auction.autoBid.disabledNoRefund"));
+      }
+      
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
+      await Promise.all([loadActiveAuctions(), loadMyBids()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("auction.errors.autoBidDisableFailed"));
+    } finally {
+      setEnablingAutoBid(null);
     }
   };
 
@@ -416,7 +654,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       return JSON.parse(itemCode);
     } catch {
       return {
-        name: "Unknown Item",
+        name: t("profile.unknown"),
         level: 1,
         rarity: "common",
         category: "misc"
@@ -475,7 +713,8 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || t("auction.errors.failedToCancel"));
+        const errorMsg = data.error ? translateBackendError(data.error) : t("auction.errors.failedToCancel");
+        throw new Error(errorMsg);
       }
 
       await Promise.all([
@@ -600,11 +839,19 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
 
   const renderAuctionItem = (item: AuctionItem) => {
     const itemData = parseItemData(item.itemCode);
-    const minBid = item.currentBid > 0 ? item.currentBid + 10 : item.startingBid;
+    const minBid = getMinimumNextBid(item);
     const isSubmitting = submittingBid === item.id;
+    
+    // Check if player has an active bid on this item
+    const playerBid = myBids.find(bid => bid.itemId === item.id && bid.status === "active");
+    const hasPlayerBid = !!playerBid;
 
     return (
-      <div key={item.id} className="contentCard" style={{ marginBottom: "1rem" }}>
+      <div key={item.id} className="contentCard" style={{ 
+        marginBottom: "1rem",
+        background: hasPlayerBid ? "var(--panel-soft)" : "var(--bg-slate)",
+        border: hasPlayerBid ? "2px solid var(--accent-focus)" : "1px solid var(--border)"
+      }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
           {/* Item Icon */}
           <div style={{
@@ -627,9 +874,25 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
           </div>
           
           <div style={{ flex: 1 }}>
-            <h3 style={{ color: getRarityColor(item.itemRarity), margin: "0 0 0.5rem 0" }}>
-              {itemData.name}
-            </h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+              <h3 style={{ color: getRarityColor(item.itemRarity), margin: 0 }}>
+                {itemData.name}
+              </h3>
+              {hasPlayerBid && (
+                <span style={{
+                  padding: "0.25rem 0.75rem",
+                  background: "var(--accent-focus)",
+                  color: "var(--bg-stone)",
+                  borderRadius: "var(--soft-radius)",
+                  fontSize: "0.75rem",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px"
+                }}>
+                  {t("auction.yourBid")}
+                </span>
+              )}
+            </div>
             <p style={{ margin: "0.25rem 0", fontSize: "0.9rem", opacity: 0.8 }}>
               {t("player.level", { value: item.itemLevel })} • {item.itemCategory} • {item.itemRarity}
             </p>
@@ -642,6 +905,15 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             <div style={{ marginTop: "0.75rem" }}>
               <p style={{ margin: "0.25rem 0" }}>
                 <strong>{t("auction.currentBid")}:</strong> {item.currentBid > 0 ? `${item.currentBid} ◎` : t("auction.noBidsYet")}
+                {hasPlayerBid && playerBid && (
+                  <span style={{ 
+                    color: "var(--accent-success)", 
+                    fontWeight: "bold",
+                    marginLeft: "0.5rem"
+                  }}>
+                    ({playerBid.bidAmount} ◎)
+                  </span>
+                )}
               </p>
               <p style={{ margin: "0.25rem 0" }}>
                 <strong>{t("auction.startingBid")}:</strong> {item.startingBid} ◎
@@ -656,6 +928,8 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             <div style={{ marginBottom: "0.5rem" }}>
               <input
                 type="number"
+                min={minBid}
+                step="1"
                 placeholder={t("auction.minBid", { amount: minBid })}
                 value={bidAmount[item.id] || ""}
                 onChange={(e) => setBidAmount((prev) => ({ ...prev, [item.id]: e.target.value }))}
@@ -673,7 +947,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             </div>
             <button
               type="button"
-              onClick={() => handlePlaceBid(item.id)}
+              onClick={() => handlePlaceBid(item)}
               disabled={isSubmitting || !bidAmount[item.id]}
               style={{
                 background: isSubmitting ? "var(--bg-slate)" : "var(--accent-success)"
@@ -681,6 +955,152 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             >
               {isSubmitting ? t("auction.placing") : t("auction.placeBid")}
             </button>
+
+            {/* Auto-Bid Section */}
+            <div style={{ 
+              marginTop: "1rem", 
+              padding: "0.75rem", 
+              background: "var(--panel-soft)", 
+              borderRadius: "var(--soft-radius)",
+              border: "1px solid var(--border)"
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const isCurrentlyEnabled = autoBidEnabled[item.id] || playerBid?.isAutoBid || false;
+                  if (!isCurrentlyEnabled) {
+                    // Will enable after user enters max bid
+                    setAutoBidEnabled((prev) => ({ ...prev, [item.id]: true }));
+                  } else {
+                    // Show confirmation modal
+                    setAutoBidDisableTargetId(item.id);
+                    setShowAutoBidDisableModal(true);
+                  }
+                }}
+                disabled={enablingAutoBid === item.id}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "0.75rem",
+                  fontSize: "0.9rem",
+                  fontWeight: "bold",
+                  border: (autoBidEnabled[item.id] || playerBid?.isAutoBid) 
+                    ? "1px solid rgba(226, 182, 111, 0.46)" 
+                    : "1px solid rgba(191, 174, 145, 0.18)",
+                  borderRadius: "var(--soft-radius)",
+                  background: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
+                    ? "linear-gradient(180deg, rgba(124, 73, 31, 0.96), rgba(90, 49, 18, 0.98))"
+                    : "rgba(27, 35, 43, 0.92)",
+                  color: "var(--text-main)",
+                  cursor: enablingAutoBid === item.id ? "not-allowed" : "pointer",
+                  transition: "all 0.3s ease",
+                  boxShadow: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
+                    ? "0 0 0 1px rgba(226, 182, 111, 0.18), 0 2px 8px rgba(226, 182, 111, 0.15)"
+                    : "none",
+                  opacity: enablingAutoBid === item.id ? 0.6 : 1
+                }}
+                onMouseOver={(e) => {
+                  if (enablingAutoBid !== item.id) {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = (autoBidEnabled[item.id] || playerBid?.isAutoBid)
+                      ? "0 0 0 1px rgba(226, 182, 111, 0.25), 0 4px 12px rgba(226, 182, 111, 0.25)"
+                      : "0 2px 8px rgba(0, 0, 0, 0.3)";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = (autoBidEnabled[item.id] || playerBid?.isAutoBid)
+                    ? "0 0 0 1px rgba(226, 182, 111, 0.18), 0 2px 8px rgba(226, 182, 111, 0.15)"
+                    : "none";
+                }}
+              >
+                <span style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.5rem" 
+                }}>
+                  {t("auction.autoBid.enable")}
+                </span>
+                <span style={{
+                  padding: "0.25rem 0.75rem",
+                  background: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
+                    ? "rgba(226, 182, 111, 0.2)"
+                    : "rgba(0, 0, 0, 0.3)",
+                  borderRadius: "12px",
+                  fontSize: "0.75rem",
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
+                    ? "rgba(226, 182, 111, 1)"
+                    : "rgba(150, 150, 150, 1)"
+                }}>
+                  {(autoBidEnabled[item.id] || playerBid?.isAutoBid) ? "ON" : "OFF"}
+                </span>
+              </button>
+
+              {(autoBidEnabled[item.id] || playerBid?.isAutoBid) && (
+                <>
+                  {playerBid?.isAutoBid ? (
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <div style={{
+                        padding: "0.5rem",
+                        background: "var(--accent-success)20",
+                        border: "1px solid var(--accent-success)",
+                        borderRadius: "var(--soft-radius)",
+                        fontSize: "0.85rem"
+                      }}>
+                        <div style={{ fontWeight: "bold", color: "var(--accent-success)" }}>
+                          {t("auction.autoBid.active")}
+                        </div>
+                        <div style={{ marginTop: "0.25rem" }}>
+                          {t("auction.autoBid.reservedAmount", { amount: playerBid.maxAutoBid || 0 })}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ marginBottom: "0.5rem" }}>
+                        <input
+                          type="number"
+                          min={minBid}
+                          step="1"
+                          placeholder={t("auction.autoBid.maxBidPlaceholder")}
+                          value={autoBidMax[item.id] || ""}
+                          onChange={(e) => setAutoBidMax((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                          disabled={enablingAutoBid === item.id}
+                          style={{
+                            width: "100%",
+                            padding: "0.5rem",
+                            border: "1px solid var(--border)",
+                            borderRadius: "var(--soft-radius)",
+                            background: "var(--bg-slate)",
+                            color: "var(--text-main)",
+                            fontSize: "0.85rem"
+                          }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleEnableAutoBid(item)}
+                        disabled={enablingAutoBid === item.id || !autoBidMax[item.id]}
+                        style={{
+                          width: "100%",
+                          padding: "0.5rem",
+                          background: enablingAutoBid === item.id ? "var(--bg-slate)" : "var(--accent-focus)",
+                          fontSize: "0.85rem"
+                        }}
+                      >
+                        {enablingAutoBid === item.id ? t("auction.processing") : t("auction.autoBid.confirmEnable")}
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -751,7 +1171,17 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             </p>
             
             <div>
-              {selectedAuction.items.map((item) => renderAuctionItem(item))}
+              {[...selectedAuction.items]
+                .sort((a, b) => {
+                  // Sort items with player's bids to the top
+                  const aHasBid = myBids.some(bid => bid.itemId === a.id && bid.status === "active");
+                  const bHasBid = myBids.some(bid => bid.itemId === b.id && bid.status === "active");
+                  
+                  if (aHasBid && !bHasBid) return -1;
+                  if (!aHasBid && bHasBid) return 1;
+                  return 0;
+                })
+                .map((item) => renderAuctionItem(item))}
             </div>
           </article>
         )}
@@ -774,22 +1204,54 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
         <h3>{t("auction.myBidsTitle")}</h3>
         <p style={{ marginBottom: "1rem" }}>{t("auction.myBidsDesc")}</p>
         
-        {myBids.map((bid) => (
-          <div key={bid.id} className="contentCard" style={{ marginBottom: "1rem" }}>
-            <p>
-              <strong>{t("auction.submittedItem")}:</strong> {bid.item ? parseItemData(bid.item.itemCode).name : "Unknown"}
-            </p>
-            <p>
-              <strong>{t("auction.yourBid")}:</strong> {bid.bidAmount} ◎
-            </p>
-            <p>
-              <strong>{t("auction.status")}:</strong> {bid.status}
-            </p>
-            <p style={{ fontSize: "0.85rem", opacity: 0.7 }}>
-              {t("auction.placedAt")}: {new Date(bid.createdAt).toLocaleString()}
-            </p>
-          </div>
-        ))}
+        {myBids.map((bid) => {
+          const itemData = bid.item ? parseItemData(bid.item.itemCode) : null;
+          
+          return (
+            <div key={bid.id} className="contentCard" style={{ marginBottom: "1rem" }}>
+              <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
+                {/* Item Icon */}
+                <div style={{
+                  minWidth: "64px",
+                  width: "64px",
+                  height: "64px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "var(--bg-slate)",
+                  borderRadius: "var(--soft-radius)",
+                  border: `2px solid ${bid.item ? getRarityColor(bid.item.itemRarity) : "#666"}40`,
+                  flexShrink: 0
+                }}>
+                  {itemData && renderItemIcon({
+                    category: itemData.category,
+                    itemName: itemData.name,
+                    iconAssetPath: itemData.iconAssetPath
+                  })}
+                </div>
+
+                {/* Bid Details */}
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ 
+                    color: bid.item ? getRarityColor(bid.item.itemRarity) : "inherit",
+                    margin: "0 0 0.5rem 0"
+                  }}>
+                    {itemData ? itemData.name : t("profile.unknown")}
+                  </h4>
+                  <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
+                    <strong>{t("auction.yourBid")}:</strong> {bid.bidAmount} ◎
+                  </p>
+                  <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
+                    <strong>{t("auction.status")}:</strong> {bid.status}
+                  </p>
+                  <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0.5rem 0 0 0" }}>
+                    {t("auction.placedAt")}: {new Date(bid.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </article>
     );
   };
@@ -1274,6 +1736,133 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
 
   return (
     <>
+      {/* Bid Confirmation Modal */}
+      {bidConfirmation && (
+        <div 
+          className="imperialShopModalOverlay" 
+          onClick={cancelBidConfirmation}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000
+          }}
+        >
+          <div 
+            className="imperialShopStatusModal" 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--bg-dark)",
+              border: "2px solid var(--accent-success)",
+              borderRadius: "var(--soft-radius)",
+              padding: "2rem",
+              minWidth: "400px",
+              maxWidth: "90vw",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
+            }}
+          >
+            <h2 style={{ 
+              fontSize: "1.4rem", 
+              marginBottom: "1rem",
+              color: "var(--accent-success)",
+              textAlign: "center"
+            }}>
+              {t("auction.confirmBidTitle")}
+            </h2>
+            <p style={{ 
+              margin: "0 0 1.5rem 0", 
+              color: "var(--text-soft)", 
+              fontSize: "0.95rem", 
+              lineHeight: "1.6",
+              textAlign: "center"
+            }}>
+              {t("auction.confirmBidText", { item: bidConfirmation.itemName })}
+            </p>
+            <div style={{
+              display: "grid",
+              gap: "0.75rem",
+              marginBottom: "2rem",
+              padding: "1.25rem",
+              background: "var(--panel-soft)",
+              border: "2px solid var(--border)",
+              borderRadius: "var(--soft-radius)",
+              textAlign: "left"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1rem" }}>
+                <strong>{t("auction.confirmBidAmount")}:</strong> 
+                <span style={{ color: "var(--accent-success)", fontWeight: "bold" }}>{bidConfirmation.bidAmount} ◎</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <strong>{t("auction.confirmBidMinimum")}:</strong> 
+                <span>{bidConfirmation.minimumBid} ◎</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <strong>{t("auction.currentBid")}:</strong> 
+                <span>{bidConfirmation.currentBid > 0 ? `${bidConfirmation.currentBid} ◎` : t("auction.noBidsYet")}</span>
+              </div>
+              <div style={{ 
+                display: "flex", 
+                justifyContent: "space-between",
+                paddingTop: "0.75rem",
+                borderTop: "1px solid var(--border)",
+                marginTop: "0.5rem"
+              }}>
+                <strong>{t("auction.confirmBidRemaining")}:</strong> 
+                <span style={{ color: bidConfirmation.remainingDucats < 100 ? "var(--accent-danger)" : "inherit" }}>
+                  {bidConfirmation.remainingDucats.toLocaleString()} ◎
+                </span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+              <button
+                onClick={cancelBidConfirmation}
+                style={{
+                  flex: 1,
+                  padding: "0.875rem 1.5rem",
+                  background: "var(--panel-soft)",
+                  border: "2px solid var(--border)",
+                  borderRadius: "var(--soft-radius)",
+                  color: "var(--text-main)",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  fontSize: "1rem",
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-slate)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "var(--panel-soft)"}
+              >
+                {t("auction.editBid")}
+              </button>
+              <button
+                onClick={confirmBidPlacement}
+                disabled={submittingBid === bidConfirmation.itemId}
+                style={{
+                  flex: 1,
+                  padding: "0.875rem 1.5rem",
+                  background: submittingBid === bidConfirmation.itemId ? "var(--bg-slate)" : "var(--accent-success)",
+                  border: "none",
+                  borderRadius: "var(--soft-radius)",
+                  color: submittingBid === bidConfirmation.itemId ? "var(--text-soft)" : "#000",
+                  cursor: submittingBid === bidConfirmation.itemId ? "not-allowed" : "pointer",
+                  fontWeight: "bold",
+                  fontSize: "1rem",
+                  boxShadow: submittingBid === bidConfirmation.itemId ? "none" : "0 2px 8px rgba(111, 141, 95, 0.4)",
+                  transition: "all 0.2s"
+                }}
+              >
+                {submittingBid === bidConfirmation.itemId ? t("auction.placing") : t("auction.confirmBidButton")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
         <div className="imperialShopModalOverlay" onClick={cancelCancelModal}>
@@ -1314,6 +1903,94 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                 }}
               >
                 {t("auction.confirmCancelButton")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Bid Disable Confirmation Modal */}
+      {showAutoBidDisableModal && autoBidDisableTargetId && (
+        <div 
+          className="imperialShopModalOverlay" 
+          onClick={() => setShowAutoBidDisableModal(false)}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000
+          }}
+        >
+          <div 
+            className="imperialShopStatusModal" 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "var(--bg-dark)",
+              border: "2px solid rgba(226, 182, 111, 0.5)",
+              borderRadius: "var(--soft-radius)",
+              padding: "2rem",
+              minWidth: "400px",
+              maxWidth: "90vw",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
+            }}
+          >
+            <h2 style={{ 
+              fontSize: "1.4rem", 
+              marginBottom: "1rem",
+              color: "rgba(226, 182, 111, 1)",
+              textAlign: "center"
+            }}>
+              {t("auction.autoBid.disableConfirmTitle")}
+            </h2>
+            <p style={{ 
+              margin: "0 0 1.5rem 0", 
+              color: "var(--text-soft)", 
+              fontSize: "0.95rem", 
+              lineHeight: "1.6",
+              textAlign: "center"
+            }}>
+              {t("auction.autoBid.disableConfirmText")}
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center" }}>
+              <button
+                onClick={() => setShowAutoBidDisableModal(false)}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem 1.5rem",
+                  background: "var(--panel-soft)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--soft-radius)",
+                  color: "var(--text-main)",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                {t("auction.autoBid.keepAutoBid")}
+              </button>
+              <button
+                onClick={() => {
+                  handleDisableAutoBid(autoBidDisableTargetId);
+                  setShowAutoBidDisableModal(false);
+                  setAutoBidDisableTargetId(null);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "0.75rem 1.5rem",
+                  background: "rgba(226, 182, 111, 0.9)",
+                  border: "none",
+                  borderRadius: "var(--soft-radius)",
+                  color: "#000",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+              >
+                {t("auction.autoBid.confirmDisable")}
               </button>
             </div>
           </div>
@@ -1374,47 +2051,145 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
         </article>
 
         {successMessage && (
-          <article className="contentCard" style={{ background: "rgba(111, 141, 95, 0.15)", borderColor: "var(--accent-success)" }}>
-            <p style={{ margin: 0, color: "var(--accent-success)" }}>✓ {successMessage}</p>
-            <button
-              type="button"
-              onClick={() => setSuccessMessage(null)}
+          <div 
+            className="imperialShopModalOverlay" 
+            onClick={() => setSuccessMessage(null)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.75)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000
+            }}
+          >
+            <div 
+              className="imperialShopStatusModal" 
+              onClick={(e) => e.stopPropagation()}
               style={{
-                marginTop: "0.5rem",
-                padding: "0.25rem 0.5rem",
-                background: "var(--panel-soft)",
-                border: "1px solid var(--border)",
+                background: "var(--bg-dark)",
+                border: "2px solid var(--accent-success)",
                 borderRadius: "var(--soft-radius)",
-                color: "var(--text-main)",
-                cursor: "pointer",
-                fontSize: "0.85rem"
+                padding: "2rem",
+                minWidth: "400px",
+                maxWidth: "90vw",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
               }}
             >
-              Dismiss
-            </button>
-          </article>
+              <h2 style={{ 
+                fontSize: "1.4rem", 
+                marginBottom: "1rem",
+                color: "var(--accent-success)",
+                textAlign: "center"
+              }}>
+                ✓ Success
+              </h2>
+              <p style={{ 
+                margin: "0 0 2rem 0", 
+                color: "var(--text-main)", 
+                fontSize: "1rem", 
+                lineHeight: "1.6",
+                textAlign: "center"
+              }}>
+                {successMessage}
+              </p>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <button
+                  onClick={() => setSuccessMessage(null)}
+                  style={{
+                    padding: "0.875rem 2rem",
+                    background: "var(--accent-success)",
+                    border: "2px solid var(--accent-success)",
+                    borderRadius: "var(--soft-radius)",
+                    color: "white",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
+                  onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {error && (
-          <article className="contentCard" style={{ background: "rgba(151, 80, 74, 0.15)", borderColor: "var(--accent-danger)" }}>
-            <p style={{ margin: 0, color: "var(--accent-danger)" }}>⚠️ {error}</p>
-            <button
-              type="button"
-              onClick={() => setError(null)}
+          <div 
+            className="imperialShopModalOverlay" 
+            onClick={() => setError(null)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.75)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10000
+            }}
+          >
+            <div 
+              className="imperialShopStatusModal" 
+              onClick={(e) => e.stopPropagation()}
               style={{
-                marginTop: "0.5rem",
-                padding: "0.25rem 0.5rem",
-                background: "var(--panel-soft)",
-                border: "1px solid var(--border)",
+                background: "var(--bg-dark)",
+                border: "2px solid var(--accent-danger)",
                 borderRadius: "var(--soft-radius)",
-                color: "var(--text-main)",
-                cursor: "pointer",
-                fontSize: "0.85rem"
+                padding: "2rem",
+                minWidth: "400px",
+                maxWidth: "90vw",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
               }}
             >
-              Dismiss
-            </button>
-          </article>
+              <h2 style={{ 
+                fontSize: "1.4rem", 
+                marginBottom: "1rem",
+                color: "var(--accent-danger)",
+                textAlign: "center"
+              }}>
+                ⚠️ Error
+              </h2>
+              <p style={{ 
+                margin: "0 0 2rem 0", 
+                color: "var(--text-main)", 
+                fontSize: "1rem", 
+                lineHeight: "1.6",
+                textAlign: "center"
+              }}>
+                {error}
+              </p>
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <button
+                  onClick={() => setError(null)}
+                  style={{
+                    padding: "0.875rem 2rem",
+                    background: "var(--accent-danger)",
+                    border: "2px solid var(--accent-danger)",
+                    borderRadius: "var(--soft-radius)",
+                    color: "white",
+                    cursor: "pointer",
+                    fontSize: "1rem",
+                    fontWeight: "bold",
+                    transition: "all 0.2s ease"
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
+                  onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {activeView === "browse" && renderBrowseView()}

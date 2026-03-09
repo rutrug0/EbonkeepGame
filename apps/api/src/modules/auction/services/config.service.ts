@@ -243,9 +243,9 @@ export class AuctionConfigService {
   /**
    * Calculate minimum bid based on current bid
    */
-  calculateMinBid(currentBid: number): number {
+  calculateMinBid(currentBid: number, startingBid: number): number {
     if (currentBid === 0) {
-      return 1; // First bid can be starting bid
+      return startingBid;
     }
 
     const percentIncrement = Math.ceil(

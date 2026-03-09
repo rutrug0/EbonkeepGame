@@ -24,6 +24,15 @@ const placeBidSchema = z.object({
   bidAmount: z.number().int().positive()
 });
 
+const enableAutoBidSchema = z.object({
+  itemId: z.string(),
+  maxBid: z.number().int().positive()
+});
+
+const disableAutoBidSchema = z.object({
+  itemId: z.string()
+});
+
 const submitItemSchema = z.object({
   itemData: z.any(),
   desiredStartingBid: z.number().int().positive()
@@ -92,7 +101,7 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
       const body = placeBidSchema.parse(request.body);
 
       try {
-        const bid = await bidService.placeBid(
+        const result = await bidService.placeBid(
           request.user.playerId,
           body.itemId,
           body.bidAmount
@@ -108,11 +117,7 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({
           success: true,
-          bid: {
-            itemId: bid.itemId,
-            bidAmount: bid.bidAmount,
-            timestamp: bid.createdAt
-          }
+          remainingDucats: result.remainingDucats
         });
       } catch (error) {
         if (error instanceof Error) {
@@ -159,6 +164,72 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const bids = await bidService.getPlayerActiveBids(request.user.playerId);
       return reply.send({ bids });
+    }
+  );
+
+  /**
+   * POST /v1/auction/autobid/enable
+   * Enable auto-bidding for an item with a maximum bid
+   */
+  fastify.post(
+    "/v1/auction/autobid/enable",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      const body = enableAutoBidSchema.parse(request.body);
+
+      try {
+        const result = await bidService.enableAutoBid(
+          request.user.playerId,
+          body.itemId,
+          body.maxBid
+        );
+
+        fastify.log.info({
+          event: "auction.autobid.enabled",
+          playerId: request.user.playerId,
+          itemId: body.itemId,
+          maxBid: body.maxBid
+        });
+
+        return reply.send(result);
+      } catch (error) {
+        if (error instanceof Error) {
+          return reply.code(400).send({ error: error.message });
+        }
+        throw error;
+      }
+    }
+  );
+
+  /**
+   * POST /v1/auction/autobid/disable
+   * Disable auto-bidding for an item
+   */
+  fastify.post(
+    "/v1/auction/autobid/disable",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      const body = disableAutoBidSchema.parse(request.body);
+
+      try {
+        const result = await bidService.disableAutoBid(
+          request.user.playerId,
+          body.itemId
+        );
+
+        fastify.log.info({
+          event: "auction.autobid.disabled",
+          playerId: request.user.playerId,
+          itemId: body.itemId
+        });
+
+        return reply.send(result);
+      } catch (error) {
+        if (error instanceof Error) {
+          return reply.code(400).send({ error: error.message });
+        }
+        throw error;
+      }
     }
   );
 

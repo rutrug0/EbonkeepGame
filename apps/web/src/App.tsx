@@ -6822,6 +6822,24 @@ export function App() {
     }
   }
 
+  function handleAuctionDucatsChange(nextDucats: number) {
+    setCurrencies((previous) => ({
+      ducats: nextDucats,
+      imperials: previous?.imperials ?? playerState?.currency.imperials ?? 0
+    }));
+    setPlayerState((previous) =>
+      previous
+        ? {
+            ...previous,
+            currency: {
+              ...previous.currency,
+              ducats: nextDucats
+            }
+          }
+        : previous
+    );
+  }
+
   function renderActivePanel() {
     switch (activeTab) {
       case "inventory":
@@ -6839,7 +6857,7 @@ export function App() {
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
-        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} />;
+        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} onDucatsChange={handleAuctionDucatsChange} />;
       case "merchant":
         return renderMerchantPanel();
       case "shop":
@@ -7119,7 +7137,7 @@ export function App() {
             fontWeight: "bold",
             boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
           }}>
-            ⚠️ Please verify your email address. Check your inbox for the verification link.
+            âš ï¸ Please verify your email address. Check your inbox for the verification link.
           </div>
         )}
         {verifyEmailMessage && (

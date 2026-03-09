@@ -6,7 +6,8 @@ import { PlayerSubmissionService } from "./player-submission.service.js";
 export class AuctionInstanceService {
   private itemGenerator: AuctionItemGeneratorService;
   private submissionService: PlayerSubmissionService;
-  private config = AuctionConfigService.getInstance().getConfig();
+  private configService = AuctionConfigService.getInstance();
+  private config = this.configService.getConfig();
 
   constructor(private prisma: PrismaClient) {
     this.itemGenerator = new AuctionItemGeneratorService();
@@ -18,10 +19,10 @@ export class AuctionInstanceService {
    * Called by cron at configured start times
    */
   async createAuctionInstances(): Promise<void> {
-    const levelBrackets = AuctionConfigService.getInstance().getLevelBrackets();
+    const levelBrackets = this.configService.getLevelBrackets();
 
     const now = new Date();
-    const endTime = AuctionConfigService.getInstance().calculateAuctionEndTime(now);
+    const endTime = this.configService.calculateAuctionEndTime(now);
 
     for (const bracket of levelBrackets) {
       const { min, max } = bracket;
@@ -52,7 +53,7 @@ export class AuctionInstanceService {
           levelBracketMin: min,
           levelBracketMax: max,
           startTime: now,
-          endTime: endTime,
+          endTime,
           status: "active",
           items: {
             create: [
@@ -121,7 +122,7 @@ export class AuctionInstanceService {
     const bracket = this.getLevelBracket(player.level);
 
     // Find active auctions in this bracket
-    return await this.prisma.auctionInstance.findMany({
+    const auctions = await this.prisma.auctionInstance.findMany({
       where: {
         levelBracketMin: bracket.min,
         levelBracketMax: bracket.max,
@@ -139,7 +140,8 @@ export class AuctionInstanceService {
             currentBid: true,
             currentWinnerId: true,
             bidCount: true,
-            extensionsUsed: true
+            extensionsUsed: true,
+            isPlayerSubmitted: true
           }
         }
       },
@@ -148,6 +150,14 @@ export class AuctionInstanceService {
       },
       take: 3 // Return max 3 active auctions
     });
+
+    return auctions.map((auction) => ({
+      ...auction,
+      items: auction.items.map((item) => ({
+        ...item,
+        minimumNextBid: this.configService.calculateMinBid(item.currentBid, item.startingBid)
+      }))
+    }));
   }
 
   /**
@@ -176,6 +186,7 @@ export class AuctionInstanceService {
     // Transform items to include player's bid status
     const itemsWithStatus = auction.items.map((item: any) => ({
       ...item,
+      minimumNextBid: this.configService.calculateMinBid(item.currentBid, item.startingBid),
       myBid: item.bids[0] || null,
       amIWinning: item.currentWinnerId === playerId,
       amIOutbid:
@@ -224,7 +235,7 @@ export class AuctionInstanceService {
    * Determine level bracket for a player level
    */
   private getLevelBracket(level: number): { min: number; max: number } {
-    const brackets = AuctionConfigService.getInstance().getLevelBrackets();
+    const brackets = this.configService.getLevelBrackets();
     return brackets.find((b) => level >= b.min && level <= b.max) || brackets[0];
   }
 
