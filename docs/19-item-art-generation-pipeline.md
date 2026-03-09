@@ -39,6 +39,7 @@ Rows missing `prompt_item_description` are skipped by design.
 Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
 Character sources can map a different prompt column (for example `prompt_character_avatar`) via source config.
 Monster sources can merge shared family-row fields such as `background_prompt_shared` before prompt assembly.
+Monster sources may also carry a family-level shared visual rule such as `eye_design_shared` for the core species in that zone.
 Monster rows may optionally provide `background_prompt_override` for setpiece encounters that need their own scene scale or composition.
 Monster family rows may also provide `combat_stage_background_prompt` and `prompt_combat_stage` to generate a separate battlefield image for card-based combat.
 Travel stage rows may provide `travel_stage_background_prompt` and `prompt_travel_stage` to generate a separate scenic journey image for the contracts travel screen.
@@ -60,6 +61,10 @@ This is still a single render per monster row for portraits, plus an optional se
   - posture and pose language
   - props, gear, or carried materials
   - color accents last
+- Shared species traits should stay stable across related members within one family. Eyes are a required example for core humanoid or semi-humanoid inhabitants such as goblins, boglings, ratmen, or similar repeating species.
+- The default expectation is:
+  - same species within one family -> same eye shape language, same eye placement logic, same iris/sclera treatment, and closely related eye color
+  - unrelated fauna, insects, parasites, or beast entries in the same family do not need to share that eye treatment
 - Flavor text should state a concrete behavior, survival trick, hunting method, or battlefield habit. Avoid rows that are only "mean", "hungry", or "cruel" in slightly different words.
 - When a zone uses many monsters from one species, offset repetition with fauna entries, swarm entries, shellbacks, flyers, crawlers, or ambush predators so the family still feels collectible in the Ledger.
 
@@ -146,11 +151,6 @@ Rules:
 Default output path pattern:
 `apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<asset_family>_<item_name>.png`
 
-For each generated image, the pipeline also writes:
-`apps/web/public/assets/items/generated/<major_category>/<family_key_parts>/<asset_family>_<item_name>.txt`
-
-The `.txt` file contains the exact final prompt used for that item generation.
-
 Generated app metadata files:
 - `apps/web/src/generated/itemArtManifest.ts` (icon key -> PNG path map)
 - `apps/web/public/assets/items/generated/item_art_manifest.json`
@@ -190,7 +190,7 @@ Examples:
 - Retry with exponential backoff for transient failures (`429`, `5xx`, network).
 - Script writes a machine-readable run report after each run.
 - Manifest + encyclopedia metadata are refreshed from current generated assets and `docs/data` tables.
-- Generated assets and cache are ignored by git.
+- Generated assets may be checked into git as part of the repo output contract; cache files remain ephemeral.
 - TLS behavior:
   - default: verified TLS with system CA / `certifi` bundle (if installed)
   - custom CA: `--ca-bundle` or `OPENAI_CA_BUNDLE`
@@ -200,6 +200,8 @@ Examples:
 - `flavor_text` is lore metadata for item text systems and is not injected into image prompts.
 - Encode arcane cues, glow behavior, and heroic relic qualities primarily in `prompt_item_description`, gated by item level (subtle around `50+`, stronger around `80+`).
 - For monsters, keep family-wide environment direction in `background_prompt_shared` on the family table and keep monster-specific anatomy, gear, stance, and threat cues in `prompt_monster_fullbody`.
+- Use `eye_design_shared` on the family table when a zone has a repeated core species whose eyes should stay visually consistent across multiple entries. This should usually apply to the zone's main humanoid or semi-humanoid inhabitants.
+- Do not force `eye_design_shared` across unrelated fauna inside the same zone. A bogling rule should not overwrite frogs, insects, crabs, lampreys, or other clearly separate body plans.
 - Use row-level `background_prompt_override` sparingly for exceptional encounters such as group bosses that need a wider chamber, altered framing, or stronger environmental scale cues than the base family scene.
 - Use family-row `prompt_combat_stage` for separate battlefield plates when the UI fights on top of cards rather than directly on top of the monster portrait scene.
 - Use `travel_stage` rows for separate approach/journey scenes when the UI needs a dedicated travel screen rather than reusing a monster portrait.
