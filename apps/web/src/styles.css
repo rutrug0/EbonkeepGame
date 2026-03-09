@@ -4204,10 +4204,9 @@ button:focus-visible {
 }
 
 .equipmentTooltipCard {
-  width: 360px;
-  max-width: min(360px, 92vw);
+  width: min(360px, calc(100vw - 16px));
+  max-width: min(360px, calc(100vw - 16px));
   text-align: left;
-  box-shadow: 0 10px 24px rgba(5, 8, 12, 0.48);
 }
 
 .equipmentWeaponOverlay {
@@ -4442,13 +4441,30 @@ button:focus-visible {
 }
 
 .inventoryCards {
+  --inventory-compact-card-width: 101px;
+  --inventory-compact-card-height: 101px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  grid-template-columns: repeat(auto-fit, var(--inventory-compact-card-width));
+  grid-auto-rows: var(--inventory-compact-card-height);
+  justify-content: center;
   gap: var(--space-3);
+}
+
+.inventoryCards > .inventoryItemCard {
+  width: var(--inventory-compact-card-width);
+  min-height: var(--inventory-compact-card-height);
+  height: var(--inventory-compact-card-height);
 }
 
 .inventoryCardsSingleColumn {
   grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: auto;
+}
+
+.inventoryCardsSingleColumn > .inventoryItemCard {
+  width: auto;
+  min-height: 0;
+  height: auto;
 }
 
 .itemVisualIcon {
@@ -4541,19 +4557,46 @@ button:focus-visible {
   border-radius: var(--soft-radius);
   background:
     linear-gradient(160deg, rgba(29, 37, 45, 0.92), rgba(20, 26, 33, 0.95));
-  padding: var(--space-3);
-  display: grid;
-  grid-template-columns: 105px minmax(0, 1fr);
-  gap: var(--space-2);
-  align-items: start;
+  padding: 0;
+  display: block;
+  min-height: var(--inventory-compact-card-height);
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .inventoryComparisonOverlay {
   position: fixed;
   z-index: 38;
   pointer-events: none;
+  max-width: min(360px, calc(100vw - 16px));
+  overflow: hidden;
 }
 
+.inventoryComparisonOverlayStack {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.inventoryDetailCard {
+  position: relative;
+  width: min(360px, calc(100vw - 16px));
+  max-width: min(360px, calc(100vw - 16px));
+  height: auto;
+  border: 1px solid rgba(190, 173, 142, 0.22);
+  border-radius: var(--soft-radius);
+  background:
+    linear-gradient(160deg, rgba(29, 37, 45, 0.92), rgba(20, 26, 33, 0.95));
+  padding: var(--space-3);
+  display: grid;
+  grid-template-columns: 105px minmax(0, 1fr);
+  gap: var(--space-2);
+  min-height: 0;
+  align-items: start;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.inventoryHoverDetailCard,
 .inventoryComparisonCard {
   box-shadow: 0 14px 30px rgba(4, 8, 12, 0.58);
 }
@@ -4592,6 +4635,121 @@ button:focus-visible {
 
 .inventoryItemCard.dropCueAfter::after {
   bottom: -2px;
+}
+
+.inventoryCompactPrice {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  padding: 0;
+  font-size: 1.17rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #f7e0a4;
+  text-shadow:
+    0 3px 6px rgba(2, 4, 8, 0.78),
+    0 0 14px rgba(2, 4, 8, 0.4),
+    0 0 2px rgba(2, 4, 8, 0.92);
+}
+
+.inventoryCompactVisual {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(190, 173, 142, 0.22);
+  border-radius: var(--soft-radius);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(181, 142, 87, 0.14), transparent 52%),
+    linear-gradient(170deg, rgba(25, 33, 41, 0.9), rgba(16, 22, 29, 0.94));
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.inventoryCompactVisual .itemVisualImage,
+.inventoryCompactVisual .itemVisualImageCard {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  justify-self: center;
+  align-self: center;
+}
+
+.inventoryCompactVisual.isRestricted {
+  border-color: rgba(178, 76, 76, 0.62);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(181, 142, 87, 0.14), transparent 52%),
+    linear-gradient(170deg, rgba(25, 33, 41, 0.9), rgba(16, 22, 29, 0.94));
+  box-shadow:
+    inset 0 0 0 1px rgba(145, 40, 40, 0.26),
+    0 0 14px rgba(126, 34, 34, 0.08);
+}
+
+.inventoryCompactVisual.isRestricted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(168, 44, 44, 0.24), rgba(92, 18, 18, 0.34)),
+    radial-gradient(circle at 50% 30%, rgba(185, 54, 54, 0.16), transparent 62%);
+}
+
+.inventoryCompactVisual.isRestricted .itemVisualImage,
+.inventoryCompactVisual.isRestricted .itemVisualImageCard {
+  filter: saturate(0.28) sepia(0.5) hue-rotate(-24deg) brightness(0.84);
+}
+
+.inventoryCompactIcon {
+  width: 58px;
+  height: 58px;
+  font-size: 0.88rem;
+}
+
+.inventoryCompactIcon.isRestricted {
+  opacity: 0.5;
+  filter: saturate(0.5) sepia(0.35) hue-rotate(-20deg);
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--accent-danger) 70%, transparent);
+}
+
+.inventoryCompactPowerBadge,
+.inventoryCompactLevelBadge {
+  position: absolute;
+  bottom: 6px;
+  z-index: 2;
+  text-shadow:
+    0 2px 4px rgba(3, 5, 8, 0.9),
+    0 0 2px rgba(3, 5, 8, 0.72);
+  pointer-events: none;
+}
+
+.inventoryCompactPowerBadge {
+  left: 6px;
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-main);
+}
+
+.inventoryCompactLevelBadge {
+  right: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-soft);
+  text-align: right;
+}
+
+.inventoryCompactLevelBadge.isRestricted {
+  color: #d56a6a;
 }
 
 .inventoryCardTop {
@@ -4636,16 +4794,29 @@ button:focus-visible {
 }
 
 .inventoryCardVisual.isRestricted {
-  border-color: rgba(178, 76, 76, 0.52);
+  border-color: rgba(178, 76, 76, 0.62);
   background:
-    linear-gradient(0deg, rgba(109, 28, 28, 0.24), rgba(109, 28, 28, 0.24)),
     radial-gradient(circle at 50% 24%, rgba(181, 142, 87, 0.14), transparent 52%),
     linear-gradient(170deg, rgba(25, 33, 41, 0.9), rgba(16, 22, 29, 0.94));
+  box-shadow:
+    inset 0 0 0 1px rgba(145, 40, 40, 0.26),
+    0 0 14px rgba(126, 34, 34, 0.08);
+}
+
+.inventoryCardVisual.isRestricted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(168, 44, 44, 0.24), rgba(92, 18, 18, 0.34)),
+    radial-gradient(circle at 50% 30%, rgba(185, 54, 54, 0.16), transparent 62%);
 }
 
 .inventoryCardVisual.isRestricted .itemVisualImage,
 .inventoryCardVisual.isRestricted .itemVisualImageCard {
-  filter: saturate(0.42) sepia(0.34) hue-rotate(-24deg) brightness(0.9);
+  filter: saturate(0.28) sepia(0.5) hue-rotate(-24deg) brightness(0.84);
 }
 
 .inventoryCardIcon {
@@ -4978,12 +5149,17 @@ button:focus-visible {
 }
 
 .inventoryItemCard.rarity-common,
+.inventoryDetailCard.rarity-common,
 .equipmentCellIconOnly.hasItem.rarity-common {
   border-color: rgba(152, 167, 179, 0.55);
 }
 
+.inventoryItemCard.rarity-common .inventoryCompactVisual,
 .inventoryItemCard.rarity-common .inventoryCardVisual,
-.equipmentCellIconOnly.hasItem.rarity-common .inventoryCardVisual {
+.inventoryDetailCard.rarity-common .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-common .inventoryCardVisual,
+.auctionItemCard.rarity-common .auctionItemCardIcon,
+.auctionRarityIconFrame.rarity-common {
   border-color: rgba(168, 181, 194, 0.36);
   background:
     radial-gradient(circle at 50% 24%, rgba(173, 184, 194, 0.16), transparent 54%),
@@ -4997,12 +5173,17 @@ button:focus-visible {
 }
 
 .inventoryItemCard.rarity-uncommon,
+.inventoryDetailCard.rarity-uncommon,
 .equipmentCellIconOnly.hasItem.rarity-uncommon {
   border-color: rgba(113, 168, 98, 0.72);
 }
 
+.inventoryItemCard.rarity-uncommon .inventoryCompactVisual,
 .inventoryItemCard.rarity-uncommon .inventoryCardVisual,
-.equipmentCellIconOnly.hasItem.rarity-uncommon .inventoryCardVisual {
+.inventoryDetailCard.rarity-uncommon .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-uncommon .inventoryCardVisual,
+.auctionItemCard.rarity-uncommon .auctionItemCardIcon,
+.auctionRarityIconFrame.rarity-uncommon {
   border-color: rgba(113, 168, 98, 0.38);
   background:
     radial-gradient(circle at 50% 24%, rgba(114, 179, 97, 0.2), transparent 54%),
@@ -5011,12 +5192,17 @@ button:focus-visible {
 }
 
 .inventoryItemCard.rarity-rare,
+.inventoryDetailCard.rarity-rare,
 .equipmentCellIconOnly.hasItem.rarity-rare {
   border-color: rgba(212, 175, 55, 0.78);
 }
 
+.inventoryItemCard.rarity-rare .inventoryCompactVisual,
 .inventoryItemCard.rarity-rare .inventoryCardVisual,
-.equipmentCellIconOnly.hasItem.rarity-rare .inventoryCardVisual {
+.inventoryDetailCard.rarity-rare .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-rare .inventoryCardVisual,
+.auctionItemCard.rarity-rare .auctionItemCardIcon,
+.auctionRarityIconFrame.rarity-rare {
   border-color: rgba(212, 175, 55, 0.46);
   background:
     radial-gradient(circle at 50% 24%, rgba(216, 170, 62, 0.26), transparent 54%),
@@ -5027,12 +5213,17 @@ button:focus-visible {
 }
 
 .inventoryItemCard.rarity-epic,
+.inventoryDetailCard.rarity-epic,
 .equipmentCellIconOnly.hasItem.rarity-epic {
   border-color: rgba(176, 127, 206, 0.75);
 }
 
+.inventoryItemCard.rarity-epic .inventoryCompactVisual,
 .inventoryItemCard.rarity-epic .inventoryCardVisual,
-.equipmentCellIconOnly.hasItem.rarity-epic .inventoryCardVisual {
+.inventoryDetailCard.rarity-epic .inventoryCardVisual,
+.equipmentCellIconOnly.hasItem.rarity-epic .inventoryCardVisual,
+.auctionItemCard.rarity-epic .auctionItemCardIcon,
+.auctionRarityIconFrame.rarity-epic {
   border-color: rgba(176, 127, 206, 0.44);
   background:
     radial-gradient(circle at 50% 24%, rgba(176, 127, 206, 0.24), transparent 54%),
@@ -5043,7 +5234,9 @@ button:focus-visible {
 }
 
 .appRoot.layout-compact .inventoryCards {
-  grid-template-columns: 1fr;
+  --inventory-compact-card-width: 92px;
+  --inventory-compact-card-height: 92px;
+  grid-template-columns: repeat(auto-fit, var(--inventory-compact-card-width));
 }
 
 .appRoot.layout-compact .equipmentEconomyBar,
@@ -5148,6 +5341,205 @@ button:focus-visible {
    AUCTION HOUSE STYLES
    ==================================== */
 
+.auctionBrowseSection {
+  position: relative;
+  overflow: visible;
+}
+
+.auctionBrowseGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.auctionBrowseCard {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--soft-radius) + 2px);
+  padding: 0.72rem;
+  background:
+    radial-gradient(circle at top, rgba(233, 218, 178, 0.08), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0)),
+    var(--panel);
+  display: grid;
+  gap: 0.58rem;
+  align-content: start;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.08),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.3);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.auctionBrowseCard.rarity-common {
+  border-color: rgba(201, 176, 125, 0.34);
+}
+
+.auctionBrowseCard.rarity-uncommon {
+  border-color: color-mix(in srgb, var(--uncommon) 58%, var(--border-soft) 42%);
+  box-shadow:
+    inset 0 1px 0 rgba(223, 245, 214, 0.12),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.32),
+    0 0 0 1px rgba(112, 172, 87, 0.08),
+    0 0 20px rgba(88, 144, 70, 0.12);
+}
+
+.auctionBrowseCard.rarity-rare {
+  border-color: color-mix(in srgb, var(--rare) 64%, var(--border-soft) 36%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 204, 0.13),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.32),
+    0 0 0 1px rgba(223, 182, 76, 0.1),
+    0 0 22px rgba(214, 165, 44, 0.14);
+}
+
+.auctionBrowseCard.rarity-epic {
+  border-color: color-mix(in srgb, var(--epic) 62%, var(--border-soft) 38%);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 228, 255, 0.14),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.32),
+    0 0 0 1px rgba(167, 111, 218, 0.08),
+    0 0 22px rgba(128, 78, 163, 0.14);
+}
+
+.auctionBrowseItemHeader {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.auctionBrowseIconButton {
+  width: var(--inventory-compact-card-width);
+  min-width: var(--inventory-compact-card-width);
+  height: var(--inventory-compact-card-height);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.auctionBrowseIconButton.inventoryItemCard {
+  width: var(--inventory-compact-card-width);
+  min-height: var(--inventory-compact-card-height);
+  height: var(--inventory-compact-card-height);
+}
+
+.auctionBrowseOriginTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  color: color-mix(in srgb, var(--text-main) 86%, #f6dfab 14%);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.auctionBrowseInfo {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.auctionBrowseLine {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.45rem;
+  align-items: baseline;
+  font-size: 0.96rem;
+  color: var(--text-main);
+}
+
+.auctionBrowseLine strong {
+  color: var(--text-strong);
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.auctionBrowseBidder {
+  margin: 0;
+  min-height: 1.15em;
+  text-align: center;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.auctionBrowseBidControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.auctionBrowseBidInput {
+  min-width: 0;
+  border: 1px solid rgba(190, 173, 142, 0.18);
+  border-radius: calc(var(--soft-radius) - 2px);
+  background: rgba(12, 17, 23, 0.96);
+  color: var(--text-main);
+  padding: 0.34rem 0.42rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.auctionBrowseBidButton {
+  border: 0;
+  border-radius: calc(var(--soft-radius) - 2px);
+  padding: 0.26rem 0.42rem;
+  min-width: 54px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-focus) 82%, #f0ddb8), color-mix(in srgb, var(--accent-focus) 66%, #bf9f64));
+  color: #101418;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.auctionBrowseBidButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auctionBrowseReserved {
+  margin: 0.1rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--text-soft) 88%, #d8c49a 12%);
+}
+
+.auctionHoverDetailCard {
+  min-height: 0;
+}
+
+@media (max-width: 1280px) {
+  .auctionBrowseGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .auctionBrowseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 .auctionItemCard {
   border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
@@ -5193,6 +5585,36 @@ button:focus-visible {
   align-items: center;
   margin-bottom: 0.5rem;
   min-height: 48px;
+  border-radius: var(--soft-radius);
+  overflow: hidden;
+}
+
+.auctionRarityIconFrame {
+  position: relative;
+  overflow: hidden;
+}
+
+.auctionRarityIconFrame.isRestricted {
+  border-color: rgba(178, 76, 76, 0.62) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(145, 40, 40, 0.26),
+    0 0 14px rgba(126, 34, 34, 0.08);
+}
+
+.auctionRarityIconFrame.isRestricted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(168, 44, 44, 0.24), rgba(92, 18, 18, 0.34)),
+    radial-gradient(circle at 50% 30%, rgba(185, 54, 54, 0.16), transparent 62%);
+}
+
+.auctionRarityIconFrame.isRestricted .itemVisualImage,
+.auctionRarityIconFrame.isRestricted .itemVisualImageCard {
+  filter: saturate(0.28) sepia(0.5) hue-rotate(-24deg) brightness(0.84);
 }
 
 .auctionItemCardTitle {
@@ -5417,4 +5839,13 @@ button:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+
+
+
+
+
+
+
+
 

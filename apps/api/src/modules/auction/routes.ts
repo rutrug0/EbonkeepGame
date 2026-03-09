@@ -5,6 +5,7 @@ import { AuctionBidService } from "./services/bid.service.js";
 import { AuctionSettlementService } from "./services/settlement.service.js";
 import { PlayerSubmissionService } from "./services/player-submission.service.js";
 import { AuctionConfigService } from "./services/config.service.js";
+import { buildInventoryItemRecordFromAuctionPayload } from "./services/item-payload.service.js";
 
 /**
  * Type declarations for Fastify decorators
@@ -495,6 +496,23 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   /**
+   * POST /v1/auction/test/reroll-auctions
+   * Clear active auctions and regenerate them from current rules (development only)
+   */
+  fastify.post("/v1/auction/test/reroll-auctions", async (request, reply) => {
+    try {
+      const result = await instanceService.rerollActiveAuctions();
+      return reply.send({
+        success: true,
+        message: "Auctions rerolled",
+        ...result
+      });
+    } catch (error) {
+      return reply.code(500).send({ error: String(error) });
+    }
+  });
+
+  /**
    * GET /v1/auction/config
    * Get current auction configuration (for debugging)
    */
@@ -506,3 +524,4 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ config: sanitized });
   });
 };
+

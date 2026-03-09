@@ -256,8 +256,11 @@
     "noBidsYet": "No bids yet",
     "playerSubmitted": "Player-submitted item",
     "minBid": "Min: {{amount}} ◎",
-    "placeBid": "Place Bid",
+    "placeBid": "Bid",
     "placing": "Placing...",
+    "reroll": "Reroll",
+    "rerolling": "Rerolling...",
+    "rerollSuccess": "Auction stock rerolled ({{count}} auctions replaced)",
     "myBidsTitle": "My Active Bids",
     "myBidsDesc": "Track your current bids across all auctions",
     "noBidsPlaced": "You haven't placed any bids yet",
@@ -349,6 +352,7 @@
       "failedToClaim": "Failed to claim reward",
       "failedToSubmit": "Failed to submit item",
       "failedToCancel": "Failed to cancel submission",
+      "failedToReroll": "Failed to reroll auctions",
       "selectItem": "Please select an item",
       "enterBid": "Please enter a minimum bid",
       "autoBidMaxRequired": "Please enter a maximum bid amount",
@@ -415,3 +419,4 @@
     "vestige3": "Vestige III"
   }
 }
+

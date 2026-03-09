@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { InventoryItem, EquipmentSlotId } from "@ebonkeep/shared";
+import { isItemUsableByClass, type InventoryItem, type EquipmentSlotId, type PlayerClass } from "@ebonkeep/shared";
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
 
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
-type WeaponArchetype = "melee/sword" | "melee/axe" | "melee/mace" | "ranged/bow" | "ranged/crossbow" | "arcane/staff" | "arcane/wand";
-type ArmorArchetype = "platemail" | "chainmail" | "leather" | "cloth";
+type WeaponArchetype = "melee" | "ranged" | "arcane";
+type ArmorArchetype = "heavy" | "light" | "robe";
 
 export interface AuctionHouseProps {
   token: string | null;
   currentDucats: number;
+  playerClass?: PlayerClass | null;
+  playerLevel?: number | null;
   onDucatsChange?: (nextDucats: number) => void;
 }
 
@@ -34,19 +36,55 @@ interface AuctionItem {
   startingBid: number;
   currentBid: number;
   currentWinnerId: string | null;
+  currentWinnerName?: string | null;
   bidCount: number;
   extensionsUsed: number;
   isPlayerSubmitted: boolean;
   minimumNextBid?: number;
+  itemData?: ParsedItemData;
 }
 
 interface ParsedItemData {
-  name: string;
-  level: number;
+  itemCode?: string;
+  itemName: string;
+  levelRequirement: number;
+  baseLevel?: number;
   rarity: string;
   category: string;
-  stats?: Record<string, number>;
+  power?: number;
+  equipable?: boolean;
+  allowedSlotIds?: string[];
+  statBonuses?: Record<string, number>;
+  damageRoll?: {
+    minRollRange: [number, number];
+    rolledMin: number;
+    rolledMax: number;
+    maxRollRange: [number, number];
+    averageDamage: number;
+  };
+  description?: string;
   iconAssetPath?: string;
+  prefix?: {
+    name: string;
+    tier: string;
+    statKey: string;
+    value: number;
+    unit: string;
+  };
+  affix?: {
+    name: string;
+    tier: string;
+    statKey: string;
+    value: number;
+    unit: string;
+  };
+  archetype?: {
+    majorCategory?: string;
+    weaponArchetype?: string;
+    armorArchetype?: string;
+    weaponFamily?: string;
+    vestigeId?: string;
+  };
   weaponType?: string;
   armorType?: string;
   jewelryType?: string;
@@ -101,9 +139,18 @@ interface BidConfirmationState {
   remainingDucats: number;
 }
 
+interface AuctionHoverState {
+  itemId: string;
+  itemData: ParsedItemData;
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+}
+
 type AuctionView = "browse" | "myBids" | "submit" | "mySubmissions" | "rewards";
 
-export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHouseProps) {
+export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, onDucatsChange }: AuctionHouseProps) {
   const { t } = useTranslation("common");
   const [activeView, setActiveView] = useState<AuctionView>("browse");
   const [auctions, setAuctions] = useState<AuctionInstance[]>([]);
@@ -113,6 +160,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
   const [mySubmissions, setMySubmissions] = useState<PlayerSubmission[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [rerollingAuctions, setRerollingAuctions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState<Record<string, string>>({});
@@ -131,6 +179,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
   const [enablingAutoBid, setEnablingAutoBid] = useState<string | null>(null);
   const [showAutoBidDisableModal, setShowAutoBidDisableModal] = useState(false);
   const [autoBidDisableTargetId, setAutoBidDisableTargetId] = useState<string | null>(null);
+  const [auctionHover, setAuctionHover] = useState<AuctionHoverState | null>(null);
 
   const API_BASE = "http://localhost:4000";
 
@@ -285,6 +334,52 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
     }
   };
 
+  const handleRerollAuctions = async () => {
+    if (!token || rerollingAuctions) return;
+
+    const refundedToCurrentPlayer = myBids.reduce(
+      (sum, bid) => sum + (bid.maxAutoBid ?? bid.bidAmount ?? 0),
+      0
+    );
+
+    setRerollingAuctions(true);
+    setAuctionHover(null);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/v1/auction/test/reroll-auctions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || t("auction.errors.failedToReroll"));
+      }
+
+      if (refundedToCurrentPlayer > 0) {
+        const nextDucats = displayDucats + refundedToCurrentPlayer;
+        setDisplayDucats(nextDucats);
+        onDucatsChange?.(nextDucats);
+      }
+
+      setSuccessMessage(
+        t("auction.rerollSuccess", {
+          count: typeof data.deletedAuctionCount === "number" ? data.deletedAuctionCount : 0
+        })
+      );
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      await Promise.all([loadActiveAuctions(), loadMyBids()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("auction.errors.failedToReroll"));
+    } finally {
+      setRerollingAuctions(false);
+    }
+  };
+
   const getMinimumNextBid = (item: AuctionItem): number => {
     if (typeof item.minimumNextBid === "number") {
       return item.minimumNextBid;
@@ -322,7 +417,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
     setError(null);
     setBidConfirmation({
       itemId: item.id,
-      itemName: itemData.name,
+      itemName: itemData.itemName,
       bidAmount: amount,
       minimumBid,
       currentBid: item.currentBid,
@@ -651,38 +746,341 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
 
   const parseItemData = (itemCode: string): ParsedItemData => {
     try {
-      return JSON.parse(itemCode);
+      const parsed = JSON.parse(itemCode) as Record<string, unknown>;
+      if (!parsed || Array.isArray(parsed)) {
+        throw new Error("Invalid item payload");
+      }
+
+      if (typeof parsed.itemName === "string") {
+        return {
+          itemCode: typeof parsed.itemCode === "string" ? parsed.itemCode : itemCode,
+          itemName: parsed.itemName,
+          levelRequirement:
+            typeof parsed.levelRequirement === "number"
+              ? parsed.levelRequirement
+              : typeof parsed.baseLevel === "number"
+                ? parsed.baseLevel
+                : 1,
+          baseLevel: typeof parsed.baseLevel === "number" ? parsed.baseLevel : undefined,
+          rarity: typeof parsed.rarity === "string" ? parsed.rarity : "common",
+          category: typeof parsed.category === "string" ? parsed.category : "misc",
+          power: typeof parsed.power === "number" ? parsed.power : 0,
+          equipable: typeof parsed.equipable === "boolean" ? parsed.equipable : true,
+          allowedSlotIds: Array.isArray(parsed.allowedSlotIds)
+            ? parsed.allowedSlotIds.filter((slotId): slotId is string => typeof slotId === "string")
+            : undefined,
+          statBonuses:
+            parsed.statBonuses && typeof parsed.statBonuses === "object" && !Array.isArray(parsed.statBonuses)
+              ? (parsed.statBonuses as Record<string, number>)
+              : undefined,
+          damageRoll:
+            parsed.damageRoll && typeof parsed.damageRoll === "object" && !Array.isArray(parsed.damageRoll)
+              ? (parsed.damageRoll as ParsedItemData["damageRoll"])
+              : undefined,
+          description: typeof parsed.description === "string" ? parsed.description : "",
+          iconAssetPath: typeof parsed.iconAssetPath === "string" ? parsed.iconAssetPath : undefined,
+          prefix:
+            parsed.prefix && typeof parsed.prefix === "object" && !Array.isArray(parsed.prefix)
+              ? (parsed.prefix as ParsedItemData["prefix"])
+              : undefined,
+          affix:
+            parsed.affix && typeof parsed.affix === "object" && !Array.isArray(parsed.affix)
+              ? (parsed.affix as ParsedItemData["affix"])
+              : undefined,
+          archetype:
+            parsed.archetype && typeof parsed.archetype === "object" && !Array.isArray(parsed.archetype)
+              ? (parsed.archetype as ParsedItemData["archetype"])
+              : undefined,
+          weaponType: typeof parsed.weaponType === "string" ? parsed.weaponType : undefined,
+          armorType: typeof parsed.armorType === "string" ? parsed.armorType : undefined,
+          jewelryType: typeof parsed.jewelryType === "string" ? parsed.jewelryType : undefined
+        };
+      }
+
+      return {
+        itemCode: typeof parsed.itemCode === "string" ? parsed.itemCode : itemCode,
+        itemName: typeof parsed.name === "string" ? parsed.name : t("profile.unknown"),
+        levelRequirement: typeof parsed.level === "number" ? parsed.level : 1,
+        rarity: typeof parsed.rarity === "string" ? parsed.rarity : "common",
+        category: typeof parsed.category === "string" ? parsed.category : "misc",
+        power: typeof parsed.power === "number" ? parsed.power : 0,
+        statBonuses:
+          parsed.stats && typeof parsed.stats === "object" && !Array.isArray(parsed.stats)
+            ? (parsed.stats as Record<string, number>)
+            : undefined,
+        iconAssetPath: typeof parsed.iconAssetPath === "string" ? parsed.iconAssetPath : undefined,
+        weaponType: typeof parsed.weaponType === "string" ? parsed.weaponType : undefined,
+        armorType: typeof parsed.armorType === "string" ? parsed.armorType : undefined,
+        jewelryType: typeof parsed.jewelryType === "string" ? parsed.jewelryType : undefined,
+        description: typeof parsed.description === "string" ? parsed.description : ""
+      };
     } catch {
       return {
-        name: t("profile.unknown"),
-        level: 1,
+        itemCode,
+        itemName: t("profile.unknown"),
+        levelRequirement: 1,
         rarity: "common",
-        category: "misc"
+        category: "misc",
+        power: 0,
+        statBonuses: {},
+        description: ""
       };
     }
+  };
+
+  const getAuctionItemData = (item: Pick<AuctionItem, "itemCode"> & { itemData?: ParsedItemData }): ParsedItemData => {
+    return item.itemData ?? parseItemData(item.itemCode);
+  };
+
+  const buildWeaponLookupKey = (itemData: ParsedItemData): WeaponArchetype | undefined => {
+    const weaponArchetype = itemData.archetype?.weaponArchetype;
+    if (!weaponArchetype) {
+      return undefined;
+    }
+
+    return weaponArchetype as WeaponArchetype;
+  };
+
+  const getItemMajorCategory = (itemData: ParsedItemData): ItemMajorCategory | undefined => {
+    const majorCategory = itemData.archetype?.majorCategory;
+    if (majorCategory === "weapon" || majorCategory === "armor" || majorCategory === "jewelry" || majorCategory === "vestige") {
+      return majorCategory;
+    }
+
+    const category = itemData.category.toLowerCase();
+    if (category.includes("weapon")) return "weapon";
+    if (category.includes("armor")) return "armor";
+    if (category.includes("jewelry") || category.includes("ring") || category.includes("necklace")) return "jewelry";
+    return undefined;
+  };
+
+  const formatLabel = (value: string): string => {
+    return value
+      .replace(/[\/_,-]+/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/\b\w/g, (match) => match.toUpperCase())
+      .trim();
+  };
+
+  const getItemSubtypeLabel = (itemData: ParsedItemData): string => {
+    if (itemData.archetype?.majorCategory === "armor" && itemData.archetype.armorArchetype) {
+      return `${formatLabel(itemData.archetype.armorArchetype)} Armor`;
+    }
+    if (itemData.archetype?.majorCategory === "weapon" && itemData.archetype.weaponFamily) {
+      return formatLabel(itemData.archetype.weaponFamily);
+    }
+    if (itemData.archetype?.majorCategory === "jewelry") {
+      return itemData.jewelryType ? formatLabel(itemData.jewelryType) : formatLabel(itemData.category);
+    }
+    if (itemData.weaponType) {
+      return formatLabel(itemData.weaponType);
+    }
+    if (itemData.armorType) {
+      return `${formatLabel(itemData.armorType)} Armor`;
+    }
+    return formatLabel(itemData.category);
+  };
+
+  const getDisplayStatBonuses = (itemData: ParsedItemData): Array<{ key: string; value: number }> => {
+    return Object.entries(itemData.statBonuses ?? {})
+      .map(([key, value]) => ({ key, value: typeof value === "number" ? value : 0 }))
+      .filter((entry) => entry.value !== 0);
+  };
+
+  const formatStatValue = (statKey: string, value: number): string => {
+    if (/chance|multiplier/i.test(statKey)) {
+      return `${value > 0 ? "+" : ""}${(value / 100).toFixed(1).replace(/\.0$/, "")}%`;
+    }
+    return `${value > 0 ? "+" : ""}${value}`;
+  };
+
+  const getDamageSummary = (itemData: ParsedItemData) => {
+    if (!itemData.damageRoll) {
+      return null;
+    }
+
+    return {
+      damageLine: `${itemData.damageRoll.rolledMin}-${itemData.damageRoll.rolledMax} damage`,
+      rollLine: `Roll range ${itemData.damageRoll.minRollRange[0]}-${itemData.damageRoll.maxRollRange[1]}`
+    };
+  };
+
+  const resolveAuctionItemIconPath = (itemData: ParsedItemData): string | undefined => {
+    if (itemData.iconAssetPath) {
+      return itemData.iconAssetPath;
+    }
+
+    return getGeneratedItemIconPath({
+      majorCategory: getItemMajorCategory(itemData),
+      weaponArchetype: buildWeaponLookupKey(itemData),
+      armorArchetype: itemData.archetype?.armorArchetype as ArmorArchetype | undefined,
+      itemName: itemData.itemName,
+      equipSlotId: (itemData.allowedSlotIds?.[0] as EquipmentSlotId | undefined) ?? undefined
+    });
   };
 
   const getInventoryItemData = (item: InventoryItem): ParsedItemData => {
     const preferredSlotId = item.allowedSlotIds?.[0];
     const iconPath = getGeneratedItemIconPath({
       majorCategory: item.archetype?.majorCategory as ItemMajorCategory,
-      weaponArchetype: item.archetype?.weaponArchetype as WeaponArchetype,
+      weaponArchetype: item.archetype?.weaponArchetype as WeaponArchetype | undefined,
       armorArchetype: item.archetype?.armorArchetype as ArmorArchetype,
       itemName: item.itemName,
       equipSlotId: preferredSlotId
     });
 
     return {
-      name: item.itemName,
-      level: item.levelRequirement ?? item.baseLevel ?? 1,
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      levelRequirement: item.levelRequirement ?? item.baseLevel ?? 1,
+      baseLevel: item.baseLevel,
       rarity: item.rarity,
       category: item.category,
+      power: item.power,
+      equipable: item.equipable,
+      allowedSlotIds: item.allowedSlotIds,
       iconAssetPath: iconPath,
-      stats: item.statBonuses,
+      statBonuses: item.statBonuses,
+      damageRoll: item.damageRoll,
+      description: item.description,
+      prefix: item.prefix,
+      affix: item.affix,
+      archetype: item.archetype,
       weaponType: item.archetype?.weaponFamily,
       armorType: item.archetype?.armorArchetype,
       jewelryType: item.archetype?.majorCategory === "jewelry" ? "jewelry" : undefined
     };
+  };
+
+  const canPlayerUseAuctionItem = (itemData: ParsedItemData): boolean => {
+    if (!itemData.equipable || !itemData.archetype || !playerClass || playerLevel == null) {
+      return itemData.equipable !== false;
+    }
+
+    const archetypeClassKey = (itemData.archetype.weaponArchetype ?? itemData.archetype.armorArchetype) as
+      | WeaponArchetype
+      | ArmorArchetype
+      | undefined;
+    const isClassEligible = isItemUsableByClass(
+      playerClass,
+      itemData.archetype.majorCategory as "weapon" | "armor" | "jewelry" | "vestige",
+      archetypeClassKey
+    );
+    const isLevelEligible = playerLevel >= itemData.levelRequirement;
+
+    return isClassEligible && isLevelEligible;
+  };
+
+  const renderAuctionItemDetailCardBody = (itemData: ParsedItemData) => {
+    const canUseItem = canPlayerUseAuctionItem(itemData);
+    const damageSummary = getDamageSummary(itemData);
+    const iconAssetPath = resolveAuctionItemIconPath(itemData);
+    const statBonuses = getDisplayStatBonuses(itemData);
+
+    return (
+      <>
+        <div className="inventoryCardTop">
+          <div className="inventoryCardMeta">
+            <h4>{itemData.itemName}</h4>
+            <p className="inventoryCardCategory">{getItemSubtypeLabel(itemData)}</p>
+          </div>
+          <div className="inventoryCardTopAside">
+            <span className="inventoryCardRarity">{formatLabel(itemData.rarity)}</span>
+          </div>
+        </div>
+        <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}`}>
+          {renderItemIcon({
+            majorCategory: getItemMajorCategory(itemData),
+            category: itemData.category,
+            itemName: itemData.itemName,
+            iconAssetPath,
+            renderMode: iconAssetPath ? "imageOnly" : "default",
+            className: iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
+          })}
+        </div>
+        <div className="inventoryCardContent">
+          {damageSummary ? (
+            <div className="inventoryCardDamageBlock">
+              <p className="inventoryCardDamagePrimary">{damageSummary.damageLine}</p>
+              <p className="inventoryCardDamageRollMeta">{damageSummary.rollLine}</p>
+            </div>
+          ) : null}
+          {statBonuses.length > 0 ? (
+            <div className="inventoryCardModifierList">
+              {statBonuses.map((entry) => (
+                <p key={entry.key} className="inventoryCardModifierLine">
+                  <span>{formatLabel(entry.key)}</span>
+                  <span> {formatStatValue(entry.key, entry.value)}</span>
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="inventoryCardDetails">
+          <p className="inventoryCardDescription inventoryCardFlavor">{itemData.description || " "}</p>
+          <div className="inventoryCardFooter">
+            <span className="inventoryCardPower">{t("inventory.power", { value: itemData.power ?? 0 })}</span>
+            <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>{t("inventory.requiredLevel", { value: itemData.levelRequirement })}</span>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const handleAuctionItemMouseEnter = (item: AuctionItem, cardElement: HTMLElement) => {
+    const itemData = getAuctionItemData(item);
+    const rect = cardElement.getBoundingClientRect();
+    const viewportPadding = 8;
+    const gapPx = 12;
+    const panelWidth = Math.min(360, Math.max(260, window.innerWidth - viewportPadding * 2));
+    const maxHeight = Math.max(220, window.innerHeight - viewportPadding * 2);
+    const estimatedPanelHeight = Math.min(maxHeight, 420);
+    const rightSpace = window.innerWidth - rect.right - viewportPadding;
+    const leftSpace = rect.left - viewportPadding;
+    const placeOnRight = rightSpace >= panelWidth || rightSpace >= leftSpace;
+    const unclampedLeft = placeOnRight ? rect.right + gapPx : rect.left - panelWidth - gapPx;
+
+    setAuctionHover({
+      itemId: item.id,
+      itemData: {
+        ...itemData,
+        iconAssetPath: resolveAuctionItemIconPath(itemData)
+      },
+      top: Math.round(
+        Math.max(viewportPadding, Math.min(rect.top, window.innerHeight - viewportPadding - estimatedPanelHeight))
+      ),
+      left: Math.round(
+        Math.max(viewportPadding, Math.min(unclampedLeft, window.innerWidth - viewportPadding - panelWidth))
+      ),
+      width: panelWidth,
+      maxHeight
+    });
+  };
+
+  const handleAuctionItemMouseLeave = (itemId: string) => {
+    setAuctionHover((previousHover: AuctionHoverState | null) => (previousHover?.itemId === itemId ? null : previousHover));
+  };
+
+  const renderAuctionHoverOverlay = () => {
+    if (!auctionHover || activeView !== "browse") {
+      return null;
+    }
+
+    return (
+      <div
+        className="inventoryComparisonOverlay"
+        style={{
+          top: auctionHover.top,
+          left: auctionHover.left,
+          width: auctionHover.width,
+          maxHeight: auctionHover.maxHeight
+        }}
+      >
+        <article className={`inventoryDetailCard inventoryHoverDetailCard auctionHoverDetailCard rarity-${auctionHover.itemData.rarity}`}>
+          {renderAuctionItemDetailCardBody(auctionHover.itemData)}
+        </article>
+      </div>
+    );
   };
 
   const handleCancelSubmission = async (listingId: string) => {
@@ -762,11 +1160,38 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
   };
 
   const resolveItemIconVisual = (args: {
+    majorCategory?: ItemMajorCategory;
     category?: string;
     itemName?: string | null;
   }): { variant: ItemIconVariant; label: string } => {
+    if (args.majorCategory) {
+      if (args.majorCategory === "armor") {
+        return { variant: "armor", label: "AR" };
+      }
+      if (args.majorCategory === "weapon") {
+        return { variant: "weapon", label: "WP" };
+      }
+      if (args.majorCategory === "jewelry") {
+        return { variant: "jewelry", label: "JW" };
+      }
+      if (args.majorCategory === "vestige") {
+        return { variant: "vestige", label: "VS" };
+      }
+    }
+
     const category = (args.category ?? "").toLowerCase();
-    
+    if (category.includes("consumable")) {
+      return { variant: "consumable", label: "CO" };
+    }
+    if (category.includes("material")) {
+      return { variant: "material", label: "MT" };
+    }
+    if (category.includes("container")) {
+      return { variant: "container", label: "CT" };
+    }
+    if (category.includes("utility")) {
+      return { variant: "utility", label: "UT" };
+    }
     if (category.includes("weapon")) {
       return { variant: "weapon", label: "WP" };
     }
@@ -775,12 +1200,6 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
     }
     if (category.includes("jewelry") || category.includes("ring") || category.includes("necklace")) {
       return { variant: "jewelry", label: "JW" };
-    }
-    if (category.includes("consumable")) {
-      return { variant: "consumable", label: "CO" };
-    }
-    if (category.includes("material")) {
-      return { variant: "material", label: "MT" };
     }
 
     const letters = (args.itemName ?? "IT").replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
@@ -791,319 +1210,101 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
   };
 
   const renderItemIcon = (args: {
+    majorCategory?: ItemMajorCategory;
     category?: string;
     itemName?: string | null;
     iconAssetPath?: string;
     className?: string;
+    renderMode?: "default" | "imageOnly";
   }) => {
     const iconVisual = resolveItemIconVisual(args);
-    
-    if (args.iconAssetPath) {
-      return (
-        <img 
-          src={args.iconAssetPath} 
-          alt="" 
-          loading="lazy"
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "contain",
-            imageRendering: "pixelated"
-          }}
-        />
-      );
+    if (args.iconAssetPath && args.renderMode === "imageOnly") {
+      return <img className="itemVisualImage itemVisualImageCard" src={args.iconAssetPath} alt="" loading="lazy" />;
     }
-    
+
     const extraClass = args.className ? ` ${args.className}` : "";
     return (
-      <span 
-        className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`}
-        aria-hidden="true"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "48px",
-          height: "48px",
-          fontSize: "1.2rem",
-          fontWeight: "bold",
-          background: "var(--panel-soft)",
-          border: "2px solid var(--border)",
-          borderRadius: "var(--soft-radius)"
-        }}
-      >
-        {iconVisual.label}
+      <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`} aria-hidden="true">
+        {args.iconAssetPath ? (
+          <img className="itemVisualImage" src={args.iconAssetPath} alt="" loading="lazy" />
+        ) : (
+          iconVisual.label
+        )}
       </span>
     );
   };
 
   const renderAuctionItem = (item: AuctionItem) => {
-    const itemData = parseItemData(item.itemCode);
+    const itemData = getAuctionItemData(item);
+    const canUseItem = canPlayerUseAuctionItem(itemData);
+    const iconAssetPath = resolveAuctionItemIconPath(itemData);
     const minBid = getMinimumNextBid(item);
     const isSubmitting = submittingBid === item.id;
-    
-    // Check if player has an active bid on this item
-    const playerBid = myBids.find(bid => bid.itemId === item.id && bid.status === "active");
-    const hasPlayerBid = !!playerBid;
+    const reservedAmount = getPlayerReservedBidAmount(item.id);
+    const currentBidValue = item.currentBid > 0 ? item.currentBid : item.startingBid;
 
     return (
-      <div key={item.id} className="contentCard" style={{ 
-        marginBottom: "1rem",
-        background: hasPlayerBid ? "var(--panel-soft)" : "var(--bg-slate)",
-        border: hasPlayerBid ? "2px solid var(--accent-focus)" : "1px solid var(--border)"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-          {/* Item Icon */}
-          <div style={{
-            minWidth: "80px",
-            width: "80px",
-            height: "80px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "var(--bg-slate)",
-            borderRadius: "var(--soft-radius)",
-            border: `2px solid ${getRarityColor(item.itemRarity)}40`,
-            flexShrink: 0
-          }}>
-            {renderItemIcon({
-              category: itemData.category,
-              itemName: itemData.name,
-              iconAssetPath: itemData.iconAssetPath
-            })}
-          </div>
-          
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-              <h3 style={{ color: getRarityColor(item.itemRarity), margin: 0 }}>
-                {itemData.name}
-              </h3>
-              {hasPlayerBid && (
-                <span style={{
-                  padding: "0.25rem 0.75rem",
-                  background: "var(--accent-focus)",
-                  color: "var(--bg-stone)",
-                  borderRadius: "var(--soft-radius)",
-                  fontSize: "0.75rem",
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px"
-                }}>
-                  {t("auction.yourBid")}
-                </span>
-              )}
+      <article key={item.id} className={`auctionBrowseCard rarity-${itemData.rarity}`}>
+        <div className="auctionBrowseItemHeader">
+          <button
+            type="button"
+            className={`auctionBrowseIconButton inventoryItemCard rarity-${itemData.rarity}`}
+            onMouseEnter={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
+            onMouseLeave={() => handleAuctionItemMouseLeave(item.id)}
+            onFocus={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
+            onBlur={() => handleAuctionItemMouseLeave(item.id)}
+          >
+            <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}`}>
+              {renderItemIcon({
+                majorCategory: getItemMajorCategory(itemData),
+                category: itemData.category,
+                itemName: itemData.itemName,
+                iconAssetPath,
+                renderMode: iconAssetPath ? "imageOnly" : "default",
+                className: iconAssetPath ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`
+              })}
+              <span className="inventoryCompactPowerBadge" aria-hidden="true">
+                {itemData.power ?? 0}
+              </span>
+              <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
+                Lv. {itemData.levelRequirement}
+              </span>
             </div>
-            <p style={{ margin: "0.25rem 0", fontSize: "0.9rem", opacity: 0.8 }}>
-              {t("player.level", { value: item.itemLevel })} • {item.itemCategory} • {item.itemRarity}
-            </p>
-            {item.isPlayerSubmitted && (
-              <p style={{ margin: "0.25rem 0", fontSize: "0.85rem", fontStyle: "italic", opacity: 0.6 }}>
-                {t("auction.playerSubmitted")}
-              </p>
-            )}
-            
-            <div style={{ marginTop: "0.75rem" }}>
-              <p style={{ margin: "0.25rem 0" }}>
-                <strong>{t("auction.currentBid")}:</strong> {item.currentBid > 0 ? `${item.currentBid} ◎` : t("auction.noBidsYet")}
-                {hasPlayerBid && playerBid && (
-                  <span style={{ 
-                    color: "var(--accent-success)", 
-                    fontWeight: "bold",
-                    marginLeft: "0.5rem"
-                  }}>
-                    ({playerBid.bidAmount} ◎)
-                  </span>
-                )}
-              </p>
-              <p style={{ margin: "0.25rem 0" }}>
-                <strong>{t("auction.startingBid")}:</strong> {item.startingBid} ◎
-              </p>
-              <p style={{ margin: "0.25rem 0" }}>
-                <strong>{t("auction.bids")}:</strong> {item.bidCount}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ marginLeft: "1rem", minWidth: "200px" }}>
-            <div style={{ marginBottom: "0.5rem" }}>
-              <input
-                type="number"
-                min={minBid}
-                step="1"
-                placeholder={t("auction.minBid", { amount: minBid })}
-                value={bidAmount[item.id] || ""}
-                onChange={(e) => setBidAmount((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                disabled={isSubmitting}
-                style={{
-                  width: "100%",
-                  padding: "0.5rem",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--soft-radius)",
-                  background: "var(--bg-slate)",
-                  color: "var(--text-main)",
-                  fontSize: "0.9rem"
-                }}
-              />
-            </div>
+          </button>
+          {item.isPlayerSubmitted ? <span className="auctionBrowseOriginTag">{t("auction.playerSubmitted")}</span> : null}
+        </div>
+        <div className="auctionBrowseInfo">
+          <p className="auctionBrowseLine">
+            <span>{t("auction.currentBid")}:</span>
+            <strong>{currentBidValue.toLocaleString()} {"\u25CE"}</strong>
+          </p>
+          <p className="auctionBrowseBidder">
+            {item.currentBid > 0 && item.currentWinnerName ? item.currentWinnerName : t("auction.startingBid")}
+          </p>
+          <div className="auctionBrowseBidControls">
+            <input
+              type="number"
+              min={minBid}
+              value={bidAmount[item.id] || ""}
+              onChange={(event) => setBidAmount((previous) => ({ ...previous, [item.id]: event.target.value }))}
+              placeholder={t("auction.minBid", { amount: minBid })}
+              className="auctionBrowseBidInput"
+              disabled={isSubmitting}
+            />
             <button
               type="button"
               onClick={() => handlePlaceBid(item)}
               disabled={isSubmitting || !bidAmount[item.id]}
-              style={{
-                background: isSubmitting ? "var(--bg-slate)" : "var(--accent-success)"
-              }}
+              className="auctionBrowseBidButton"
             >
               {isSubmitting ? t("auction.placing") : t("auction.placeBid")}
             </button>
-
-            {/* Auto-Bid Section */}
-            <div style={{ 
-              marginTop: "1rem", 
-              padding: "0.75rem", 
-              background: "var(--panel-soft)", 
-              borderRadius: "var(--soft-radius)",
-              border: "1px solid var(--border)"
-            }}>
-              <button
-                type="button"
-                onClick={() => {
-                  const isCurrentlyEnabled = autoBidEnabled[item.id] || playerBid?.isAutoBid || false;
-                  if (!isCurrentlyEnabled) {
-                    // Will enable after user enters max bid
-                    setAutoBidEnabled((prev) => ({ ...prev, [item.id]: true }));
-                  } else {
-                    // Show confirmation modal
-                    setAutoBidDisableTargetId(item.id);
-                    setShowAutoBidDisableModal(true);
-                  }
-                }}
-                disabled={enablingAutoBid === item.id}
-                style={{
-                  width: "100%",
-                  padding: "0.75rem 1rem",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "0.75rem",
-                  fontSize: "0.9rem",
-                  fontWeight: "bold",
-                  border: (autoBidEnabled[item.id] || playerBid?.isAutoBid) 
-                    ? "1px solid rgba(226, 182, 111, 0.46)" 
-                    : "1px solid rgba(191, 174, 145, 0.18)",
-                  borderRadius: "var(--soft-radius)",
-                  background: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
-                    ? "linear-gradient(180deg, rgba(124, 73, 31, 0.96), rgba(90, 49, 18, 0.98))"
-                    : "rgba(27, 35, 43, 0.92)",
-                  color: "var(--text-main)",
-                  cursor: enablingAutoBid === item.id ? "not-allowed" : "pointer",
-                  transition: "all 0.3s ease",
-                  boxShadow: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
-                    ? "0 0 0 1px rgba(226, 182, 111, 0.18), 0 2px 8px rgba(226, 182, 111, 0.15)"
-                    : "none",
-                  opacity: enablingAutoBid === item.id ? 0.6 : 1
-                }}
-                onMouseOver={(e) => {
-                  if (enablingAutoBid !== item.id) {
-                    e.currentTarget.style.transform = "translateY(-1px)";
-                    e.currentTarget.style.boxShadow = (autoBidEnabled[item.id] || playerBid?.isAutoBid)
-                      ? "0 0 0 1px rgba(226, 182, 111, 0.25), 0 4px 12px rgba(226, 182, 111, 0.25)"
-                      : "0 2px 8px rgba(0, 0, 0, 0.3)";
-                  }
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = (autoBidEnabled[item.id] || playerBid?.isAutoBid)
-                    ? "0 0 0 1px rgba(226, 182, 111, 0.18), 0 2px 8px rgba(226, 182, 111, 0.15)"
-                    : "none";
-                }}
-              >
-                <span style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: "0.5rem" 
-                }}>
-                  {t("auction.autoBid.enable")}
-                </span>
-                <span style={{
-                  padding: "0.25rem 0.75rem",
-                  background: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
-                    ? "rgba(226, 182, 111, 0.2)"
-                    : "rgba(0, 0, 0, 0.3)",
-                  borderRadius: "12px",
-                  fontSize: "0.75rem",
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  color: (autoBidEnabled[item.id] || playerBid?.isAutoBid)
-                    ? "rgba(226, 182, 111, 1)"
-                    : "rgba(150, 150, 150, 1)"
-                }}>
-                  {(autoBidEnabled[item.id] || playerBid?.isAutoBid) ? "ON" : "OFF"}
-                </span>
-              </button>
-
-              {(autoBidEnabled[item.id] || playerBid?.isAutoBid) && (
-                <>
-                  {playerBid?.isAutoBid ? (
-                    <div style={{ marginTop: "0.5rem" }}>
-                      <div style={{
-                        padding: "0.5rem",
-                        background: "var(--accent-success)20",
-                        border: "1px solid var(--accent-success)",
-                        borderRadius: "var(--soft-radius)",
-                        fontSize: "0.85rem"
-                      }}>
-                        <div style={{ fontWeight: "bold", color: "var(--accent-success)" }}>
-                          {t("auction.autoBid.active")}
-                        </div>
-                        <div style={{ marginTop: "0.25rem" }}>
-                          {t("auction.autoBid.reservedAmount", { amount: playerBid.maxAutoBid || 0 })}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ marginBottom: "0.5rem" }}>
-                        <input
-                          type="number"
-                          min={minBid}
-                          step="1"
-                          placeholder={t("auction.autoBid.maxBidPlaceholder")}
-                          value={autoBidMax[item.id] || ""}
-                          onChange={(e) => setAutoBidMax((prev) => ({ ...prev, [item.id]: e.target.value }))}
-                          disabled={enablingAutoBid === item.id}
-                          style={{
-                            width: "100%",
-                            padding: "0.5rem",
-                            border: "1px solid var(--border)",
-                            borderRadius: "var(--soft-radius)",
-                            background: "var(--bg-slate)",
-                            color: "var(--text-main)",
-                            fontSize: "0.85rem"
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleEnableAutoBid(item)}
-                        disabled={enablingAutoBid === item.id || !autoBidMax[item.id]}
-                        style={{
-                          width: "100%",
-                          padding: "0.5rem",
-                          background: enablingAutoBid === item.id ? "var(--bg-slate)" : "var(--accent-focus)",
-                          fontSize: "0.85rem"
-                        }}
-                      >
-                        {enablingAutoBid === item.id ? t("auction.processing") : t("auction.autoBid.confirmEnable")}
-                      </button>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
           </div>
+          {reservedAmount > 0 ? (
+            <p className="auctionBrowseReserved">{t("auction.autoBid.reservedAmount", { amount: reservedAmount })}</p>
+          ) : null}
         </div>
-      </div>
+      </article>
     );
   };
 
@@ -1119,7 +1320,17 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
     if (auctions.length === 0) {
       return (
         <article className="contentCard">
-          <h3>{t("auction.noActiveAuctions")}</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <h3>{t("auction.noActiveAuctions")}</h3>
+            <button
+              type="button"
+              className="profileSwitchButton"
+              onClick={() => void handleRerollAuctions()}
+              disabled={rerollingAuctions}
+            >
+              {rerollingAuctions ? t("auction.rerolling") : t("auction.reroll")}
+            </button>
+          </div>
           <p>{t("auction.noActiveAuctionsDesc")}</p>
           <p style={{ fontSize: "0.9rem", opacity: 0.7, marginTop: "1rem" }}>
             {t("auction.auctionTimes")}
@@ -1131,15 +1342,28 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
     return (
       <>
         <article className="contentCard">
-          <h3>{t("auction.tabs.browse")}</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <h3>{t("auction.tabs.browse")}</h3>
+            <button
+              type="button"
+              className="profileSwitchButton"
+              onClick={() => void handleRerollAuctions()}
+              disabled={rerollingAuctions}
+            >
+              {rerollingAuctions ? t("auction.rerolling") : t("auction.reroll")}
+            </button>
+          </div>
           <p>{t("auction.selectAuction")}</p>
-          
+
           <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", flexWrap: "wrap" }}>
             {auctions.map((auction) => (
               <button
                 key={auction.id}
                 type="button"
-                onClick={() => setSelectedAuction(auction)}
+                onClick={() => {
+                  setAuctionHover(null);
+                  setSelectedAuction(auction);
+                }}
                 style={{
                   padding: "0.75rem 1rem",
                   background: selectedAuction?.id === auction.id ? "var(--accent-focus)" : "var(--panel-soft)",
@@ -1162,27 +1386,27 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
         </article>
 
         {selectedAuction && selectedAuction.items && selectedAuction.items.length > 0 && (
-          <article className="contentCard">
+          <article className="contentCard auctionBrowseSection">
             <h3>
               {t("auction.auctionItems", { min: selectedAuction.levelBracketMin, max: selectedAuction.levelBracketMax })}
             </h3>
             <p style={{ marginBottom: "1rem" }}>
               {t("auction.timeRemaining")}: <strong>{formatTimeRemaining(selectedAuction.endTime)}</strong>
             </p>
-            
-            <div>
+
+            <div className="auctionBrowseGrid">
               {[...selectedAuction.items]
                 .sort((a, b) => {
-                  // Sort items with player's bids to the top
-                  const aHasBid = myBids.some(bid => bid.itemId === a.id && bid.status === "active");
-                  const bHasBid = myBids.some(bid => bid.itemId === b.id && bid.status === "active");
-                  
+                  const aHasBid = myBids.some((bid) => bid.itemId === a.id && bid.status === "active");
+                  const bHasBid = myBids.some((bid) => bid.itemId === b.id && bid.status === "active");
+
                   if (aHasBid && !bHasBid) return -1;
                   if (!aHasBid && bHasBid) return 1;
                   return 0;
                 })
                 .map((item) => renderAuctionItem(item))}
             </div>
+            {renderAuctionHoverOverlay()}
           </article>
         )}
       </>
@@ -1206,27 +1430,19 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
         
         {myBids.map((bid) => {
           const itemData = bid.item ? parseItemData(bid.item.itemCode) : null;
+          const rarityClass = (bid.item?.itemRarity ?? itemData?.rarity ?? "common").toLowerCase();
+          const canUseItem = itemData ? canPlayerUseAuctionItem(itemData) : true;
           
           return (
             <div key={bid.id} className="contentCard" style={{ marginBottom: "1rem" }}>
               <div style={{ display: "flex", gap: "1rem", alignItems: "flex-start" }}>
                 {/* Item Icon */}
-                <div style={{
-                  minWidth: "64px",
-                  width: "64px",
-                  height: "64px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "var(--bg-slate)",
-                  borderRadius: "var(--soft-radius)",
-                  border: `2px solid ${bid.item ? getRarityColor(bid.item.itemRarity) : "#666"}40`,
-                  flexShrink: 0
-                }}>
+                <div className={`auctionRarityIconFrame rarity-${rarityClass}${canUseItem ? "" : " isRestricted"}`} style={{ minWidth: "64px", width: "64px", height: "64px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "var(--soft-radius)", border: `2px solid ${bid.item ? getRarityColor(bid.item.itemRarity) : "#666"}40`, flexShrink: 0 }}>
                   {itemData && renderItemIcon({
                     category: itemData.category,
-                    itemName: itemData.name,
-                    iconAssetPath: itemData.iconAssetPath
+                    itemName: itemData.itemName,
+                    iconAssetPath: itemData.iconAssetPath,
+                    className: itemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
                   })}
                 </div>
 
@@ -1236,7 +1452,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                     color: bid.item ? getRarityColor(bid.item.itemRarity) : "inherit",
                     margin: "0 0 0.5rem 0"
                   }}>
-                    {itemData ? itemData.name : t("profile.unknown")}
+                    {itemData ? itemData.itemName : t("profile.unknown")}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
                     <strong>{t("auction.yourBid")}:</strong> {bid.bidAmount} ◎
@@ -1259,6 +1475,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
   const renderSubmitView = () => {
     const selectedItem = inventoryItems.find((item) => item.id === submissionData.itemId);
     const selectedItemData = selectedItem ? getInventoryItemData(selectedItem) : null;
+    const canUseSelectedItem = selectedItemData ? canPlayerUseAuctionItem(selectedItemData) : true;
 
     // Calculate active submissions count
     const activeSubmissions = mySubmissions.filter(
@@ -1276,7 +1493,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
       }
       
       // Search filter
-      if (searchQuery && !itemData.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && !itemData.itemName.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
       
@@ -1368,6 +1585,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                   }}>
                     {filteredItems.map((item) => {
                       const itemData = getInventoryItemData(item);
+                      const canUseItem = canPlayerUseAuctionItem(itemData);
                       const isSelected = submissionData.itemId === item.id;
                       const rarity = itemData.rarity.toLowerCase();
                       
@@ -1378,16 +1596,19 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                           className={`auctionItemCard${isSelected ? " selected" : ""} rarity-${rarity}`}
                         >
                           <div className="auctionItemCardIcon">
-                            {renderItemIcon({
-                              category: itemData.category,
-                              itemName: itemData.name,
-                              iconAssetPath: itemData.iconAssetPath
-                            })}
+                            <div className={`auctionRarityIconFrame rarity-${itemData.rarity.toLowerCase()}${canUseItem ? "" : " isRestricted"}`} style={{ width: "64px", height: "64px", display: "grid", placeItems: "center", borderRadius: "var(--soft-radius)", margin: "0 auto 0.5rem auto" }}>
+  {renderItemIcon({
+    category: itemData.category,
+    itemName: itemData.itemName,
+    iconAssetPath: itemData.iconAssetPath,
+    className: itemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
+  })}
+</div>
                           </div>
                           
                           <div style={{ marginBottom: "0.35rem" }}>
                             <h4 className={`auctionItemCardTitle rarity-${rarity}`}>
-                              {itemData.name}
+                              {itemData.itemName}
                             </h4>
                             <p className="auctionItemCardCategory">
                               {itemData.category}
@@ -1396,7 +1617,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                           
                           <div className="auctionItemCardFooter">
                             <span className="auctionItemCardLevel">
-                              Lv. {itemData.level}
+                              Lv. {itemData.levelRequirement}
                             </span>
                             <span className={`auctionItemCardRarity rarity-${rarity}`}>
                               {itemData.rarity}
@@ -1448,21 +1669,12 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                 </h4>
                 
                 <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                  <div style={{
-                    width: "64px",
-                    height: "64px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "var(--bg-slate)",
-                    borderRadius: "var(--soft-radius)",
-                    border: `2px solid ${getRarityColor(selectedItemData.rarity)}40`,
-                    flexShrink: 0
-                  }}>
+                  <div className={`auctionRarityIconFrame rarity-${selectedItemData.rarity.toLowerCase()}${canUseSelectedItem ? "" : " isRestricted"}`} style={{ width: "64px", height: "64px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "var(--soft-radius)", border: `2px solid ${getRarityColor(selectedItemData.rarity)}40`, flexShrink: 0 }}>
                     {renderItemIcon({
                       category: selectedItemData.category,
-                      itemName: selectedItemData.name,
-                      iconAssetPath: selectedItemData.iconAssetPath
+                      itemName: selectedItemData.itemName,
+                      iconAssetPath: selectedItemData.iconAssetPath,
+                      className: selectedItemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseSelectedItem ? "" : " isRestricted"}`
                     })}
                   </div>
                   
@@ -1472,22 +1684,22 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                       margin: "0 0 0.25rem 0",
                       fontSize: "1rem"
                     }}>
-                      {selectedItemData.name}
+                      {selectedItemData.itemName}
                     </h3>
                     <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.8 }}>
-                      {t("player.level", { value: selectedItemData.level })} • {selectedItemData.rarity}
+                      {t("player.level", { value: selectedItemData.levelRequirement })} • {selectedItemData.rarity}
                     </p>
                   </div>
                 </div>
                 
-                {selectedItemData.stats && Object.keys(selectedItemData.stats).length > 0 && (
+                {selectedItemData.statBonuses && Object.keys(selectedItemData.statBonuses).length > 0 && (
                   <div style={{ 
                     marginTop: "1rem",
                     paddingTop: "1rem",
                     borderTop: "1px solid var(--border-soft)"
                   }}
                 >
-                    {Object.entries(selectedItemData.stats).slice(0, 4).map(([stat, value]) => (
+                    {Object.entries(selectedItemData.statBonuses ?? {}).slice(0, 4).map(([stat, value]) => (
                       <div key={stat} style={{ 
                         display: "flex", 
                         justifyContent: "space-between",
@@ -1601,6 +1813,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
           }}>
             {mySubmissions.map((submission) => {
               const itemData = parseItemData(submission.itemCode);
+              const canUseItem = canPlayerUseAuctionItem(itemData);
               const rarityColor = getRarityColor(itemData.rarity);
               const canCancel = submission.status === "approved" || submission.status === "listed";
               const isCancelling = cancelling === submission.id;
@@ -1615,11 +1828,14 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                     background: "var(--bg-slate)"
                   }}
                 >
-                  {renderItemIcon({
-                    category: itemData.category,
-                    itemName: itemData.name,
-                    iconAssetPath: itemData.iconAssetPath
-                  })}
+                  <div className={`auctionRarityIconFrame rarity-${itemData.rarity.toLowerCase()}${canUseItem ? "" : " isRestricted"}`} style={{ width: "64px", height: "64px", display: "grid", placeItems: "center", borderRadius: "var(--soft-radius)", margin: "0 auto 0.5rem auto" }}>
+  {renderItemIcon({
+    category: itemData.category,
+    itemName: itemData.itemName,
+    iconAssetPath: itemData.iconAssetPath,
+    className: itemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
+  })}
+</div>
                   <h4 style={{ 
                     color: rarityColor, 
                     margin: "0.5rem 0",
@@ -1627,7 +1843,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
                     minHeight: "2.4em",
                     lineHeight: "1.2em"
                   }}>
-                    {itemData.name}
+                    {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
                     <strong>{t("auction.startingBid")}:</strong> {submission.minimumBid} ◎
@@ -1688,7 +1904,7 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <h4 style={{ color: getRarityColor(itemData.rarity), margin: "0 0 0.5rem 0" }}>
-                    {itemData.name}
+                    {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0" }}>
                     <strong>{t("auction.winningBid")}:</strong> {reward.winningBid} ◎
@@ -2202,3 +2418,25 @@ export function AuctionHouse({ token, currentDucats, onDucatsChange }: AuctionHo
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -243,10 +243,11 @@ type DragPayload =
 type InventoryComparisonHoverState = {
   hoverKey: string;
   sourceItem: InventoryItem;
-  slotId: EquipmentSlotId;
+  comparisonSlotId: EquipmentSlotId | null;
   top: number;
   left: number;
   width: number;
+  maxHeight: number;
 };
 
 type InventoryFilterState = {
@@ -2429,7 +2430,32 @@ function canPlayerUseItem(item: InventoryItem, playerState: PlayerState | null):
   return isClassEligible && isLevelEligible;
 }
 
-function renderInventoryItemCardBody(
+function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean, priceLabel?: string): ReactElement {
+  const displayItemName = getDisplayItemName(item);
+  const useImageOnlyIcon = Boolean(item.iconAssetPath);
+
+  return (
+    <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}`}>
+      {priceLabel ? <span className="inventoryCompactPrice">{priceLabel}</span> : null}
+      {renderItemIcon({
+        majorCategory: item.archetype?.majorCategory,
+        category: item.category,
+        itemName: displayItemName,
+        iconAssetPath: item.iconAssetPath,
+        className: useImageOnlyIcon ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`,
+        renderMode: useImageOnlyIcon ? "imageOnly" : "default"
+      })}
+      <span className="inventoryCompactPowerBadge" aria-hidden="true">
+        {item.power}
+      </span>
+      <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
+        Lv. {item.levelRequirement}
+      </span>
+    </div>
+  );
+}
+
+function renderInventoryItemDetailCardBody(
   item: InventoryItem,
   canUseItem: boolean,
   priceLabel?: string,
@@ -4630,33 +4656,44 @@ export function App() {
     cardElement: HTMLElement,
     placement: "left" | "right" = "left"
   ) {
-    if (!item.equipable) {
-      setInventoryComparisonHover(null);
-      return;
-    }
-
-    const comparisonItem = equippedItems[item.equipSlotId];
-    if (!comparisonItem) {
-      setInventoryComparisonHover(null);
-      return;
-    }
-
     const rect = cardElement.getBoundingClientRect();
-    const cardWidth = Math.round(rect.width);
+    const viewportPadding = 8;
     const gapPx = 12;
-    const left =
-      placement === "right"
-        ? Math.round(rect.right + gapPx)
-        : Math.max(8, Math.round(rect.left - cardWidth - gapPx));
-    const top = Math.max(8, Math.round(rect.top));
+    const panelWidth = Math.min(360, Math.max(260, window.innerWidth - viewportPadding * 2));
+    const maxHeight = Math.max(220, window.innerHeight - viewportPadding * 2);
+    const comparisonItem = item.equipable ? equippedItems[item.equipSlotId] : null;
+    const comparisonSlotId = comparisonItem && comparisonItem.id !== item.id ? item.equipSlotId : null;
+    const estimatedPanelHeight = Math.min(maxHeight, comparisonSlotId ? 640 : 360);
+    const rightSpace = window.innerWidth - rect.right - viewportPadding;
+    const leftSpace = rect.left - viewportPadding;
+    const canPlaceRight = rightSpace >= panelWidth;
+    const canPlaceLeft = leftSpace >= panelWidth;
+
+    let placeOnRight = placement === "right";
+    if (placeOnRight && !canPlaceRight && canPlaceLeft) {
+      placeOnRight = false;
+    } else if (!placeOnRight && !canPlaceLeft && canPlaceRight) {
+      placeOnRight = true;
+    } else if (!canPlaceLeft && !canPlaceRight) {
+      placeOnRight = rightSpace >= leftSpace;
+    }
+
+    const unclampedLeft = placeOnRight ? rect.right + gapPx : rect.left - panelWidth - gapPx;
+    const left = Math.round(
+      Math.max(viewportPadding, Math.min(unclampedLeft, window.innerWidth - viewportPadding - panelWidth))
+    );
+    const top = Math.round(
+      Math.max(viewportPadding, Math.min(rect.top, window.innerHeight - viewportPadding - estimatedPanelHeight))
+    );
 
     setInventoryComparisonHover({
       hoverKey,
       sourceItem: item,
-      slotId: item.equipSlotId,
+      comparisonSlotId,
       top,
       left,
-      width: cardWidth
+      width: panelWidth,
+      maxHeight
     });
   }
 
@@ -4676,17 +4713,17 @@ export function App() {
     }
 
     const sourceItem = inventoryComparisonHover.sourceItem;
-    if (!sourceItem || !sourceItem.equipable) {
+    if (!sourceItem) {
       return null;
     }
 
-    const comparisonItem = equippedItems[inventoryComparisonHover.slotId];
-    if (!comparisonItem) {
-      return null;
-    }
-
-    const canUseComparisonItem = canPlayerUseItem(comparisonItem, playerState);
-    const powerDelta = comparisonItem.power - sourceItem.power;
+    const comparisonItem = inventoryComparisonHover.comparisonSlotId
+      ? equippedItems[inventoryComparisonHover.comparisonSlotId]
+      : null;
+    const resolvedComparisonItem = comparisonItem && comparisonItem.id !== sourceItem.id ? comparisonItem : null;
+    const canUseSourceItem = canPlayerUseItem(sourceItem, playerState);
+    const canUseComparisonItem = resolvedComparisonItem ? canPlayerUseItem(resolvedComparisonItem, playerState) : false;
+    const sourcePowerDelta = resolvedComparisonItem ? sourceItem.power - resolvedComparisonItem.power : 0;
 
     return (
       <div
@@ -4694,12 +4731,25 @@ export function App() {
         style={{
           top: inventoryComparisonHover.top,
           left: inventoryComparisonHover.left,
-          width: inventoryComparisonHover.width
+          width: inventoryComparisonHover.width,
+          maxHeight: inventoryComparisonHover.maxHeight
         }}
       >
-        <article className={`inventoryItemCard inventoryComparisonCard rarity-${comparisonItem.rarity}`}>
-          {renderInventoryItemCardBody(comparisonItem, canUseComparisonItem, undefined, "Equipped", powerDelta)}
-        </article>
+        <div className="inventoryComparisonOverlayStack">
+          <article className={`inventoryDetailCard inventoryHoverDetailCard rarity-${sourceItem.rarity}`}>
+            {renderInventoryItemDetailCardBody(sourceItem, canUseSourceItem, undefined, undefined, sourcePowerDelta)}
+          </article>
+          {resolvedComparisonItem ? (
+            <article className={`inventoryDetailCard inventoryComparisonCard rarity-${resolvedComparisonItem.rarity}`}>
+              {renderInventoryItemDetailCardBody(
+                resolvedComparisonItem,
+                canUseComparisonItem,
+                undefined,
+                "Equipped"
+              )}
+            </article>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -4934,8 +4984,8 @@ export function App() {
         ) : null}
         {equippedItem ? (
           <div className={`equipmentItemTooltip tooltip-${tooltipPlacement}`} role="tooltip">
-            <article className={`inventoryItemCard equipmentTooltipCard rarity-${rarity}`}>
-              {renderInventoryItemCardBody(equippedItem, canUseEquippedItem)}
+            <article className={`inventoryDetailCard inventoryHoverDetailCard equipmentTooltipCard rarity-${rarity}`}>
+              {renderInventoryItemDetailCardBody(equippedItem, canUseEquippedItem)}
             </article>
           </div>
         ) : null}
@@ -5690,7 +5740,7 @@ export function App() {
 
     return (
       <div
-        className="inventoryCards inventoryCardsSingleColumn merchantDropZone"
+        className="inventoryCards merchantDropZone"
         onDragOver={(event) => {
           const payload = readDragPayload(event);
           if (!payload || payload.source === "merchant") {
@@ -5734,7 +5784,7 @@ export function App() {
 
     return (
       <div
-        className="inventoryCards inventoryCardsSingleColumn merchantDropZone"
+        className="inventoryCards merchantDropZone"
         onDragOver={(event) => {
           const payload = readDragPayload(event);
           if (!payload || payload.source !== "merchant") {
@@ -5761,6 +5811,10 @@ export function App() {
               }
               onDragEnd={handleInventoryCardDragEnd}
               onDoubleClick={() => void handleMerchantPlayerItemInteract(entry.item.id, entry.fromSlot)}
+              onMouseEnter={(event) =>
+                handleInventoryCardMouseEnter(entry.item, `${entry.fromSlot}-${entry.item.id}`, event.currentTarget, "left")
+              }
+              onMouseLeave={() => handleInventoryCardMouseLeave(`${entry.fromSlot}-${entry.item.id}`)}
               onContextMenu={(event) => {
                 event.preventDefault();
                 void handleMerchantPlayerItemInteract(entry.item.id, entry.fromSlot);
@@ -6857,7 +6911,7 @@ export function App() {
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
-        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} onDucatsChange={handleAuctionDucatsChange} />;
+        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} playerClass={playerState?.class ?? null} playerLevel={playerState?.level ?? null} onDucatsChange={handleAuctionDucatsChange} />;
       case "merchant":
         return renderMerchantPanel();
       case "shop":

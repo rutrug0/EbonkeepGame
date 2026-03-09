@@ -1,5 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 import { AuctionConfigService } from "./config.service.js";
+import {
+  buildInventoryItemRecordFromAuctionPayload,
+  parseAuctionStoredItem
+} from "./item-payload.service.js";
 
 export class PlayerSubmissionService {
   private config = AuctionConfigService.getInstance().getConfig();
@@ -15,7 +19,6 @@ export class PlayerSubmissionService {
     itemData: any,
     desiredStartingBid: number
   ): Promise<string> {
-    // 1. Validate player level
     const player = await this.prisma.playerProfile.findUnique({
       where: { id: playerId },
       select: { level: true }
@@ -27,7 +30,6 @@ export class PlayerSubmissionService {
       );
     }
 
-    // 2. Check active submission limit
     const activeCount = await this.prisma.auctionPlayerListing.count({
       where: {
         playerId,
@@ -41,9 +43,7 @@ export class PlayerSubmissionService {
       );
     }
 
-    // 3. Calculate and check listing fee (5% of starting bid)
     const listingFee = Math.ceil((desiredStartingBid * this.config.fees.playerItemFeePercentage) / 100);
-    
     const currency = await this.prisma.currencyBalance.findUnique({
       where: { playerId },
       select: { ducats: true }
@@ -55,21 +55,18 @@ export class PlayerSubmissionService {
       );
     }
 
-    // 4. Deduct listing fee upfront
     await this.prisma.currencyBalance.update({
       where: { playerId },
       data: { ducats: { decrement: listingFee } }
     });
 
-    // 5. Remove item from player's inventory
-    const inventoryItemId = itemData.inventoryItemId;
-    if (inventoryItemId) {
+    const normalizedItem = this.normalizeSubmissionItemData(itemData);
+    if (normalizedItem.inventoryItemId) {
       try {
         await this.prisma.inventoryItem.delete({
-          where: { id: inventoryItemId }
+          where: { id: normalizedItem.inventoryItemId }
         });
-      } catch (error) {
-        // Refund listing fee if inventory removal fails
+      } catch {
         await this.prisma.currencyBalance.update({
           where: { playerId },
           data: { ducats: { increment: listingFee } }
@@ -78,14 +75,13 @@ export class PlayerSubmissionService {
       }
     }
 
-    // 6. Create approved listing (no moderation needed)
     const listing = await this.prisma.auctionPlayerListing.create({
       data: {
         playerId,
-        inventoryItemId: inventoryItemId || `temp_${Date.now()}`,
-        itemCode: JSON.stringify(itemData),
-        itemLevel: itemData.level || 1,
-        itemRarity: itemData.rarity || "common",
+        inventoryItemId: normalizedItem.inventoryItemId || `temp_${Date.now()}`,
+        itemCode: JSON.stringify(normalizedItem.storedItemData),
+        itemLevel: normalizedItem.itemLevel,
+        itemRarity: normalizedItem.itemRarity,
         minimumBid: desiredStartingBid,
         status: "approved",
         approvedAt: new Date()
@@ -154,15 +150,12 @@ export class PlayerSubmissionService {
       throw new Error("Listing is not pending approval");
     }
 
-    // Refund listing fee if applicable
     if (refundListingFee && this.config.fees.listingFeeEnabled) {
       await this.prisma.currencyBalance.update({
         where: { playerId: listing.playerId },
         data: { ducats: { increment: this.config.fees.listingFeeDucats } }
       });
     }
-
-    // TODO: Return item to player's inventory
 
     await this.prisma.auctionPlayerListing.update({
       where: { id: listingId },
@@ -182,16 +175,14 @@ export class PlayerSubmissionService {
   async getApprovedListingsForAuction(
     playerLevel: number,
     count: number
-  ): Promise<Array<{ id: string; itemData: any; startingBid: number; sellerId: string }>> {
-    // Find appropriate level bracket
+  ): Promise<Array<{ id: string; itemData: any; itemLevel: number; itemRarity: string; itemCategory: string; startingBid: number; sellerId: string }>> {
     const brackets = AuctionConfigService.getInstance().getLevelBrackets();
-    const bracket = brackets.find((b) => playerLevel >= b.min && playerLevel <= b.max);
+    const bracket = brackets.find((entry) => playerLevel >= entry.min && playerLevel <= entry.max);
 
     if (!bracket) {
       return [];
     }
 
-    // Get approved listings that haven't been listed yet
     const listings = await this.prisma.auctionPlayerListing.findMany({
       where: {
         status: "approved",
@@ -201,12 +192,18 @@ export class PlayerSubmissionService {
       take: count
     });
 
-    return listings.map((listing: any) => ({
-      id: listing.id,
-      itemData: JSON.parse(listing.itemCode),
-      startingBid: listing.minimumBid,
-      sellerId: listing.playerId
-    }));
+    return listings.map((listing: any) => {
+      const parsedItem = parseAuctionStoredItem(listing.itemCode);
+      return {
+        id: listing.id,
+        itemData: parsedItem.inventoryItem ?? parsedItem.viewData,
+        itemLevel: listing.itemLevel || parsedItem.viewData.levelRequirement,
+        itemRarity: listing.itemRarity || parsedItem.viewData.rarity,
+        itemCategory: parsedItem.viewData.category,
+        startingBid: listing.minimumBid,
+        sellerId: listing.playerId
+      };
+    });
   }
 
   /**
@@ -252,25 +249,19 @@ export class PlayerSubmissionService {
       throw new Error("This listing belongs to another player");
     }
 
-    // Can cancel pending items (not yet reviewed)
     if (listing.status === "pending") {
-      // Refund listing fee for pending cancellations (5% of starting bid)
       const listingFee = Math.ceil((listing.minimumBid * this.config.fees.playerItemFeePercentage) / 100);
-      
+
       await this.prisma.currencyBalance.update({
         where: { playerId },
         data: { ducats: { increment: listingFee } }
       });
 
-      // Return item to player's inventory
-      const itemData = JSON.parse(listing.itemCode);
       await this.prisma.inventoryItem.create({
-        data: {
-          playerId: playerId,
-          slotKey: itemData.category || "misc",
-          itemCode: listing.itemCode,
-          quantity: 1
-        }
+        data: buildInventoryItemRecordFromAuctionPayload({
+          playerId,
+          storedItemCode: listing.itemCode
+        })
       });
 
       await this.prisma.auctionPlayerListing.update({
@@ -284,19 +275,12 @@ export class PlayerSubmissionService {
       return;
     }
 
-    // Can cancel approved items (not yet in auction)
     if (listing.status === "approved") {
-      // NOTE: Listing fee is NOT refunded - it's a service fee
-      
-      // Return item to player's inventory
-      const itemData = JSON.parse(listing.itemCode);
       await this.prisma.inventoryItem.create({
-        data: {
-          playerId: playerId,
-          slotKey: itemData.category || "misc",
-          itemCode: listing.itemCode,
-          quantity: 1
-        }
+        data: buildInventoryItemRecordFromAuctionPayload({
+          playerId,
+          storedItemCode: listing.itemCode
+        })
       });
 
       await this.prisma.auctionPlayerListing.update({
@@ -310,9 +294,7 @@ export class PlayerSubmissionService {
       return;
     }
 
-    // Can cancel listed items ONLY if they have no bids
     if (listing.status === "listed" && listing.auctionItemId) {
-      // Check if the auction item has any bids
       const auctionItem = await this.prisma.auctionItem.findUnique({
         where: { id: listing.auctionItemId },
         select: { bidCount: true }
@@ -326,17 +308,11 @@ export class PlayerSubmissionService {
         throw new Error("Cannot cancel item with active bids");
       }
 
-      // No bids, can cancel - NOTE: Listing fee is NOT refunded
-      
-      // Return item to player's inventory
-      const itemData = JSON.parse(listing.itemCode);
       await this.prisma.inventoryItem.create({
-        data: {
-          playerId: playerId,
-          slotKey: itemData.category || "misc",
-          itemCode: listing.itemCode,
-          quantity: 1
-        }
+        data: buildInventoryItemRecordFromAuctionPayload({
+          playerId,
+          storedItemCode: listing.itemCode
+        })
       });
 
       await this.prisma.auctionPlayerListing.update({
@@ -351,5 +327,24 @@ export class PlayerSubmissionService {
     }
 
     throw new Error("Cannot cancel this submission");
+  }
+
+  private normalizeSubmissionItemData(itemData: any): {
+    inventoryItemId?: string;
+    storedItemData: unknown;
+    itemLevel: number;
+    itemRarity: string;
+    itemCategory: string;
+  } {
+    const inventoryItemId = typeof itemData?.inventoryItemId === "string" ? itemData.inventoryItemId : undefined;
+    const parsedItem = parseAuctionStoredItem(JSON.stringify(itemData));
+
+    return {
+      inventoryItemId,
+      storedItemData: parsedItem.inventoryItem ?? parsedItem.viewData,
+      itemLevel: parsedItem.viewData.levelRequirement,
+      itemRarity: parsedItem.viewData.rarity,
+      itemCategory: parsedItem.viewData.category
+    };
   }
 }
