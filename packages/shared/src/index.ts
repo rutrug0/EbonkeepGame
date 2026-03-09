@@ -134,6 +134,63 @@ export const VESTIGE_CATALOG: readonly VestigeCatalogEntry[] = [
 
 export const MAX_EQUIPPED_VESTIGES = 3;
 
+const equipmentSlotIds = [
+  "helmet",
+  "necklace",
+  "upperArmor",
+  "belt",
+  "ringLeft",
+  "weapon",
+  "pauldrons",
+  "gloves",
+  "lowerArmor",
+  "boots",
+  "ringRight",
+  "vestige1",
+  "vestige2",
+  "vestige3"
+] as const;
+
+export const equipmentSlotIdSchema = z.enum(equipmentSlotIds);
+export type EquipmentSlotId = z.infer<typeof equipmentSlotIdSchema>;
+export const allEquipmentSlotIds: readonly EquipmentSlotId[] = equipmentSlotIdSchema.options;
+
+const playerStatKeys = [
+  "strength",
+  "intelligence",
+  "dexterity",
+  "vitality",
+  "initiative",
+  "luck",
+  "armor",
+  "spellShield",
+  "missileResistance",
+  "maxHitpoints",
+  "dodgeChance",
+  "damage",
+  "critChance",
+  "critMultiplier",
+  "accuracy",
+  "extraAttackChance"
+] as const;
+
+export const playerStatKeySchema = z.enum(playerStatKeys);
+export type PlayerStatKey = z.infer<typeof playerStatKeySchema>;
+export const allPlayerStatKeys: readonly PlayerStatKey[] = playerStatKeySchema.options;
+
+const coreStatKeys = [
+  "strength",
+  "intelligence",
+  "dexterity",
+  "vitality",
+  "initiative",
+  "luck"
+] as const;
+
+export const coreStatKeySchema = z.enum(coreStatKeys);
+export type CoreStatKey = z.infer<typeof coreStatKeySchema>;
+export const allCoreStatKeys: readonly CoreStatKey[] = coreStatKeySchema.options;
+
 export const armorArchetypeAllowedClasses: Record<ArmorArchetype, readonly PlayerClass[]> = {
   heavy: ["warrior"],
   light: ["ranger"],
@@ -191,14 +248,146 @@ export function validateVestigeLoadout(vestigeIdsToEquip: readonly VestigeId[]):
 }
 
 export const statBlockSchema = z.object({
-  strength: z.number(),
-  intelligence: z.number(),
-  dexterity: z.number(),
-  vitality: z.number(),
-  initiative: z.number(),
-  luck: z.number()
+  strength: z.number().int(),
+  intelligence: z.number().int(),
+  dexterity: z.number().int(),
+  vitality: z.number().int(),
+  initiative: z.number().int(),
+  luck: z.number().int()
 });
 export type StatBlock = z.infer<typeof statBlockSchema>;
+
+export const playerStatBlockSchema = z.object({
+  strength: z.number().int(),
+  intelligence: z.number().int(),
+  dexterity: z.number().int(),
+  vitality: z.number().int(),
+  initiative: z.number().int(),
+  luck: z.number().int(),
+  armor: z.number().int(),
+  spellShield: z.number().int(),
+  missileResistance: z.number().int(),
+  maxHitpoints: z.number().int().min(0),
+  dodgeChance: z.number().int().min(0),
+  damage: z.number().int().min(0),
+  critChance: z.number().int().min(0),
+  critMultiplier: z.number().int().min(0),
+  accuracy: z.number().int().min(0),
+  extraAttackChance: z.number().int().min(0)
+});
+export type PlayerStatBlock = z.infer<typeof playerStatBlockSchema>;
+
+export const playerStatBonusesSchema = z.object({
+  strength: z.number().int().optional(),
+  intelligence: z.number().int().optional(),
+  dexterity: z.number().int().optional(),
+  vitality: z.number().int().optional(),
+  initiative: z.number().int().optional(),
+  luck: z.number().int().optional(),
+  armor: z.number().int().optional(),
+  spellShield: z.number().int().optional(),
+  missileResistance: z.number().int().optional(),
+  maxHitpoints: z.number().int().optional(),
+  dodgeChance: z.number().int().optional(),
+  damage: z.number().int().optional(),
+  critChance: z.number().int().optional(),
+  critMultiplier: z.number().int().optional(),
+  accuracy: z.number().int().optional(),
+  extraAttackChance: z.number().int().optional()
+});
+export type PlayerStatBonuses = z.infer<typeof playerStatBonusesSchema>;
+
+export const playerStatSnapshotSchema = z.object({
+  base: playerStatBlockSchema,
+  equipment: playerStatBlockSchema,
+  total: playerStatBlockSchema
+});
+export type PlayerStatSnapshot = z.infer<typeof playerStatSnapshotSchema>;
+
+export const currencyBalanceSchema = z.object({
+  ducats: z.number().int().min(0),
+  imperials: z.number().int().min(0)
+});
+export type CurrencyBalance = z.infer<typeof currencyBalanceSchema>;
+
+export const itemRaritySchema = z.enum(["common", "uncommon", "rare", "epic"]);
+export type ItemRarity = z.infer<typeof itemRaritySchema>;
+
+export const modifierTierSchema = z.enum(["T1", "T2", "T3"]);
+export type ModifierTier = z.infer<typeof modifierTierSchema>;
+
+export const itemModifierUnitSchema = z.enum(["flat", "basis_points"]);
+export type ItemModifierUnit = z.infer<typeof itemModifierUnitSchema>;
+
+export const itemArchetypeSchema = z.object({
+  majorCategory: itemMajorCategorySchema,
+  armorArchetype: armorArchetypeSchema.optional(),
+  weaponArchetype: weaponArchetypeSchema.optional(),
+  weaponFamily: weaponFamilySchema.optional(),
+  vestigeId: vestigeIdSchema.optional()
+});
+export type ItemArchetype = z.infer<typeof itemArchetypeSchema>;
+export const equippedItemArchetypeSchema = itemArchetypeSchema;
+export type EquippedItemArchetype = ItemArchetype;
+
+export const itemModifierSchema = z.object({
+  kind: z.enum(["prefix", "affix"]),
+  tier: modifierTierSchema,
+  name: z.string(),
+  statKey: playerStatKeySchema,
+  value: z.number().int(),
+  unit: itemModifierUnitSchema
+});
+export type ItemModifier = z.infer<typeof itemModifierSchema>;
+
+export const weaponDamageRollSchema = z.object({
+  minRollRange: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+  rolledMin: z.number().int().min(0),
+  rolledMax: z.number().int().min(0),
+  maxRollRange: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+  averageDamage: z.number().min(0)
+});
+export type WeaponDamageRoll = z.infer<typeof weaponDamageRollSchema>;
+
+export const inventoryItemSchema = z.object({
+  id: z.string(),
+  itemCode: z.string(),
+  itemName: z.string(),
+  rarity: itemRaritySchema,
+  category: z.string(),
+  equipable: z.boolean(),
+  levelRequirement: z.number().int().min(1).max(100),
+  allowedSlotIds: z.array(equipmentSlotIdSchema).min(1),
+  baseLevel: z.number().int().min(0).max(100).optional(),
+  power: z.number().int().min(0),
+  archetype: itemArchetypeSchema,
+  statBonuses: playerStatBonusesSchema.default({}),
+  damageRoll: weaponDamageRollSchema.optional(),
+  prefix: itemModifierSchema.optional(),
+  affix: itemModifierSchema.optional(),
+  description: z.string()
+});
+export type InventoryItem = z.infer<typeof inventoryItemSchema>;
+export const equippedItemSchema = inventoryItemSchema;
+export type EquippedItem = InventoryItem;
+
+export const equipmentStateSchema = z.object({
+  helmet: inventoryItemSchema.nullable(),
+  necklace: inventoryItemSchema.nullable(),
+  upperArmor: inventoryItemSchema.nullable(),
+  belt: inventoryItemSchema.nullable(),
+  ringLeft: inventoryItemSchema.nullable(),
+  weapon: inventoryItemSchema.nullable(),
+  pauldrons: inventoryItemSchema.nullable(),
+  gloves: inventoryItemSchema.nullable(),
+  lowerArmor: inventoryItemSchema.nullable(),
+  boots: inventoryItemSchema.nullable(),
+  ringRight: inventoryItemSchema.nullable(),
+  vestige1: inventoryItemSchema.nullable(),
+  vestige2: inventoryItemSchema.nullable(),
+  vestige3: inventoryItemSchema.nullable()
+});
+export type EquipmentState = z.infer<typeof equipmentStateSchema>;
 
 export const devWeaponAffixSchema = z.object({
   source: z.enum(["prefix", "suffix"]),
@@ -239,11 +428,10 @@ export const playerStateSchema = z.object({
   level: z.number().int().min(1),
   gearScore: z.number().int().min(0),
   stats: statBlockSchema,
-  currency: z.object({
-    ducats: z.number().int().min(0),
-    imperials: z.number().int().min(0)
-  }),
-  devWeapons: z.array(devWeaponSchema).optional()
+  statSnapshot: playerStatSnapshotSchema,
+  inventory: z.array(inventoryItemSchema),
+  equipment: equipmentStateSchema,
+  currency: currencyBalanceSchema
 });
 export type PlayerState = z.infer<typeof playerStateSchema>;
 
@@ -364,9 +552,51 @@ export type InventoryMoveBody = z.infer<typeof inventoryMoveBodySchema>;
 
 export const inventoryMoveResponseSchema = z.object({
   moved: z.boolean(),
-  itemId: z.string()
+  itemId: z.string(),
+  playerState: playerStateSchema
 });
 export type InventoryMoveResponse = z.infer<typeof inventoryMoveResponseSchema>;
+
+export const merchantOfferSchema = z.object({
+  offerId: z.string(),
+  offerIndex: z.number().int().min(0),
+  item: inventoryItemSchema,
+  buyPriceDucats: z.number().int().min(0),
+  sold: z.boolean(),
+  refreshAt: z.string()
+});
+export type MerchantOffer = z.infer<typeof merchantOfferSchema>;
+
+export const merchantStateSchema = z.object({
+  offers: z.array(merchantOfferSchema),
+  sellPrices: z.record(z.string(), z.number().int().min(0)),
+  nextRefreshAt: z.string(),
+  currency: currencyBalanceSchema
+});
+export type MerchantState = z.infer<typeof merchantStateSchema>;
+
+export const merchantBuyBodySchema = z.object({
+  offerId: z.string()
+});
+export type MerchantBuyBody = z.infer<typeof merchantBuyBodySchema>;
+
+export const merchantSellBodySchema = z.object({
+  itemId: z.string(),
+  fromSlot: z.string()
+});
+export type MerchantSellBody = z.infer<typeof merchantSellBodySchema>;
+
+export const merchantRestockBodySchema = z.object({}).default({});
+export type MerchantRestockBody = z.infer<typeof merchantRestockBodySchema>;
+
+export const merchantTransactionResponseSchema = z.object({
+  playerState: playerStateSchema,
+  merchantState: merchantStateSchema
+});
+export type MerchantTransactionResponse = z.infer<typeof merchantTransactionResponseSchema>;
+
+export const merchantStateResponseSchema = merchantStateSchema;
+export type MerchantStateResponse = z.infer<typeof merchantStateResponseSchema>;
 
 export const startJobBodySchema = z.object({
   jobType: z.enum(["short", "medium", "long"])

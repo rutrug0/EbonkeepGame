@@ -10,7 +10,7 @@
 
 ## Secondary Loops
 - Economy loop: buy low-value upgrades, sell excess gear, plan next refresh.
-- Inventory loop: optimize grid space and stash usage.
+- Inventory loop: evaluate upgrades, equip/swap items, and clear bag clutter.
 - Consumable loop: time boosts for high-yield sessions.
 - Metaprogression loop: advance Renown unlocks and fill monster intelligence records through repeated encounters and long-tail account play.
 
@@ -40,9 +40,8 @@
 - Includes gold items and occasional premium-currency offers.
 
 ### Inventory Management
-- Grid-based storage with item size constraints.
+- Bag-based storage with simple list management.
 - Equip/swap/sell/salvage actions.
-- Stash used for overflow and long-term item retention.
 
 ## Friction and Pacing Controls
 - Stamina limits burst progression.

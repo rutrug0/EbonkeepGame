@@ -11,7 +11,7 @@
 ## Backend Module Boundaries
 1. `auth`: platform identity validation, token issuance, account linking.
 2. `player`: profile, class selection, level/stats, derived power.
-3. `inventory`: grid, stash, equipment, item movement constraints.
+3. `inventory`: bag inventory, equipment, item movement constraints.
 4. `economy`: currencies, shops, consumables, sinks/sources.
 5. `combat`: encounter setup, initiative ordering, action resolution.
 6. `scheduler`: timed jobs, refresh windows, deferred rewards.
@@ -23,7 +23,6 @@
   - `player_profiles`
   - `player_stats`
   - `inventory_items`
-  - `inventory_layouts`
   - `equipment_slots`
   - `shop_instances`
   - `job_runs`
@@ -94,4 +93,3 @@ Where VPS can still be used:
 - Rate limiting on action submission endpoints.
 - Server-side validation for all inventory/combat/economy actions.
 - No trust in client-provided cooldowns or timer values.
-

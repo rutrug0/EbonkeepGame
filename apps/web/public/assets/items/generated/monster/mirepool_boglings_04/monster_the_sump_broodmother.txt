@@ -1,0 +1,89 @@
+Rendering Model (Strict):
+
+2D illustrated enemy concept render
+
+medium cel shading only
+
+maximum three value groups per material (light, mid, shadow)
+
+sharp but slightly moderated shadow edges, no gradient blending
+
+no soft lighting bloom
+
+no painterly brush texture
+
+semi-realistic grounded medieval fantasy proportions
+
+muted earthy palette with restrained accent color
+
+Color Control Rules:
+
+avoid sepia scene tint
+
+avoid overall yellow wash
+
+avoid nicotine-stained or amber-brown color grading across the whole frame
+
+keep whites, greys, and pale surfaces neutral rather than yellowed unless a family prompt explicitly requires warmth
+
+prefer cool grey or neutral ambient light by default
+
+Visibility and Separation Rules:
+
+monster silhouette must read clearly against the environment
+
+background values must stay slightly lighter or quieter than the monster focal silhouette
+
+preserve clear edge separation around the monster
+
+avoid excessively dark murk that hides anatomy or gear
+
+use readable ambient light from the environment without turning cinematic
+
+Monster Presentation Rules (Locked)
+
+single monster only
+
+full-body view
+
+clear readable silhouette
+
+grounded stance and anatomy
+
+include environment background appropriate to the family prompt
+
+background must support the monster and not overpower it
+
+keep the scene a bit clearer and less oppressive than a pure horror render
+
+no crowd scenes
+
+no additional monsters
+
+no hero pose exaggeration
+
+no text, no logo
+
+maintain hostile enemy readability at game-icon scale
+
+Grounded medieval fantasy flooded brood chamber beneath Mirepool Grotto, unique boss scene background for a marsh insect matriarch, this chamber must read much broader and deeper than the normal Mirepool nest, with black-green standing water, reed nest rafts, root arches, hanging egg clutches, broken driftwood stakes, shell piles, fungus racks, and mud shelves broken by shallow channels, include strong repeated scale anchors such as full fungus baskets, stake bundles, shell heaps, and a narrow bogling walkway or reed platform that all look tiny beside the beast, stage the monster so the abdomen and leg span occupy most of one half of the scene and visibly bridge multiple puddles or mud shelves while the remaining space shows flooded nest depth, the beast should feel too large to belong among the rest of the Mirepool creatures but still grounded rather than mountain-sized, dim overcast marsh light filtering in with small pale blue reflections on wet surfaces, no crowd, no heroic framing.
+
+Monster Tier Direction:
+
+very low-tier enemy
+
+should look weak, shabby, underfed, badly equipped, and locally dangerous at most
+
+avoid intimidating elite presence
+
+avoid heroic menace
+
+avoid oversized anatomy, exaggerated musculature, or horror-heavy distortion
+
+prefer poor posture, crude gear, thin limbs, worn cloth, scavenged tools, and low social status readability
+
+One monster only. Hostile enemy presentation. Keep the monster fully readable in a grounded full-body pose. Preserve the family environment consistently across this family while allowing small per-monster placement variation within the same location. Keep the monster visually distinct from the background with clear silhouette separation and readable local contrast.
+
+Monster Design:
+
+Large marsh brood-beast group boss, colossal-for-this-zone mire insect matriarch with a massively swollen egg-laden abdomen and thorax, the abdomen alone as large as a small cart, long spindly legs planted across multiple puddles and reed rafts, narrow head with hooked mouthparts kept small relative to the body, damp translucent wing stubs folded uselessly along the back, camera pulled back enough to show the front half and leg span while the creature still dominates most of the frame, body posed off-center while hunched over a nest raft of eggs and roots, foreground shell piles, driftwood stakes, and fungus baskets must read tiny beneath it, the monster should feel overwhelmingly larger than every normal Mirepool creature, disturbing low-tier marsh setpiece with severe scale contrast and no heroic framing.

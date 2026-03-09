@@ -87,13 +87,9 @@ Guardrails:
 
 
 ## Inventory and Equipment
-- Inventory grid baseline: 8 columns x 6 rows.
-- Item sizes: 1x1 (rings, amulets, vestiges), 1x2, 2x2, 2x3 (staves, axes, swords, bows).
-- Equip slots: weapon, offhand, helm, chest, gloves, boots, amulet, ring1, ring2, vestige1, vestige2, vestige3.
+- Inventory is a simple server-authoritative bag/list.
+- Equip slots: helmet, necklace, upperArmor, belt, ringLeft, weapon, pauldrons, gloves, lowerArmor, boots, ringRight, vestige1, vestige2, vestige3.
 - Vestige equip rule: up to 3 vestiges equipped at once; duplicate vestige names cannot be equipped simultaneously.
-- Stash tabs:
-  - Base: 1 tab free.
-  - Additional tabs: monetized convenience expansion.
 
 ## Itemization
 - Rarity tiers: Common, Uncommon, Rare, Epic.
@@ -375,7 +371,7 @@ Sinks:
 - consumables
 - reroll/refresh options
 - stat training
-- stash expansion (imperials)
+- bag/inventory convenience expansion (imperials)
 
 ## Pacing Gates: Hybrid Timers + Stamina
 - Missions consume stamina.

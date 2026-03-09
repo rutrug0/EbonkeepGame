@@ -6,6 +6,8 @@ import type {
   InventoryMoveResponse,
   LoginBody,
   LoginResponse,
+  MerchantState,
+  MerchantTransactionResponse,
   PlayerPreferences,
   PlayerState,
   RegisterBody,
@@ -22,6 +24,8 @@ import {
   forgotPasswordResponseSchema,
   inventoryMoveResponseSchema,
   loginResponseSchema,
+  merchantStateSchema,
+  merchantTransactionResponseSchema,
   playerPreferencesSchema,
   playerStateSchema,
   registerResponseSchema,
@@ -215,10 +219,84 @@ export async function moveInventoryItem(
     })
   });
   if (!response.ok) {
-    throw new Error(`Move item failed (${response.status})`);
+    const error = await response.json().catch(() => ({ error: "Move item failed" }));
+    throw new Error(error.error || `Move item failed (${response.status})`);
   }
   const data = await response.json();
   return inventoryMoveResponseSchema.parse(data);
+}
+
+export async function fetchMerchantState(token: string): Promise<MerchantState> {
+  const response = await fetch(`${API_URL}/v1/merchant/state`, {
+    method: "GET",
+    headers: {
+      ...authHeaders(token)
+    }
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Merchant state failed" }));
+    throw new Error(error.error || `Merchant state failed (${response.status})`);
+  }
+  const data = await response.json();
+  return merchantStateSchema.parse(data);
+}
+
+export async function buyMerchantOffer(token: string, offerId: string): Promise<MerchantTransactionResponse> {
+  const response = await fetch(`${API_URL}/v1/merchant/buy`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({ offerId })
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Merchant purchase failed" }));
+    throw new Error(error.error || `Merchant purchase failed (${response.status})`);
+  }
+  const data = await response.json();
+  return merchantTransactionResponseSchema.parse(data);
+}
+
+export async function sellMerchantItem(
+  token: string,
+  itemId: string,
+  fromSlot: string
+): Promise<MerchantTransactionResponse> {
+  const response = await fetch(`${API_URL}/v1/merchant/sell`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({
+      itemId,
+      fromSlot
+    })
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Merchant sale failed" }));
+    throw new Error(error.error || `Merchant sale failed (${response.status})`);
+  }
+  const data = await response.json();
+  return merchantTransactionResponseSchema.parse(data);
+}
+
+export async function restockMerchant(token: string): Promise<MerchantTransactionResponse> {
+  const response = await fetch(`${API_URL}/v1/merchant/restock`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({})
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Merchant restock failed" }));
+    throw new Error(error.error || `Merchant restock failed (${response.status})`);
+  }
+  const data = await response.json();
+  return merchantTransactionResponseSchema.parse(data);
 }
 
 export async function fetchReady(): Promise<Record<string, string>> {
