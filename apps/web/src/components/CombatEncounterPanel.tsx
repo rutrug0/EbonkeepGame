@@ -207,6 +207,7 @@ export function CombatEncounterLogPanel({
   | "onBackToBoard"
 >) {
   const { t } = useTranslation();
+  const combatLogBodyRef = useRef<HTMLDivElement>(null);
   const isSummaryVisible = resolutionState !== "playing";
   const showSummaryCursor = resolutionState === "summarizing";
   const actorById = new Map<string, CombatPlaybackActor>([
@@ -216,6 +217,12 @@ export function CombatEncounterLogPanel({
   const actionEvents = timeline.filter(
     (event): event is CombatPlaybackActionResolved => event.type === "CombatPlaybackActionResolved"
   );
+
+  useEffect(() => {
+    if (combatLogBodyRef.current) {
+      combatLogBodyRef.current.scrollTop = combatLogBodyRef.current.scrollHeight;
+    }
+  }, [combatLogEntries.length]);
 
   return (
     <section className="contentShell combatLogShell">
@@ -244,7 +251,7 @@ export function CombatEncounterLogPanel({
               ×
             </button>
           </div>
-          <div className="combatLogBody">
+          <div className="combatLogBody" ref={combatLogBodyRef}>
             {combatLogEntries.length > 0 ? (
               <ol className="combatLogList">
                 {combatLogEntries.map((entry, index) => {

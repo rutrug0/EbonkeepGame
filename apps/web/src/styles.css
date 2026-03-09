@@ -531,6 +531,9 @@ button:focus-visible {
   min-width: var(--panel-main-max);
   max-width: var(--panel-main-max);
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
 }
 
 .panelViewportProfileMain .contentCard {
@@ -562,6 +565,7 @@ button:focus-visible {
 .panelViewportProfileMain .contentShell,
 .panelViewportSide .contentShell {
   width: 100%;
+  flex-shrink: 0;
 }
 
 .characterHubExpandedViewport {
@@ -611,15 +615,19 @@ button:focus-visible {
   width: 100%;
   min-width: 0;
   max-width: var(--panel-viewport-max);
+  height: 100%;
+  max-height: 100%;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
   gap: var(--space-3);
   align-items: stretch;
+  overflow: hidden;
 }
 
 .contractsCombatViewportMain {
   width: auto;
   min-width: 0;
   max-width: none;
+  overflow: hidden;
 }
 
 .contractsCombatViewportMainStack {
@@ -646,6 +654,9 @@ button:focus-visible {
 
 .contractsCombatViewportExpanded {
   max-width: var(--panel-viewport-max);
+  overflow: hidden;
+  height: 100%;
+  max-height: 100%;
 }
 
 .statsViewportShell {
@@ -673,6 +684,7 @@ button:focus-visible {
   display: grid;
   gap: 0;
   width: 100%;
+  align-content: start;
 }
 
 .contentCard {
@@ -1793,7 +1805,7 @@ button:focus-visible {
 
 .combatEncounterCard {
   min-width: 0;
-  min-height: 100%;
+  min-height: 0;
   padding: 0;
   border-bottom: none;
 }
@@ -2141,13 +2153,13 @@ button:focus-visible {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-rows: auto minmax(120px, auto) auto;
+  grid-template-rows: auto minmax(60px, 1fr) auto;
   align-items: center;
-  gap: clamp(1.5rem, 4vw, 3.5rem);
+  gap: clamp(1rem, 2.5vw, 2.2rem);
   margin-top: 0;
-  min-height: clamp(520px, 72vh, 760px);
   height: 100%;
-  padding: clamp(0.9rem, 1.8vw, 1.35rem);
+  max-height: 100%;
+  padding: clamp(0.7rem, 1.4vw, 1rem);
   border: 1px solid var(--border);
   border-radius: 0;
   overflow: hidden;
@@ -2250,13 +2262,13 @@ button:focus-visible {
 .combatBattlefieldCenter {
   position: relative;
   z-index: 2;
-  min-height: 120px;
+  min-height: 60px;
 }
 
 .combatActorFrame {
   position: relative;
-  width: min(100%, 280px);
-  flex: 0 1 280px;
+  width: min(100%, 220px);
+  flex: 0 1 220px;
   transform: translate3d(0, 0, 0);
   transform-origin: center center;
   will-change: transform;
@@ -2319,6 +2331,7 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 20%;
   display: block;
 }
 
@@ -2911,8 +2924,8 @@ button:focus-visible {
   --combat-hit-lower-distance: 26px;
   --combat-return-hover-distance: 10px;
   --combat-hit-amplitude: 10px;
-  gap: var(--space-4);
-  min-height: auto;
+  gap: var(--space-2);
+  grid-template-rows: auto minmax(50px, 1fr) auto;
 }
 
 .appRoot.layout-compact .combatSpeedToggleOverlay {
@@ -2924,6 +2937,14 @@ button:focus-visible {
   gap: var(--space-2);
 }
 
+.appRoot.layout-compact .combatTurnTrackShell {
+  --combat-turn-chip-size: 42px;
+}
+
+.appRoot.layout-compact .combatTurnTrackRow {
+  min-height: 42px;
+}
+
 .appRoot.layout-compact .combatActorFrame {
   width: 100%;
   max-width: none;
@@ -2931,7 +2952,7 @@ button:focus-visible {
 }
 
 .appRoot.layout-compact .combatBattlefieldCenter {
-  min-height: 0;
+  min-height: 50px;
 }
 
 .appRoot.layout-compact .travelEncounterProgressCluster {
@@ -2957,6 +2978,40 @@ button:focus-visible {
   max-height: none;
   overflow-y: visible;
   padding-right: 0;
+}
+
+@media (max-width: 1200px) {
+  .combatBattlefield {
+    gap: clamp(0.9rem, 2.5vw, 2rem);
+  }
+
+  .combatActorFrame {
+    width: min(100%, 210px);
+    flex: 0 1 210px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .combatBattlefield {
+    gap: clamp(0.8rem, 2vw, 1.6rem);
+  }
+
+  .combatActorFrame {
+    width: min(100%, 190px);
+    flex: 0 1 190px;
+  }
+
+  .combatBattlefieldCenter {
+    min-height: 55px;
+  }
+
+  .combatTurnTrackShell {
+    --combat-turn-chip-size: 48px;
+  }
+
+  .combatTurnTrackRow {
+    min-height: 48px;
+  }
 }
 
 .statsGrid {
@@ -4166,6 +4221,7 @@ button:focus-visible {
 .characterVisual {
   width: min(100%, var(--character-frame-width));
   min-height: 0;
+  max-height: var(--character-frame-height);
   aspect-ratio: 9 / 10;
   justify-self: center;
   align-self: center;

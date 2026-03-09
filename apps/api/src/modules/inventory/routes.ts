@@ -28,10 +28,19 @@ export const inventoryRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const playerId = request.user!.playerId;
 
-      const items = await fastify.prisma.inventoryItem.findMany({
+      const itemRecords = await fastify.prisma.inventoryItem.findMany({
         where: { playerId },
-        orderBy: { createdAt: "desc" }
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          itemCode: true,
+          itemData: true
+        }
       });
+
+      const items = itemRecords
+        .map(record => parseStoredInventoryItem(record))
+        .filter((item): item is NonNullable<typeof item> => item !== null);
 
       return reply.send({ items });
     }

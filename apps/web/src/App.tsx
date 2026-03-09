@@ -1895,6 +1895,7 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         travelImagePath: hardTravelImagePath,
         combatBackgroundPath: getCombatStageAssetPath("ternfield_hobgoblins_08"),
         travelImageMode: hardTravelImagePath ? "image" : "silhouette",
+        avatarPath: getMonsterAssetPath("monster:ternfield_hobgoblins_08:the camp reeve"),
         usesSilhouetteFallback: !hardTravelImagePath
       };
     }

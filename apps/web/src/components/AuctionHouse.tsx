@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { InventoryItem, EquipmentSlotId } from "@ebonkeep/shared";
+import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
+
+type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
+type WeaponArchetype = "melee/sword" | "melee/axe" | "melee/mace" | "ranged/bow" | "ranged/crossbow" | "arcane/staff" | "arcane/wand";
+type ArmorArchetype = "platemail" | "chainmail" | "leather" | "cloth";
 
 export interface AuctionHouseProps {
   token: string | null;
@@ -80,14 +86,6 @@ interface PlayerSubmission {
   status: string;
   createdAt: string;
   rejectionReason?: string;
-}
-
-interface InventoryItem {
-  id: string;
-  itemCode: string;
-  slotKey: string;
-  quantity: number;
-  createdAt: string;
 }
 
 type AuctionView = "browse" | "myBids" | "submit" | "mySubmissions" | "rewards";
@@ -310,8 +308,8 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
       return;
     }
 
-    // Parse the full item data
-    const itemData = parseItemData(selectedItem.itemCode);
+    // Get the full item data
+    const itemData = getInventoryItemData(selectedItem);
 
     setSubmitting(true);
     setError(null);
@@ -358,6 +356,61 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
     }
   };
 
+  // Helper functions for icon path generation
+  const normalizeItemNameForArtLookup = (itemName: string): string => {
+    return itemName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  };
+
+  const getJewelryTypeForSlot = (slotId: EquipmentSlotId | undefined): "ring" | "necklace" | undefined => {
+    if (!slotId) {
+      return undefined;
+    }
+    if (slotId === "ringLeft" || slotId === "ringRight") {
+      return "ring";
+    }
+    if (slotId === "necklace") {
+      return "necklace";
+    }
+    return undefined;
+  };
+
+  const getGeneratedItemIconPath = (args: {
+    majorCategory?: ItemMajorCategory;
+    itemName: string;
+    weaponArchetype?: WeaponArchetype;
+    armorArchetype?: ArmorArchetype;
+    equipSlotId?: EquipmentSlotId;
+  }): string | undefined => {
+    const itemName = normalizeItemNameForArtLookup(args.itemName);
+    if (!itemName || !args.majorCategory) {
+      return undefined;
+    }
+
+    if (args.majorCategory === "weapon" && args.weaponArchetype) {
+      const key = `weapon:${args.weaponArchetype}:${itemName}`;
+      return GENERATED_ITEM_ICON_PATHS[key];
+    }
+
+    if (args.majorCategory === "armor" && args.armorArchetype) {
+      const key = `armor:${args.armorArchetype}:${itemName}`;
+      return GENERATED_ITEM_ICON_PATHS[key];
+    }
+
+    if (args.majorCategory === "jewelry") {
+      const jewelryType = getJewelryTypeForSlot(args.equipSlotId);
+      if (!jewelryType) {
+        return undefined;
+      }
+      const key = `jewelry:${jewelryType}:${itemName}`;
+      return GENERATED_ITEM_ICON_PATHS[key];
+    }
+
+    return undefined;
+  };
+
   const parseItemData = (itemCode: string): ParsedItemData => {
     try {
       return JSON.parse(itemCode);
@@ -369,6 +422,29 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
         category: "misc"
       };
     }
+  };
+
+  const getInventoryItemData = (item: InventoryItem): ParsedItemData => {
+    const preferredSlotId = item.allowedSlotIds?.[0];
+    const iconPath = getGeneratedItemIconPath({
+      majorCategory: item.archetype?.majorCategory as ItemMajorCategory,
+      weaponArchetype: item.archetype?.weaponArchetype as WeaponArchetype,
+      armorArchetype: item.archetype?.armorArchetype as ArmorArchetype,
+      itemName: item.itemName,
+      equipSlotId: preferredSlotId
+    });
+
+    return {
+      name: item.itemName,
+      level: item.levelRequirement ?? item.baseLevel ?? 1,
+      rarity: item.rarity,
+      category: item.category,
+      iconAssetPath: iconPath,
+      stats: item.statBonuses,
+      weaponType: item.archetype?.weaponFamily,
+      armorType: item.archetype?.armorArchetype,
+      jewelryType: item.archetype?.majorCategory === "jewelry" ? "jewelry" : undefined
+    };
   };
 
   const handleCancelSubmission = async (listingId: string) => {
@@ -720,7 +796,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
 
   const renderSubmitView = () => {
     const selectedItem = inventoryItems.find((item) => item.id === submissionData.itemId);
-    const selectedItemData = selectedItem ? parseItemData(selectedItem.itemCode) : null;
+    const selectedItemData = selectedItem ? getInventoryItemData(selectedItem) : null;
 
     // Calculate active submissions count
     const activeSubmissions = mySubmissions.filter(
@@ -730,7 +806,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
 
     // Filter and search logic
     const filteredItems = inventoryItems.filter((item) => {
-      const itemData = parseItemData(item.itemCode);
+      const itemData = getInventoryItemData(item);
       
       // Category filter
       if (itemFilter !== "all" && itemData.category?.toLowerCase() !== itemFilter) {
@@ -829,7 +905,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                     padding: "0.5rem"
                   }}>
                     {filteredItems.map((item) => {
-                      const itemData = parseItemData(item.itemCode);
+                      const itemData = getInventoryItemData(item);
                       const isSelected = submissionData.itemId === item.id;
                       const rarity = itemData.rarity.toLowerCase();
                       
