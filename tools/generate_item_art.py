@@ -924,7 +924,6 @@ def main() -> int:
 
     for record, final_prompt, prompt_hash, output_path_str, record_render_settings in planned:
         output_path = Path(output_path_str)
-        prompt_output_path = output_path.with_suffix(".txt")
         previous = state_items.get(record.item_id, {}) if isinstance(state_items, dict) else {}
         previous_hash = previous.get("hash") if isinstance(previous, dict) else None
         file_exists = output_path.exists()
@@ -945,15 +944,11 @@ def main() -> int:
 
         if action == "skip_unchanged":
             counts["skipped_unchanged"] += 1
-            if not args.dry_run and file_exists and not prompt_output_path.exists():
-                prompt_output_path.parent.mkdir(parents=True, exist_ok=True)
-                prompt_output_path.write_text(final_prompt + "\n", encoding="utf-8")
             run_items.append(
                 {
                     "item_id": record.item_id,
                     "status": "skipped_unchanged",
                     "output_path": str(output_path),
-                    "prompt_path": str(prompt_output_path),
                     "family_key": record.family_key,
                 }
             )
@@ -967,7 +962,6 @@ def main() -> int:
                     "item_id": record.item_id,
                     "status": f"would_{action}",
                     "output_path": str(output_path),
-                    "prompt_path": str(prompt_output_path),
                     "family_key": record.family_key,
                     "prompt_preview": final_prompt[:220],
                 }
@@ -993,7 +987,6 @@ def main() -> int:
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(image_bytes)
-            prompt_output_path.write_text(final_prompt + "\n", encoding="utf-8")
 
             if action == "generate":
                 counts["generated"] += 1
@@ -1016,7 +1009,6 @@ def main() -> int:
                     "item_id": record.item_id,
                     "status": action,
                     "output_path": str(output_path),
-                    "prompt_path": str(prompt_output_path),
                     "family_key": record.family_key,
                 }
             )
@@ -1030,7 +1022,6 @@ def main() -> int:
                     "status": "failed",
                     "error": str(exc),
                     "output_path": str(output_path),
-                    "prompt_path": str(prompt_output_path),
                     "family_key": record.family_key,
                 }
             )

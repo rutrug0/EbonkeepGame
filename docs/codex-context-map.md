@@ -10,6 +10,16 @@ Quick reference for where to work and what to run.
 - Balance/art data tables: `docs/data/*.csv`
 - Generators and validators: `tools/*`
 
+## Open First By Task
+- Auth/account: `apps/api/src/modules/auth/routes.ts`, `packages/shared/src/index.ts`
+- Player/inventory/equipment: `apps/api/src/modules/player/state-service.ts`, `apps/api/src/modules/inventory/routes.ts`, `packages/shared/src/index.ts`
+- Economy/merchant: `apps/api/src/modules/economy/*`, `apps/web/src/App.tsx`
+- Combat/contracts: `apps/api/src/modules/combat/routes.ts`, `apps/web/src/components/CombatEncounterPanel.tsx`, `apps/web/src/App.tsx`
+- Auction: `apps/api/src/modules/auction/*`
+- Shared contract updates: `packages/shared/src/index.ts`, then API/web consumers
+- Balance/data changes: relevant `docs/data/*.csv` plus the corresponding `tools/*.ps1` or Python generator
+- Item art pipeline: `docs/19-item-art-generation-pipeline.md`, `tools/item_art_prompts.yaml`, `tools/generate_item_art.py`, `tools/build_item_art_manifest.py`
+
 ## Common Commands
 - Full local stack: `run-local.bat`
 - Stop local stack: `stop-local.bat`
@@ -38,4 +48,3 @@ Quick reference for where to work and what to run.
   - `python tools/generate_item_art.py --force`
 - Rebuild manifest only:
   - `python tools/build_item_art_manifest.py`
-
