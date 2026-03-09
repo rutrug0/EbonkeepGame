@@ -1,0 +1,89 @@
+Rendering Model (Strict):
+
+2D illustrated enemy concept render
+
+medium cel shading only
+
+maximum three value groups per material (light, mid, shadow)
+
+sharp but slightly moderated shadow edges, no gradient blending
+
+no soft lighting bloom
+
+no painterly brush texture
+
+semi-realistic grounded medieval fantasy proportions
+
+muted earthy palette with restrained accent color
+
+Color Control Rules:
+
+avoid sepia scene tint
+
+avoid overall yellow wash
+
+avoid nicotine-stained or amber-brown color grading across the whole frame
+
+keep whites, greys, and pale surfaces neutral rather than yellowed unless a family prompt explicitly requires warmth
+
+prefer cool grey or neutral ambient light by default
+
+Visibility and Separation Rules:
+
+monster silhouette must read clearly against the environment
+
+background values must stay slightly lighter or quieter than the monster focal silhouette
+
+preserve clear edge separation around the monster
+
+avoid excessively dark murk that hides anatomy or gear
+
+use readable ambient light from the environment without turning cinematic
+
+Monster Presentation Rules (Locked)
+
+single monster only
+
+full-body view
+
+clear readable silhouette
+
+grounded stance and anatomy
+
+include environment background appropriate to the family prompt
+
+background must support the monster and not overpower it
+
+keep the scene a bit clearer and less oppressive than a pure horror render
+
+no crowd scenes
+
+no additional monsters
+
+no hero pose exaggeration
+
+no text, no logo
+
+maintain hostile enemy readability at game-icon scale
+
+Grounded medieval fantasy mire cave and marsh hollow, full-body enemy scene background, same family zone for every monster, dark green wet stone, shallow black-green water, reed clusters, mud banks, root tangles, fungus baskets, driftwood stakes, shell husks, dangling egg clutches, slime-slick cave walls, dim overcast marsh light filtering in from outside, mostly dark green and algae-olive ambience with only small pale blue accents in damp membranes, fungus growths, insect wings, and puddle reflections, no crowd, no heroic framing, clearly low-tier and primitive; vary the exact composition per monster within this same mire grotto by placing them near different landmarks such as reed mats, puddles, fungus baskets, root arches, mud shelves, egg rafts, shell piles, or narrow water channels.
+
+Monster Tier Direction:
+
+very low-tier enemy
+
+should look weak, shabby, underfed, badly equipped, and locally dangerous at most
+
+avoid intimidating elite presence
+
+avoid heroic menace
+
+avoid oversized anatomy, exaggerated musculature, or horror-heavy distortion
+
+prefer poor posture, crude gear, thin limbs, worn cloth, scavenged tools, and low social status readability
+
+One monster only. Hostile enemy presentation. Keep the monster fully readable in a grounded full-body pose. Preserve the family environment consistently across this family while allowing small per-monster placement variation within the same location. Keep the monster visually distinct from the background with clear silhouette separation and readable local contrast.
+
+Monster Design:
+
+Full-body marsh lamprey enemy, long slick eel-like parasite with ringed mouth, mud-dark hide, pale underside, and a coiled front half rising from a shallow channel while the rear body disappears into black water, weak early-game ambush vermin with a long low silhouette, same Mirepool Grotto zone with narrow water channels, silt banks, and root tangles in the composition, grounded medieval fantasy.

@@ -139,6 +139,14 @@ High-level loop:
 - adds collection motivation without requiring rare-drop obsession only
 - creates light metaprogression tied directly to played content
 
+Discovery quality depends on roster contrast:
+- zones work better when their monster lists mix clearly different silhouettes, postures, and behaviors rather than mostly minor variants of one creature body plan
+- good zone composition usually includes:
+  - core inhabitants
+  - local fauna, vermin, or parasites
+  - one apex or setpiece threat that changes the visual fantasy of the zone
+- this keeps new Ledger entries readable, memorable, and worth uncovering
+
 ## UI Principles
 - hidden content should remain hidden until discovered
 - once revealed, the entry should feel clean and information-dense

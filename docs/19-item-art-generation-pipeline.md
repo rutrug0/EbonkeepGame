@@ -44,6 +44,25 @@ Monster family rows may also provide `combat_stage_background_prompt` and `promp
 Travel stage rows may provide `travel_stage_background_prompt` and `prompt_travel_stage` to generate a separate scenic journey image for the contracts travel screen.
 This is still a single render per monster row for portraits, plus an optional separate combat-stage render per family row.
 
+## Monster Zone Design Rules
+- Treat each monster family as a mini-roster for one zone, not as a loose list of palette swaps.
+- Default target for a fully realized low-tier zone: `12-14` regular monsters plus `2` bosses.
+- Those two bosses should usually split into:
+  - one solo authority figure that represents the zone's social or territorial leader
+  - one group or setpiece apex threat with a clearly different body plan from the regular roster
+- Each zone should contain at least three silhouette buckets:
+  - core inhabitants or humanoids
+  - local fauna, vermin, or parasites
+  - one standout apex or setpiece body plan
+- Do not let two monsters in the same zone share the same silhouette, prop, and posture combination unless one of those three dimensions changes substantially.
+- Differentiate monsters in this order:
+  - silhouette and locomotion
+  - posture and pose language
+  - props, gear, or carried materials
+  - color accents last
+- Flavor text should state a concrete behavior, survival trick, hunting method, or battlefield habit. Avoid rows that are only "mean", "hungry", or "cruel" in slightly different words.
+- When a zone uses many monsters from one species, offset repetition with fauna entries, swarm entries, shellbacks, flyers, crawlers, or ambush predators so the family still feels collectible in the Ledger.
+
 ## Prompt Layering
 Final prompt is assembled in this order:
 1. `general_prompt`
@@ -185,6 +204,8 @@ Examples:
 - Use family-row `prompt_combat_stage` for separate battlefield plates when the UI fights on top of cards rather than directly on top of the monster portrait scene.
 - Use `travel_stage` rows for separate approach/journey scenes when the UI needs a dedicated travel screen rather than reusing a monster portrait.
 - Each monster family should feel like a distinct zone in ambience. Preserve strong internal consistency within one family, but make different zones clearly distinct from one another in mood, palette bias, landmark language, and environmental feel.
+- Within one family, push uniqueness through body plan, posture, and implied movement before reaching for stronger color variation.
+- Good low-tier variety usually means mixing small humanoids with at least a few beasts, vermin, flyers, or parasite forms.
 - Monster prompts should stay grounded at low levels, grow tougher and more disciplined through mid levels, introduce restrained arcane elements around `60+`, and reserve mythic language for `80+`.
 - Very low levels such as `0`, `4`, and `8` should read weak, poorly equipped, and only locally dangerous. Avoid intimidating elite silhouettes at those tiers.
 - Monster scenes should be a little clearer and less oppressive than pure horror art so the monster remains easy to read against the family background.
