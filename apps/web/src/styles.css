@@ -3033,6 +3033,13 @@ button:focus-visible {
   font-size: 0.94rem;
 }
 
+.economyValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .currencyIcon {
   display: inline-flex;
   align-items: center;
@@ -5234,6 +5241,104 @@ button:focus-visible {
 .auctionSubmitButton:disabled {
   background: var(--bg-slate);
   box-shadow: none;
+}
+
+@keyframes inventoryStatFlashPositive {
+  0% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(111, 141, 95, 0);
+  }
+
+  20% {
+    border-color: color-mix(in srgb, var(--accent-success) 82%, transparent);
+    box-shadow: 0 0 0 1px rgba(111, 141, 95, 0.18), 0 0 18px rgba(111, 141, 95, 0.18);
+  }
+
+  100% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(111, 141, 95, 0);
+  }
+}
+
+@keyframes inventoryStatFlashNegative {
+  0% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(151, 80, 74, 0);
+  }
+
+  20% {
+    border-color: color-mix(in srgb, var(--accent-danger) 84%, transparent);
+    box-shadow: 0 0 0 1px rgba(151, 80, 74, 0.2), 0 0 18px rgba(151, 80, 74, 0.18);
+  }
+
+  100% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(151, 80, 74, 0);
+  }
+}
+
+@keyframes inventoryStatValuePositive {
+  0% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+
+  18% {
+    color: color-mix(in srgb, var(--accent-success) 84%, var(--text-main) 16%);
+    text-shadow: 0 0 14px rgba(111, 141, 95, 0.24);
+    transform: translateY(-1px);
+  }
+
+  100% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+}
+
+@keyframes inventoryStatValueNegative {
+  0% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+
+  18% {
+    color: color-mix(in srgb, var(--accent-danger) 82%, var(--text-main) 18%);
+    text-shadow: 0 0 14px rgba(151, 80, 74, 0.22);
+    transform: translateY(-1px);
+  }
+
+  100% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+}
+
+.inventoryStatFlash-positive {
+  animation: inventoryStatFlashPositive 2.1s ease-out;
+}
+
+.inventoryStatFlash-negative {
+  animation: inventoryStatFlashNegative 2.1s ease-out;
+}
+
+.inventoryStatFlashValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  will-change: color, text-shadow, transform;
+}
+
+.inventoryStatFlashValue-positive {
+  animation: inventoryStatValuePositive 2.1s ease-out;
+}
+
+.inventoryStatFlashValue-negative {
+  animation: inventoryStatValueNegative 2.1s ease-out;
 }
 
 @keyframes riseIn {

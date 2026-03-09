@@ -96,6 +96,11 @@ type CharacterHubTab = "character" | "renown" | "ledger" | "encyclopedia";
 type ProfileSideTab = "inventory" | "consumables" | "stats";
 type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
+type InventoryStatFlashKey = TrainableStatKey | "gearScore";
+type InventoryStatFlashDirection = "positive" | "negative";
+type InventoryStatFlash = {
+  direction: InventoryStatFlashDirection;
+};
 type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
 type ChatChannel = "world" | "guild";
 type EncyclopediaCategory = "armor" | "weapon" | "jewelry" | "monster";
@@ -339,6 +344,7 @@ const COMBAT_PLAYBACK_BEAT_MS = 1470;
 const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
 const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
+const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
 const TEST_MIN_DUCATS = 0;
 const MAIN_STAT_DEFENSE_RATIO = 0.2;
 const LUCK_CRIT_CHANCE_PERCENT_PER_POINT = 0.1;
@@ -2850,6 +2856,9 @@ export function App() {
     stat: TrainableStatKey;
     completesAt: number;
   } | null>(null);
+  const [inventoryStatFlashes, setInventoryStatFlashes] = useState<Partial<Record<InventoryStatFlashKey, InventoryStatFlash>>>({});
+  const inventoryStatFlashTimeoutsRef = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
+  const inventoryStatFlashFrameRefs = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
   const [activeCharacterVisualIndex, setActiveCharacterVisualIndex] = useState<number>(() => {
     const total = GENERATED_CHARACTER_VISUALS.length;
     if (total === 0) {
@@ -2932,7 +2941,102 @@ export function App() {
   const activeCharacterVisualName = activeCharacterVisual?.assetName ?? null;
   const canCycleCharacterVisuals = GENERATED_CHARACTER_VISUALS.length > 1;
 
+  function clearInventoryStatFlash(key: InventoryStatFlashKey) {
+    const timeoutId = inventoryStatFlashTimeoutsRef.current[key];
+    if (timeoutId !== undefined) {
+      window.clearTimeout(timeoutId);
+      delete inventoryStatFlashTimeoutsRef.current[key];
+    }
+    const frameId = inventoryStatFlashFrameRefs.current[key];
+    if (frameId !== undefined) {
+      window.cancelAnimationFrame(frameId);
+      delete inventoryStatFlashFrameRefs.current[key];
+    }
+    setInventoryStatFlashes((previousFlashes) => {
+      if (!previousFlashes[key]) {
+        return previousFlashes;
+      }
+      const nextFlashes = { ...previousFlashes };
+      delete nextFlashes[key];
+      return nextFlashes;
+    });
+  }
+
+  function queueInventoryStatFlash(key: InventoryStatFlashKey, delta: number) {
+    if (delta === 0) {
+      clearInventoryStatFlash(key);
+      return;
+    }
+
+    const direction: InventoryStatFlashDirection = delta > 0 ? "positive" : "negative";
+    clearInventoryStatFlash(key);
+
+    inventoryStatFlashFrameRefs.current[key] = window.requestAnimationFrame(() => {
+      inventoryStatFlashFrameRefs.current[key] = window.requestAnimationFrame(() => {
+        delete inventoryStatFlashFrameRefs.current[key];
+        setInventoryStatFlashes((previousFlashes) => ({
+          ...previousFlashes,
+          [key]: {
+            direction
+          }
+        }));
+
+        inventoryStatFlashTimeoutsRef.current[key] = window.setTimeout(() => {
+          clearInventoryStatFlash(key);
+        }, INVENTORY_STAT_FLASH_DURATION_MS);
+      });
+    });
+  }
+
+  function triggerInventoryMoveStatFlashes(nextState: PlayerState) {
+    if (!playerState) {
+      return;
+    }
+
+    const effectiveBaseSnapshot: Record<TrainableStatKey, number> = baseStats ?? {
+      strength: playerState.statSnapshot.base.strength,
+      intelligence: playerState.statSnapshot.base.intelligence,
+      dexterity: playerState.statSnapshot.base.dexterity,
+      vitality: playerState.statSnapshot.base.vitality,
+      initiative: playerState.statSnapshot.base.initiative,
+      luck: playerState.statSnapshot.base.luck
+    };
+    const nextEquipmentSnapshot = nextState.statSnapshot.equipment;
+    const statKeys: TrainableStatKey[] = ["strength", "intelligence", "dexterity", "vitality", "initiative", "luck"];
+
+    statKeys.forEach((statKey) => {
+      const previousDisplayedValue = effectiveBaseSnapshot[statKey] + equipmentStatBonuses[statKey];
+      const nextDisplayedValue = effectiveBaseSnapshot[statKey] + nextEquipmentSnapshot[statKey];
+      const delta = nextDisplayedValue - previousDisplayedValue;
+      if (delta !== 0) {
+        queueInventoryStatFlash(statKey, delta);
+      }
+    });
+
+    const gearScoreDelta = nextState.gearScore - playerState.gearScore;
+    if (gearScoreDelta !== 0) {
+      queueInventoryStatFlash("gearScore", gearScoreDelta);
+    }
+  }
+
   function applyAuthoritativePlayerState(nextState: PlayerState | null) {
+    if (!nextState) {
+      (Object.keys(inventoryStatFlashTimeoutsRef.current) as InventoryStatFlashKey[]).forEach((key) => {
+        const timeoutId = inventoryStatFlashTimeoutsRef.current[key];
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+        }
+      });
+      (Object.keys(inventoryStatFlashFrameRefs.current) as InventoryStatFlashKey[]).forEach((key) => {
+        const frameId = inventoryStatFlashFrameRefs.current[key];
+        if (frameId !== undefined) {
+          window.cancelAnimationFrame(frameId);
+        }
+      });
+      inventoryStatFlashTimeoutsRef.current = {};
+      inventoryStatFlashFrameRefs.current = {};
+      setInventoryStatFlashes({});
+    }
     setPlayerState(nextState ? applyMockPlayerStateOverrides(nextState) : null);
     setInventoryItems(nextState ? nextState.inventory.map((item) => toLocalInventoryItem(item)) : []);
     setEquippedItems(nextState ? toLocalEquipmentState(nextState.equipment) : createEmptyEquippedItems());
@@ -2961,6 +3065,7 @@ export function App() {
     try {
       setIsInventoryMutating(true);
       const response = await moveInventoryItem(token, itemId, fromSlot, toSlot);
+      triggerInventoryMoveStatFlashes(response.playerState);
       applyAuthoritativePlayerState(response.playerState);
       setError(null);
     } catch (err: unknown) {
@@ -5281,12 +5386,26 @@ export function App() {
                 <span>{i18n.t("currencies.imperials")}</span>
                 <strong>{effectiveCurrencies.imperials}</strong>
               </div>
-              <div className="economyItem">
+              <div
+                className={`economyItem${
+                  inventoryStatFlashes.gearScore
+                    ? ` inventoryStatFlash inventoryStatFlash-${inventoryStatFlashes.gearScore.direction}`
+                    : ""
+                }`}
+              >
                 <span className="currencyIcon gearScoreIcon" aria-hidden="true">
-                  ⛨
+                  {"\u26E8"}
                 </span>
                 <span>{i18n.t("currencies.gearScore")}</span>
-                <strong>{playerState.gearScore}</strong>
+                <strong
+                  className={`economyValue${
+                    inventoryStatFlashes.gearScore
+                      ? ` inventoryStatFlashValue inventoryStatFlashValue-${inventoryStatFlashes.gearScore.direction}`
+                      : ""
+                  }`}
+                >
+                  {playerState.gearScore}
+                </strong>
               </div>
             </div>
 
@@ -5295,6 +5414,7 @@ export function App() {
                 {mainStatColumns.map((statColumn, statIndex) => {
                   const baseValue = effectiveBaseStats[statColumn.key];
                   const itemBonus = equipmentStatBonuses[statColumn.key];
+                  const statFlash = inventoryStatFlashes[statColumn.key];
                   const statContributionLines = getStatContributionLines(
                     statColumn.key,
                     baseValue,
@@ -5324,7 +5444,10 @@ export function App() {
                         : "";
 
                   return (
-                    <div key={statColumn.key} className="statTrainingColumn">
+                    <div
+                      key={statColumn.key}
+                      className={`statTrainingColumn${statFlash ? ` inventoryStatFlash inventoryStatFlash-${statFlash.direction}` : ""}`}
+                    >
                       <span className="statTrainingSymbol" aria-hidden="true">
                         <svg viewBox="0 0 20 20" focusable="false">
                           <path d={statColumn.iconPath} />
@@ -5345,7 +5468,11 @@ export function App() {
                           </p>
                         ))}
                       </div>
-                      <span className="statTrainingValue">
+                      <span
+                        className={`statTrainingValue${
+                          statFlash ? ` inventoryStatFlashValue inventoryStatFlashValue-${statFlash.direction}` : ""
+                        }`}
+                      >
                         {baseValue}
                         <span className="itemBonusValue">(+{itemBonus})</span>
                       </span>
