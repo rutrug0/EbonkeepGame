@@ -29,6 +29,8 @@ import {
   type InventoryItem as SharedInventoryItem,
   type ItemMajorCategory,
   type ItemModifier as SharedItemModifier,
+  type MerchantState as SharedMerchantState,
+  type MerchantTransactionResponse,
   type ModifierTier,
   type PlayerClass,
   type PlayerState,
@@ -39,7 +41,23 @@ import {
   type WeaponFamily
 } from "@ebonkeep/shared";
 
-import { devGuestLogin, fetchPlayerState, forgotPassword, getAccountOverview, login, moveInventoryItem, register, resendVerificationEmail, resetPassword, updatePlayerPreferences, verifyEmail } from "./api";
+import {
+  buyMerchantOffer,
+  devGuestLogin,
+  fetchMerchantState,
+  fetchPlayerState,
+  forgotPassword,
+  getAccountOverview,
+  login,
+  moveInventoryItem,
+  register,
+  resendVerificationEmail,
+  resetPassword,
+  restockMerchant,
+  sellMerchantItem,
+  updatePlayerPreferences,
+  verifyEmail
+} from "./api";
 import {
   CombatEncounterArenaPanel,
   CombatEncounterLogPanel,
@@ -196,16 +214,41 @@ type MeleeDamageRollWindow = {
 
 type EquippedItems = Record<EquipmentSlotId, InventoryItem | null>;
 
+type MerchantOffer = {
+  offerId: string;
+  offerIndex: number;
+  item: InventoryItem;
+  buyPriceDucats: number;
+  sold: boolean;
+  refreshAtMs: number;
+};
+
+type MerchantState = {
+  offers: MerchantOffer[];
+  sellPrices: Record<string, number>;
+  nextRefreshAtMs: number;
+};
+
 type DragPayload =
   | { source: "inventory"; itemId: string }
-  | { source: "equipment"; slotId: EquipmentSlotId; itemId: string };
+  | { source: "equipment"; slotId: EquipmentSlotId; itemId: string }
+  | { source: "merchant"; offerId: string; itemId: string };
 
 type InventoryComparisonHoverState = {
-  targetItemId: string;
+  hoverKey: string;
+  sourceItem: InventoryItem;
   slotId: EquipmentSlotId;
   top: number;
   left: number;
   width: number;
+};
+
+type InventoryFilterState = {
+  showOnlyWeapons: boolean;
+  showOnlyArmor: boolean;
+  showOnlyJewelry: boolean;
+  showOnlyWearable: boolean;
+  powerSortDirection: "desc" | "asc";
 };
 
 type ContractBand = {
@@ -295,7 +338,7 @@ const COMBAT_PLAYBACK_BEAT_MS = 1470;
 const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
 const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
-const TEST_MIN_DUCATS = 1000;
+const TEST_MIN_DUCATS = 0;
 const MAIN_STAT_DEFENSE_RATIO = 0.2;
 const LUCK_CRIT_CHANCE_PERCENT_PER_POINT = 0.1;
 const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
@@ -307,6 +350,13 @@ const CHAT_DOCK_TOLERANCE_PX = 1;
 const CHAT_CHANNEL_LABEL_KEYS: Record<ChatChannel, string> = {
   world: "chat.world",
   guild: "chat.guild"
+};
+const DEFAULT_INVENTORY_FILTER_STATE: InventoryFilterState = {
+  showOnlyWeapons: false,
+  showOnlyArmor: false,
+  showOnlyJewelry: false,
+  showOnlyWearable: false,
+  powerSortDirection: "asc"
 };
 const GENERATED_CHARACTER_VISUALS: Array<{ key: string; assetName: string; path: string }> = Object.entries(
   GENERATED_ITEM_ICON_PATHS
@@ -438,7 +488,7 @@ const ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER: EncyclopediaWeaponArchetype[] = ["mel
 const LEDGER_MOCK_DISCOVERED_ZONE_IDS: string[] = [
   "snagtooth_hollow_00",
   "mirepool_boglings_04",
-  "cinder_kiln_hands_08"
+  "ternfield_hobgoblins_08"
 ];
 const RENOWN_SCENE_WIDTH = 1260;
 const RENOWN_SCENE_HEIGHT = 1040;
@@ -1520,6 +1570,21 @@ function toLocalEquipmentState(equipment: SharedEquipmentState): EquippedItems {
   };
 }
 
+function toLocalMerchantState(state: SharedMerchantState): MerchantState {
+  return {
+    offers: state.offers.map((offer) => ({
+      offerId: offer.offerId,
+      offerIndex: offer.offerIndex,
+      item: toLocalInventoryItem(offer.item),
+      buyPriceDucats: offer.buyPriceDucats,
+      sold: offer.sold,
+      refreshAtMs: Date.parse(offer.refreshAt)
+    })),
+    sellPrices: { ...state.sellPrices },
+    nextRefreshAtMs: Date.parse(state.nextRefreshAt)
+  };
+}
+
 function toInventoryWeaponItem(weapon: DevWeaponInventorySeed, index: number): InventoryItem {
   const prefixAffix = weapon.affixes.find((affix) => affix.source === "prefix");
   const suffixAffix = weapon.affixes.find((affix) => affix.source === "suffix");
@@ -1753,7 +1818,7 @@ function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
     case "medium":
       return "Cold mirewater gathers around reed roots and black pools. Something in the hollow is already listening.";
     case "hard":
-      return "Dead furnaces and ash-choked brick lie ahead. The kiln yard looks abandoned until the heat shifts.";
+      return "Bright grass, white tents, and wagon tracks spread ahead. The land looks good until the camp comes into focus.";
     default:
       return "The path ahead tightens toward the contract target.";
   }
@@ -1811,17 +1876,17 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
       };
     }
     case "hard": {
-      const hardTravelImagePath = getTravelStageAssetPath("cinder_kiln_hands_08");
+      const hardTravelImagePath = getTravelStageAssetPath("ternfield_hobgoblins_08");
       return {
-        familyId: "cinder_kiln_hands_08",
-        locationName: "The Cinder Kiln",
-        enemyId: "enemy-kiln-master",
-        enemyName: "The Kiln Master",
+        familyId: "ternfield_hobgoblins_08",
+        locationName: "Ternfields",
+        enemyId: "enemy-camp-reeve",
+        enemyName: "The Camp Reeve",
         enemyMaxHp: 102,
         enemyPower: 136,
         enemyCombatStat: "intelligence",
         travelImagePath: hardTravelImagePath,
-        combatBackgroundPath: getCombatStageAssetPath("cinder_kiln_hands_08"),
+        combatBackgroundPath: getCombatStageAssetPath("ternfield_hobgoblins_08"),
         travelImageMode: hardTravelImagePath ? "image" : "silhouette",
         usesSilhouetteFallback: !hardTravelImagePath
       };
@@ -2356,7 +2421,13 @@ function canPlayerUseItem(item: InventoryItem, playerState: PlayerState | null):
   return isClassEligible && isLevelEligible;
 }
 
-function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): ReactElement {
+function renderInventoryItemCardBody(
+  item: InventoryItem,
+  canUseItem: boolean,
+  priceLabel?: string,
+  asideNote?: string,
+  powerDelta?: number
+): ReactElement {
   const subtypeLabel = getItemSubtypeLabel(item);
   const modifierLines = getItemModifierStatLines(item);
   const weaponDamageSummary = getWeaponDamageSummary(item);
@@ -2370,9 +2441,13 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
           <h4>{renderItemDisplayName(item)}</h4>
           <p className="inventoryCardCategory">{subtypeLabel}</p>
         </div>
-        <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
+        <div className="inventoryCardTopAside">
+          <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
+          {priceLabel ? <span className="merchantCardPriceOverlay">{priceLabel}</span> : null}
+          {asideNote ? <span className="inventoryCardTopAsideNote">{asideNote}</span> : null}
+        </div>
       </div>
-      <div className="inventoryCardVisual">
+      <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}`}>
         {renderItemIcon({
           majorCategory: item.archetype?.majorCategory,
           category: item.category,
@@ -2405,8 +2480,18 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean): 
       <div className="inventoryCardDetails">
         <p className="inventoryCardDescription inventoryCardFlavor">{item.description}</p>
         <div className="inventoryCardFooter">
-          <span className="inventoryCardPower">{i18n.t("inventory.power", { value: item.power })}</span>
-          <span className="inventoryCardLevel">{i18n.t("inventory.requiredLevel", { value: item.levelRequirement })}</span>
+          <span className="inventoryCardPower">
+            {i18n.t("inventory.power", { value: item.power })}
+            {typeof powerDelta === "number" && powerDelta !== 0 ? (
+              <span className={`inventoryCardPowerDelta ${powerDelta > 0 ? "positive" : "negative"}`}>
+                {" "}
+                ({powerDelta > 0 ? `+${powerDelta}` : powerDelta})
+              </span>
+            ) : null}
+          </span>
+          <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>
+            {i18n.t("inventory.requiredLevel", { value: item.levelRequirement })}
+          </span>
         </div>
       </div>
     </>
@@ -2725,6 +2810,12 @@ export function App() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [equippedItems, setEquippedItems] = useState<EquippedItems>(() => createEmptyEquippedItems());
   const [isInventoryMutating, setIsInventoryMutating] = useState(false);
+  const [merchantState, setMerchantState] = useState<MerchantState | null>(null);
+  const [isMerchantLoading, setIsMerchantLoading] = useState(false);
+  const [isMerchantMutating, setIsMerchantMutating] = useState(false);
+  const [draggingMerchantOfferId, setDraggingMerchantOfferId] = useState<string | null>(null);
+  const [merchantOfferFilters, setMerchantOfferFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
+  const [merchantPlayerFilters, setMerchantPlayerFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
   const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -2785,39 +2876,52 @@ export function App() {
     [draggingInventoryCardId, inventoryItems]
   );
   const hintedEquipmentSlotId = draggingInventoryItem?.equipSlotId ?? null;
-  const activeInventoryCategoryFilters = useMemo<InventoryCategoryFilter[]>(() => {
-    const filters: InventoryCategoryFilter[] = [];
-    if (showOnlyWeapons) {
-      filters.push("weapon");
+  function getActiveInventoryCategoryFilters(filters: InventoryFilterState): InventoryCategoryFilter[] {
+    const activeFilters: InventoryCategoryFilter[] = [];
+    if (filters.showOnlyWeapons) {
+      activeFilters.push("weapon");
     }
-    if (showOnlyArmor) {
-      filters.push("armor");
+    if (filters.showOnlyArmor) {
+      activeFilters.push("armor");
     }
-    if (showOnlyJewelry) {
-      filters.push("jewelry");
+    if (filters.showOnlyJewelry) {
+      activeFilters.push("jewelry");
     }
-    return filters;
-  }, [showOnlyArmor, showOnlyJewelry, showOnlyWeapons]);
-  const filteredInventoryItems = useMemo(() => {
-    const filteredItems = inventoryItems.filter((item) => {
-      if (showOnlyWearable && !item.equipable) {
+    return activeFilters;
+  }
+
+  function applyInventoryFilters(items: InventoryItem[], filters: InventoryFilterState): InventoryItem[] {
+    const activeFilters = getActiveInventoryCategoryFilters(filters);
+    const filteredItems = items.filter((item) => {
+      if (filters.showOnlyWearable && !item.equipable) {
         return false;
       }
-      if (activeInventoryCategoryFilters.length === 0) {
+      if (activeFilters.length === 0) {
         return true;
       }
       const category = item.archetype?.majorCategory;
       if (!category) {
         return false;
       }
-      return activeInventoryCategoryFilters.includes(category as InventoryCategoryFilter);
+      return activeFilters.includes(category as InventoryCategoryFilter);
     });
+
     return [...filteredItems].sort((firstItem, secondItem) =>
-      powerSortDirection === "desc"
+      filters.powerSortDirection === "desc"
         ? secondItem.power - firstItem.power
         : firstItem.power - secondItem.power
     );
-  }, [activeInventoryCategoryFilters, inventoryItems, powerSortDirection, showOnlyWearable]);
+  }
+
+  const filteredInventoryItems = useMemo(() => {
+    return applyInventoryFilters(inventoryItems, {
+      showOnlyWeapons,
+      showOnlyArmor,
+      showOnlyJewelry,
+      showOnlyWearable,
+      powerSortDirection
+    });
+  }, [inventoryItems, powerSortDirection, showOnlyArmor, showOnlyJewelry, showOnlyWeapons, showOnlyWearable]);
   const activeChatMessages = chatMessagesByChannel[activeChatChannel];
   const isInventoryChatVisible = canDockInventoryChat ? isInventoryChatDockedVisible : isInventoryChatOverlayOpen;
   const activeCharacterVisual =
@@ -2831,6 +2935,11 @@ export function App() {
     setPlayerState(nextState ? applyMockPlayerStateOverrides(nextState) : null);
     setInventoryItems(nextState ? nextState.inventory.map((item) => toLocalInventoryItem(item)) : []);
     setEquippedItems(nextState ? toLocalEquipmentState(nextState.equipment) : createEmptyEquippedItems());
+  }
+
+  function applyMerchantTransaction(response: MerchantTransactionResponse) {
+    applyAuthoritativePlayerState(response.playerState);
+    setMerchantState(toLocalMerchantState(response.merchantState));
   }
 
   function getAllowedSlotIdsForItem(item: InventoryItem): EquipmentSlotId[] {
@@ -2857,6 +2966,57 @@ export function App() {
       setError(err instanceof Error ? err.message : i18n.t("errors.invalidItem"));
     } finally {
       setIsInventoryMutating(false);
+    }
+  }
+
+  async function handleMerchantBuy(offerId: string) {
+    if (!token || isMerchantMutating) {
+      return;
+    }
+
+    try {
+      setIsMerchantMutating(true);
+      const response = await buyMerchantOffer(token, offerId);
+      applyMerchantTransaction(response);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Merchant purchase failed");
+    } finally {
+      setIsMerchantMutating(false);
+    }
+  }
+
+  async function handleMerchantSell(itemId: string, fromSlot: string) {
+    if (!token || isMerchantMutating) {
+      return;
+    }
+
+    try {
+      setIsMerchantMutating(true);
+      const response = await sellMerchantItem(token, itemId, fromSlot);
+      applyMerchantTransaction(response);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Merchant sale failed");
+    } finally {
+      setIsMerchantMutating(false);
+    }
+  }
+
+  async function handleMerchantRestock() {
+    if (!token || isMerchantMutating) {
+      return;
+    }
+
+    try {
+      setIsMerchantMutating(true);
+      const response = await restockMerchant(token);
+      applyMerchantTransaction(response);
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Merchant restock failed");
+    } finally {
+      setIsMerchantMutating(false);
     }
   }
 
@@ -2887,6 +3047,44 @@ export function App() {
 
     return totals;
   }, [equippedItems]);
+  const merchantInventoryItems = useMemo(
+    () => inventoryItems,
+    [inventoryItems]
+  );
+  const merchantEquippedEntries = useMemo(
+    () =>
+      ALL_EQUIPMENT_SLOTS.map((slotId) => ({
+        slotId,
+        item: equippedItems[slotId]
+      })).filter((entry) => entry.item !== null) as Array<{ slotId: EquipmentSlotId; item: InventoryItem }>,
+    [equippedItems]
+  );
+  const filteredMerchantOffers = useMemo(
+    () =>
+      (merchantState?.offers ?? [])
+        .filter((offer) => applyInventoryFilters([offer.item], merchantOfferFilters).length > 0)
+        .sort((left, right) =>
+          merchantOfferFilters.powerSortDirection === "desc"
+            ? right.item.power - left.item.power
+            : left.item.power - right.item.power
+        ),
+    [merchantOfferFilters, merchantState?.offers]
+  );
+  const filteredMerchantInventoryItems = useMemo(
+    () => applyInventoryFilters(merchantInventoryItems, merchantPlayerFilters),
+    [merchantInventoryItems, merchantPlayerFilters]
+  );
+  const filteredMerchantEquippedEntries = useMemo(
+    () =>
+      merchantEquippedEntries
+        .filter((entry) => applyInventoryFilters([entry.item], merchantPlayerFilters).length > 0)
+        .sort((left, right) =>
+          merchantPlayerFilters.powerSortDirection === "desc"
+            ? right.item.power - left.item.power
+            : left.item.power - right.item.power
+        ),
+    [merchantEquippedEntries, merchantPlayerFilters]
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -3179,6 +3377,7 @@ export function App() {
 
     if (!token) {
       applyAuthoritativePlayerState(null);
+      setMerchantState(null);
       setIsLoadingState(false);
       return () => {
         active = false;
@@ -3229,6 +3428,47 @@ export function App() {
   }, [token]);
 
   useEffect(() => {
+    let active = true;
+
+    if (!token) {
+      setMerchantState(null);
+      setIsMerchantLoading(false);
+      return () => {
+        active = false;
+      };
+    }
+
+    if (activeTab !== "merchant") {
+      return () => {
+        active = false;
+      };
+    }
+
+    setIsMerchantLoading(true);
+
+    void fetchMerchantState(token)
+      .then((state) => {
+        if (active) {
+          setMerchantState(toLocalMerchantState(state));
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Merchant state failed");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsMerchantLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, token, playerState?.playerId]);
+
+  useEffect(() => {
     // Clear form fields when switching between login and register
     setAuthEmail("");
     setAuthPassword("");
@@ -3268,6 +3508,18 @@ export function App() {
     setActiveStatTraining(null);
     setActiveContractEncounter(null);
   }, [playerState?.playerId]);
+
+  useEffect(() => {
+    if (!playerState) {
+      setCurrencies(null);
+      return;
+    }
+
+    setCurrencies({
+      ducats: Math.max(playerState.currency.ducats, TEST_MIN_DUCATS),
+      imperials: playerState.currency.imperials
+    });
+  }, [playerState?.currency.ducats, playerState?.currency.imperials]);
 
   useEffect(() => {
     setContractSlots((previousSlots) => {
@@ -3780,6 +4032,9 @@ export function App() {
     setIsInventoryChatOverlayOpen(false);
     setBaseStats(null);
     setCurrencies(null);
+    setMerchantState(null);
+    setMerchantOfferFilters(DEFAULT_INVENTORY_FILTER_STATE);
+    setMerchantPlayerFilters(DEFAULT_INVENTORY_FILTER_STATE);
     setActiveStatTraining(null);
     setContractSlots(createContractSlots(Date.now()));
     setActiveContractEncounter(null);
@@ -3872,6 +4127,9 @@ export function App() {
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData(DRAG_PAYLOAD_MIME, JSON.stringify(payload));
     event.dataTransfer.setData("application/x-ebonkeep-item-id", payload.itemId);
+    if (payload.source === "merchant") {
+      event.dataTransfer.setData("application/x-ebonkeep-merchant-offer-id", payload.offerId);
+    }
     event.dataTransfer.setData("text/plain", payload.itemId);
   }
 
@@ -3890,6 +4148,13 @@ export function App() {
           isEquipmentSlotId(parsedPayload.slotId)
         ) {
           return { source: "equipment", itemId: parsedPayload.itemId, slotId: parsedPayload.slotId };
+        }
+        if (
+          parsedPayload.source === "merchant" &&
+          typeof parsedPayload.itemId === "string" &&
+          typeof parsedPayload.offerId === "string"
+        ) {
+          return { source: "merchant", itemId: parsedPayload.itemId, offerId: parsedPayload.offerId };
         }
       } catch {
         return null;
@@ -3914,12 +4179,20 @@ export function App() {
       return { source: "inventory", itemId: draggingInventoryCardId };
     }
 
+    if (draggingMerchantOfferId) {
+      const merchantOffer = merchantState?.offers.find((offer) => offer.offerId === draggingMerchantOfferId);
+      if (merchantOffer) {
+        return { source: "merchant", offerId: merchantOffer.offerId, itemId: merchantOffer.item.id };
+      }
+    }
+
     return null;
   }
 
   function clearDragState() {
     setDraggingInventoryCardId(null);
     setDraggingEquipmentSlotId(null);
+    setDraggingMerchantOfferId(null);
     setDropTargetInventoryCardId(null);
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
@@ -3928,6 +4201,10 @@ export function App() {
 
   function getItemById(itemId: string): InventoryItem | null {
     return inventoryItems.find((item) => item.id === itemId) ?? null;
+  }
+
+  function getMerchantOfferById(offerId: string): MerchantOffer | null {
+    return merchantState?.offers.find((offer) => offer.offerId === offerId) ?? null;
   }
 
   function getEquipValidationError(item: InventoryItem, targetSlotId: EquipmentSlotId): string | null {
@@ -3986,6 +4263,21 @@ export function App() {
     await performInventoryMove(itemId, "inventory", targetSlotId);
   }
 
+  async function handleMerchantOfferInteract(offerId: string) {
+    const offer = getMerchantOfferById(offerId);
+    if (!offer || isMerchantMutating) {
+      return;
+    }
+    await handleMerchantBuy(offerId);
+  }
+
+  async function handleMerchantPlayerItemInteract(itemId: string, fromSlot: string) {
+    if (isMerchantMutating) {
+      return;
+    }
+    await handleMerchantSell(itemId, fromSlot);
+  }
+
   function toggleInventoryPowerSort() {
     const nextDirection = powerSortDirection === "asc" ? "desc" : "asc";
     setPowerSortDirection(nextDirection);
@@ -3999,6 +4291,42 @@ export function App() {
     setShowOnlyWeapons(filter === "weapon" ? nextActive : false);
     setShowOnlyArmor(filter === "armor" ? nextActive : false);
     setShowOnlyJewelry(filter === "jewelry" ? nextActive : false);
+  }
+
+  function toggleFilterStatePowerSort(setter: (updater: (previous: InventoryFilterState) => InventoryFilterState) => void) {
+    setter((previous) => ({
+      ...previous,
+      powerSortDirection: previous.powerSortDirection === "asc" ? "desc" : "asc"
+    }));
+  }
+
+  function toggleExclusiveFilterStateCategory(
+    setter: (updater: (previous: InventoryFilterState) => InventoryFilterState) => void,
+    filter: InventoryCategoryFilter
+  ) {
+    setter((previous) => {
+      const isActive =
+        filter === "weapon"
+          ? previous.showOnlyWeapons
+          : filter === "armor"
+            ? previous.showOnlyArmor
+            : previous.showOnlyJewelry;
+      const nextActive = !isActive;
+
+      return {
+        ...previous,
+        showOnlyWeapons: filter === "weapon" ? nextActive : false,
+        showOnlyArmor: filter === "armor" ? nextActive : false,
+        showOnlyJewelry: filter === "jewelry" ? nextActive : false
+      };
+    });
+  }
+
+  function toggleFilterStateWearable(setter: (updater: (previous: InventoryFilterState) => InventoryFilterState) => void) {
+    setter((previous) => ({
+      ...previous,
+      showOnlyWearable: !previous.showOnlyWearable
+    }));
   }
 
   function openInventoryChat() {
@@ -4086,6 +4414,7 @@ export function App() {
     setDragPayload(event, { source: "inventory", itemId });
     setDraggingInventoryCardId(itemId);
     setDraggingEquipmentSlotId(null);
+    setDraggingMerchantOfferId(null);
     setDropTargetInventoryCardId(itemId);
     setDropInsertPosition("before");
     setEquipmentDropTargetSlotId(null);
@@ -4102,9 +4431,21 @@ export function App() {
     setDragPayload(event, { source: "equipment", slotId, itemId: sourceItem.id });
     setDraggingEquipmentSlotId(slotId);
     setDraggingInventoryCardId(null);
+    setDraggingMerchantOfferId(null);
     setDropTargetInventoryCardId(null);
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
+  }
+
+  function handleMerchantOfferDragStart(event: DragEvent<HTMLElement>, offerId: string, itemId: string) {
+    setDragPayload(event, { source: "merchant", offerId, itemId });
+    setDraggingMerchantOfferId(offerId);
+    setDraggingInventoryCardId(null);
+    setDraggingEquipmentSlotId(null);
+    setDropTargetInventoryCardId(null);
+    setEquipmentDropTargetSlotId(null);
+    setEquipmentDropState(null);
+    setInventoryComparisonHover(null);
   }
 
   function handleInventoryCardDragOver(event: DragEvent<HTMLElement>, targetItemId: string) {
@@ -4140,11 +4481,48 @@ export function App() {
     clearDragState();
   }
 
+  function handleMerchantInventoryDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    const payload = readDragPayload(event);
+    if (!payload) {
+      clearDragState();
+      return;
+    }
+
+    if (payload.source === "inventory") {
+      void handleMerchantPlayerItemInteract(payload.itemId, "inventory");
+    } else if (payload.source === "equipment") {
+      void handleMerchantPlayerItemInteract(payload.itemId, payload.slotId);
+    }
+
+    clearDragState();
+  }
+
+  function handlePlayerMerchantListDrop(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    const payload = readDragPayload(event);
+    if (!payload) {
+      clearDragState();
+      return;
+    }
+
+    if (payload.source === "merchant") {
+      void handleMerchantOfferInteract(payload.offerId);
+    }
+
+    clearDragState();
+  }
+
   function handleInventoryCardDragEnd() {
     clearDragState();
   }
 
-  function handleInventoryCardMouseEnter(item: InventoryItem, cardElement: HTMLElement) {
+  function handleInventoryCardMouseEnter(
+    item: InventoryItem,
+    hoverKey: string,
+    cardElement: HTMLElement,
+    placement: "left" | "right" = "left"
+  ) {
     if (!item.equipable) {
       setInventoryComparisonHover(null);
       return;
@@ -4159,11 +4537,15 @@ export function App() {
     const rect = cardElement.getBoundingClientRect();
     const cardWidth = Math.round(rect.width);
     const gapPx = 12;
-    const left = Math.max(8, Math.round(rect.left - cardWidth - gapPx));
+    const left =
+      placement === "right"
+        ? Math.round(rect.right + gapPx)
+        : Math.max(8, Math.round(rect.left - cardWidth - gapPx));
     const top = Math.max(8, Math.round(rect.top));
 
     setInventoryComparisonHover({
-      targetItemId: item.id,
+      hoverKey,
+      sourceItem: item,
       slotId: item.equipSlotId,
       top,
       left,
@@ -4171,18 +4553,22 @@ export function App() {
     });
   }
 
-  function handleInventoryCardMouseLeave(itemId: string) {
+  function handleInventoryCardMouseLeave(hoverKey: string) {
     setInventoryComparisonHover((previousHover) =>
-      previousHover?.targetItemId === itemId ? null : previousHover
+      previousHover?.hoverKey === hoverKey ? null : previousHover
     );
   }
 
   function renderInventoryComparisonOverlay(): ReactElement | null {
-    if (!inventoryComparisonHover || profileSideTab !== "inventory") {
+    if (
+      !inventoryComparisonHover ||
+      (activeTab === "inventory" && profileSideTab !== "inventory") ||
+      (activeTab !== "inventory" && activeTab !== "merchant")
+    ) {
       return null;
     }
 
-    const sourceItem = inventoryItems.find((item) => item.id === inventoryComparisonHover.targetItemId);
+    const sourceItem = inventoryComparisonHover.sourceItem;
     if (!sourceItem || !sourceItem.equipable) {
       return null;
     }
@@ -4193,6 +4579,7 @@ export function App() {
     }
 
     const canUseComparisonItem = canPlayerUseItem(comparisonItem, playerState);
+    const powerDelta = comparisonItem.power - sourceItem.power;
 
     return (
       <div
@@ -4204,7 +4591,7 @@ export function App() {
         }}
       >
         <article className={`inventoryItemCard inventoryComparisonCard rarity-${comparisonItem.rarity}`}>
-          {renderInventoryItemCardBody(comparisonItem, canUseComparisonItem)}
+          {renderInventoryItemCardBody(comparisonItem, canUseComparisonItem, undefined, "Equipped", powerDelta)}
         </article>
       </div>
     );
@@ -4220,7 +4607,7 @@ export function App() {
     const sourceItem =
       payload.source === "inventory"
         ? getItemById(payload.itemId)
-        : payload.slotId
+        : payload.source === "equipment" && payload.slotId
           ? equippedItems[payload.slotId]
           : null;
     const validationError = sourceItem ? getEquipValidationError(sourceItem, targetSlotId) : i18n.t("errors.invalidItem");
@@ -5037,7 +5424,9 @@ export function App() {
               onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
               onDrop={allowDrag ? (event) => handleInventoryCardDrop(event, item.id) : undefined}
               onDoubleClick={allowDrag ? () => handleInventoryCardDoubleClick(item.id) : undefined}
-              onMouseEnter={allowDrag ? (event) => handleInventoryCardMouseEnter(item, event.currentTarget) : undefined}
+              onMouseEnter={
+                allowDrag ? (event) => handleInventoryCardMouseEnter(item, item.id, event.currentTarget, "left") : undefined
+              }
               onMouseLeave={allowDrag ? () => handleInventoryCardMouseLeave(item.id) : undefined}
               onDragEnd={allowDrag ? handleInventoryCardDragEnd : undefined}
             >
@@ -5046,6 +5435,292 @@ export function App() {
           );
         })}
       </div>
+    );
+  }
+
+  function renderInventoryControlsRow(args: {
+    idPrefix: string;
+    filters: InventoryFilterState;
+    totalCount: number;
+    shownCount: number;
+    onTogglePowerSort: () => void;
+    onToggleCategory: (filter: InventoryCategoryFilter) => void;
+    onToggleWearable: () => void;
+  }): ReactElement {
+    return (
+      <>
+        <div className="inventoryToolbarSticky">
+          <div className="inventoryControlsRow">
+            <div className="inventoryControlWithTooltip">
+              <button
+                type="button"
+                className="inventoryIconButton"
+                onClick={args.onTogglePowerSort}
+                aria-label={i18n.t("inventory.sortByPower")}
+                aria-describedby={`${args.idPrefix}-power-sort-tooltip`}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M7 4L4 7h2v9h2V7h2L7 4zM13 16l3-3h-2V4h-2v9h-2l3 3z" />
+                </svg>
+              </button>
+              <div
+                id={`${args.idPrefix}-power-sort-tooltip`}
+                className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
+                role="tooltip"
+              >
+                <p className="uiHoverTooltipTitle">{i18n.t("inventory.sortItems")}</p>
+              </div>
+            </div>
+
+            <div className="inventoryFilterButtons">
+              <div className="inventoryControlWithTooltip">
+                <button
+                  type="button"
+                  className={`inventoryIconButton${args.filters.showOnlyWeapons ? " active" : ""}`}
+                  onClick={() => args.onToggleCategory("weapon")}
+                  aria-label={i18n.t("inventory.filterWeaponsAria")}
+                  aria-pressed={args.filters.showOnlyWeapons}
+                >
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M4 16l4-4 2 2-4 4H4v-2zm8-9l1.5-1.5L16 8l-1.5 1.5L12 7zM10.5 8.5l1-1 1.5 1.5-1 1-1.5-1.5zM8 11l2-2 1.5 1.5-2 2L8 11z" />
+                  </svg>
+                </button>
+              </div>
+              <div className="inventoryControlWithTooltip">
+                <button
+                  type="button"
+                  className={`inventoryIconButton${args.filters.showOnlyArmor ? " active" : ""}`}
+                  onClick={() => args.onToggleCategory("armor")}
+                  aria-label={i18n.t("inventory.filterArmorAria")}
+                  aria-pressed={args.filters.showOnlyArmor}
+                >
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M10 3l5 2v4c0 3.5-2.2 6-5 8-2.8-2-5-4.5-5-8V5l5-2zm0 2.2L7 6.3v2.6c0 2.4 1.4 4.3 3 5.8 1.6-1.5 3-3.4 3-5.8V6.3l-3-1.1z" />
+                  </svg>
+                </button>
+              </div>
+              <div className="inventoryControlWithTooltip">
+                <button
+                  type="button"
+                  className={`inventoryIconButton${args.filters.showOnlyJewelry ? " active" : ""}`}
+                  onClick={() => args.onToggleCategory("jewelry")}
+                  aria-label={i18n.t("inventory.filterJewelryAria")}
+                  aria-pressed={args.filters.showOnlyJewelry}
+                >
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M10 5a5 5 0 105 5 5 5 0 00-5-5zm0 2a3 3 0 110 6 3 3 0 010-6zM4 4h3v2H4zM13 4h3v2h-3z" />
+                  </svg>
+                </button>
+              </div>
+              <div className="inventoryControlWithTooltip">
+                <button
+                  type="button"
+                  className={`inventoryIconButton${args.filters.showOnlyWearable ? " active" : ""}`}
+                  onClick={args.onToggleWearable}
+                  aria-label={i18n.t("inventory.filterWearableAria")}
+                  aria-pressed={args.filters.showOnlyWearable}
+                >
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <path d="M7 3h6l2 3-2 2-1-1v9H8V7L7 8 5 6l2-3z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p className="inventoryFilterSummary">
+            {i18n.t("inventory.summary", {
+              shown: args.shownCount,
+              total: args.totalCount
+            })}
+          </p>
+        </div>
+      </>
+    );
+  }
+
+  function renderMerchantOffers(): ReactElement {
+    if (!merchantState || merchantState.offers.length === 0) {
+      return <p>No merchant stock available.</p>;
+    }
+
+    return (
+      <div
+        className="inventoryCards inventoryCardsSingleColumn merchantDropZone"
+        onDragOver={(event) => {
+          const payload = readDragPayload(event);
+          if (!payload || payload.source === "merchant") {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={handleMerchantInventoryDrop}
+      >
+        {filteredMerchantOffers.map((offer) => {
+          const canUseItem = canPlayerUseItem(offer.item, playerState);
+
+          return (
+            <article
+              key={offer.offerId}
+              className={`inventoryItemCard rarity-${offer.item.rarity}${draggingMerchantOfferId === offer.offerId ? " isDragSource" : ""}`}
+              draggable={!isMerchantMutating}
+              onDragStart={(event) => handleMerchantOfferDragStart(event, offer.offerId, offer.item.id)}
+              onDragEnd={handleInventoryCardDragEnd}
+              onDoubleClick={() => void handleMerchantOfferInteract(offer.offerId)}
+              onMouseEnter={(event) => handleInventoryCardMouseEnter(offer.item, offer.offerId, event.currentTarget, "right")}
+              onMouseLeave={() => handleInventoryCardMouseLeave(offer.offerId)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                void handleMerchantOfferInteract(offer.offerId);
+              }}
+            >
+              {renderInventoryItemCardBody(offer.item, canUseItem, offer.buyPriceDucats.toLocaleString())}
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderMerchantSellCards(entries: Array<{ item: InventoryItem; fromSlot: string }>): ReactElement {
+    if (entries.length === 0) {
+      return <p>No items available.</p>;
+    }
+
+    return (
+      <div
+        className="inventoryCards inventoryCardsSingleColumn merchantDropZone"
+        onDragOver={(event) => {
+          const payload = readDragPayload(event);
+          if (!payload || payload.source !== "merchant") {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={handlePlayerMerchantListDrop}
+      >
+        {entries.map((entry) => {
+          const canUseItem = canPlayerUseItem(entry.item, playerState);
+          const sellPrice = merchantState?.sellPrices[entry.item.id] ?? 0;
+
+          return (
+            <article
+              key={`${entry.fromSlot}-${entry.item.id}`}
+              className={`inventoryItemCard rarity-${entry.item.rarity}`}
+              draggable={!isMerchantMutating}
+              onDragStart={
+                entry.fromSlot === "inventory"
+                  ? (event) => handleInventoryCardDragStart(event, entry.item.id)
+                  : (event) => handleEquipmentSlotDragStart(event, entry.fromSlot as EquipmentSlotId)
+              }
+              onDragEnd={handleInventoryCardDragEnd}
+              onDoubleClick={() => void handleMerchantPlayerItemInteract(entry.item.id, entry.fromSlot)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                void handleMerchantPlayerItemInteract(entry.item.id, entry.fromSlot);
+              }}
+            >
+              {renderInventoryItemCardBody(entry.item, canUseItem, sellPrice.toLocaleString())}
+            </article>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderMerchantPanel(): ReactElement {
+    if (isMerchantLoading) {
+      return renderPlaceholderPanel(i18n.t("menu.merchant"), "Loading merchant stock...");
+    }
+
+    if (!playerState || !merchantState) {
+      return renderPlaceholderPanel(i18n.t("menu.merchant"), "Merchant stock is unavailable.");
+    }
+
+    const nextRefreshMs = Math.max(0, merchantState.nextRefreshAtMs - nowMs);
+    const inventorySellEntries = filteredMerchantInventoryItems.map((item) => ({
+      item,
+      fromSlot: "inventory"
+    }));
+    const equippedSellEntries = filteredMerchantEquippedEntries.map((entry) => ({
+      item: entry.item,
+      fromSlot: entry.slotId
+    }));
+    const currentDucats = currencies?.ducats ?? playerState.currency.ducats;
+
+    return (
+      <section className="contentShell merchantShell">
+        <section className="contentStack merchantStack">
+          <article className="contentCard merchantHeaderCard">
+            <div className="merchantHeaderTop">
+              <div>
+                <h2>{i18n.t("menu.merchant")}</h2>
+                <p className="merchantHeaderText">
+                  Rotating heavy armor and melee stock. Inventory refreshes every 12 hours.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="merchantTradeButton"
+                onClick={handleMerchantRestock}
+                disabled={isMerchantMutating}
+              >
+                Restock
+              </button>
+            </div>
+            <div className="merchantStatusRow">
+              <span className="merchantTradePrice merchantTradePriceXL">Ducats: {currentDucats.toLocaleString()}</span>
+              <span className="merchantTradeMeta">Next refresh in {formatDurationFromMs(nextRefreshMs)}</span>
+            </div>
+          </article>
+
+          <section className="merchantColumns">
+            <article className="contentCard merchantColumnCard">
+              <div className="inventoryHeader">
+                <h3>Merchant Inventory</h3>
+                <p>{filteredMerchantOffers.length} offers</p>
+              </div>
+              {renderInventoryControlsRow({
+                idPrefix: "merchant-stock",
+                filters: merchantOfferFilters,
+                totalCount: merchantState.offers.length,
+                shownCount: filteredMerchantOffers.length,
+                onTogglePowerSort: () => toggleFilterStatePowerSort(setMerchantOfferFilters),
+                onToggleCategory: (filter) => toggleExclusiveFilterStateCategory(setMerchantOfferFilters, filter),
+                onToggleWearable: () => toggleFilterStateWearable(setMerchantOfferFilters)
+              })}
+              <div className="merchantColumnBody">{renderMerchantOffers()}</div>
+            </article>
+
+            <article className="contentCard merchantColumnCard">
+              <div className="inventoryHeader">
+                <h3>Your Inventory</h3>
+                <p>{inventorySellEntries.length} bag items</p>
+              </div>
+              {renderInventoryControlsRow({
+                idPrefix: "merchant-player",
+                filters: merchantPlayerFilters,
+                totalCount: merchantInventoryItems.length + merchantEquippedEntries.length,
+                shownCount: inventorySellEntries.length + equippedSellEntries.length,
+                onTogglePowerSort: () => toggleFilterStatePowerSort(setMerchantPlayerFilters),
+                onToggleCategory: (filter) => toggleExclusiveFilterStateCategory(setMerchantPlayerFilters, filter),
+                onToggleWearable: () => toggleFilterStateWearable(setMerchantPlayerFilters)
+              })}
+              <div className="merchantColumnBody merchantColumnBodyStacked">
+                {renderMerchantSellCards(inventorySellEntries)}
+
+                <div className="inventoryHeader merchantSectionHeader">
+                  <h3>Equipped</h3>
+                  <p>{merchantEquippedEntries.length} equipped items</p>
+                </div>
+                {renderMerchantSellCards(equippedSellEntries)}
+              </div>
+            </article>
+          </section>
+          {renderInventoryComparisonOverlay()}
+        </section>
+      </section>
     );
   }
 
@@ -6024,7 +6699,7 @@ export function App() {
           i18n.t("placeholders.auctionHouse")
         );
       case "merchant":
-        return renderPlaceholderPanel(i18n.t("menu.merchant"), i18n.t("placeholders.merchant"));
+        return renderMerchantPanel();
       case "shop":
         return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
       case "leaderboards":

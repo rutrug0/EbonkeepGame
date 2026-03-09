@@ -4384,6 +4384,10 @@ button:focus-visible {
   gap: var(--space-3);
 }
 
+.inventoryCardsSingleColumn {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .itemVisualIcon {
   display: inline-flex;
   align-items: center;
@@ -4535,6 +4539,14 @@ button:focus-visible {
   grid-column: 1 / -1;
 }
 
+.inventoryCardTopAside {
+  position: relative;
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  gap: 2px;
+}
+
 .inventoryCardVisual {
   grid-column: 1;
   border: 1px solid rgba(190, 173, 142, 0.22);
@@ -4558,6 +4570,19 @@ button:focus-visible {
   max-width: none;
   max-height: none;
   object-fit: cover;
+}
+
+.inventoryCardVisual.isRestricted {
+  border-color: rgba(178, 76, 76, 0.52);
+  background:
+    linear-gradient(0deg, rgba(109, 28, 28, 0.24), rgba(109, 28, 28, 0.24)),
+    radial-gradient(circle at 50% 24%, rgba(181, 142, 87, 0.14), transparent 52%),
+    linear-gradient(170deg, rgba(25, 33, 41, 0.9), rgba(16, 22, 29, 0.94));
+}
+
+.inventoryCardVisual.isRestricted .itemVisualImage,
+.inventoryCardVisual.isRestricted .itemVisualImageCard {
+  filter: saturate(0.42) sepia(0.34) hue-rotate(-24deg) brightness(0.9);
 }
 
 .inventoryCardIcon {
@@ -4610,6 +4635,25 @@ button:focus-visible {
   letter-spacing: 0.01em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--text-main) 88%, var(--accent-info) 12%);
+}
+
+.merchantCardPriceOverlay {
+  font-size: 1.26rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #d9bb72;
+}
+
+.inventoryCardTopAsideNote {
+  position: absolute;
+  top: calc(100% - 2px);
+  right: 0;
+  font-size: 0.82rem;
+  line-height: 1;
+  font-style: italic;
+  color: color-mix(in srgb, var(--text-soft) 90%, white 10%);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .inventoryCardDescription {
@@ -4681,6 +4725,19 @@ button:focus-visible {
   color: var(--text-main);
 }
 
+.inventoryCardPowerDelta {
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.inventoryCardPowerDelta.positive {
+  color: #6fcb78;
+}
+
+.inventoryCardPowerDelta.negative {
+  color: #d56a6a;
+}
+
 .equipmentSlotPower {
   position: absolute;
   left: 6px;
@@ -4704,12 +4761,157 @@ button:focus-visible {
   gap: var(--space-2);
 }
 
+.merchantShell {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.merchantStack {
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+  grid-template-rows: auto 1fr;
+}
+
+.merchantHeaderCard,
+.merchantColumnCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.merchantHeaderTop {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.merchantHeaderTop h2 {
+  margin: 0 0 6px;
+}
+
+.merchantHeaderText {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.merchantStatusRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.merchantColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: stretch;
+  min-height: 0;
+}
+
+.merchantTradeActionRow {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.merchantTradeActionRowStacked {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.merchantTradeActionInline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.merchantTradePrice {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: #d9bb72;
+}
+
+.merchantTradePriceLarge {
+  font-size: 1.38rem;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+}
+
+.merchantTradePriceXL {
+  font-size: 1.72rem;
+  line-height: 1.05;
+}
+
+.merchantTradeMeta {
+  font-size: 0.92rem;
+  color: var(--text-soft);
+}
+
+.merchantTradeButton {
+  border: 1px solid rgba(197, 168, 110, 0.38);
+  border-radius: 999px;
+  padding: 9px 16px;
+  background: linear-gradient(180deg, rgba(156, 114, 48, 0.95), rgba(97, 69, 28, 0.98));
+  color: #f8efe0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.merchantTradeButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.merchantSectionHeader {
+  margin-top: var(--space-2);
+}
+
+.merchantColumnBody {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding-right: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.merchantColumnBodyStacked {
+  align-content: start;
+}
+
+.merchantColumnBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.merchantDropZone {
+  min-height: 84px;
+}
+
 .inventoryCardLevel {
   font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.35;
   color: var(--text-soft);
   text-align: right;
+}
+
+.inventoryCardLevel.isRestricted {
+  color: #d56a6a;
 }
 
 .inventoryItemCard.rarity-common,
@@ -4723,6 +4925,12 @@ button:focus-visible {
   background:
     radial-gradient(circle at 50% 24%, rgba(173, 184, 194, 0.16), transparent 54%),
     linear-gradient(170deg, rgba(27, 35, 43, 0.92), rgba(17, 24, 31, 0.96));
+}
+
+@media (max-width: 1180px) {
+  .merchantColumns {
+    grid-template-columns: 1fr;
+  }
 }
 
 .inventoryItemCard.rarity-uncommon,

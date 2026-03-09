@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { ensureStarterInventoryItems } from "../src/modules/inventory/starter-items.js";
 
 const prisma = new PrismaClient();
+const TEST_STARTING_DUCATS = 100_000;
 const equipmentSlotIds = [
   "helmet",
   "necklace",
@@ -65,11 +66,11 @@ async function main(): Promise<void> {
   await prisma.currencyBalance.upsert({
     where: { playerId: profile.id },
     update: {
-      ducats: 1000
+      ducats: TEST_STARTING_DUCATS
     },
     create: {
       playerId: profile.id,
-      ducats: 1000,
+      ducats: TEST_STARTING_DUCATS,
       imperials: 10
     }
   });

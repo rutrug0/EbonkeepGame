@@ -38,6 +38,8 @@ const resetPasswordBodySchema = z.object({
   newPassword: z.string().min(8)
 });
 
+const TEST_STARTING_DUCATS = 100_000;
+
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Register endpoint
   fastify.post("/v1/auth/register", async (request, reply) => {
@@ -106,11 +108,11 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
     });
 
-    // Create currency balance (start with 0 imperials, 1000 ducats)
+    // Create currency balance with a large temporary test amount for merchant iteration work.
     await fastify.prisma.currencyBalance.create({
       data: {
         playerId: profile.id,
-        ducats: 1000,
+        ducats: TEST_STARTING_DUCATS,
         imperials: 0
       }
     });
@@ -248,11 +250,11 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.prisma.currencyBalance.upsert({
       where: { playerId: profile.id },
       update: {
-        ducats: 1000
+        ducats: TEST_STARTING_DUCATS
       },
       create: {
         playerId: profile.id,
-        ducats: 1000,
+        ducats: TEST_STARTING_DUCATS,
         imperials: 10
       }
     });

@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "lint": "echo \"No lint configured for @ebonkeep/api\"",
-    "db:migrate": "prisma migrate dev --name init",
+    "db:migrate": "prisma migrate dev --name init --skip-generate",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts"
   },

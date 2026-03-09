@@ -304,6 +304,12 @@ export const playerStatSnapshotSchema = z.object({
 });
 export type PlayerStatSnapshot = z.infer<typeof playerStatSnapshotSchema>;
 
+export const currencyBalanceSchema = z.object({
+  ducats: z.number().int().min(0),
+  imperials: z.number().int().min(0)
+});
+export type CurrencyBalance = z.infer<typeof currencyBalanceSchema>;
+
 export const itemRaritySchema = z.enum(["common", "uncommon", "rare", "epic"]);
 export type ItemRarity = z.infer<typeof itemRaritySchema>;
 
@@ -425,10 +431,7 @@ export const playerStateSchema = z.object({
   statSnapshot: playerStatSnapshotSchema,
   inventory: z.array(inventoryItemSchema),
   equipment: equipmentStateSchema,
-  currency: z.object({
-    ducats: z.number().int().min(0),
-    imperials: z.number().int().min(0)
-  })
+  currency: currencyBalanceSchema
 });
 export type PlayerState = z.infer<typeof playerStateSchema>;
 
@@ -553,6 +556,47 @@ export const inventoryMoveResponseSchema = z.object({
   playerState: playerStateSchema
 });
 export type InventoryMoveResponse = z.infer<typeof inventoryMoveResponseSchema>;
+
+export const merchantOfferSchema = z.object({
+  offerId: z.string(),
+  offerIndex: z.number().int().min(0),
+  item: inventoryItemSchema,
+  buyPriceDucats: z.number().int().min(0),
+  sold: z.boolean(),
+  refreshAt: z.string()
+});
+export type MerchantOffer = z.infer<typeof merchantOfferSchema>;
+
+export const merchantStateSchema = z.object({
+  offers: z.array(merchantOfferSchema),
+  sellPrices: z.record(z.string(), z.number().int().min(0)),
+  nextRefreshAt: z.string(),
+  currency: currencyBalanceSchema
+});
+export type MerchantState = z.infer<typeof merchantStateSchema>;
+
+export const merchantBuyBodySchema = z.object({
+  offerId: z.string()
+});
+export type MerchantBuyBody = z.infer<typeof merchantBuyBodySchema>;
+
+export const merchantSellBodySchema = z.object({
+  itemId: z.string(),
+  fromSlot: z.string()
+});
+export type MerchantSellBody = z.infer<typeof merchantSellBodySchema>;
+
+export const merchantRestockBodySchema = z.object({}).default({});
+export type MerchantRestockBody = z.infer<typeof merchantRestockBodySchema>;
+
+export const merchantTransactionResponseSchema = z.object({
+  playerState: playerStateSchema,
+  merchantState: merchantStateSchema
+});
+export type MerchantTransactionResponse = z.infer<typeof merchantTransactionResponseSchema>;
+
+export const merchantStateResponseSchema = merchantStateSchema;
+export type MerchantStateResponse = z.infer<typeof merchantStateResponseSchema>;
 
 export const startJobBodySchema = z.object({
   jobType: z.enum(["short", "medium", "long"])
