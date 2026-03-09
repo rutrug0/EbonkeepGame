@@ -1,11 +1,43 @@
-﻿{
-  "auth": {"subtitle": "Mag-login para buksan ang iyong pangunahing pahina.", "loginGuest": "Mag-login bilang Guest"},
-  "menu": {
-    "title": "Menu", "inventory": "Imbentaryo", "encyclopedia": "Ensiklopedya", "contracts": "Mga Kontrata", "missions": "Mga Misyon", "arena": "Arena", "guild": "Guild", "castles": "Mga Kastilyo", "auctionHouse": "Auction House", "merchant": "Mangangalakal", "shop": "Imperial Shop", "leaderboards": "Leaderboards", "settings": "Mga Setting", "logout": "Mag-logout"
+{
+  "auth": {
+    "subtitle": "Mag-login para buksan ang iyong pangunahing pahina.",
+    "loginGuest": "Mag-login bilang Guest"
   },
-  "bars": {"health": "Kalusugan", "experience": "Karanasan"},
-  "chat": {"world": "World", "guild": "Guild", "send": "Ipadala", "empty": "Wala pang mensahe."},
-  "contracts": {"table": {"contract": "Kontrata", "difficulty": "Hirap", "action": "Aksyon"}, "abandon": "I-abandon", "replenishing": "Nagre-replenish"},
+  "menu": {
+    "title": "Menu",
+    "inventory": "Imbentaryo",
+    "encyclopedia": "Ensiklopedya",
+    "contracts": "Mga Kontrata",
+    "missions": "Mga Misyon",
+    "arena": "Arena",
+    "guild": "Guild",
+    "castles": "Mga Kastilyo",
+    "auctionHouse": "Auction House",
+    "merchant": "Mangangalakal",
+    "shop": "Imperial Shop",
+    "leaderboards": "Leaderboards",
+    "settings": "Mga Setting",
+    "logout": "Mag-logout"
+  },
+  "bars": {
+    "health": "Kalusugan",
+    "experience": "Karanasan"
+  },
+  "chat": {
+    "world": "World",
+    "guild": "Guild",
+    "send": "Ipadala",
+    "empty": "Wala pang mensahe."
+  },
+  "contracts": {
+    "table": {
+      "contract": "Kontrata",
+      "difficulty": "Hirap",
+      "action": "Aksyon"
+    },
+    "abandon": "I-abandon",
+    "replenishing": "Nagre-replenish"
+  },
   "currencies": {
     "ducats": "Mga Ducat",
     "imperials": "Mga Imperial",
@@ -55,9 +87,21 @@
       "card": "Credit Card"
     }
   },
-  "inventory": {"consumables": "Consumables", "noItems": "Walang available na item."},
-  "profile": {"inventoryTab": "Imbentaryo", "consumablesTab": "Consumables", "statsTab": "Stats", "class": "Klase", "level": "Level"},
-  "player": {"classUnknown": "Hindi kilalang klase", "level": "Level {{value}}"},
+  "inventory": {
+    "consumables": "Consumables",
+    "noItems": "Walang available na item."
+  },
+  "profile": {
+    "inventoryTab": "Imbentaryo",
+    "consumablesTab": "Consumables",
+    "statsTab": "Stats",
+    "class": "Klase",
+    "level": "Level"
+  },
+  "player": {
+    "classUnknown": "Hindi kilalang klase",
+    "level": "Level {{value}}"
+  },
   "auction": {
     "title": "Auction House",
     "description": "Mag-bid sa mga rare item, magbenta ng sariling item, at mangolekta ng rewards.",
@@ -174,6 +218,16 @@
       "hours": "{{count}} oras",
       "minutes": "{{count}} minuto",
       "seconds": "{{count}} segundo"
-    }
+    },
+    "searchItemsPlaceholder": "Maghanap ng mga item...",
+    "filterAll": "lahat",
+    "filterWeapon": "armas",
+    "filterArmor": "baluti",
+    "filterJewelry": "alahas",
+    "noItemsMatchFilter": "Walang item na tumutugma sa iyong mga filter",
+    "maxSubmissionsReached": "Naabot na ang maximum na pagsusumite. Kanselahin ang isang aktibong pagsusumite para magdagdag pa.",
+    "selectedItemTitle": "Napiling Item",
+    "selectItemPlaceholder": "← Pumili ng item mula sa kaliwa",
+    "enterBidPlaceholder": "Ilagay ang halaga ng panimulang bid..."
   }
 }

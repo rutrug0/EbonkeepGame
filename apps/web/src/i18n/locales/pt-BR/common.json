@@ -62,6 +62,7 @@
       "browse": "Explorar Leilões",
       "myBids": "Meus Lances",
       "submit": "Enviar Item",
+      "mySubmissions": "Meus Envios",
       "rewards": "Recompensas"
     },
     "yourDucats": "Seus Ducados",
@@ -135,7 +136,17 @@
       "selectItem": "Por favor selecione um item",
       "enterBid": "Por favor insira um lance mínimo"
     },
-    "loginRequired": "Por favor faça login para acessar a casa de leilões"
+    "loginRequired": "Por favor faça login para acessar a casa de leilões",
+    "searchItemsPlaceholder": "Buscar itens...",
+    "filterAll": "todos",
+    "filterWeapon": "arma",
+    "filterArmor": "armadura",
+    "filterJewelry": "joia",
+    "noItemsMatchFilter": "Nenhum item corresponde aos seus filtros",
+    "maxSubmissionsReached": "Limite de envios atingido. Cancele um envio ativo para adicionar mais.",
+    "selectedItemTitle": "Item Selecionado",
+    "selectItemPlaceholder": "← Selecione um item da esquerda",
+    "enterBidPlaceholder": "Insira o valor do lance inicial..."
   },
   "inventory": {"consumables": "Consumíveis", "noItems": "Nenhum item disponível."},
   "profile": {"inventoryTab": "Inventário", "consumablesTab": "Consumíveis", "statsTab": "Atributos", "class": "Classe", "level": "Nível"},

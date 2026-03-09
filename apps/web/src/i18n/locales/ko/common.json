@@ -1,11 +1,43 @@
-﻿{
-  "auth": {"subtitle": "로그인하여 메인 페이지를 여세요.", "loginGuest": "게스트로 로그인"},
-  "menu": {
-    "title": "메뉴", "inventory": "인벤토리", "encyclopedia": "도감", "contracts": "계약", "missions": "임무", "arena": "투기장", "guild": "길드", "castles": "성채", "auctionHouse": "경매장", "merchant": "상인", "shop": "제국 상점", "leaderboards": "순위", "settings": "설정", "logout": "로그아웃"
+{
+  "auth": {
+    "subtitle": "로그인하여 메인 페이지를 여세요.",
+    "loginGuest": "게스트로 로그인"
   },
-  "bars": {"health": "체력", "experience": "경험치"},
-  "chat": {"world": "월드", "guild": "길드", "send": "보내기", "empty": "메시지가 없습니다."},
-  "contracts": {"table": {"contract": "계약", "difficulty": "난이도", "action": "행동"}, "abandon": "포기", "replenishing": "보충 중"},
+  "menu": {
+    "title": "메뉴",
+    "inventory": "인벤토리",
+    "encyclopedia": "도감",
+    "contracts": "계약",
+    "missions": "임무",
+    "arena": "투기장",
+    "guild": "길드",
+    "castles": "성채",
+    "auctionHouse": "경매장",
+    "merchant": "상인",
+    "shop": "제국 상점",
+    "leaderboards": "순위",
+    "settings": "설정",
+    "logout": "로그아웃"
+  },
+  "bars": {
+    "health": "체력",
+    "experience": "경험치"
+  },
+  "chat": {
+    "world": "월드",
+    "guild": "길드",
+    "send": "보내기",
+    "empty": "메시지가 없습니다."
+  },
+  "contracts": {
+    "table": {
+      "contract": "계약",
+      "difficulty": "난이도",
+      "action": "행동"
+    },
+    "abandon": "포기",
+    "replenishing": "보충 중"
+  },
   "currencies": {
     "ducats": "두캇",
     "imperials": "임페리얼",
@@ -55,16 +87,30 @@
       "card": "신용카드"
     }
   },
-  "inventory": {"consumables": "소모품", "noItems": "사용 가능한 아이템이 없습니다."},
-  "profile": {"inventoryTab": "인벤토리", "consumablesTab": "소모품", "statsTab": "능력치", "class": "직업", "level": "레벨"},
-  "player": {"classUnknown": "알 수 없는 직업", "level": "레벨 {{value}}"},
+  "inventory": {
+    "consumables": "소모품",
+    "noItems": "사용 가능한 아이템이 없습니다."
+  },
+  "profile": {
+    "inventoryTab": "인벤토리",
+    "consumablesTab": "소모품",
+    "statsTab": "능력치",
+    "class": "직업",
+    "level": "레벨"
+  },
+  "player": {
+    "classUnknown": "알 수 없는 직업",
+    "level": "레벨 {{value}}"
+  },
   "auction": {
     "title": "경매장",
     "description": "희귀 아이템을 입찰하고, 자신의 아이템을 판매하고, 보상을 받으세요.",
     "tabs": {
       "browse": "둘러보기",
       "myBids": "내 입찰",
-      "submit": "아이템 제출",      "mySubmissions": "내 제출물",      "rewards": "보상"
+      "submit": "아이템 제출",
+      "mySubmissions": "내 제출물",
+      "rewards": "보상"
     },
     "loading": "로딩 중...",
     "loadingAuctions": "경매 목록 로딩 중...",
@@ -173,6 +219,16 @@
       "hours": "{{count}}시간",
       "minutes": "{{count}}분",
       "seconds": "{{count}}초"
-    }
+    },
+    "searchItemsPlaceholder": "아이템 검색...",
+    "filterAll": "전체",
+    "filterWeapon": "무기",
+    "filterArmor": "방어구",
+    "filterJewelry": "장신구",
+    "noItemsMatchFilter": "필터와 일치하는 아이템이 없습니다",
+    "maxSubmissionsReached": "최대 제출 횟수에 도달했습니다. 더 추가하려면 활성 제출을 취소하세요.",
+    "selectedItemTitle": "선택된 아이템",
+    "selectItemPlaceholder": "← 왼쪽에서 아이템을 선택하세요",
+    "enterBidPlaceholder": "시작 입찰가 금액을 입력하세요..."
   }
 }

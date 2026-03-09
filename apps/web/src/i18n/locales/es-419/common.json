@@ -62,6 +62,7 @@
       "browse": "Explorar Subastas",
       "myBids": "Mis Pujas",
       "submit": "Presentar Objeto",
+      "mySubmissions": "Mis Envíos",
       "rewards": "Recompensas"
     },
     "yourDucats": "Tus Ducados",
@@ -136,7 +137,17 @@
       "selectItem": "Por favor selecciona un objeto",
       "enterBid": "Por favor ingresa una puja mínima"
     },
-    "loginRequired": "Por favor inicia sesión para acceder a la casa de subastas"
+    "loginRequired": "Por favor inicia sesión para acceder a la casa de subastas",
+    "searchItemsPlaceholder": "Buscar objetos...",
+    "filterAll": "todos",
+    "filterWeapon": "arma",
+    "filterArmor": "armadura",
+    "filterJewelry": "joyería",
+    "noItemsMatchFilter": "Ningún objeto coincide con tus filtros",
+    "maxSubmissionsReached": "Límite de envíos alcanzado. Cancela un envío activo para agregar más.",
+    "selectedItemTitle": "Objeto Seleccionado",
+    "selectItemPlaceholder": "← Selecciona un objeto de la izquierda",
+    "enterBidPlaceholder": "Ingresa el monto de la puja inicial..."
   },
   "inventory": {"consumables": "Consumibles", "noItems": "No hay objetos disponibles."},
   "profile": {"inventoryTab": "Inventario", "consumablesTab": "Consumibles", "statsTab": "Estadísticas", "class": "Clase", "level": "Nivel"},

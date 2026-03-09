@@ -314,7 +314,17 @@
       "selectItem": "Please select an item",
       "enterBid": "Please enter a minimum bid"
     },
-    "loginRequired": "Please log in to access the auction house"
+    "loginRequired": "Please log in to access the auction house",
+    "searchItemsPlaceholder": "Search items...",
+    "filterAll": "all",
+    "filterWeapon": "weapon",
+    "filterArmor": "armor",
+    "filterJewelry": "jewelry",
+    "noItemsMatchFilter": "No items match your filters",
+    "maxSubmissionsReached": "Maximum submissions reached. Cancel an active submission to add more.",
+    "selectedItemTitle": "Selected Item",
+    "selectItemPlaceholder": "← Select an item from the left",
+    "enterBidPlaceholder": "Enter starting bid amount..."
   },
   "placeholders": {
     "missions": "Mission selection and launch board will appear here.",

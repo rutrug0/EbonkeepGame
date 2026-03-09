@@ -134,7 +134,17 @@
       "failedToSubmit": "提交物品失败",      "failedToCancel": "取消提交失败",      "selectItem": "请选择一个物品",
       "enterBid": "请输入最低出价"
     },
-    "loginRequired": "请登录以访问拍卖行"
+    "loginRequired": "请登录以访问拍卖行",
+    "searchItemsPlaceholder": "搜索物品...",
+    "filterAll": "全部",
+    "filterWeapon": "武器",
+    "filterArmor": "护甲",
+    "filterJewelry": "饰品",
+    "noItemsMatchFilter": "没有符合筛选条件的物品",
+    "maxSubmissionsReached": "已达到最大提交数。取消一个活跃提交以添加更多。",
+    "selectedItemTitle": "已选物品",
+    "selectItemPlaceholder": "← 从左侧选择一件物品",
+    "enterBidPlaceholder": "输入起始出价金额..."
   },
   "inventory": {"consumables": "消耗品", "noItems": "暂无物品。"},
   "profile": {"inventoryTab": "背包", "consumablesTab": "消耗品", "statsTab": "属性", "class": "职业", "level": "等级"},

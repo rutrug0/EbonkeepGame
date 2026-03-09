@@ -778,7 +778,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                 }}>
                   <input
                     type="text"
-                    placeholder="Search items..."
+                    placeholder={t("auction.searchItemsPlaceholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
@@ -810,14 +810,14 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                         transition: "all 0.2s"
                       }}
                     >
-                      {filter}
+                      {t(`auction.filter${filter.charAt(0).toUpperCase() + filter.slice(1)}`)}
                     </button>
                   ))}
                 </div>
 
                 {filteredItems.length === 0 ? (
                   <p style={{ opacity: 0.7, textAlign: "center", padding: "3rem" }}>
-                    No items match your filters
+                    {t("auction.noItemsMatchFilter")}
                   </p>
                 ) : (
                   <div style={{
@@ -897,7 +897,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                   color: "var(--accent-danger)",
                   fontWeight: "500"
                 }}>
-                  ⚠️ Maximum submissions reached. Cancel an active submission to add more.
+                  ⚠️ {t("auction.maxSubmissionsReached")}
                 </p>
               )}
             </div>
@@ -906,7 +906,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             {selectedItemData ? (
               <div className="auctionSelectedItemPanel">
                 <h4 style={{ margin: "0 0 1rem 0", fontSize: "0.9rem", fontWeight: "bold", opacity: 0.9 }}>
-                  Selected Item
+                  {t("auction.selectedItemTitle")}
                 </h4>
                 
                 <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
@@ -937,7 +937,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                       {selectedItemData.name}
                     </h3>
                     <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.8 }}>
-                      Level {selectedItemData.level} • {selectedItemData.rarity}
+                      {t("player.level", { value: selectedItemData.level })} • {selectedItemData.rarity}
                     </p>
                   </div>
                 </div>
@@ -966,7 +966,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
             ) : (
               <div className="auctionPlaceholderPanel">
                 <p style={{ margin: "0", fontSize: "0.9rem", opacity: 0.6 }}>
-                  ← Select an item from the left
+                  {t("auction.selectItemPlaceholder")}
                 </p>
               </div>
             )}
@@ -985,7 +985,7 @@ export function AuctionHouse({ token, currentDucats }: AuctionHouseProps) {
                 type="number"
                 value={submissionData.minimumBid}
                 onChange={(e) => setSubmissionData({ ...submissionData, minimumBid: e.target.value })}
-                placeholder="Enter starting bid amount..."
+                placeholder={t("auction.enterBidPlaceholder")}
                 min="1"
                 disabled={!selectedItemData}
                 style={{

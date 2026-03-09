@@ -132,7 +132,17 @@
       "failedToSubmit": "Не удалось отправить предмет",      "failedToCancel": "Не удалось отменить заявку",      "selectItem": "Пожалуйста, выберите предмет",
       "enterBid": "Пожалуйста, введите минимальную ставку"
     },
-    "loginRequired": "Пожалуйста, войдите в систему для доступа к аукциону"
+    "loginRequired": "Пожалуйста, войдите в систему для доступа к аукциону",
+    "searchItemsPlaceholder": "Поиск предметов...",
+    "filterAll": "все",
+    "filterWeapon": "оружие",
+    "filterArmor": "доспехи",
+    "filterJewelry": "украшения",
+    "noItemsMatchFilter": "Предметы, соответствующие вашим фильтрам, отсутствуют",
+    "maxSubmissionsReached": "Достигнут лимит заявок. Отмените активную заявку, чтобы добавить ещё.",
+    "selectedItemTitle": "Выбранный предмет",
+    "selectItemPlaceholder": "← Выберите предмет слева",
+    "enterBidPlaceholder": "Введите начальную сумму ставки..."
   },
   "inventory": {"consumables": "Расходники", "noItems": "Предметы отсутствуют."},
   "profile": {"inventoryTab": "Инвентарь", "consumablesTab": "Расходники", "statsTab": "Характеристики", "class": "Класс", "level": "Уровень"},
