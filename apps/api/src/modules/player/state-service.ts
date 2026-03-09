@@ -28,7 +28,11 @@ const EXTRA_ATTACK_CHANCE_CAP = 3500;
 
 type EquipmentSlotWithItem = {
   slotType: string;
-  item: InventoryItem | null;
+  item: {
+    id: string;
+    itemCode: string;
+    itemData: unknown;
+  } | null;
 };
 
 function clampInt(value: number, max: number): number {
@@ -202,7 +206,11 @@ export function buildEquipmentState(equipmentSlots: readonly EquipmentSlotWithIt
       continue;
     }
 
-    equipment[parsedSlot.data] = slot.item ? parseStoredInventoryItem(slot.item) : null;
+    equipment[parsedSlot.data] = slot.item ? parseStoredInventoryItem({
+      id: slot.item.id,
+      itemCode: slot.item.itemCode,
+      itemData: slot.item.itemData
+    }) : null;
   }
 
   return equipmentStateSchema.parse(equipment);
@@ -254,11 +262,23 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
       inventoryItems: {
         orderBy: {
           createdAt: "asc"
+        },
+        select: {
+          id: true,
+          itemCode: true,
+          itemData: true,
+          slotKey: true
         }
       },
       equipmentSlots: {
         include: {
-          item: true
+          item: {
+            select: {
+              id: true,
+              itemCode: true,
+              itemData: true
+            }
+          }
         }
       }
     }
@@ -271,7 +291,11 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
   const equipment = buildEquipmentState(profile.equipmentSlots);
   const inventory = profile.inventoryItems
     .filter((item) => item.slotKey === "inventory")
-    .map((item) => parseStoredInventoryItem(item))
+    .map((item) => parseStoredInventoryItem({
+      id: item.id,
+      itemCode: item.itemCode,
+      itemData: item.itemData
+    }))
     .filter((item): item is NonNullable<typeof item> => item !== null);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: profile.class as PlayerClass,
