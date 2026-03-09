@@ -6961,7 +6961,7 @@ export function App() {
   return (
       <main className={`appRoot layout-${layoutMode}`}>
         <div className="appSurface">
-        {!emailVerified && (
+        {!emailVerified && accountInfo?.provider !== "dev-guest" && (
           <div style={{ 
             position: "fixed", 
             top: 0, 
