@@ -431,10 +431,8 @@ function createInitialChatMessages(nowMs: number = Date.now()): Record<ChatChann
 const MENU_ITEMS: LandingTab[] = [
   "inventory",
   "contracts",
-  "missions",
   "arena",
   "guild",
-  "castles",
   "auctionHouse",
   "merchant",
   "shop",
@@ -2229,6 +2227,47 @@ function renderMenuIcon(tab: LandingTab) {
   }
 }
 
+function renderPlayerCardScoreIcon(kind: "gear" | "offense" | "defense") {
+  const iconProps = {
+    viewBox: "0 0 20 20",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    ariaHidden: true
+  };
+
+  switch (kind) {
+    case "gear":
+      return (
+        <svg {...iconProps}>
+          <path d="M10 2.6 15.7 6v8L10 17.4 4.3 14V6z" />
+          <path d="M10 2.6V9m0 0 5.7-3M10 9 4.3 6" />
+        </svg>
+      );
+    case "offense":
+      return (
+        <svg {...iconProps}>
+          <path d="m5 15 4.8-4.8" />
+          <path d="m8.1 5.4 1.7-1.7 5.1 5.1-1.7 1.7" />
+          <path d="m4.2 15.8 1.7-1.7 1.9 1.9-1.7 1.7z" />
+          <path d="m12.3 5.1 2.6-2.6" />
+        </svg>
+      );
+    case "defense":
+      return (
+        <svg {...iconProps}>
+          <path d="M10 2.8 15.8 5v4.4c0 3.3-2.2 5.9-5.8 7.8-3.6-1.9-5.8-4.5-5.8-7.8V5z" />
+          <path d="M10 6.1v7.5" />
+          <path d="M7.2 9.2H10" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 function formatClassLabel(playerClass: PlayerState["class"]): string {
   return i18n.t(`class.${playerClass}`);
 }
@@ -3160,6 +3199,35 @@ export function App() {
   const staminaPercent = playerState
     ? Math.max(12, Math.min(100, Math.round(((playerState.stats.dexterity + playerState.stats.initiative) / 40) * 100)))
     : 0;
+  const playerCardScoreSummary = useMemo(() => {
+    if (!playerState) {
+      return { gear: 0, offense: 0, defense: 0 };
+    }
+    const totalStats = playerState.statSnapshot.total;
+    const offense = Math.round(
+      totalStats.damage +
+        totalStats.accuracy * 0.45 +
+        totalStats.critChance / 40 +
+        totalStats.critMultiplier / 80 +
+        totalStats.extraAttackChance / 40
+    );
+    const defense = Math.round(
+      totalStats.armor +
+        totalStats.spellShield +
+        totalStats.missileResistance +
+        totalStats.maxHitpoints / 10 +
+        totalStats.dodgeChance / 35
+    );
+    return {
+      gear: playerState.gearScore,
+      offense,
+      defense
+    };
+  }, [playerState]);
+  const playerCardCurrencies = currencies ?? {
+    ducats: Math.max(playerState?.currency.ducats ?? 0, TEST_MIN_DUCATS),
+    imperials: playerState?.currency.imperials ?? 0
+  };
 
   const equipmentStatBonuses = useMemo(() => {
     const totals: Record<TrainableStatKey, number> = {
@@ -7244,6 +7312,42 @@ export function App() {
                   </div>
                 </div>
 
+                <div className="playerCardScoreRow" aria-label="Player combat scores">
+                  <div
+                    className={`playerCardScoreItem playerCardScoreItem-gear${
+                      inventoryStatFlashes.gearScore
+                        ? ` inventoryStatFlash inventoryStatFlash-${inventoryStatFlashes.gearScore.direction}`
+                        : ""
+                    }`}
+                    title={i18n.t("currencies.gearScore")}
+                  >
+                    <span className="playerCardScoreIcon playerCardScoreIcon-gear" aria-hidden="true">
+                      {renderPlayerCardScoreIcon("gear")}
+                    </span>
+                    <strong
+                      className={`playerCardScoreValue${
+                        inventoryStatFlashes.gearScore
+                          ? ` inventoryStatFlashValue inventoryStatFlashValue-${inventoryStatFlashes.gearScore.direction}`
+                          : ""
+                      }`}
+                    >
+                      {playerCardScoreSummary.gear}
+                    </strong>
+                  </div>
+                  <div className="playerCardScoreItem playerCardScoreItem-offense" title={i18n.t("profile.offensive")}>
+                    <span className="playerCardScoreIcon playerCardScoreIcon-offense" aria-hidden="true">
+                      {renderPlayerCardScoreIcon("offense")}
+                    </span>
+                    <strong className="playerCardScoreValue">{playerCardScoreSummary.offense}</strong>
+                  </div>
+                  <div className="playerCardScoreItem playerCardScoreItem-defense" title={i18n.t("profile.defensive")}>
+                    <span className="playerCardScoreIcon playerCardScoreIcon-defense" aria-hidden="true">
+                      {renderPlayerCardScoreIcon("defense")}
+                    </span>
+                    <strong className="playerCardScoreValue">{playerCardScoreSummary.defense}</strong>
+                  </div>
+                </div>
+
                 <div className="barBlock">
                   <div className="barShell" aria-label={i18n.t("bars.health")} title={i18n.t("bars.health")}>
                     <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
@@ -7257,15 +7361,22 @@ export function App() {
                 </div>
 
                 <div className="barBlock">
-                  <p className="barLabel">{i18n.t("bars.stamina")}</p>
-                  <div className="barShell">
+                  <div className="barShell" aria-label={i18n.t("bars.stamina")} title={i18n.t("bars.stamina")}>
                     <div className="barFill staminaFill" style={{ width: `${staminaPercent}%` }} />
                   </div>
+                </div>
+
+                <div className="playerCardCurrencyRow" aria-label="Player currencies">
+                  <strong className="playerCardCurrencyValue ducats">{playerCardCurrencies.ducats.toLocaleString()}</strong>
+                  <span className="currencyIcon ducatIcon playerCardCurrencyIcon" aria-hidden="true">&#9678;</span>
+                  <strong className="playerCardCurrencyValue imperials">{playerCardCurrencies.imperials.toLocaleString()}</strong>
+                  <span className="currencyIcon imperialIcon playerCardCurrencyIcon" aria-hidden="true">
+                    <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
+                  </span>
                 </div>
               </section>
 
               <section className="menuCard">
-                <h2>{i18n.t("menu.title")}</h2>
                 <nav className="menuList">
                   {MENU_ITEMS.map((menuItemId) => (
                     <button

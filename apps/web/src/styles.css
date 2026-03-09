@@ -318,7 +318,7 @@ button:focus-visible {
 
 .playerCard {
   display: grid;
-  gap: var(--space-3);
+  gap: 0.45rem;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
@@ -366,9 +366,102 @@ button:focus-visible {
   font-size: 1.38rem;
 }
 
+.playerCardScoreRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: center;
+  align-items: center;
+  gap: 0.95rem;
+  width: 100%;
+  padding: 0.3rem 0.1rem 0;
+}
+
+.playerCardScoreItem {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.48rem;
+  min-width: 0;
+  padding: 0;
+}
+
+.playerCardScoreIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.playerCardScoreIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.playerCardScoreIcon-gear {
+  color: color-mix(in srgb, var(--accent-info) 74%, #d7e8f2 26%);
+}
+
+.playerCardScoreIcon-offense {
+  color: color-mix(in srgb, var(--accent-danger) 58%, #e4c8b8 42%);
+}
+
+.playerCardScoreIcon-defense {
+  color: color-mix(in srgb, var(--accent-warn) 62%, #f1e0b7 38%);
+}
+
+.playerCardScoreValue {
+  font-size: 1.22rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: color-mix(in srgb, var(--text-main) 88%, #f6efe1 12%);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.24);
+}
+
+.playerCardCurrencyRow {
+  display: inline-grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
+  gap: 0.76rem;
+  width: 100%;
+  padding: 0;
+}
+
+.playerCardCurrencyValue {
+  font-size: 1.24rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
+}
+
+.playerCardCurrencyValue.ducats {
+  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
+}
+
+.playerCardCurrencyValue.imperials {
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
+}
+
+.playerCardCurrencyIcon {
+  width: 28px;
+  height: 28px;
+  font-size: 1.42rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+}
+
+.playerCardCurrencyIcon.imperialIcon {
+  width: 30px;
+  height: 30px;
+}
+
 .barBlock {
   display: grid;
-  gap: var(--space-1);
+  gap: 0.15rem;
 }
 
 .barLabel {
