@@ -105,14 +105,12 @@ if errorlevel 1 (
   goto :fail
 )
 
-echo [5/8] Installing dependencies (if needed)...
-if not exist "node_modules\.bin\prisma.cmd" (
-  call npm.cmd install
-  if errorlevel 1 (
-    echo npm install failed.
-    set "FAILED=1"
-    goto :fail
-  )
+echo [5/8] Installing dependencies...
+call npm.cmd install
+if errorlevel 1 (
+  echo npm install failed.
+  set "FAILED=1"
+  goto :fail
 )
 
 echo [6/8] Running DB generate/migrate/seed...
