@@ -6911,7 +6911,7 @@ export function App() {
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
-        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} playerClass={playerState?.class ?? null} playerLevel={playerState?.level ?? null} onDucatsChange={handleAuctionDucatsChange} />;
+        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} playerClass={playerState?.class ?? null} playerLevel={playerState?.level ?? null} equipmentBySlot={equippedItems} onDucatsChange={handleAuctionDucatsChange} />;
       case "merchant":
         return renderMerchantPanel();
       case "shop":

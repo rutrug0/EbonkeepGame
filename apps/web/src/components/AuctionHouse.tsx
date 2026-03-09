@@ -12,6 +12,7 @@ export interface AuctionHouseProps {
   currentDucats: number;
   playerClass?: PlayerClass | null;
   playerLevel?: number | null;
+  equipmentBySlot?: Record<EquipmentSlotId, ComparableInventoryItem | null>;
   onDucatsChange?: (nextDucats: number) => void;
 }
 
@@ -54,7 +55,7 @@ interface ParsedItemData {
   power?: number;
   equipable?: boolean;
   allowedSlotIds?: string[];
-  statBonuses?: Record<string, number>;
+  statBonuses?: Partial<Record<string, number>>;
   damageRoll?: {
     minRollRange: [number, number];
     rolledMin: number;
@@ -89,6 +90,23 @@ interface ParsedItemData {
   armorType?: string;
   jewelryType?: string;
 }
+
+type ComparableInventoryItem = {
+  itemCode?: string;
+  itemName: string;
+  rarity: string;
+  category: string;
+  power?: number;
+  equipable?: boolean;
+  allowedSlotIds?: string[];
+  levelRequirement: number;
+  baseLevel?: number;
+  iconAssetPath?: string;
+  statBonuses?: Partial<Record<string, number>>;
+  damageRoll?: ParsedItemData["damageRoll"];
+  description?: string;
+  archetype?: ParsedItemData["archetype"];
+};
 
 type ItemIconVariant =
   | "armor"
@@ -142,6 +160,7 @@ interface BidConfirmationState {
 interface AuctionHoverState {
   itemId: string;
   itemData: ParsedItemData;
+  comparisonSlotId: EquipmentSlotId | null;
   top: number;
   left: number;
   width: number;
@@ -150,7 +169,7 @@ interface AuctionHoverState {
 
 type AuctionView = "browse" | "myBids" | "submit" | "mySubmissions" | "rewards";
 
-export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, onDucatsChange }: AuctionHouseProps) {
+export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, equipmentBySlot, onDucatsChange }: AuctionHouseProps) {
   const { t } = useTranslation("common");
   const [activeView, setActiveView] = useState<AuctionView>("browse");
   const [auctions, setAuctions] = useState<AuctionInstance[]>([]);
@@ -919,8 +938,8 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
     });
   };
 
-  const getInventoryItemData = (item: InventoryItem): ParsedItemData => {
-    const preferredSlotId = item.allowedSlotIds?.[0];
+  const getInventoryItemData = (item: ComparableInventoryItem): ParsedItemData => {
+    const preferredSlotId = item.allowedSlotIds?.[0] as EquipmentSlotId | undefined;
     const iconPath = getGeneratedItemIconPath({
       majorCategory: item.archetype?.majorCategory as ItemMajorCategory,
       weaponArchetype: item.archetype?.weaponArchetype as WeaponArchetype | undefined,
@@ -930,7 +949,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
     });
 
     return {
-      itemCode: item.itemCode,
+      itemCode: item.itemCode ?? item.itemName,
       itemName: item.itemName,
       levelRequirement: item.levelRequirement ?? item.baseLevel ?? 1,
       baseLevel: item.baseLevel,
@@ -943,8 +962,6 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
       statBonuses: item.statBonuses,
       damageRoll: item.damageRoll,
       description: item.description,
-      prefix: item.prefix,
-      affix: item.affix,
       archetype: item.archetype,
       weaponType: item.archetype?.weaponFamily,
       armorType: item.archetype?.armorArchetype,
@@ -971,7 +988,13 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
     return isClassEligible && isLevelEligible;
   };
 
-  const renderAuctionItemDetailCardBody = (itemData: ParsedItemData) => {
+  const renderAuctionItemDetailCardBody = (
+    itemData: ParsedItemData,
+    options?: {
+      asideNote?: string;
+      powerDelta?: number;
+    }
+  ) => {
     const canUseItem = canPlayerUseAuctionItem(itemData);
     const damageSummary = getDamageSummary(itemData);
     const iconAssetPath = resolveAuctionItemIconPath(itemData);
@@ -986,6 +1009,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
           </div>
           <div className="inventoryCardTopAside">
             <span className="inventoryCardRarity">{formatLabel(itemData.rarity)}</span>
+            {options?.asideNote ? <span className="inventoryCardTopAsideNote">{options.asideNote}</span> : null}
           </div>
         </div>
         <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}`}>
@@ -1019,7 +1043,14 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
         <div className="inventoryCardDetails">
           <p className="inventoryCardDescription inventoryCardFlavor">{itemData.description || " "}</p>
           <div className="inventoryCardFooter">
-            <span className="inventoryCardPower">{t("inventory.power", { value: itemData.power ?? 0 })}</span>
+            <span className="inventoryCardPower">
+              {t("inventory.power", { value: itemData.power ?? 0 })}
+              {typeof options?.powerDelta === "number" && options.powerDelta !== 0 ? (
+                <span className={`inventoryCardPowerDelta ${options.powerDelta > 0 ? "positive" : "negative"}`}>
+                  {` (${options.powerDelta > 0 ? `+${options.powerDelta}` : options.powerDelta})`}
+                </span>
+              ) : null}
+            </span>
             <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>{t("inventory.requiredLevel", { value: itemData.levelRequirement })}</span>
           </div>
         </div>
@@ -1034,7 +1065,10 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
     const gapPx = 12;
     const panelWidth = Math.min(360, Math.max(260, window.innerWidth - viewportPadding * 2));
     const maxHeight = Math.max(220, window.innerHeight - viewportPadding * 2);
-    const estimatedPanelHeight = Math.min(maxHeight, 420);
+    const preferredSlotId = (itemData.equipable ? itemData.allowedSlotIds?.[0] : null) as EquipmentSlotId | null;
+    const comparisonItem = preferredSlotId ? equipmentBySlot?.[preferredSlotId] ?? null : null;
+    const comparisonSlotId = comparisonItem ? preferredSlotId : null;
+    const estimatedPanelHeight = Math.min(maxHeight, comparisonSlotId ? 640 : 420);
     const rightSpace = window.innerWidth - rect.right - viewportPadding;
     const leftSpace = rect.left - viewportPadding;
     const placeOnRight = rightSpace >= panelWidth || rightSpace >= leftSpace;
@@ -1046,6 +1080,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
         ...itemData,
         iconAssetPath: resolveAuctionItemIconPath(itemData)
       },
+      comparisonSlotId,
       top: Math.round(
         Math.max(viewportPadding, Math.min(rect.top, window.innerHeight - viewportPadding - estimatedPanelHeight))
       ),
@@ -1066,6 +1101,13 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
       return null;
     }
 
+    const comparisonItem = auctionHover.comparisonSlotId ? equipmentBySlot?.[auctionHover.comparisonSlotId] ?? null : null;
+    const comparisonItemData = comparisonItem ? getInventoryItemData(comparisonItem) : null;
+    const resolvedComparisonItem = comparisonItemData && comparisonItemData.itemCode !== auctionHover.itemData.itemCode
+      ? comparisonItemData
+      : null;
+    const sourcePowerDelta = resolvedComparisonItem ? (auctionHover.itemData.power ?? 0) - (resolvedComparisonItem.power ?? 0) : 0;
+
     return (
       <div
         className="inventoryComparisonOverlay"
@@ -1076,9 +1118,20 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, o
           maxHeight: auctionHover.maxHeight
         }}
       >
-        <article className={`inventoryDetailCard inventoryHoverDetailCard auctionHoverDetailCard rarity-${auctionHover.itemData.rarity}`}>
-          {renderAuctionItemDetailCardBody(auctionHover.itemData)}
-        </article>
+        <div className="inventoryComparisonOverlayStack">
+          <article className={`inventoryDetailCard inventoryHoverDetailCard auctionHoverDetailCard rarity-${auctionHover.itemData.rarity}`}>
+            {renderAuctionItemDetailCardBody(auctionHover.itemData, {
+              powerDelta: sourcePowerDelta
+            })}
+          </article>
+          {resolvedComparisonItem ? (
+            <article className={`inventoryDetailCard inventoryComparisonCard rarity-${resolvedComparisonItem.rarity}`}>
+              {renderAuctionItemDetailCardBody(resolvedComparisonItem, {
+                asideNote: "Equipped"
+              })}
+            </article>
+          ) : null}
+        </div>
       </div>
     );
   };
