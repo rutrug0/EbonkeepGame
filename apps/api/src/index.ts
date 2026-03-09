@@ -3,6 +3,8 @@ import websocket from "@fastify/websocket";
 import Fastify from "fastify";
 
 import { getEnv } from "./config/env.js";
+import { initializeAuctionJobs } from "./modules/auction/background-jobs.js";
+import { auctionRoutes } from "./modules/auction/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { initEmailService } from "./modules/auth/services/email.js";
 import { combatRoutes } from "./modules/combat/routes.js";
@@ -75,7 +77,11 @@ async function buildServer() {
   await fastify.register(paymentsRoutes);
   await fastify.register(schedulerRoutes);
   await fastify.register(telemetryRoutes);
+  await fastify.register(auctionRoutes);
   await fastify.register(websocketRoutes);
+
+  // Initialize auction background jobs
+  initializeAuctionJobs(fastify.prisma).start();
 
   await fastify.listen({
     port: env.API_PORT,

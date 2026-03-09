@@ -18,11 +18,13 @@
     "@fastify/jwt": "^9.1.0",
     "@fastify/websocket": "^11.0.2",
     "@prisma/client": "^6.3.1",
+    "@types/node-cron": "^3.0.11",
     "bcrypt": "^6.0.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "ioredis": "^5.4.2",
+    "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
     "zod": "^3.24.1"
   },

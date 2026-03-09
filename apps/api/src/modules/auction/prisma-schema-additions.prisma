@@ -1,0 +1,112 @@
+// Add these models to apps/api/prisma/schema.prisma
+
+model AuctionInstance {
+  id              String         @id @default(cuid())
+  levelBracketMin Int
+  levelBracketMax Int
+  startTime       DateTime
+  endTime         DateTime
+  status          String         @default("pending") // pending | active | settling | settled
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  items           AuctionItem[]
+
+  @@index([status, endTime])
+  @@index([levelBracketMin, levelBracketMax, status])
+  @@map("auction_instances")
+}
+
+model AuctionItem {
+  id                String          @id @default(cuid())
+  auctionInstanceId String
+  itemCode          String          // JSON-encoded item data (temp until item system finalized)
+  itemLevel         Int
+  itemRarity        String
+  itemCategory      String
+  startingBid       Int
+  currentBid        Int             @default(0)
+  currentWinnerId   String?
+  bidCount          Int             @default(0)
+  extensionsUsed    Int             @default(0)
+  maxExtensions     Int             @default(5)
+  
+  // Player submission fields
+  isPlayerSubmitted Boolean         @default(false)
+  sellerId          String?         // Player who submitted the item (null for system-generated)
+  feePercentage     Int             @default(0) // Auction house fee (e.g., 5 for 5%)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  auctionInstance   AuctionInstance @relation(fields: [auctionInstanceId], references: [id], onDelete: Cascade)
+  bids              AuctionBid[]
+
+  @@index([auctionInstanceId])
+  @@index([currentWinnerId])
+  @@index([sellerId])
+  @@map("auction_items")
+}
+
+model AuctionBid {
+  id          String      @id @default(cuid())
+  itemId      String
+  playerId    String
+  bidAmount   Int
+  status      String      @default("active") // active | outbid | won | refunded
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  item        AuctionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([itemId, status])
+  @@index([playerId, status])
+  @@index([createdAt])
+  @@map("auction_bids")
+}
+
+model AuctionPendingReward {
+  id          String   @id @default(cuid())
+  playerId    String
+  itemId      String
+  itemCode    String   // JSON-encoded item data
+  auctionId   String
+  winningBid  Int
+  expiresAt   DateTime
+  claimed     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([playerId, claimed])
+  @@index([expiresAt])
+  @@map("auction_pending_rewards")
+}
+
+m
+
+model AuctionPlayerListing {
+  id              String   @id @default(cuid())
+  playerId        String   // Player submitting the item
+  inventoryItemId String   // Reference to item in player's inventory
+  itemCode        String   // JSON-encoded item data
+  itemLevel       Int
+  itemRarity      String
+  minimumBid      Int      // Player-set minimum starting bid
+  status          String   @default("pending") // pending | approved | rejected | listed | sold | returned
+  approvedBy      String?  // Admin who approved (null if auto-approved)
+  auctionItemId   String?  // Reference to AuctionItem once listed (null until listed)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([playerId, status])
+  @@index([status])
+  @@index([auctionItemId])
+  @@map("auction_player_listings")
+}odel AuctionParticipation {
+  id         String   @id @default(cuid())
+  playerId   String
+  auctionId  String
+  itemId     String?  // null = viewing only, non-null = has active bid
+  joinedAt   DateTime @default(now())
+
+  @@unique([playerId, auctionId])
+  @@index([auctionId])
+  @@map("auction_participation")
+}

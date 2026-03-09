@@ -40,6 +40,7 @@ import {
   CombatEncounterTurnTrackPanel
 } from "./components/CombatEncounterPanel";
 import { ImperialShop } from "./components/ImperialShop";
+import { AuctionHouse } from "./components/AuctionHouse";
 import { IMPERIALS_ICON_PATH } from "./constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
@@ -6018,10 +6019,7 @@ export function App() {
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
-        return renderPlaceholderPanel(
-          i18n.t("menu.auctionHouse"),
-          i18n.t("placeholders.auctionHouse")
-        );
+        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} />;
       case "merchant":
         return renderPlaceholderPanel(i18n.t("menu.merchant"), i18n.t("placeholders.merchant"));
       case "shop":

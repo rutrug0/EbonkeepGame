@@ -7,12 +7,14 @@ declare module "fastify" {
     prisma: PrismaClient;
     redis: Redis;
     authenticate: preHandlerHookHandler;
+    requireAdmin: preHandlerHookHandler; // For auction admin endpoints
   }
 
   interface FastifyRequest {
     user: {
       accountId: string;
       playerId: string;
+      level?: number; // Player level for auction bracket matching
     };
   }
 }

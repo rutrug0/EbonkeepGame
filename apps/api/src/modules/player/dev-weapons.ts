@@ -793,7 +793,17 @@ function generateStartupDevWeapons(): DevWeapon[] {
     throw new Error("No melee name rows loaded for startup mock weapon generation.");
   }
   const selectedRows = pickRandomSubset(meleeRows, STARTUP_MOCK_MELEE_WEAPON_COUNT);
-  return selectedRows.map((row) => generateOneWeapon(row));
+  const weapons = selectedRows.map((row) => generateOneWeapon(row));
+  
+  // Filter out invalid weapons (level must be >= 1)
+  const validWeapons = weapons.filter(w => w.level >= 1 && w.baseLevel >= 0);
+  
+  if (validWeapons.length === 0) {
+    console.warn("No valid dev weapons generated, returning empty array");
+    return [];
+  }
+  
+  return validWeapons;
 }
 
 const startupDevWeapons = generateStartupDevWeapons();

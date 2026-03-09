@@ -4873,6 +4873,161 @@ button:focus-visible {
   font: inherit;
 }
 
+/* ====================================
+   AUCTION HOUSE STYLES
+   ==================================== */
+
+.auctionItemCard {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  padding: 0.75rem;
+  background: var(--panel-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auctionItemCard:hover {
+  background: var(--panel-elevated);
+  transform: scale(1.02);
+}
+
+.auctionItemCard.selected {
+  background: var(--panel-elevated);
+  transform: scale(1.02);
+}
+
+.auctionItemCard.selected.rarity-common {
+  border: 2px solid var(--common);
+  box-shadow: 0 0 20px rgba(163, 157, 143, 0.25);
+}
+
+.auctionItemCard.selected.rarity-uncommon {
+  border: 2px solid var(--uncommon);
+  box-shadow: 0 0 20px rgba(121, 152, 102, 0.25);
+}
+
+.auctionItemCard.selected.rarity-rare {
+  border: 2px solid var(--rare);
+  box-shadow: 0 0 20px rgba(201, 165, 89, 0.25);
+}
+
+.auctionItemCard.selected.rarity-epic {
+  border: 2px solid var(--epic);
+  box-shadow: 0 0 20px rgba(157, 123, 184, 0.25);
+}
+
+.auctionItemCardIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  min-height: 48px;
+}
+
+.auctionItemCardTitle {
+  margin: 0 0 0.15rem 0;
+  font-size: 0.85rem;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.auctionItemCardTitle.rarity-common { color: var(--common); }
+.auctionItemCardTitle.rarity-uncommon { color: var(--uncommon); }
+.auctionItemCardTitle.rarity-rare { color: var(--rare); }
+.auctionItemCardTitle.rarity-epic { color: var(--epic); }
+
+.auctionItemCardCategory {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.auctionItemCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.auctionItemCardLevel {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.auctionItemCardRarity {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.auctionItemCardRarity.rarity-common { color: var(--common); }
+.auctionItemCardRarity.rarity-uncommon { color: var(--uncommon); }
+.auctionItemCardRarity.rarity-rare { color: var(--rare); }
+.auctionItemCardRarity.rarity-epic { color: var(--epic); }
+
+.auctionStickyPanel {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auctionInfoPanel {
+  padding: 1rem;
+  border-radius: var(--soft-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auctionInfoPanel.success {
+  background: rgba(111, 141, 95, 0.2);
+  border: 2px solid var(--accent-success);
+}
+
+.auctionInfoPanel.danger {
+  background: rgba(151, 80, 74, 0.2);
+  border: 2px solid var(--accent-danger);
+}
+
+.auctionSelectedItemPanel {
+  padding: 1.25rem;
+  background: rgba(111, 141, 95, 0.15);
+  border: 2px solid rgba(111, 141, 95, 0.4);
+  border-radius: var(--soft-radius);
+}
+
+.auctionPlaceholderPanel {
+  padding: 2rem 1.25rem;
+  background: var(--panel-soft);
+  border: 2px dashed var(--border);
+  border-radius: var(--soft-radius);
+  text-align: center;
+}
+
+.auctionListingFeePanel {
+  padding: 1rem;
+  background: rgba(151, 80, 74, 0.2);
+  border: 2px solid var(--accent-danger);
+  border-radius: var(--soft-radius);
+}
+
+.auctionSubmitButton {
+  padding: 1rem 1.5rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(111, 141, 95, 0.4);
+}
+
+.auctionSubmitButton:disabled {
+  background: var(--bg-slate);
+  box-shadow: none;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;

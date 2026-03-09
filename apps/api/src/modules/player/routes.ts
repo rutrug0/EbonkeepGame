@@ -12,46 +12,62 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
     "/v1/player/state",
     { preHandler: fastify.authenticate },
     async (request, reply) => {
-      const playerId = request.user.playerId;
+      try {
+        const playerId = request.user.playerId;
 
-      const profile = await fastify.prisma.playerProfile.findUnique({
-        where: { id: playerId }
-      });
-      const stats = await fastify.prisma.playerStat.findUnique({
-        where: { playerId }
-      });
-      const currency = await fastify.prisma.currencyBalance.findUnique({
-        where: { playerId }
-      });
+        const profile = await fastify.prisma.playerProfile.findUnique({
+          where: { id: playerId }
+        });
+        const stats = await fastify.prisma.playerStat.findUnique({
+          where: { playerId }
+        });
+        const currency = await fastify.prisma.currencyBalance.findUnique({
+          where: { playerId }
+        });
 
-      if (!profile || !stats || !currency) {
-        return reply.code(404).send({ error: "Player state not found." });
+        if (!profile || !stats || !currency) {
+          return reply.code(404).send({ error: "Player state not found." });
+        }
+
+        let devWeapons: ReturnType<typeof getStartupDevWeapons>;
+        try {
+          devWeapons = getStartupDevWeapons();
+        } catch (weaponError) {
+          fastify.log.warn({ err: weaponError }, "Failed to load dev weapons, using empty array");
+          devWeapons = [];
+        }
+
+        const payload = playerStateSchema.parse({
+          playerId: profile.id,
+          accountId: profile.accountId,
+          class: profile.class,
+          preferredLocale:
+            (profile as { preferredLocale?: string | null }).preferredLocale ?? "en",
+          level: profile.level,
+          gearScore: profile.gearScore,
+          stats: {
+            strength: stats.strength,
+            intelligence: stats.intelligence,
+            dexterity: stats.dexterity,
+            vitality: stats.vitality,
+            initiative: stats.initiative,
+            luck: stats.luck
+          },
+          currency: {
+            ducats: currency.ducats,
+            imperials: currency.imperials
+          },
+          devWeapons
+        });
+
+        return reply.send(payload);
+      } catch (error) {
+        fastify.log.error({ err: error }, "Error in GET /v1/player/state");
+        return reply.code(500).send({ 
+          error: "Internal server error", 
+          details: error instanceof Error ? error.message : String(error)
+        });
       }
-
-      const payload = playerStateSchema.parse({
-        playerId: profile.id,
-        accountId: profile.accountId,
-        class: profile.class,
-        preferredLocale:
-          (profile as { preferredLocale?: string | null }).preferredLocale ?? "en",
-        level: profile.level,
-        gearScore: profile.gearScore,
-        stats: {
-          strength: stats.strength,
-          intelligence: stats.intelligence,
-          dexterity: stats.dexterity,
-          vitality: stats.vitality,
-          initiative: stats.initiative,
-          luck: stats.luck
-        },
-        currency: {
-          ducats: currency.ducats,
-          imperials: currency.imperials
-        },
-        devWeapons: getStartupDevWeapons()
-      });
-
-      return reply.send(payload);
     }
   );
 
