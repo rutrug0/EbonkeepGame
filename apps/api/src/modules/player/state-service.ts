@@ -284,8 +284,36 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     }
   });
 
-  if (!profile || !profile.stats || !profile.currency) {
+  if (!profile) {
     return null;
+  }
+
+  // Ensure stats exist
+  let stats = profile.stats;
+  if (!stats) {
+    stats = await prisma.playerStat.create({
+      data: {
+        playerId,
+        strength: 10,
+        intelligence: 10,
+        dexterity: 10,
+        vitality: 10,
+        initiative: 10,
+        luck: 10
+      }
+    });
+  }
+
+  // Ensure currency exists
+  let currency = profile.currency;
+  if (!currency) {
+    currency = await prisma.currencyBalance.create({
+      data: {
+        playerId,
+        ducats: 1000,
+        imperials: 0
+      }
+    });
   }
 
   const equipment = buildEquipmentState(profile.equipmentSlots);
@@ -300,12 +328,12 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: profile.class as PlayerClass,
     baseStats: {
-      strength: profile.stats.strength,
-      intelligence: profile.stats.intelligence,
-      dexterity: profile.stats.dexterity,
-      vitality: profile.stats.vitality,
-      initiative: profile.stats.initiative,
-      luck: profile.stats.luck
+      strength: stats.strength,
+      intelligence: stats.intelligence,
+      dexterity: stats.dexterity,
+      vitality: stats.vitality,
+      initiative: stats.initiative,
+      luck: stats.luck
     },
     equipment
   });
@@ -329,8 +357,8 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     inventory,
     equipment,
     currency: {
-      ducats: profile.currency.ducats,
-      imperials: profile.currency.imperials
+      ducats: currency.ducats,
+      imperials: currency.imperials
     }
   });
 }
