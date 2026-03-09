@@ -223,7 +223,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--monster-family",
         default=None,
-        help="Only include monster rows matching this family_id (case-insensitive), e.g. tallow_cellar_00.",
+        help="Only include monster-family rows matching this family_id (case-insensitive) across monster, combat_stage, and travel_stage sources, e.g. tallow_cellar_00.",
     )
     parser.add_argument(
         "--ca-bundle",
@@ -844,7 +844,10 @@ def main() -> int:
             if monster_family_filter:
                 family_parts = record.family_key.split(":")
                 record_monster_family = family_parts[1].strip().lower() if len(family_parts) > 1 else ""
-                if record.major_category != "monster" or record_monster_family != monster_family_filter:
+                if (
+                    record.major_category not in {"monster", "combat_stage", "travel_stage"}
+                    or record_monster_family != monster_family_filter
+                ):
                     counts["skipped_monster_family_filter"] += 1
                     continue
 
