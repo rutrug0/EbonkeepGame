@@ -57,6 +57,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm --workspace @ebonkeep/api run db:generate
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
