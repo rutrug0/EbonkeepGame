@@ -39,9 +39,12 @@ import {
   sendGuildInvite,
 } from "../api";
 
+const GUILD_MIN_LEVEL = 10;
+
 export interface GuildPanelProps {
   token: string | null;
   currentPlayerId?: string | null;
+  playerLevel?: number | null;
 }
 
 type GuildView = "myGuild" | "search";
@@ -63,7 +66,7 @@ interface ConfirmModalProps {
   title: string;
   message: string;
   confirmLabel: string;
-  cancelLabel: string;
+  cancelLabel?: string;
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -87,13 +90,15 @@ function ConfirmModal({
         <h2 className="guildConfirmModalTitle">{title}</h2>
         <p className="guildConfirmModalMessage">{message}</p>
         <div className="guildConfirmModalActions">
-          <button
-            type="button"
-            className="guildConfirmModalBtn guildConfirmModalBtnCancel"
-            onClick={onCancel}
-          >
-            {cancelLabel}
-          </button>
+          {cancelLabel && (
+            <button
+              type="button"
+              className="guildConfirmModalBtn guildConfirmModalBtnCancel"
+              onClick={onCancel}
+            >
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
             className={`guildConfirmModalBtn${danger ? " guildConfirmModalBtnDanger" : " guildConfirmModalBtnConfirm"}`}
@@ -108,7 +113,7 @@ function ConfirmModal({
 }
 
 // ── Top-Level ────────────────────────────────────────────────────────────
-export function GuildPanel({ token, currentPlayerId }: GuildPanelProps) {
+export function GuildPanel({ token, currentPlayerId, playerLevel }: GuildPanelProps) {
   const { t } = useTranslation("common");
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
   const [hasGuild, setHasGuild] = useState(false);
@@ -162,6 +167,7 @@ export function GuildPanel({ token, currentPlayerId }: GuildPanelProps) {
           <MyGuildView
             token={token}
             currentPlayerId={currentPlayerId}
+            playerLevel={playerLevel}
             onSearchClick={() => setCurrentView("search")}
           />
         )}
@@ -179,10 +185,12 @@ export function GuildPanel({ token, currentPlayerId }: GuildPanelProps) {
 function MyGuildView({
   token,
   currentPlayerId,
+  playerLevel,
   onSearchClick,
 }: {
   token: string;
   currentPlayerId?: string | null;
+  playerLevel?: number | null;
   onSearchClick: () => void;
 }) {
   const { t } = useTranslation("common");
@@ -253,6 +261,7 @@ function MyGuildView({
     return (
       <NoGuildView
         token={token}
+        playerLevel={playerLevel}
         onCreateClick={() => setShowCreateForm(true)}
         onSearchClick={onSearchClick}
       />
@@ -264,11 +273,11 @@ function MyGuildView({
   const isOfficer = role === "officer";
   const canManage = isLeader || isOfficer;
 
-  const tabs: Array<{ id: GuildDetailTab; label: string; manageOnly?: boolean }> = [
+  const tabs: Array<{ id: GuildDetailTab; label: string; manageOnly?: boolean; leaderOnly?: boolean }> = [
     { id: "members",   label: t("guild.memberList") },
     { id: "activity",  label: t("guild.activityLog") },
     { id: "invites",   label: t("guild.invite.invitesTab"), manageOnly: true },
-    { id: "settings",  label: t("guild.settings") },
+    { id: "settings",  label: t("guild.settings"), leaderOnly: true },
   ];
 
   return (
@@ -343,6 +352,13 @@ function MyGuildView({
             </span>
           </div>
         </div>
+        {!isLeader && (
+          <div className="guildHeroLeaveAction">
+            <button type="button" className="buttonSecondary" onClick={handleLeave}>
+              {t("guild.actions.leave")}
+            </button>
+          </div>
+        )}
       </article>
 
       {/* ── Inner tab navigation ── */}
@@ -350,7 +366,7 @@ function MyGuildView({
         <div className="profileSwitchBar">
           <div className="profileSwitchButtons">
             {tabs
-              .filter((tab) => !tab.manageOnly || canManage)
+              .filter((tab) => (!tab.manageOnly || canManage) && (!tab.leaderOnly || isLeader))
               .map((tab) => (
                 <button
                   key={tab.id}
@@ -381,7 +397,7 @@ function MyGuildView({
         {activeTab === "invites" && canManage && (
           <GuildInvitesTab token={token} guildId={guildData.guild.id} />
         )}
-        {activeTab === "settings" && (
+        {activeTab === "settings" && isLeader && (
           <GuildSettingsTab
             token={token}
             guild={guildData.guild}
@@ -400,16 +416,27 @@ function MyGuildView({
 // ── No Guild view ─────────────────────────────────────────────────────────
 function NoGuildView({
   token,
+  playerLevel,
   onCreateClick,
   onSearchClick,
 }: {
   token: string;
+  playerLevel?: number | null;
   onCreateClick: () => void;
   onSearchClick: () => void;
 }) {
   const { t } = useTranslation("common");
   const [invites, setInvites] = useState<any[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
+  const [showLevelWarning, setShowLevelWarning] = useState(false);
+
+  const handleCreateClick = () => {
+    if (playerLevel != null && playerLevel < GUILD_MIN_LEVEL) {
+      setShowLevelWarning(true);
+    } else {
+      onCreateClick();
+    }
+  };
 
   useEffect(() => {
     getReceivedInvites(token)
@@ -439,17 +466,30 @@ function NoGuildView({
 
   return (
     <>
+      {showLevelWarning && (
+        <ConfirmModal
+          title={t("guild.createLevelRequiredTitle", { level: GUILD_MIN_LEVEL })}
+          message={t("guild.createLevelRequired", { level: GUILD_MIN_LEVEL })}
+          confirmLabel={t("cancel")}
+          cancelLabel=""
+          onConfirm={() => setShowLevelWarning(false)}
+          onCancel={() => setShowLevelWarning(false)}
+        />
+      )}
       <article className="contentCard noGuildHeroCard">
         <div className="noGuildHeroCrest">
           <ShieldIcon size={64} />
         </div>
         <h2 className="noGuildHeroTitle">{t("guild.noGuildHero")}</h2>
         <p className="noGuildHeroSubtitle">{t("guild.noGuildSubtitle")}</p>
+        {playerLevel != null && playerLevel < GUILD_MIN_LEVEL && (
+          <p className="noGuildLevelHint">{t("guild.createLevelRequired", { level: GUILD_MIN_LEVEL })}</p>
+        )}
         <div className="noGuildHeroActions">
           <button
             type="button"
             className="guildFormButton guildFormButtonPrimary"
-            onClick={onCreateClick}
+            onClick={handleCreateClick}
           >
             {t("guild.create")}
           </button>
@@ -760,6 +800,7 @@ function SearchGuildsView({
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : "Failed to join guild");
       setJoiningId(null);
+      setPendingJoinGuild(null);
     }
   };
 
@@ -999,6 +1040,13 @@ function CreateGuildForm({
 }
 
 // ── Guild Members Tab ─────────────────────────────────────────────────────
+type MemberAction = "kick" | "promote" | "demote" | "transfer";
+interface PendingMemberAction {
+  type: MemberAction;
+  playerId: string;
+  username: string;
+}
+
 function GuildMembersTab({
   token,
   guildId,
@@ -1013,6 +1061,8 @@ function GuildMembersTab({
   const { t } = useTranslation("common");
   const [members, setMembers] = useState<GuildMemberWithPlayer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingAction, setPendingAction] = useState<PendingMemberAction | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     loadMembers();
@@ -1030,44 +1080,47 @@ function GuildMembersTab({
     }
   };
 
-  const handleKick = async (playerId: string, username: string) => {
-    if (!confirm(t("guild.confirmKick", { player: username }))) return;
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+    setActionError(null);
     try {
-      await kickMember(token, guildId, playerId);
+      if (pendingAction.type === "kick") {
+        await kickMember(token, guildId, pendingAction.playerId);
+      } else if (pendingAction.type === "promote") {
+        await updateMemberRole(token, guildId, pendingAction.playerId, "officer");
+      } else if (pendingAction.type === "demote") {
+        await updateMemberRole(token, guildId, pendingAction.playerId, "member");
+      } else if (pendingAction.type === "transfer") {
+        await transferLeadership(token, guildId, pendingAction.playerId);
+      }
+      setPendingAction(null);
       await loadMembers();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to kick member");
+      setActionError(err instanceof Error ? err.message : "Action failed");
+      setPendingAction(null);
     }
   };
 
-  const handlePromote = async (playerId: string, username: string) => {
-    if (!confirm(t("guild.confirmPromote", { player: username }))) return;
-    try {
-      await updateMemberRole(token, guildId, playerId, "officer");
-      await loadMembers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to promote member");
-    }
-  };
-
-  const handleDemote = async (playerId: string, username: string) => {
-    if (!confirm(t("guild.confirmDemote", { player: username }))) return;
-    try {
-      await updateMemberRole(token, guildId, playerId, "member");
-      await loadMembers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to demote member");
-    }
-  };
-
-  const handleTransfer = async (playerId: string, username: string) => {
-    if (!confirm(t("guild.confirmTransfer", { player: username }))) return;
-    try {
-      await transferLeadership(token, guildId, playerId);
-      await loadMembers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to transfer leadership");
-    }
+  const getModalProps = (action: PendingMemberAction) => {
+    const { type, username } = action;
+    const titleMap: Record<MemberAction, string> = {
+      kick: t("guild.actions.kick"),
+      promote: t("guild.actions.promote"),
+      demote: t("guild.actions.demote"),
+      transfer: t("guild.actions.transferLeadership"),
+    };
+    const messageMap: Record<MemberAction, string> = {
+      kick: t("guild.confirmKick", { player: username }),
+      promote: t("guild.confirmPromote", { player: username }),
+      demote: t("guild.confirmDemote", { player: username }),
+      transfer: t("guild.confirmTransfer", { player: username }),
+    };
+    return {
+      title: titleMap[type],
+      message: messageMap[type],
+      confirmLabel: titleMap[type],
+      danger: type === "kick" || type === "transfer",
+    };
   };
 
   if (loading) return <div className="guildTabLoading"><p>{t("loading")}</p></div>;
@@ -1079,8 +1132,22 @@ function GuildMembersTab({
   const roleOrder: Record<string, number> = { leader: 0, officer: 1, member: 2 };
   const sorted = [...members].sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
 
+  const modalProps = pendingAction ? getModalProps(pendingAction) : null;
+
   return (
     <div className="guildRosterWrap">
+      {pendingAction && modalProps && (
+        <ConfirmModal
+          title={modalProps.title}
+          message={modalProps.message}
+          confirmLabel={modalProps.confirmLabel}
+          cancelLabel={t("cancel")}
+          danger={modalProps.danger}
+          onConfirm={handleConfirmAction}
+          onCancel={() => setPendingAction(null)}
+        />
+      )}
+      {actionError && <p className="guildFormError">{actionError}</p>}
       {sorted.map((member) => {
         const isMe = member.playerId === currentPlayerId;
         const username = member.player.account.username ?? `#${member.playerId.slice(0, 8)}`;
@@ -1112,22 +1179,22 @@ function GuildMembersTab({
             {(canPromote || canDemote || canTransfer || canKick) && (
               <div className="guildRosterActions">
                 {canPromote && (
-                  <button type="button" className="buttonSmall" onClick={() => handlePromote(member.playerId, username)}>
+                  <button type="button" className="buttonSmall" onClick={() => setPendingAction({ type: "promote", playerId: member.playerId, username })}>
                     {t("guild.actions.promote")}
                   </button>
                 )}
                 {canDemote && (
-                  <button type="button" className="buttonSmall" onClick={() => handleDemote(member.playerId, username)}>
+                  <button type="button" className="buttonSmall" onClick={() => setPendingAction({ type: "demote", playerId: member.playerId, username })}>
                     {t("guild.actions.demote")}
                   </button>
                 )}
                 {canTransfer && (
-                  <button type="button" className="buttonSmall buttonPrimary" onClick={() => handleTransfer(member.playerId, username)}>
+                  <button type="button" className="buttonSmall buttonPrimary" onClick={() => setPendingAction({ type: "transfer", playerId: member.playerId, username })}>
                     {t("guild.actions.transferLeadership")}
                   </button>
                 )}
                 {canKick && (
-                  <button type="button" className="buttonSmall buttonDanger" onClick={() => handleKick(member.playerId, username)}>
+                  <button type="button" className="buttonSmall buttonDanger" onClick={() => setPendingAction({ type: "kick", playerId: member.playerId, username })}>
                     {t("guild.actions.kick")}
                   </button>
                 )}

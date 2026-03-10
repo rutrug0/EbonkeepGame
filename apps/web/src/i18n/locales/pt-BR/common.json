@@ -344,6 +344,8 @@
     "crestDefault": "Brasão padrão",
     "noGuildHero": "Você ainda não entrou nem fundou uma guilda.",
     "noGuildSubtitle": "Crie uma nova guilda ou procure uma para entrar.",
+    "createLevelRequiredTitle": "Nível {{level}} necessário",
+    "createLevelRequired": "Você precisa atingir o nível {{level}} para criar uma guilda.",
     "pendingInvites": "Convites pendentes",
     "viewDetails": "Ver detalhes",
     "backToResults": "← Voltar aos resultados",

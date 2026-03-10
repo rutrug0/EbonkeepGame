@@ -346,6 +346,8 @@
     "descriptionPlaceholder": "描述您公会的目标和价值观...",
     "crestDefault": "默认徽章",
     "noGuildHero": "你尚未加入或创建公会。",
+    "createLevelRequiredTitle": "需要等级 {{level}}",
+    "createLevelRequired": "您必须达到 {{level}} 级才能创建公会。",
     "noGuildSubtitle": "创建新公会或搜索加入公会。",
     "pendingInvites": "待处理邀请",
     "viewDetails": "查看详情",

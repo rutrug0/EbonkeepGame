@@ -343,6 +343,8 @@
     "crestDefault": "Стандартный герб",
     "noGuildHero": "Вы ещё не вступили в гильдию и не основали её.",
     "noGuildSubtitle": "Создайте новую гильдию или найдите подходящую.",
+    "createLevelRequiredTitle": "Требуется уровень {{level}}",
+    "createLevelRequired": "Для создания гильдии необходимо достичь {{level}} уровня.",
     "pendingInvites": "Ожидающие приглашения",
     "viewDetails": "Подробнее",
     "backToResults": "← Назад к результатам",

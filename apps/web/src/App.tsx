@@ -6981,7 +6981,7 @@ export function App() {
       case "arena":
         return renderPlaceholderPanel(i18n.t("menu.arena"), i18n.t("placeholders.arena"));
       case "guild":
-        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} />;
+        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} />;
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":

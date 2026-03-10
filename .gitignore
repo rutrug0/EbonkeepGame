@@ -35,3 +35,6 @@ tools/.cache/
 
 # Local helper command cheat sheet
 /item_art_generation_commands.txt
+
+# Editor backup files
+*.bak

@@ -428,6 +428,8 @@
     "descriptionPlaceholder": "길드의 목적과 가치를 설명하세요...",
     "crestDefault": "기본 문장",
     "noGuildHero": "아직 길드에 가입하거나 설립하지 않았습니다.",
+    "createLevelRequiredTitle": "레벨 {{level}} 필요",
+    "createLevelRequired": "길드를 만들려면 레벨 {{level}}에 도달해야 합니다.",
     "noGuildSubtitle": "새 길드를 만들거나 가입할 길드를 찾아보세요.",
     "pendingInvites": "대기 중인 초대",
     "viewDetails": "자세히 보기",

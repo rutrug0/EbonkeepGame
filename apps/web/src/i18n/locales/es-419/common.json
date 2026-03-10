@@ -348,6 +348,8 @@
     "crestDefault": "Escudo predeterminado",
     "noGuildHero": "Aún no has unido ni fundado un gremio.",
     "noGuildSubtitle": "Crea un nuevo gremio o busca uno para unirte.",
+    "createLevelRequiredTitle": "Nivel {{level}} requerido",
+    "createLevelRequired": "Debes alcanzar el nivel {{level}} para crear un gremio.",
     "pendingInvites": "Invitaciones pendientes",
     "viewDetails": "Ver detalles",
     "backToResults": "← Volver a resultados",

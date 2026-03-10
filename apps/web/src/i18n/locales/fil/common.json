@@ -430,6 +430,8 @@
     "crestDefault": "Default na Sagisag",
     "noGuildHero": "Hindi ka pa sumasali o nagtatag ng isang guild.",
     "noGuildSubtitle": "Lumikha ng bagong guild o maghanap ng isa para sumali.",
+    "createLevelRequiredTitle": "Kailangan ang Antas {{level}}",
+    "createLevelRequired": "Kailangan mong maabot ang antas {{level}} para lumikha ng guild.",
     "pendingInvites": "Mga Nakabinbing Imbitasyon",
     "viewDetails": "Tingnan ang Detalye",
     "backToResults": "← Bumalik sa Mga Resulta",

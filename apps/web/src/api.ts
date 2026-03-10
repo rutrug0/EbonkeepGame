@@ -524,9 +524,10 @@ export async function disbandGuild(token: string, guildId: string): Promise<void
   }
 }
 
-export async function getGuildById(guildId: string): Promise<GuildDetailsResponse> {
+export async function getGuildById(guildId: string, token?: string | null): Promise<GuildDetailsResponse> {
   const response = await fetch(`${API_URL}/v1/guild/${guildId}`, {
-    method: "GET"
+    method: "GET",
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
 
   if (!response.ok) {
@@ -542,7 +543,6 @@ export async function joinGuild(token: string, guildId: string): Promise<void> {
   const response = await fetch(`${API_URL}/v1/guild/${guildId}/join`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`
     }
   });

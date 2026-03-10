@@ -631,6 +631,8 @@
     "crestDefault": "Default Crest",
     "noGuildHero": "You haven't joined or founded a guild yet.",
     "noGuildSubtitle": "Create a new guild or search for one to join.",
+    "createLevelRequiredTitle": "Level {{level}} Required",
+    "createLevelRequired": "You must reach level {{level}} to create a guild.",
     "pendingInvites": "Pending Invitations",
     "viewDetails": "View Details",
     "backToResults": "← Back to Results",

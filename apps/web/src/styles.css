@@ -6957,6 +6957,13 @@ button:focus-visible {
   max-width: 360px;
 }
 
+.noGuildLevelHint {
+  font-size: 0.8rem;
+  color: #c9704a;
+  margin: var(--space-1) 0 0;
+  max-width: 360px;
+}
+
 .noGuildHeroActions {
   display: flex;
   gap: var(--space-3);
@@ -7051,11 +7058,6 @@ button:focus-visible {
   font-family: var(--font-display);
 }
 
-/* Constrain any inline color/size styles to stay readable */
-.guildHeroDesc [style] {
-  max-font-size: inherit;
-}
-
 .guildHeroStats {
   display: flex;
   flex-direction: column;
@@ -7103,6 +7105,13 @@ button:focus-visible {
 .guildHeroStatusBadge--closed {
   color: var(--text-muted);
   background: rgba(255, 255, 255, 0.04);
+}
+
+.guildHeroLeaveAction {
+  display: flex;
+  align-items: flex-end;
+  padding-left: var(--space-2);
+  flex-shrink: 0;
 }
 
 /* ── Guild Inner Nav ───────────────────────────────────────────── */
@@ -7750,30 +7759,20 @@ button:focus-visible {
 @media (max-width: 768px) {
   .guildHeroBanner {
     grid-template-columns: auto 1fr;
-    grid-template-rows: auto auto;
-  }
-  .guildHeroStats {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
     gap: var(--space-3);
   }
-  .guildHeroStat {
-    align-items: flex-start;
+
+  .guildHeroStats {
+    flex-direction: row;
+    gap: var(--space-4);
+    justify-content: flex-start;
   }
-  .guildCreateFormFields {
-    grid-template-columns: 1fr;
-  }
-  .guildInviteSendFields {
-    grid-template-columns: 1fr;
-  }
-  .guildRosterActions {
-    flex-direction: column;
-    align-items: flex-start;
+
+  .guildHeroStatusBadge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
   }
 }
-
 
 .inventoryChatFloatingToggle {
   position: fixed;
@@ -8604,12 +8603,168 @@ button:focus-visible {
   }
 }
 
+/* ── Guild Leaderboard – clickable rows ──────────────────────────────── */
+.leaderboardRowClickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
 
+.leaderboardRowClickable:hover td {
+  background: rgba(190, 150, 81, 0.07);
+}
 
+/* ── Guild Detail Modal (from Leaderboard) ───────────────────────────── */
+.guildLbModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+}
 
+.guildLbModal {
+  position: relative;
+  background: #1c1810;
+  border: 1px solid rgba(190, 150, 81, 0.3);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(190, 150, 81, 0.15);
+}
 
+.guildLbModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid rgba(190, 150, 81, 0.15);
+  background: rgba(190, 150, 81, 0.04);
+  border-radius: 12px 12px 0 0;
+}
 
+.guildLbModalHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
 
+.guildLbModalClose {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
 
+.guildLbModalClose:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+}
 
+.guildLbModalBody {
+  padding: 24px 24px 28px;
+}
 
+.guildLbModalHero {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.guildLbModalCrest {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(190, 150, 81, 0.08);
+  border: 1px solid rgba(190, 150, 81, 0.22);
+  color: #c9a96e;
+}
+
+.guildLbModalTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.guildLbModalName {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.guildLbModalStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.guildLbModalStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.guildLbModalStatLabel {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.guildLbModalStatValue {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: #c9a96e;
+}
+
+.guildLbModalDescHeader {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.guildLbModalDesc {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #b0a898);
+  line-height: 1.65;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.guildLbModalDescEmpty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px 0;
+}
