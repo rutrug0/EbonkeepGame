@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { LeaderboardEntry, LeaderboardResponse, LeaderboardType, PlayerClass } from "@ebonkeep/shared";
-import { fetchLeaderboard } from "../api";
+import type { LeaderboardEntry, LeaderboardResponse, LeaderboardType, PlayerClass, GuildLeaderboardResponse } from "@ebonkeep/shared";
+import { fetchLeaderboard, getGuildLeaderboard } from "../api";
 
 export interface LeaderboardProps {
   token: string | null;
@@ -9,12 +9,17 @@ export interface LeaderboardProps {
 }
 
 type ClassFilter = PlayerClass | "all";
+type LeaderboardCategory = "players" | "guilds";
+type GuildLeaderboardType = "totalPower" | "level" | "memberCount";
 
 export function Leaderboard({ token }: LeaderboardProps) {
   const { t } = useTranslation("common");
+  const [category, setCategory] = useState<LeaderboardCategory>("players");
   const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>("power");
   const [classFilter, setClassFilter] = useState<ClassFilter>("all");
+  const [guildLeaderboardType, setGuildLeaderboardType] = useState<GuildLeaderboardType>("totalPower");
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardResponse | null>(null);
+  const [guildLeaderboardData, setGuildLeaderboardData] = useState<GuildLeaderboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,8 +32,17 @@ export function Leaderboard({ token }: LeaderboardProps) {
       setIsLoading(true);
       setError(null);
       try {
-        const data = await fetchLeaderboard(token!, leaderboardType, classFilter, 50);
-        setLeaderboardData(data);
+        if (category === "players") {
+          const data = await fetchLeaderboard(token!, leaderboardType, classFilter, 50);
+          setLeaderboardData(data);
+        } else if (category === "guilds") {
+          const data = await getGuildLeaderboard({ 
+            sortBy: guildLeaderboardType === "totalPower" ? "power" : guildLeaderboardType,
+            limit: 50,
+            offset: 0
+          });
+          setGuildLeaderboardData(data);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("leaderboards.error"));
       } finally {
@@ -37,7 +51,7 @@ export function Leaderboard({ token }: LeaderboardProps) {
     }
 
     void loadLeaderboard();
-  }, [token, leaderboardType, classFilter, t]);
+  }, [token, category, leaderboardType, classFilter, guildLeaderboardType, t]);
 
   function formatClassName(playerClass: PlayerClass): string {
     return t(`class.${playerClass}`);
@@ -55,10 +69,22 @@ export function Leaderboard({ token }: LeaderboardProps) {
     
     setIsLoading(true);
     setError(null);
-    fetchLeaderboard(token, leaderboardType, classFilter, 50)
-      .then((data) => setLeaderboardData(data))
-      .catch((err) => setError(err instanceof Error ? err.message : t("leaderboards.error")))
-      .finally(() => setIsLoading(false));
+    
+    if (category === "players") {
+      fetchLeaderboard(token, leaderboardType, classFilter, 50)
+        .then((data) => setLeaderboardData(data))
+        .catch((err) => setError(err instanceof Error ? err.message : t("leaderboards.error")))
+        .finally(() => setIsLoading(false));
+    } else if (category === "guilds") {
+      getGuildLeaderboard({ 
+        sortBy: guildLeaderboardType === "totalPower" ? "power" : guildLeaderboardType,
+        limit: 50,
+        offset: 0
+      })
+        .then((data) => setGuildLeaderboardData(data))
+        .catch((err) => setError(err instanceof Error ? err.message : t("leaderboards.error")))
+        .finally(() => setIsLoading(false));
+    }
   }
 
   if (!token) {
@@ -77,33 +103,57 @@ export function Leaderboard({ token }: LeaderboardProps) {
   return (
     <section className="contentShell">
       <section className="contentStack">
+        {/* Category tabs: Players vs Guilds */}
         <article className="contentCard">
-          <div className="leaderboardHeader">
-            <h2>{t("leaderboards.title")}</h2>
-            <button
-              type="button"
-              className="leaderboardRefreshButton"
-              onClick={handleRefresh}
-              disabled={isLoading}
-            >
-              {t("leaderboards.refreshLeaderboard")}
-            </button>
+          <div className="profileSwitchBar">
+            <div className="profileSwitchButtons">
+              <button
+                type="button"
+                className={`profileSwitchButton${category === "players" ? " active" : ""}`}
+                onClick={() => setCategory("players")}
+              >
+                {t("leaderboards.players")}
+              </button>
+              <button
+                type="button"
+                className={`profileSwitchButton${category === "guilds" ? " active" : ""}`}
+                onClick={() => setCategory("guilds")}
+              >
+                {t("leaderboards.guilds")}
+              </button>
+            </div>
           </div>
+        </article>
 
-          <div className="leaderboardFilters">
-            <div className="leaderboardFilterGroup">
-              <label className="leaderboardFilterLabel">{t("leaderboards.typePower")} / {t("leaderboards.typeLevel")}</label>
-              <div className="leaderboardTypeButtons">
+        {category === "players" && (
+          <>
+            <article className="contentCard">
+              <div className="leaderboardHeader">
+                <h2>{t("leaderboards.title")}</h2>
                 <button
                   type="button"
-                  className={`leaderboardTypeButton${leaderboardType === "power" ? " active" : ""}`}
-                  onClick={() => setLeaderboardType("power")}
+                  className="leaderboardRefreshButton"
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                >
+                  {t("leaderboards.refreshLeaderboard")}
+                </button>
+              </div>
+
+              <div className="leaderboardFilters">
+                <div className="leaderboardFilterGroup">
+                  <label className="leaderboardFilterLabel">{t("leaderboards.typePower")} / {t("leaderboards.typeLevel")}</label>
+                  <div className="profileSwitchButtons">
+                    <button
+                      type="button"
+                      className={`profileSwitchButton${leaderboardType === "power" ? " active" : ""}`}
+                      onClick={() => setLeaderboardType("power")}
                 >
                   {t("leaderboards.typePower")}
                 </button>
                 <button
                   type="button"
-                  className={`leaderboardTypeButton${leaderboardType === "level" ? " active" : ""}`}
+                  className={`profileSwitchButton${leaderboardType === "level" ? " active" : ""}`}
                   onClick={() => setLeaderboardType("level")}
                 >
                   {t("leaderboards.typeLevel")}
@@ -113,31 +163,31 @@ export function Leaderboard({ token }: LeaderboardProps) {
 
             <div className="leaderboardFilterGroup">
               <label className="leaderboardFilterLabel">{t("leaderboards.class")}</label>
-              <div className="leaderboardClassButtons">
+              <div className="profileSwitchButtons">
                 <button
                   type="button"
-                  className={`leaderboardClassButton${classFilter === "all" ? " active" : ""}`}
+                  className={`profileSwitchButton${classFilter === "all" ? " active" : ""}`}
                   onClick={() => setClassFilter("all")}
                 >
                   {t("leaderboards.filterAll")}
                 </button>
                 <button
                   type="button"
-                  className={`leaderboardClassButton${classFilter === "warrior" ? " active" : ""}`}
+                  className={`profileSwitchButton${classFilter === "warrior" ? " active" : ""}`}
                   onClick={() => setClassFilter("warrior")}
                 >
                   {t("leaderboards.filterWarrior")}
                 </button>
                 <button
                   type="button"
-                  className={`leaderboardClassButton${classFilter === "mage" ? " active" : ""}`}
+                  className={`profileSwitchButton${classFilter === "mage" ? " active" : ""}`}
                   onClick={() => setClassFilter("mage")}
                 >
                   {t("leaderboards.filterMage")}
                 </button>
                 <button
                   type="button"
-                  className={`leaderboardClassButton${classFilter === "ranger" ? " active" : ""}`}
+                  className={`profileSwitchButton${classFilter === "ranger" ? " active" : ""}`}
                   onClick={() => setClassFilter("ranger")}
                 >
                   {t("leaderboards.filterRanger")}
@@ -213,6 +263,123 @@ export function Leaderboard({ token }: LeaderboardProps) {
                 </p>
               </div>
             </article>
+          </>
+        )}
+          </>
+        )}
+
+        {/* Guild Leaderboards */}
+        {category === "guilds" && (
+          <>
+            <article className="contentCard">
+              <div className="leaderboardHeader">
+                <h2>{t("guild.leaderboardTitle")}</h2>
+                <button
+                  type="button"
+                  className="leaderboardRefreshButton"
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                >
+                  {t("leaderboards.refreshLeaderboard")}
+                </button>
+              </div>
+
+              <div className="guildLeaderboardFilters">
+                <div className="leaderboardFilterGroup">
+                  <label className="leaderboardFilterLabel">{t("guild.sortBy")}</label>
+                  <div className="profileSwitchButtons">
+                    <button
+                      type="button"
+                      className={`profileSwitchButton${guildLeaderboardType === "totalPower" ? " active" : ""}`}
+                      onClick={() => setGuildLeaderboardType("totalPower")}
+                    >
+                      {t("guild.totalPower")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`profileSwitchButton${guildLeaderboardType === "level" ? " active" : ""}`}
+                      onClick={() => setGuildLeaderboardType("level")}
+                    >
+                      {t("guild.level")}
+                    </button>
+                    <button
+                      type="button"
+                      className={`profileSwitchButton${guildLeaderboardType === "memberCount" ? " active" : ""}`}
+                      onClick={() => setGuildLeaderboardType("memberCount")}
+                    >
+                      {t("guild.memberCount")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            {error && (
+              <article className="contentCard leaderboardErrorCard">
+                <p className="leaderboardError">{error}</p>
+              </article>
+            )}
+
+            {isLoading && !guildLeaderboardData && (
+              <article className="contentCard">
+                <p>{t("leaderboards.loading")}</p>
+              </article>
+            )}
+
+            {guildLeaderboardData && guildLeaderboardData.guilds.length > 0 && (
+              <article className="contentCard leaderboardTableCard">
+                <div className="leaderboardTableWrap">
+                  <table className="leaderboardTable">
+                    <thead>
+                      <tr>
+                        <th className="leaderboardColumnRank">{t("leaderboards.rank")}</th>
+                        <th className="leaderboardColumnPlayer">{t("guild.name")}</th>
+                        <th className="leaderboardColumnClass">{t("guild.tag")}</th>
+                        <th className="leaderboardColumnLevel">{t("guild.level")}</th>
+                        <th className="leaderboardColumnPower">{t("guild.members")}</th>
+                        <th className="leaderboardColumnPower">{t("guild.value")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {guildLeaderboardData.guilds.map((entry) => (
+                        <tr key={entry.guild.id} className="leaderboardRow">
+                          <td data-label={t("leaderboards.rank")} className="leaderboardCellRank">
+                            <span className={getRankClass(entry.rank)}>#{entry.rank}</span>
+                          </td>
+                          <td data-label={t("guild.name")} className="leaderboardCellPlayer">
+                            <strong>{entry.guild.name}</strong>
+                          </td>
+                          <td data-label={t("guild.tag")} className="leaderboardCellClass">
+                            <span className="guildTag">[{entry.guild.tag}]</span>
+                          </td>
+                          <td data-label={t("guild.level")} className="leaderboardCellLevel">
+                            {entry.guild.level}
+                          </td>
+                          <td data-label={t("guild.members")} className="leaderboardCellPower">
+                            {entry.memberCount}/{entry.guild.maxMembers}
+                          </td>
+                          <td data-label={t("guild.value")} className="leaderboardCellPower">
+                            <strong>{entry.value.toLocaleString()}</strong>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="leaderboardFooter">
+                  <p className="leaderboardFooterText">
+                    {t("leaderboards.viewingTop", { count: guildLeaderboardData.guilds.length })} • {" "}
+                    {t("guild.totalGuilds", { count: guildLeaderboardData.totalGuilds })}
+                  </p>
+                </div>
+              </article>
+            )}
+
+            {guildLeaderboardData && guildLeaderboardData.guilds.length === 0 && !isLoading && (
+              <article className="contentCard">
+                <p className="placeholderText">{t("guild.noLeaderboardData")}</p>
+              </article>
+            )}
           </>
         )}
       </section>

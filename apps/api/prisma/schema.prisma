@@ -47,11 +47,17 @@ model PlayerProfile {
   inventoryItems   InventoryItem[]
   inventoryLayouts InventoryLayout[]
   equipmentSlots   EquipmentSlot[]
-  shopInstances    ShopInstance[]
-  jobRuns          JobRun[]
-  combatSessions   CombatSession[]
-  combatActions    CombatAction[]
-  eventProgress    EventProgress[]
+  shopInstances        ShopInstance[]
+  jobRuns              JobRun[]
+  combatSessions       CombatSession[]
+  combatActions        CombatAction[]
+  eventProgress        EventProgress[]
+  guildMembership      GuildMember?        @relation("GuildMembership")
+  leadingGuild         Guild[]             @relation("GuildLeader")
+  sentInvites          GuildInvite[]       @relation("GuildInvitesSent")
+  receivedInvites      GuildInvite[]       @relation("GuildInvitesReceived")
+  guildActivityAsActor GuildActivity[]     @relation("GuildActivityActor")
+  guildActivityAsTarget GuildActivity[]    @relation("GuildActivityTarget")
 
   @@index([accountId])
   @@map("player_profiles")
@@ -346,4 +352,98 @@ model AuctionPlayerListing {
   @@index([status])
   @@index([auctionItemId])
   @@map("auction_player_listings")
+}
+
+// ========================================
+// Guild System Models
+// ========================================
+
+model Guild {
+  id              String          @id @default(cuid())
+  name            String          @unique
+  tag             String          @unique
+  description     String          @default("")
+  leaderId        String
+  maxMembers      Int             @default(50)
+  isRecruiting    Boolean         @default(true)
+  totalPower      Int             @default(0)
+  level           Int             @default(1)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  crestBgShape    String          @default("shield_01")
+  crestBgColor    String          @default("crimson")
+  crestBgPattern  String?
+  crestFgSymbol   String          @default("sword_01")
+  crestFgColor    String          @default("gold")
+  crestFrame      String?
+  
+  leader          PlayerProfile   @relation("GuildLeader", fields: [leaderId], references: [id], onDelete: Restrict)
+  members         GuildMember[]
+  invites         GuildInvite[]
+  activityLog     GuildActivity[]
+  
+  @@index([name])
+  @@index([tag])
+  @@index([leaderId])
+  @@index([totalPower])
+  @@index([createdAt])
+  @@map("guilds")
+}
+
+model GuildMember {
+  id              String          @id @default(cuid())
+  guildId         String
+  playerId        String          @unique
+  role            String          @default("member")
+  joinedAt        DateTime        @default(now())
+  contributedPower Int            @default(0)
+  
+  guild           Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  player          PlayerProfile   @relation("GuildMembership", fields: [playerId], references: [id], onDelete: Cascade)
+  
+  @@index([guildId])
+  @@index([playerId])
+  @@index([role])
+  @@map("guild_members")
+}
+
+model GuildInvite {
+  id              String          @id @default(cuid())
+  guildId         String
+  inviterId       String
+  inviteeId       String
+  message         String?
+  status          String          @default("pending")
+  expiresAt       DateTime
+  createdAt       DateTime        @default(now())
+  respondedAt     DateTime?
+  
+  guild           Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  inviter         PlayerProfile   @relation("GuildInvitesSent", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee         PlayerProfile   @relation("GuildInvitesReceived", fields: [inviteeId], references: [id], onDelete: Cascade)
+  
+  @@unique([guildId, inviteeId, status])
+  @@index([guildId])
+  @@index([inviteeId, status])
+  @@index([expiresAt])
+  @@map("guild_invites")
+}
+
+model GuildActivity {
+  id              String          @id @default(cuid())
+  guildId         String
+  actorId         String?
+  actionType      String
+  targetId        String?
+  metadata        Json?
+  timestamp       DateTime        @default(now())
+  
+  guild           Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  actor           PlayerProfile?  @relation("GuildActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+  target          PlayerProfile?  @relation("GuildActivityTarget", fields: [targetId], references: [id], onDelete: SetNull)
+  
+  @@index([guildId, timestamp(sort: Desc)])
+  @@index([actorId])
+  @@map("guild_activity")
 }

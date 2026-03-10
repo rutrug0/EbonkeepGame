@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@ebonkeep/shared": "0.1.0",
+    "@types/dompurify": "^3.0.5",
+    "dompurify": "^3.3.2",
     "i18next": "^24.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

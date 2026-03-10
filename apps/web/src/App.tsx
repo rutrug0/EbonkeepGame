@@ -67,6 +67,7 @@ import {
 import { ImperialShop } from "./components/ImperialShop";
 import { AuctionHouse } from "./components/AuctionHouse";
 import { Leaderboard } from "./components/Leaderboard";
+import { GuildPanel } from "./components/GuildPanel";
 import { IMPERIALS_ICON_PATH } from "./constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
@@ -2177,8 +2178,8 @@ function renderMenuIcon(tab: LandingTab) {
     case "guild":
       return (
         <svg {...iconProps}>
-          <path d="M6 20V5l8 2 4-2v9l-4 2-8-2" />
-          <path d="M10 10h4M10 14h2" />
+          <path d="M12 3L4 7v5c0 5 3 9 8 11 5-2 8-6 8-11V7l-8-4z" />
+          <path d="M12 8v8M9 11l3-3 3 3" />
         </svg>
       );
     case "castles":
@@ -6980,7 +6981,7 @@ export function App() {
       case "arena":
         return renderPlaceholderPanel(i18n.t("menu.arena"), i18n.t("placeholders.arena"));
       case "guild":
-        return renderPlaceholderPanel(i18n.t("menu.guild"), i18n.t("placeholders.guild"));
+        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} />;
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
