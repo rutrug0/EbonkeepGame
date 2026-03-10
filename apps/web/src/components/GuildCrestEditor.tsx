@@ -1,165 +1,124 @@
-import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { GuildCrestCatalogEntry, GuildCrestId } from "@ebonkeep/shared";
+import { availableGuildCrestCatalog, defaultGuildCrestId } from "@ebonkeep/shared";
 import { GuildCrestDisplay } from "./GuildList";
-import { GUILD_CREST_COLORS } from "@ebonkeep/shared";
-
-export interface GuildCrestConfig {
-  bgShape: string;
-  bgColor: string;
-  bgPattern: string | null;
-  fgSymbol: string;
-  fgColor: string;
-  frame: string | null;
-}
 
 export interface GuildCrestEditorProps {
-  initialConfig?: GuildCrestConfig;
-  onChange?: (config: GuildCrestConfig) => void;
+  selectedCrestId?: GuildCrestId | null;
+  onChange?: (crestId: GuildCrestId) => void;
 }
 
-const SHAPES = ["shield", "circle", "square", "diamond", "hexagon", "banner"];
-const SYMBOLS = ["sword", "dragon", "crown", "star", "lion", "eagle", "tower", "flame"];
-const BG_COLORS = ["crimson", "forest", "sapphire", "obsidian", "ivory", "gold", "iron"];
-const FG_COLORS = ["silver", "bronze", "white", "black", "amber"];
-const PATTERNS = ["none", "stripes", "checkerboard", "dots"];
-const FRAMES = ["none", "ornate", "simple", "runic"];
+type CarouselAnimationDirection = "previous" | "next";
 
-export function GuildCrestEditor({ initialConfig, onChange }: GuildCrestEditorProps) {
+const CAROUSEL_ANIMATION_MS = 440;
+
+function wrapIndex(index: number, length: number) {
+  return ((index % length) + length) % length;
+}
+
+export function GuildCrestEditor({ selectedCrestId, onChange }: GuildCrestEditorProps) {
   const { t } = useTranslation("common");
+  const entries: readonly GuildCrestCatalogEntry[] = availableGuildCrestCatalog;
+  const initialId = selectedCrestId ?? defaultGuildCrestId;
+  const initialIndex = Math.max(0, entries.findIndex((entry) => entry.crestId === initialId));
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [animationDirection, setAnimationDirection] = useState<CarouselAnimationDirection | null>(null);
 
-  const [config, setConfig] = useState<GuildCrestConfig>(
-    initialConfig || {
-      bgShape: "shield",
-      bgColor: "crimson",
-      bgPattern: null,
-      fgSymbol: "sword",
-      fgColor: "silver",
-      frame: null
+  useEffect(() => {
+    const nextIndex = entries.findIndex((entry) => entry.crestId === (selectedCrestId ?? defaultGuildCrestId));
+    if (nextIndex >= 0) {
+      setCurrentIndex(nextIndex);
     }
-  );
+  }, [entries, selectedCrestId]);
 
-  function updateConfig(updates: Partial<GuildCrestConfig>) {
-    const newConfig = { ...config, ...updates };
-    setConfig(newConfig);
-    if (onChange) {
-      onChange(newConfig);
+  useEffect(() => {
+    if (!animationDirection) {
+      return undefined;
     }
+
+    const timeoutId = window.setTimeout(() => {
+      setAnimationDirection(null);
+    }, CAROUSEL_ANIMATION_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [animationDirection]);
+
+  if (entries.length === 0) {
+    return (
+      <div className="guildCrestEditor guildCrestEditor-empty">
+        <p className="placeholderText">{t("guild.crest.unavailable")}</p>
+      </div>
+    );
+  }
+
+  const visibleEntries = [-1, 0, 1].map((offset) => entries[wrapIndex(currentIndex + offset, entries.length)]);
+  const selectedPosition = currentIndex + 1;
+
+  function commitSelection(nextIndex: number, direction: CarouselAnimationDirection) {
+    if (nextIndex === currentIndex) {
+      return;
+    }
+
+    setAnimationDirection(direction);
+    setCurrentIndex(nextIndex);
+    onChange?.(entries[nextIndex].crestId as GuildCrestId);
+  }
+
+  function move(direction: -1 | 1) {
+    const nextIndex = wrapIndex(currentIndex + direction, entries.length);
+    commitSelection(nextIndex, direction === -1 ? "previous" : "next");
+  }
+
+  function selectCrest(crestId: string) {
+    const nextIndex = entries.findIndex((entry) => entry.crestId === crestId);
+    if (nextIndex < 0 || nextIndex == currentIndex) {
+      return;
+    }
+
+    const forwardDistance = wrapIndex(nextIndex - currentIndex, entries.length);
+    const backwardDistance = wrapIndex(currentIndex - nextIndex, entries.length);
+    commitSelection(nextIndex, forwardDistance <= backwardDistance ? "next" : "previous");
   }
 
   return (
     <div className="guildCrestEditor">
-      <div className="crestEditorPreview">
-        <h4>{t("guild.crest.title")}</h4>
-        <GuildCrestDisplay
-          bgShape={config.bgShape}
-          bgColor={config.bgColor}
-          bgPattern={config.bgPattern}
-          fgSymbol={config.fgSymbol}
-          fgColor={config.fgColor}
-          frame={config.frame}
-          size="large"
-        />
-      </div>
-
-      <div className="crestEditorControls">
-        {/* Background Shape */}
-        <div className="crestEditorSection">
-          <label className="crestEditorLabel">{t("guild.crest.bgShape")}</label>
-          <div className="crestEditorOptions">
-            {SHAPES.map((shape) => (
+      <div className="crestCarouselCounter" aria-hidden="true">{selectedPosition}/{entries.length}</div>
+      <div className="crestCarousel" aria-label={t("guild.crest.carousel")}>
+        <div className={`crestCarouselTrack${animationDirection ? ` crestCarouselTrack-animating-${animationDirection}` : ""}`}>
+          {visibleEntries.map((entry, index) => {
+            const isSelected = index === 1;
+            return (
               <button
-                key={shape}
-                className={`crestOption ${config.bgShape === shape ? "crestOption-active" : ""}`}
-                onClick={() => updateConfig({ bgShape: shape })}
+                key={`${entry.crestId}-${index}`}
+                type="button"
+                className={`crestCarouselItem crestCarouselItem-position-${index === 0 ? "left" : index === 1 ? "center" : "right"}${isSelected ? " crestCarouselItem-selected" : ""}`}
+                onClick={() => selectCrest(entry.crestId)}
+                aria-pressed={isSelected}
               >
-                {t(`guild.crest.shapes.${shape}`)}
+                <GuildCrestDisplay crestId={entry.crestId} size={isSelected ? "medium" : "small"} alt={entry.title} />
+                <span className="crestCarouselLabel">{entry.title}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
-
-        {/* Background Color */}
-        <div className="crestEditorSection">
-          <label className="crestEditorLabel">{t("guild.crest.bgColor")}</label>
-          <div className="crestEditorOptions crestEditorColors">
-            {BG_COLORS.map((color) => (
-              <button
-                key={color}
-                className={`crestColorOption ${config.bgColor === color ? "crestColorOption-active" : ""}`}
-                onClick={() => updateConfig({ bgColor: color })}
-                style={{
-                  backgroundColor: GUILD_CREST_COLORS[color as keyof typeof GUILD_CREST_COLORS]
-                }}
-                title={t(`guild.crest.colors.${color}`)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Background Pattern */}
-        <div className="crestEditorSection">
-          <label className="crestEditorLabel">{t("guild.crest.bgPattern")}</label>
-          <div className="crestEditorOptions">
-            {PATTERNS.map((pattern) => (
-              <button
-                key={pattern}
-                className={`crestOption ${config.bgPattern === (pattern === "none" ? null : pattern) ? "crestOption-active" : ""}`}
-                onClick={() => updateConfig({ bgPattern: pattern === "none" ? null : pattern })}
-              >
-                {t(`guild.crest.patterns.${pattern}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Foreground Symbol */}
-        <div className="crestEditorSection">
-          <label className="crestEditorLabel">{t("guild.crest.fgSymbol")}</label>
-          <div className="crestEditorOptions">
-            {SYMBOLS.map((symbol) => (
-              <button
-                key={symbol}
-                className={`crestOption ${config.fgSymbol === symbol ? "crestOption-active" : ""}`}
-                onClick={() => updateConfig({ fgSymbol: symbol })}
-              >
-                {t(`guild.crest.symbols.${symbol}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Foreground Color */}
-        <div className="crestEditorSection">
-          <label className="crestEditorLabel">{t("guild.crest.fgColor")}</label>
-          <div className="crestEditorOptions crestEditorColors">
-            {FG_COLORS.map((color) => (
-              <button
-                key={color}
-                className={`crestColorOption ${config.fgColor === color ? "crestColorOption-active" : ""}`}
-                onClick={() => updateConfig({ fgColor: color })}
-                style={{
-                  backgroundColor: GUILD_CREST_COLORS[color as keyof typeof GUILD_CREST_COLORS]
-                }}
-                title={t(`guild.crest.colors.${color}`)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Frame */}
-        <div className="crestEditorSection">
-          <label className="crestEditorLabel">{t("guild.crest.frame")}</label>
-          <div className="crestEditorOptions">
-            {FRAMES.map((frame) => (
-              <button
-                key={frame}
-                className={`crestOption ${config.frame === (frame === "none" ? null : frame) ? "crestOption-active" : ""}`}
-                onClick={() => updateConfig({ frame: frame === "none" ? null : frame })}
-              >
-                {t(`guild.crest.frames.${frame}`)}
-              </button>
-            ))}
-          </div>
+        <div className="crestCarouselControls">
+          <button
+            type="button"
+            className="crestCarouselArrow"
+            onClick={() => move(-1)}
+            aria-label={t("guild.crest.previous")}
+          >
+            &#8249;
+          </button>
+          <button
+            type="button"
+            className="crestCarouselArrow"
+            onClick={() => move(1)}
+            aria-label={t("guild.crest.next")}
+          >
+            &#8250;
+          </button>
         </div>
       </div>
     </div>

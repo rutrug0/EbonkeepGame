@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { availableGuildCrestCatalog, availableGuildCrestIds, defaultGuildCrestId, guildCrestCatalog, guildCrestIds } from "./generated/guildCrestCatalog.js";
+import type { GuildCrestCatalogEntry } from "./generated/guildCrestCatalog.js";
 
 export const playerClassSchema = z.enum(["warrior", "mage", "ranger"]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
@@ -846,14 +848,15 @@ export const guildActivityTypeSchema = z.enum([
 ]);
 export type GuildActivityType = z.infer<typeof guildActivityTypeSchema>;
 
+export { availableGuildCrestCatalog, availableGuildCrestIds, defaultGuildCrestId, guildCrestCatalog, guildCrestIds };
+export type { GuildCrestCatalogEntry };
+
+export const guildCrestIdSchema = z.enum(availableGuildCrestIds);
+export type GuildCrestId = z.infer<typeof guildCrestIdSchema>;
+
 // Guild crest configuration
 export const guildCrestSchema = z.object({
-  bgShape: z.string(),
-  bgColor: z.string(),
-  bgPattern: z.string().nullable().optional(),
-  fgSymbol: z.string(),
-  fgColor: z.string(),
-  frame: z.string().nullable().optional()
+  crestId: guildCrestIdSchema
 });
 export type GuildCrest = z.infer<typeof guildCrestSchema>;
 
@@ -870,6 +873,7 @@ export const guildSchema = z.object({
   level: z.number().int(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  crestId: guildCrestIdSchema.nullable().optional(),
   crestBgShape: z.string(),
   crestBgColor: z.string(),
   crestBgPattern: z.string().nullable(),
@@ -924,7 +928,7 @@ export const createGuildRequestSchema = z.object({
   name: z.string().min(3).max(32),
   tag: z.string().min(2).max(6),
   description: z.string().max(500).optional(),
-  crestConfig: guildCrestSchema
+  crestId: guildCrestIdSchema.default(defaultGuildCrestId)
 });
 export type CreateGuildRequest = z.infer<typeof createGuildRequestSchema>;
 
@@ -937,7 +941,7 @@ export type CreateGuildResponse = z.infer<typeof createGuildResponseSchema>;
 // Update guild
 export const updateGuildRequestSchema = z.object({
   description: z.string().max(500).optional(),
-  crestConfig: guildCrestSchema.optional(),
+  crestId: guildCrestIdSchema.optional(),
   isRecruiting: z.boolean().optional()
 });
 export type UpdateGuildRequest = z.infer<typeof updateGuildRequestSchema>;

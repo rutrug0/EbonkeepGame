@@ -16,7 +16,7 @@ import type {
   GuildActivityQuery,
   GuildLeaderboardQuery
 } from "@ebonkeep/shared";
-import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrest } from "./validation.js";
+import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrestId, normalizeGuildCrestId } from "./validation.js";
 import {
   canKickMember,
   canChangeRole,
@@ -56,7 +56,7 @@ export async function createGuild(
   }
 
   // Validate crest
-  const crestValidation = validateGuildCrest(data.crestConfig);
+  const crestValidation = validateGuildCrestId(data.crestId);
   if (!crestValidation.valid) {
     throw new Error(crestValidation.error);
   }
@@ -108,12 +108,7 @@ export async function createGuild(
         description: data.description ?? "",
         leaderId: playerId,
         totalPower: player.gearScore,
-        crestBgShape: data.crestConfig.bgShape,
-        crestBgColor: data.crestConfig.bgColor,
-        crestBgPattern: data.crestConfig.bgPattern ?? null,
-        crestFgSymbol: data.crestConfig.fgSymbol,
-        crestFgColor: data.crestConfig.fgColor,
-        crestFrame: data.crestConfig.frame ?? null
+        crestId: data.crestId
       }
     });
 
@@ -213,8 +208,8 @@ export async function updateGuild(
   }
 
   // Validate crest if provided
-  if (data.crestConfig) {
-    const crestValidation = validateGuildCrest(data.crestConfig);
+  if (data.crestId !== undefined) {
+    const crestValidation = validateGuildCrestId(data.crestId);
     if (!crestValidation.valid) {
       throw new Error(crestValidation.error);
     }
@@ -228,13 +223,8 @@ export async function updateGuild(
   if (data.isRecruiting !== undefined) {
     updateData.isRecruiting = data.isRecruiting;
   }
-  if (data.crestConfig) {
-    updateData.crestBgShape = data.crestConfig.bgShape;
-    updateData.crestBgColor = data.crestConfig.bgColor;
-    updateData.crestBgPattern = data.crestConfig.bgPattern ?? null;
-    updateData.crestFgSymbol = data.crestConfig.fgSymbol;
-    updateData.crestFgColor = data.crestConfig.fgColor;
-    updateData.crestFrame = data.crestConfig.frame ?? null;
+  if (data.crestId !== undefined) {
+    updateData.crestId = data.crestId;
   }
 
   const guild = await prisma.$transaction(async (tx) => {
@@ -244,7 +234,12 @@ export async function updateGuild(
     });
 
     // Log activity
-    const actionType = data.crestConfig ? "crest_changed" : "description_changed";
+    const actionType =
+      data.crestId !== undefined
+        ? "crest_changed"
+        : data.description !== undefined
+          ? "description_changed"
+          : "recruiting_toggled";
     await tx.guildActivity.create({
       data: {
         guildId,
@@ -369,6 +364,7 @@ export async function disbandGuild(
 function serializeGuild(guild: any): Guild {
   return {
     ...guild,
+    crestId: normalizeGuildCrestId(guild.crestId),
     createdAt: guild.createdAt.toISOString(),
     updatedAt: guild.updatedAt.toISOString()
   };

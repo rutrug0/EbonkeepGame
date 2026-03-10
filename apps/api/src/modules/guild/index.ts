@@ -48,8 +48,8 @@ export {
   validateGuildName,
   validateGuildTag,
   validateGuildDescription,
-  validateGuildCrest,
-  VALID_CREST_ASSETS
+  validateGuildCrestId,
+  VALID_GUILD_CREST_IDS
 } from "./validation.js";
 
 // Permissions

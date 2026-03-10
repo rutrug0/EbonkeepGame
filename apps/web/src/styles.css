@@ -8613,3 +8613,462 @@ button:focus-visible {
 
 
 
+
+/* Guild crest asset-backed display and carousel */
+.guildCrest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guildCrestImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+}
+
+.guildCrestEditor {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.guildCrestEditor-empty {
+  padding: var(--space-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--soft-radius);
+  background: rgba(18, 24, 30, 0.45);
+}
+
+.crestEditorPreview {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background:
+    radial-gradient(circle at top, rgba(201, 169, 97, 0.18), transparent 55%),
+    linear-gradient(180deg, rgba(28, 36, 45, 0.92), rgba(16, 21, 28, 0.94));
+  border: 1px solid rgba(201, 169, 97, 0.22);
+  border-radius: calc(var(--soft-radius) + 2px);
+}
+
+.crestEditorPreview h4 {
+  margin: 0;
+  color: var(--accent-focus);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.crestEditorMeta {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 42rem;
+  text-align: center;
+}
+
+.crestEditorMetaHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--text-main);
+}
+
+.crestEditorMetaHeader span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.crestEditorMeta p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.crestCarousel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.crestCarouselArrow {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid rgba(201, 169, 97, 0.28);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(34, 42, 52, 0.96), rgba(20, 26, 34, 0.98));
+  color: var(--accent-focus);
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.crestCarouselArrow:hover {
+  transform: translateY(-1px);
+  border-color: rgba(201, 169, 97, 0.52);
+  background: linear-gradient(180deg, rgba(47, 57, 70, 0.96), rgba(24, 31, 39, 0.98));
+}
+
+.crestCarouselTrack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.crestCarouselItem {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid rgba(104, 120, 137, 0.28);
+  border-radius: calc(var(--soft-radius) + 2px);
+  background: rgba(20, 26, 34, 0.72);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+  opacity: 0.76;
+}
+
+.crestCarouselItem:hover {
+  transform: translateY(-2px);
+  border-color: rgba(201, 169, 97, 0.4);
+  opacity: 0.92;
+}
+
+.crestCarouselItem-selected {
+  background:
+    radial-gradient(circle at top, rgba(201, 169, 97, 0.12), transparent 60%),
+    rgba(24, 31, 39, 0.92);
+  border-color: rgba(201, 169, 97, 0.6);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+.crestCarouselLabel {
+  font-size: 0.82rem;
+  text-align: center;
+  line-height: 1.35;
+}
+
+@media (max-width: 768px) {
+  .crestCarousel {
+    grid-template-columns: 1fr;
+  }
+
+  .crestCarouselArrow {
+    justify-self: center;
+  }
+
+  .crestCarouselTrack {
+    gap: var(--space-2);
+  }
+
+  .crestCarouselItem {
+    padding: var(--space-2);
+  }
+}
+
+
+.guildCreateFormLowerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.95fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.guildCreateFormLowerRow .guildFormField {
+  min-width: 0;
+}
+
+.guildCreateFormLowerRow .guildFormCrestSection {
+  min-width: 0;
+}
+
+.guildCrestEditor {
+  display: block;
+  padding: 0;
+}
+
+.crestEditorPreview,
+.crestEditorMeta,
+.crestEditorMetaHeader {
+  display: none;
+}
+
+.crestCarouselTrack {
+  gap: var(--space-5);
+}
+
+.crestCarouselItem {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.crestCarouselItem:hover {
+  border: 0;
+  background: transparent;
+  opacity: 0.92;
+}
+
+.crestCarouselItem-selected {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.guildCrestEditor .guildCrest-small {
+  width: 88px;
+  height: 88px;
+}
+
+.guildCrestEditor .guildCrest-medium {
+  width: 148px;
+  height: 148px;
+}
+
+.crestCarouselLabel {
+  font-size: 0.78rem;
+}
+
+@media (max-width: 768px) {
+  .guildCreateFormLowerRow {
+    grid-template-columns: 1fr;
+  }
+
+  .guildCrestEditor .guildCrest-small {
+    width: 72px;
+    height: 72px;
+  }
+
+  .guildCrestEditor .guildCrest-medium {
+    width: 120px;
+    height: 120px;
+  }
+}
+
+
+.guildCreateFormLowerRow {
+  align-items: stretch;
+}
+
+.guildCreateFormLowerRow .guildFormField {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.guildCreateFormLowerRow .guildFormTextarea {
+  flex: 1 1 auto;
+  min-height: 232px;
+}
+
+.crestCarouselTrack {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.crestCarouselItem {
+  flex: 0 0 auto;
+  justify-self: center;
+}
+
+@media (max-width: 768px) {
+  .guildCreateFormLowerRow .guildFormTextarea {
+    min-height: 180px;
+  }
+
+  .crestCarouselTrack {
+    gap: var(--space-3);
+  }
+}
+
+
+.guildCrestEditor {
+  position: relative;
+  padding-top: 1.8rem;
+}
+
+.crestCarouselCounter {
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+
+.crestCarouselTrack {
+  isolation: isolate;
+}
+
+.crestCarouselItem {
+  will-change: transform, opacity, filter;
+}
+
+.crestCarouselTrack-animating-next .crestCarouselItem,
+.crestCarouselTrack-animating-previous .crestCarouselItem {
+  animation-duration: 320ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+
+.crestCarouselTrack-animating-next .crestCarouselItem-position-left {
+  animation-name: crestCarouselMoveCenterToLeft;
+}
+
+.crestCarouselTrack-animating-next .crestCarouselItem-position-center {
+  animation-name: crestCarouselMoveRightToCenter;
+}
+
+.crestCarouselTrack-animating-next .crestCarouselItem-position-right {
+  animation-name: crestCarouselEnterFromRight;
+}
+
+.crestCarouselTrack-animating-previous .crestCarouselItem-position-left {
+  animation-name: crestCarouselEnterFromLeft;
+}
+
+.crestCarouselTrack-animating-previous .crestCarouselItem-position-center {
+  animation-name: crestCarouselMoveLeftToCenter;
+}
+
+.crestCarouselTrack-animating-previous .crestCarouselItem-position-right {
+  animation-name: crestCarouselMoveCenterToRight;
+}
+
+@keyframes crestCarouselMoveCenterToLeft {
+  from {
+    transform: translateX(86px) scale(1.08);
+    opacity: 1;
+    filter: brightness(1.08);
+  }
+
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 0.7;
+    filter: brightness(0.92);
+  }
+}
+
+@keyframes crestCarouselMoveRightToCenter {
+  from {
+    transform: translateX(78px) scale(0.92);
+    opacity: 0.76;
+    filter: brightness(0.95);
+  }
+
+  to {
+    transform: translateX(0) scale(1.08);
+    opacity: 1;
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes crestCarouselEnterFromRight {
+  from {
+    transform: translateX(112px) scale(0.82);
+    opacity: 0;
+    filter: brightness(0.82);
+  }
+
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 0.7;
+    filter: brightness(0.92);
+  }
+}
+
+@keyframes crestCarouselEnterFromLeft {
+  from {
+    transform: translateX(-112px) scale(0.82);
+    opacity: 0;
+    filter: brightness(0.82);
+  }
+
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 0.7;
+    filter: brightness(0.92);
+  }
+}
+
+@keyframes crestCarouselMoveLeftToCenter {
+  from {
+    transform: translateX(-78px) scale(0.92);
+    opacity: 0.76;
+    filter: brightness(0.95);
+  }
+
+  to {
+    transform: translateX(0) scale(1.08);
+    opacity: 1;
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes crestCarouselMoveCenterToRight {
+  from {
+    transform: translateX(-86px) scale(1.08);
+    opacity: 1;
+    filter: brightness(1.08);
+  }
+
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 0.7;
+    filter: brightness(0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crestCarouselTrack-animating-next .crestCarouselItem,
+  .crestCarouselTrack-animating-previous .crestCarouselItem {
+    animation: none;
+  }
+}
+
+
+.crestCarousel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.crestCarouselControls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.crestCarouselArrow {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 6px;
+  font-size: 1.2rem;
+}
+
+.crestCarouselTrack-animating-next .crestCarouselItem,
+.crestCarouselTrack-animating-previous .crestCarouselItem {
+  animation-duration: 440ms;
+}
+
+@media (max-width: 768px) {
+  .crestCarouselArrow {
+    width: 2rem;
+    height: 2rem;
+  }
+}

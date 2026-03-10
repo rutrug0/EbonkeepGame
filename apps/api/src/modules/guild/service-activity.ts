@@ -11,6 +11,7 @@ import type {
   GuildLeaderboardEntry,
   GuildLeaderboardSort
 } from "@ebonkeep/shared";
+import { normalizeGuildCrestId } from "./validation.js";
 
 /**
  * Log guild activity (internal helper)
@@ -162,6 +163,7 @@ export async function getGuildLeaderboard(
         isRecruiting: true,
         createdAt: true,
         updatedAt: true,
+        crestId: true,
         crestBgShape: true,
         crestBgColor: true,
         crestBgPattern: true,
@@ -237,6 +239,7 @@ export async function getGuildLeaderboard(
           isRecruiting: g.isRecruiting,
           createdAt: g.createdAt.toISOString(),
           updatedAt: g.updatedAt.toISOString(),
+          crestId: normalizeGuildCrestId(g.crestId),
           crestBgShape: g.crestBgShape,
           crestBgColor: g.crestBgColor,
           crestBgPattern: g.crestBgPattern,

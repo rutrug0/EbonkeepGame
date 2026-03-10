@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
-import type { Guild, GuildRole } from "@ebonkeep/shared";
-import { GUILD_CREST_COLORS } from "@ebonkeep/shared";
+import type { Guild } from "@ebonkeep/shared";
+import { availableGuildCrestCatalog, GUILD_CREST_COLORS } from "@ebonkeep/shared";
 
 export interface GuildListProps {
   guilds: Guild[];
@@ -8,6 +8,8 @@ export interface GuildListProps {
   onJoinClick?: (guildId: string) => void;
   showJoinButton?: boolean;
 }
+
+const crestCatalogById = new Map<string, (typeof availableGuildCrestCatalog)[number]>(availableGuildCrestCatalog.map((entry) => [entry.crestId, entry]));
 
 export function GuildList({ guilds, onGuildClick, onJoinClick, showJoinButton = false }: GuildListProps) {
   const { t } = useTranslation("common");
@@ -65,12 +67,14 @@ function GuildListItem({ guild, onClick, onJoinClick, showJoinButton }: GuildLis
     >
       <div className="guildCrestSmall">
         <GuildCrestDisplay
+          crestId={guild.crestId}
           bgShape={guild.crestBgShape}
           bgColor={guild.crestBgColor}
           bgPattern={guild.crestBgPattern}
           fgSymbol={guild.crestFgSymbol}
           fgColor={guild.crestFgColor}
           frame={guild.crestFrame}
+          alt={guild.name}
         />
       </div>
 
@@ -112,49 +116,92 @@ function GuildListItem({ guild, onClick, onJoinClick, showJoinButton }: GuildLis
   );
 }
 
-// Guild Crest Display Component
 interface GuildCrestDisplayProps {
-  bgShape: string;
-  bgColor: string;
-  bgPattern: string | null;
-  fgSymbol: string;
-  fgColor: string;
-  frame: string | null;
+  crestId?: string | null;
+  bgShape?: string;
+  bgColor?: string;
+  bgPattern?: string | null;
+  fgSymbol?: string;
+  fgColor?: string;
+  frame?: string | null;
   size?: "small" | "medium" | "large";
+  alt?: string;
 }
 
+function normalizeLegacyShape(shape?: string) {
+  if (!shape) {
+    return "shield";
+  }
+  if (shape.startsWith("shield")) {
+    return "shield";
+  }
+  if (shape.startsWith("circle")) {
+    return "circle";
+  }
+  if (shape.startsWith("banner")) {
+    return "banner";
+  }
+  return shape;
+}
+
+function normalizeLegacyPattern(pattern?: string | null) {
+  if (!pattern) {
+    return null;
+  }
+  if (pattern === "checkered") {
+    return "checkerboard";
+  }
+  return pattern;
+}
+
+function normalizeLegacySymbol(symbol?: string) {
+  if (!symbol) {
+    return "sword";
+  }
+  return symbol.replace(/_\d+$/, "");
+}
+
+function normalizeLegacyFrame(frame?: string | null) {
+  if (!frame) {
+    return null;
+  }
+  return frame.replace(/_\d+$/, "");
+}
 export function GuildCrestDisplay({
+  crestId,
   bgShape,
   bgColor,
   bgPattern,
   fgSymbol,
   fgColor,
   frame,
-  size = "small"
+  size = "small",
+  alt = "Guild crest"
 }: GuildCrestDisplayProps) {
+  const crestAsset = crestId ? crestCatalogById.get(crestId) : undefined;
   const bgColorHex = GUILD_CREST_COLORS[bgColor as keyof typeof GUILD_CREST_COLORS] || "#1A1A1A";
   const fgColorHex = GUILD_CREST_COLORS[fgColor as keyof typeof GUILD_CREST_COLORS] || "#FFFFFF";
+
+  if (crestAsset?.iconPath) {
+    return (
+      <div className={`guildCrest guildCrest-${size}`}>
+        <img className="guildCrestImage" src={crestAsset.iconPath} alt={alt} loading="lazy" />
+      </div>
+    );
+  }
 
   return (
     <div className={`guildCrest guildCrest-${size}`}>
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        {/* Background shape */}
-        <CrestShape shape={bgShape} color={bgColorHex} />
-
-        {/* Background pattern (optional) */}
-        {bgPattern && <CrestPattern pattern={bgPattern} color={fgColorHex} opacity={0.2} />}
-
-        {/* Foreground symbol */}
-        <CrestSymbol symbol={fgSymbol} color={fgColorHex} />
-
-        {/* Frame (optional) */}
-        {frame && <CrestFrame frame={frame} color={fgColorHex} />}
+        <CrestShape shape={normalizeLegacyShape(bgShape)} color={bgColorHex} />
+        {normalizeLegacyPattern(bgPattern) ? <CrestPattern pattern={normalizeLegacyPattern(bgPattern)!} color={fgColorHex} opacity={0.2} /> : null}
+        <CrestSymbol symbol={normalizeLegacySymbol(fgSymbol)} color={fgColorHex} />
+        {normalizeLegacyFrame(frame) ? <CrestFrame frame={normalizeLegacyFrame(frame)!} color={fgColorHex} /> : null}
       </svg>
     </div>
   );
 }
 
-// Helper components for crest rendering
 function CrestShape({ shape, color }: { shape: string; color: string }) {
   switch (shape) {
     case "shield":
@@ -217,8 +264,6 @@ function CrestPattern({ pattern, color, opacity }: { pattern: string; color: str
 }
 
 function CrestSymbol({ symbol, color }: { symbol: string; color: string }) {
-  // Simplified symbols - in production these would be more detailed SVG paths
-  const symbolSize = 30;
   const centerX = 50;
   const centerY = 50;
 
