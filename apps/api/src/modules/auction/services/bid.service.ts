@@ -73,11 +73,15 @@ export class AuctionBidService {
           select: {
             id: true,
             bidAmount: true,
+            isAutoBid: true,
             maxAutoBid: true
           }
         });
 
-        const currentlyReserved = existingPlayerBid?.bidAmount ?? 0;
+        const currentlyReserved =
+          existingPlayerBid?.isAutoBid && typeof existingPlayerBid.maxAutoBid === "number"
+            ? existingPlayerBid.maxAutoBid
+            : (existingPlayerBid?.bidAmount ?? 0);
         const additionalReserve = Math.max(0, bidAmount - currentlyReserved);
 
         if (currency.ducats < additionalReserve) {
@@ -437,11 +441,22 @@ export class AuctionBidService {
         itemId,
         status: "active"
       },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        bidAmount: true,
+        isAutoBid: true,
+        maxAutoBid: true
+      }
     });
 
     if (!previousBid) {
       return; // No active bid found
+    }
+
+    // Keep auto-bids active and preserve their reservation so they can counter-bid.
+    if (previousBid.isAutoBid && typeof previousBid.maxAutoBid === "number") {
+      return;
     }
 
     // Mark bid as outbid
