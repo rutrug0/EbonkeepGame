@@ -76,6 +76,14 @@ Before substantial implementation work:
 - If the review finds issues, apply the fix, re-verify, and update the branch.
 - Merge only after the branch is clean.
 
+## Review Quality Bar
+- In code review, report only findings with a clear, evidence-backed risk.
+- Do not raise comments for style preferences, vague maintainability concerns, or hypothetical edge cases unless they materially affect correctness, safety, performance, or operability.
+- If a finding depends on an assumption, state that assumption explicitly.
+- Prefer no finding over a low-confidence or weakly supported finding.
+- When possible, describe the user-visible impact, regression risk, or failure mode instead of only naming the code smell.
+- If no substantive issues are found, state that clearly.
+
 ## Verification Matrix
 - Shared contract changes: `npm.cmd --workspace @ebonkeep/shared run build`
 - API-only changes: `npm.cmd --workspace @ebonkeep/api run build`
