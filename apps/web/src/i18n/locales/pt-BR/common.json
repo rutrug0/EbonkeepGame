@@ -3,7 +3,7 @@
   "save": "Salvar",
   "yes": "Sim",
   "no": "Não",
-  "you": "Você",  "auth": {"subtitle": "Faça login para abrir sua página principal.", "loginGuest": "Entrar como convidado"},
+  "you": "Você",  "auth": {"subtitle": "Faça login para abrir sua página principal.", "loginGuest": "Entrar como convidado", "verifyEmailBanner": "Por favor, verifique seu endereço de e-mail. Confira sua caixa de entrada para o link de verificação.", "dismiss": "Fechar"},
   "menu": {
     "title": "Menu", "inventory": "Inventário", "encyclopedia": "Enciclopédia", "contracts": "Contratos", "missions": "Missões", "arena": "Arena", "guild": "Guilda", "castles": "Castelos", "auctionHouse": "Casa de Leilões", "merchant": "Mercador", "shop": "Loja Imperial", "leaderboards": "Rankings", "settings": "Configurações", "logout": "Sair"
   },
@@ -366,6 +366,56 @@
       "small": "S",
       "normal": "M",
       "large": "L"
+    }
+  },
+  "missions": {
+    "board": {
+      "title": "Missões da Guilda",
+      "description": "Inicie uma missão com até 5 membros da guilda. Defina um temporizador e batalhe juntos.",
+      "history": "Histórico",
+      "maxPlayers": "Máx. jogadores",
+      "waitTimer": "Temporizador de espera",
+      "minutes": "min",
+      "create": "Criar",
+      "enemy": "inimigo",
+      "enemies": "inimigos",
+      "exp": "EXP",
+      "ducats": "Ducados",
+      "enemyList": "Inimigos"
+    },
+    "lobby": {
+      "location": "Local",
+      "opponents": "oponentes",
+      "startsIn": "Começa em",
+      "party": "Grupo",
+      "leader": "Líder",
+      "openSlot": "Vaga aberta",
+      "enemies": "Inimigos",
+      "startNow": "Iniciar Missão Agora",
+      "abandon": "Abandonar",
+      "availableMates": "Companheiros disponíveis",
+      "addMember": "Adicionar ao grupo",
+      "remove": "Remover"
+    },
+    "travel": {
+      "travelingTo": "Viajando para {{location}}"
+    },
+    "combat": {
+      "replay": "Repetir",
+      "backToBoard": "Voltar às Missões",
+      "combatBegins": "O combate começa ao chegar ao encontro."
+    },
+    "history": {
+      "title": "Histórico de Missões",
+      "back": "Voltar",
+      "empty": "Nenhuma missão concluída ainda.",
+      "victory": "Vitória",
+      "defeat": "Derrota",
+      "location": "Local",
+      "turns": "Turnos",
+      "time": "Hora",
+      "party": "Grupo",
+      "enemies": "Inimigos"
     }
   }
 }

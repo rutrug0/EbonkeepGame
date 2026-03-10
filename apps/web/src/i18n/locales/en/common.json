@@ -11,7 +11,9 @@
   },
   "auth": {
     "subtitle": "Login to open your post-login landing page.",
-    "loginGuest": "Login as Guest"
+    "loginGuest": "Login as Guest",
+    "verifyEmailBanner": "Please verify your email address. Check your inbox for the verification link.",
+    "dismiss": "Dismiss"
   },
   "menu": {
     "title": "Menu",
@@ -653,6 +655,56 @@
       "small": "S",
       "normal": "M",
       "large": "L"
+    }
+  },
+  "missions": {
+    "board": {
+      "title": "Guild Missions",
+      "description": "Start a mission with up to 5 guild members. Set a waiting lobby timer, then battle together.",
+      "history": "History",
+      "maxPlayers": "Max players",
+      "waitTimer": "Wait timer",
+      "minutes": "min",
+      "create": "Create",
+      "enemy": "enemy",
+      "enemies": "enemies",
+      "exp": "EXP",
+      "ducats": "Ducats",
+      "enemyList": "Enemies"
+    },
+    "lobby": {
+      "location": "Location",
+      "opponents": "opponents",
+      "startsIn": "Starts in",
+      "party": "Party",
+      "leader": "Leader",
+      "openSlot": "Open slot",
+      "enemies": "Enemies",
+      "startNow": "Start Mission Now",
+      "abandon": "Abandon",
+      "availableMates": "Available Guildmates",
+      "addMember": "Add to Party",
+      "remove": "Remove"
+    },
+    "travel": {
+      "travelingTo": "Traveling to {{location}}"
+    },
+    "combat": {
+      "replay": "Replay",
+      "backToBoard": "Back to Missions",
+      "combatBegins": "Combat playback begins when the encounter is reached."
+    },
+    "history": {
+      "title": "Mission History",
+      "back": "Back",
+      "empty": "No completed missions yet.",
+      "victory": "Victory",
+      "defeat": "Defeat",
+      "location": "Location",
+      "turns": "Turns",
+      "time": "Time",
+      "party": "Party",
+      "enemies": "Enemies"
     }
   }
 }

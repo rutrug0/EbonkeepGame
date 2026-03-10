@@ -5,7 +5,7 @@
   "yes": "Sí",
   "no": "No",
   "you": "Tú",
-  "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado"},
+  "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado", "verifyEmailBanner": "Por favor, verifica tu dirección de correo electrónico. Revisa tu bandeja de entrada para el enlace de verificación.", "dismiss": "Descartar"},
   "menu": {
     "title": "Menú", "inventory": "Inventario", "encyclopedia": "Enciclopedia", "contracts": "Contratos", "missions": "Misiones", "arena": "Arena", "guild": "Gremio", "castles": "Castillos", "auctionHouse": "Casa de Subastas", "merchant": "Mercader", "shop": "Tienda Imperial", "leaderboards": "Clasificaciones", "settings": "Ajustes", "logout": "Cerrar sesión"
   },
@@ -370,6 +370,56 @@
       "small": "S",
       "normal": "M",
       "large": "L"
+    }
+  },
+  "missions": {
+    "board": {
+      "title": "Misiones de Gremio",
+      "description": "Inicia una misión con hasta 5 miembros del gremio. Establece un temporizador y lucha juntos.",
+      "history": "Historial",
+      "maxPlayers": "Máx. jugadores",
+      "waitTimer": "Tiempo de espera",
+      "minutes": "min",
+      "create": "Crear",
+      "enemy": "enemigo",
+      "enemies": "enemigos",
+      "exp": "EXP",
+      "ducats": "Ducados",
+      "enemyList": "Enemigos"
+    },
+    "lobby": {
+      "location": "Ubicación",
+      "opponents": "oponentes",
+      "startsIn": "Comienza en",
+      "party": "Grupo",
+      "leader": "Líder",
+      "openSlot": "Espacio libre",
+      "enemies": "Enemigos",
+      "startNow": "Iniciar Misión Ahora",
+      "abandon": "Abandonar",
+      "availableMates": "Compañeros disponibles",
+      "addMember": "Añadir al grupo",
+      "remove": "Quitar"
+    },
+    "travel": {
+      "travelingTo": "Viajando a {{location}}"
+    },
+    "combat": {
+      "replay": "Repetir",
+      "backToBoard": "Volver a Misiones",
+      "combatBegins": "El combate comienza al llegar al encuentro."
+    },
+    "history": {
+      "title": "Historial de Misiones",
+      "back": "Volver",
+      "empty": "Aún no hay misiones completadas.",
+      "victory": "Victoria",
+      "defeat": "Derrota",
+      "location": "Ubicación",
+      "turns": "Turnos",
+      "time": "Hora",
+      "party": "Grupo",
+      "enemies": "Enemigos"
     }
   }
 }

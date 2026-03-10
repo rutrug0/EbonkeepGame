@@ -74,8 +74,29 @@ export async function sendGuildInvite(
   prisma: PrismaClient,
   guildId: string,
   inviterId: string,
-  inviteeId: string
+  inviteeInput: string
 ): Promise<GuildInvite> {
+  // Resolve username → player profile ID if the input is not already a profile ID
+  let inviteeId = inviteeInput;
+
+  const accountByUsername = await prisma.account.findFirst({
+    where: { username: { equals: inviteeInput, mode: "insensitive" } },
+    include: { profiles: { select: { id: true }, take: 1 } }
+  });
+
+  if (accountByUsername?.profiles[0]) {
+    inviteeId = accountByUsername.profiles[0].id;
+  } else {
+    // Verify the raw value is a valid player profile ID
+    const playerById = await prisma.playerProfile.findUnique({
+      where: { id: inviteeInput },
+      select: { id: true }
+    });
+    if (!playerById) {
+      throw new Error("PLAYER_NOT_FOUND");
+    }
+  }
+
   // Check permissions
   const permCheck = await canSendInvites(prisma, guildId, inviterId);
   if (!permCheck.allowed) {

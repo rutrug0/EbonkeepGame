@@ -1,4 +1,4 @@
-import {
+﻿import {
   useEffect,
   useMemo,
   useRef,
@@ -68,6 +68,7 @@ import { ImperialShop } from "./components/ImperialShop";
 import { AuctionHouse } from "./components/AuctionHouse";
 import { Leaderboard } from "./components/Leaderboard";
 import { GuildPanel } from "./components/GuildPanel";
+import { GuildMissions } from "./components/GuildMissions";
 import { IMPERIALS_ICON_PATH } from "./constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
@@ -2893,6 +2894,7 @@ export function App() {
   const [merchantPlayerFilters, setMerchantPlayerFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
   const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
+  const [isGuildMissionActive, setIsGuildMissionActive] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
   const [profileSideTab, setProfileSideTab] = useState<ProfileSideTab>("inventory");
@@ -6977,11 +6979,18 @@ export function App() {
       case "contracts":
         return renderContractsPanel();
       case "missions":
-        return renderPlaceholderPanel(i18n.t("menu.missions"), i18n.t("placeholders.missions"));
+        return (
+          <GuildMissions
+            playerName={profileName}
+            playerClass={playerState?.class ?? "warrior"}
+            playerPower={playerState?.gearScore ?? 80}
+            playerLevel={playerState?.level ?? 1}
+          />
+        );
       case "arena":
         return renderPlaceholderPanel(i18n.t("menu.arena"), i18n.t("placeholders.arena"));
       case "guild":
-        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} />;
+        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} playerName={profileName} playerClass={playerState?.class ?? null} playerPower={playerState?.gearScore ?? null} onActiveMissionChange={setIsGuildMissionActive} />;
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
@@ -7252,23 +7261,42 @@ export function App() {
       <main className={`appRoot layout-${layoutMode}`}>
         <div className="appSurface">
         {!emailVerified && accountInfo?.provider !== "dev-guest" && (
-          <div style={{ 
-            position: "fixed", 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            zIndex: 1000, 
-            background: "rgba(234, 179, 8, 0.9)", 
-            color: "#000", 
-            padding: "12px 20px", 
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            background: "rgba(234, 179, 8, 0.9)",
+            color: "#000",
+            padding: "12px 20px",
             textAlign: "center",
             fontWeight: "bold",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px"
           }}>
-            âš ï¸ Please verify your email address. Check your inbox for the verification link.
+            <span>{"\u26A0\uFE0F"} {i18n.t("auth.verifyEmailBanner")}</span>
+            <button
+              onClick={handleResendVerification}
+              style={{
+                background: "rgba(0,0,0,0.15)",
+                border: "1px solid rgba(0,0,0,0.3)",
+                color: "#000",
+                padding: "4px 12px",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "13px"
+              }}
+            >
+              {i18n.t("settings.resendEmail")}
+            </button>
           </div>
         )}
-        {verifyEmailMessage && (
+{verifyEmailMessage && (
           <div style={{ 
             position: "fixed", 
             top: emailVerified ? 0 : "52px", 
@@ -7295,11 +7323,11 @@ export function App() {
                 cursor: "pointer" 
               }}
             >
-              Dismiss
+              {i18n.t("auth.dismiss")}
             </button>
           </div>
         )}
-        <div className="landingPage" ref={landingPageRef}>
+        <div className="landingPage" ref={landingPageRef} style={{ paddingTop: !emailVerified && accountInfo?.provider !== "dev-guest" ? "52px" : undefined }}>
           <aside className="leftPanel" ref={leftPanelRef}>
             <div className="leftPanelShell">
               <section className="playerCard">
@@ -7533,6 +7561,10 @@ export function App() {
                   </div>
                 )}
               </>
+            ) : activeTab === "guild" && isGuildMissionActive ? (
+              <div className="panelViewport contractsCombatViewportExpanded">
+                {renderActivePanel()}
+              </div>
             ) : (
               <div className="panelViewport">{renderActivePanel()}</div>
             )}

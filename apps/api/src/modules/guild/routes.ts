@@ -449,6 +449,7 @@ export const guildRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (error: any) {
         const errorMap: Record<string, { status: number; message: string }> = {
           CANNOT_SEND_INVITES: { status: 403, message: "Insufficient permissions to send invites" },
+          PLAYER_NOT_FOUND: { status: 404, message: "Player not found" },
           INVITEE_ALREADY_IN_GUILD: { status: 400, message: "Invitee is already in a guild" },
           INVITE_ALREADY_EXISTS: { status: 409, message: "Invite already exists" },
           GUILD_FULL: { status: 400, message: "Guild is full" },

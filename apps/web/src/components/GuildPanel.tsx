@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { GuildMissions } from "./GuildMissions";
 import DOMPurify from "dompurify";
 
 // Allowed HTML tags/attrs for guild descriptions
@@ -45,10 +46,14 @@ export interface GuildPanelProps {
   token: string | null;
   currentPlayerId?: string | null;
   playerLevel?: number | null;
+  playerName?: string | null;
+  playerClass?: "warrior" | "mage" | "ranger" | null;
+  playerPower?: number | null;
+  onActiveMissionChange?: (active: boolean) => void;
 }
 
 type GuildView = "myGuild" | "search";
-type GuildDetailTab = "members" | "activity" | "invites" | "settings";
+type GuildDetailTab = "members" | "activity" | "invites" | "settings" | "missions";
 
 // ── Shared shield icon ──────────────────────────────────────────────────
 function ShieldIcon({ size = 48 }: { size?: number }) {
@@ -113,10 +118,11 @@ function ConfirmModal({
 }
 
 // ── Top-Level ────────────────────────────────────────────────────────────
-export function GuildPanel({ token, currentPlayerId, playerLevel }: GuildPanelProps) {
+export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, playerClass, playerPower, onActiveMissionChange }: GuildPanelProps) {
   const { t } = useTranslation("common");
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
   const [hasGuild, setHasGuild] = useState(false);
+  const [isActiveMission, setIsActiveMission] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -125,6 +131,11 @@ export function GuildPanel({ token, currentPlayerId, playerLevel }: GuildPanelPr
         .catch(() => setHasGuild(false));
     }
   }, [token]);
+
+  function handleMissionActiveChange(active: boolean) {
+    setIsActiveMission(active);
+    onActiveMissionChange?.(active);
+  }
 
   if (!token) {
     return (
@@ -139,39 +150,56 @@ export function GuildPanel({ token, currentPlayerId, playerLevel }: GuildPanelPr
     );
   }
 
+  // Always keep the same tree structure so MyGuildView/GuildMissions never remount.
+  // When a mission is active, we just add height:100% so the travel/combat shells fill the panel.
   return (
-    <section className="contentShell">
-      <section className="contentStack">
-        <article className="contentCard">
-          <div className="profileSwitchBar">
-            <div className="profileSwitchButtons">
-              <button
-                type="button"
-                className={`profileSwitchButton${currentView === "myGuild" ? " active" : ""}`}
-                onClick={() => setCurrentView("myGuild")}
-              >
-                {t("guild.myGuild")}
-              </button>
-              <button
-                type="button"
-                className={`profileSwitchButton${currentView === "search" ? " active" : ""}`}
-                onClick={() => setCurrentView("search")}
-              >
-                {t("guild.search")}
-              </button>
+    <section
+      className="contentShell"
+      style={isActiveMission ? { height: "100%", background: "transparent", border: "none" } : undefined}
+    >
+      <section
+        className="contentStack"
+        style={isActiveMission ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}
+      >
+        {/* Nav only visible when no active mission — but kept at stable position (index 0) */}
+        {!isActiveMission && (
+          <article className="contentCard">
+            <div className="profileSwitchBar">
+              <div className="profileSwitchButtons">
+                <button
+                  type="button"
+                  className={`profileSwitchButton${currentView === "myGuild" ? " active" : ""}`}
+                  onClick={() => setCurrentView("myGuild")}
+                >
+                  {t("guild.myGuild")}
+                </button>
+                <button
+                  type="button"
+                  className={`profileSwitchButton${currentView === "search" ? " active" : ""}`}
+                  onClick={() => setCurrentView("search")}
+                >
+                  {t("guild.search")}
+                </button>
+              </div>
             </div>
-          </div>
-        </article>
+          </article>
+        )}
 
+        {/* MyGuildView at stable index 1 — never remounts */}
         {currentView === "myGuild" && (
           <MyGuildView
             token={token}
             currentPlayerId={currentPlayerId}
             playerLevel={playerLevel}
+            playerName={playerName}
+            playerClass={playerClass}
+            playerPower={playerPower}
+            isActiveMission={isActiveMission}
+            onActiveMissionChange={handleMissionActiveChange}
             onSearchClick={() => setCurrentView("search")}
           />
         )}
-        {currentView === "search" && (
+        {!isActiveMission && currentView === "search" && (
           <article className="contentCard">
             <SearchGuildsView token={token} hasGuild={hasGuild} />
           </article>
@@ -186,11 +214,21 @@ function MyGuildView({
   token,
   currentPlayerId,
   playerLevel,
+  playerName,
+  playerClass,
+  playerPower,
+  isActiveMission = false,
+  onActiveMissionChange,
   onSearchClick,
 }: {
   token: string;
   currentPlayerId?: string | null;
   playerLevel?: number | null;
+  playerName?: string | null;
+  playerClass?: "warrior" | "mage" | "ranger" | null;
+  playerPower?: number | null;
+  isActiveMission?: boolean;
+  onActiveMissionChange?: (active: boolean) => void;
   onSearchClick: () => void;
 }) {
   const { t } = useTranslation("common");
@@ -276,139 +314,155 @@ function MyGuildView({
   const tabs: Array<{ id: GuildDetailTab; label: string; manageOnly?: boolean; leaderOnly?: boolean }> = [
     { id: "members",   label: t("guild.memberList") },
     { id: "activity",  label: t("guild.activityLog") },
+    { id: "missions",  label: t("menu.missions") },
     { id: "invites",   label: t("guild.invite.invitesTab"), manageOnly: true },
     { id: "settings",  label: t("guild.settings"), leaderOnly: true },
   ];
 
   return (
     <>
-      {/* ── Confirm modal ── */}
-      {pendingAction && (
-        <ConfirmModal
-          title={
-            pendingAction === "disband"
-              ? t("guild.actions.disband")
-              : t("guild.actions.leave")
-          }
-          message={
-            pendingAction === "disband"
-              ? t("guild.confirmDisband")
-              : t("guild.confirmLeave")
-          }
-          confirmLabel={
-            pendingAction === "disband"
-              ? t("guild.actions.disband")
-              : t("guild.actions.leave")
-          }
-          cancelLabel={t("cancel")}
-          danger={pendingAction === "disband"}
-          onConfirm={handleConfirmAction}
-          onCancel={() => setPendingAction(null)}
+      {/* ── Guild chrome: hidden while mission is in travel/combat ── */}
+      {!isActiveMission && (
+        <>
+          {/* ── Confirm modal ── */}
+          {pendingAction && (
+            <ConfirmModal
+              title={
+                pendingAction === "disband"
+                  ? t("guild.actions.disband")
+                  : t("guild.actions.leave")
+              }
+              message={
+                pendingAction === "disband"
+                  ? t("guild.confirmDisband")
+                  : t("guild.confirmLeave")
+              }
+              confirmLabel={
+                pendingAction === "disband"
+                  ? t("guild.actions.disband")
+                  : t("guild.actions.leave")
+              }
+              cancelLabel={t("cancel")}
+              danger={pendingAction === "disband"}
+              onConfirm={handleConfirmAction}
+              onCancel={() => setPendingAction(null)}
+            />
+          )}
+          {actionError && (
+            <article className="contentCard">
+              <p className="guildFormError">{actionError}</p>
+            </article>
+          )}
+
+          {/* ── Hero banner ── */}
+          <article className="contentCard guildHeroBanner">
+            <div className="guildHeroCrest">
+              <ShieldIcon size={72} />
+            </div>
+            <div className="guildHeroBody">
+              <h2 className="guildHeroName">
+                {guildData.guild.name}
+                <span className="guildHeroTag">[{guildData.guild.tag}]</span>
+              </h2>
+              {guildData.guild.description ? (
+                <div
+                  className="guildHeroDesc"
+                  // eslint-disable-next-line react/no-danger
+                  dangerouslySetInnerHTML={{ __html: safeHtml(guildData.guild.description) }}
+                />
+              ) : (
+                <p className="guildHeroDesc guildHeroDesc--empty">{t("guild.noDescription")}</p>
+              )}
+            </div>
+            <div className="guildHeroStats">
+              <div className="guildHeroStat">
+                <span className="guildHeroStatLabel">{t("guild.level")}</span>
+                <span className="guildHeroStatValue">{guildData.guild.level}</span>
+              </div>
+              <div className="guildHeroStat">
+                <span className="guildHeroStatLabel">{t("guild.totalPower")}</span>
+                <span className="guildHeroStatValue">{guildData.guild.totalPower.toLocaleString()}</span>
+              </div>
+              <div className="guildHeroStat">
+                <span className="guildHeroStatLabel">{t("guild.members")}</span>
+                <span className="guildHeroStatValue">{guildData.memberCount}/{guildData.guild.maxMembers}</span>
+              </div>
+              <div className="guildHeroStat">
+                <span className="guildHeroStatLabel">{t("guild.recruiting")}</span>
+                <span className={`guildHeroStatusBadge${guildData.guild.isRecruiting ? " guildHeroStatusBadge--open" : " guildHeroStatusBadge--closed"}`}>
+                  {guildData.guild.isRecruiting ? t("guild.statusOpen") : t("guild.statusClosed")}
+                </span>
+              </div>
+            </div>
+            {!isLeader && (
+              <div className="guildHeroLeaveAction">
+                <button type="button" className="buttonSecondary" onClick={handleLeave}>
+                  {t("guild.actions.leave")}
+                </button>
+              </div>
+            )}
+          </article>
+
+          {/* ── Inner tab navigation ── */}
+          <article className="contentCard">
+            <div className="profileSwitchBar">
+              <div className="profileSwitchButtons">
+                {tabs
+                  .filter((tab) => (!tab.manageOnly || canManage) && (!tab.leaderOnly || isLeader))
+                  .map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`profileSwitchButton${activeTab === tab.id ? " active" : ""}`}
+                      onClick={() => setActiveTab(tab.id)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </article>
+
+          {/* ── Tab content ── */}
+          <article className="contentCard">
+            {activeTab === "members" && (
+              <GuildMembersTab
+                token={token}
+                guildId={guildData.guild.id}
+                currentPlayerId={currentPlayerId}
+                currentUserRole={role}
+              />
+            )}
+            {activeTab === "activity" && (
+              <GuildActivityTab token={token} guildId={guildData.guild.id} />
+            )}
+            {activeTab === "invites" && canManage && (
+              <GuildInvitesTab token={token} guildId={guildData.guild.id} />
+            )}
+            {activeTab === "settings" && isLeader && (
+              <GuildSettingsTab
+                token={token}
+                guild={guildData.guild}
+                membership={guildData.currentUserMembership}
+                canManage={canManage}
+                onUpdate={loadGuildData}
+                onLeave={handleLeave}
+                onDisband={handleDisband}
+              />
+            )}
+          </article>
+        </>
+      )}
+      {/* GuildMissions at stable position — always rendered when missions tab OR mission active */}
+      {(activeTab === "missions" || isActiveMission) && (
+        <GuildMissions
+          playerName={playerName ?? "Warden"}
+          playerClass={playerClass ?? "warrior"}
+          playerPower={playerPower ?? 80}
+          playerLevel={playerLevel ?? 1}
+          onActiveMissionChange={onActiveMissionChange}
         />
       )}
-      {actionError && (
-        <article className="contentCard">
-          <p className="guildFormError">{actionError}</p>
-        </article>
-      )}
-
-      {/* ── Hero banner ── */}
-      <article className="contentCard guildHeroBanner">
-        <div className="guildHeroCrest">
-          <ShieldIcon size={72} />
-        </div>
-        <div className="guildHeroBody">
-          <h2 className="guildHeroName">
-            {guildData.guild.name}
-            <span className="guildHeroTag">[{guildData.guild.tag}]</span>
-          </h2>
-          {guildData.guild.description ? (
-            <div
-              className="guildHeroDesc"
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: safeHtml(guildData.guild.description) }}
-            />
-          ) : (
-            <p className="guildHeroDesc guildHeroDesc--empty">{t("guild.noDescription")}</p>
-          )}
-        </div>
-        <div className="guildHeroStats">
-          <div className="guildHeroStat">
-            <span className="guildHeroStatLabel">{t("guild.level")}</span>
-            <span className="guildHeroStatValue">{guildData.guild.level}</span>
-          </div>
-          <div className="guildHeroStat">
-            <span className="guildHeroStatLabel">{t("guild.totalPower")}</span>
-            <span className="guildHeroStatValue">{guildData.guild.totalPower.toLocaleString()}</span>
-          </div>
-          <div className="guildHeroStat">
-            <span className="guildHeroStatLabel">{t("guild.members")}</span>
-            <span className="guildHeroStatValue">{guildData.memberCount}/{guildData.guild.maxMembers}</span>
-          </div>
-          <div className="guildHeroStat">
-            <span className="guildHeroStatLabel">{t("guild.recruiting")}</span>
-            <span className={`guildHeroStatusBadge${guildData.guild.isRecruiting ? " guildHeroStatusBadge--open" : " guildHeroStatusBadge--closed"}`}>
-              {guildData.guild.isRecruiting ? t("guild.statusOpen") : t("guild.statusClosed")}
-            </span>
-          </div>
-        </div>
-        {!isLeader && (
-          <div className="guildHeroLeaveAction">
-            <button type="button" className="buttonSecondary" onClick={handleLeave}>
-              {t("guild.actions.leave")}
-            </button>
-          </div>
-        )}
-      </article>
-
-      {/* ── Inner tab navigation ── */}
-      <article className="contentCard">
-        <div className="profileSwitchBar">
-          <div className="profileSwitchButtons">
-            {tabs
-              .filter((tab) => (!tab.manageOnly || canManage) && (!tab.leaderOnly || isLeader))
-              .map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`profileSwitchButton${activeTab === tab.id ? " active" : ""}`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-          </div>
-        </div>
-      </article>
-
-      {/* ── Tab content ── */}
-      <article className="contentCard">
-        {activeTab === "members" && (
-          <GuildMembersTab
-            token={token}
-            guildId={guildData.guild.id}
-            currentPlayerId={currentPlayerId}
-            currentUserRole={role}
-          />
-        )}
-        {activeTab === "activity" && (
-          <GuildActivityTab token={token} guildId={guildData.guild.id} />
-        )}
-        {activeTab === "invites" && canManage && (
-          <GuildInvitesTab token={token} guildId={guildData.guild.id} />
-        )}
-        {activeTab === "settings" && isLeader && (
-          <GuildSettingsTab
-            token={token}
-            guild={guildData.guild}
-            membership={guildData.currentUserMembership}
-            canManage={canManage}
-            onUpdate={loadGuildData}
-            onLeave={handleLeave}
-            onDisband={handleDisband}
-          />
-        )}
-      </article>
     </>
   );
 }
@@ -997,18 +1051,13 @@ function CreateGuildForm({
           </div>
 
           <div className="guildFormField guildFormFieldFull">
-            <label htmlFor="guildDescription" className="guildFormLabel">
+            <label className="guildFormLabel">
               {t("guild.description")}
               <span className="guildFormLabelHint">{t("guild.descriptionHint")}</span>
             </label>
-            <textarea
-              id="guildDescription"
-              className="guildFormTextarea"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              maxLength={500}
-              placeholder={t("guild.descriptionPlaceholder")}
-              rows={4}
+            <GuildDescEditor
+              value={formData.description ?? ""}
+              onChange={(html) => setFormData({ ...formData, description: html })}
             />
           </div>
         </div>

@@ -5,7 +5,7 @@
   "yes": "是",
   "no": "否",
   "you": "你",
-  "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录"},
+  "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录", "verifyEmailBanner": "请验证您的电子邮件地址。请查收邮件中的验证链接。", "dismiss": "关闭"},
   "menu": {
     "title": "菜单", "inventory": "背包", "encyclopedia": "图鉴", "contracts": "契约", "missions": "任务", "arena": "竞技场", "guild": "公会", "castles": "城堡", "auctionHouse": "拍卖行", "merchant": "商人", "shop": "帝国商店", "leaderboards": "排行榜", "settings": "设置", "logout": "退出登录"
   },
@@ -369,6 +369,56 @@
       "small": "S",
       "normal": "M",
       "large": "L"
+    }
+  },
+  "missions": {
+    "board": {
+      "title": "公会任务",
+      "description": "与最多5名公会成员开始任务，设置等待计时器，然后共同战斗。",
+      "history": "历史",
+      "maxPlayers": "最大人数",
+      "waitTimer": "等待计时器",
+      "minutes": "分",
+      "create": "创建",
+      "enemy": "敌人",
+      "enemies": "敌人",
+      "exp": "经验值",
+      "ducats": "金币",
+      "enemyList": "敌人"
+    },
+    "lobby": {
+      "location": "地点",
+      "opponents": "对手",
+      "startsIn": "开始于",
+      "party": "队伍",
+      "leader": "队长",
+      "openSlot": "空位",
+      "enemies": "敌人",
+      "startNow": "立即开始任务",
+      "abandon": "放弃",
+      "availableMates": "可加入成员",
+      "addMember": "加入队伍",
+      "remove": "移除"
+    },
+    "travel": {
+      "travelingTo": "前往 {{location}}"
+    },
+    "combat": {
+      "replay": "重播",
+      "backToBoard": "返回任务",
+      "combatBegins": "到达遭遇时战斗开始。"
+    },
+    "history": {
+      "title": "任务历史",
+      "back": "返回",
+      "empty": "尚无完成的任务。",
+      "victory": "胜利",
+      "defeat": "失败",
+      "location": "地点",
+      "turns": "回合",
+      "time": "时间",
+      "party": "队伍",
+      "enemies": "敌人"
     }
   }
 }

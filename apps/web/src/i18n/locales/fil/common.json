@@ -7,7 +7,9 @@
   "you": "Ikaw",
   "auth": {
     "subtitle": "Mag-login para buksan ang iyong pangunahing pahina.",
-    "loginGuest": "Mag-login bilang Guest"
+    "loginGuest": "Mag-login bilang Guest",
+    "verifyEmailBanner": "Mangyaring i-verify ang iyong email address. Tingnan ang iyong inbox para sa verification link.",
+    "dismiss": "Isara"
   },
   "menu": {
     "title": "Menu",
@@ -452,6 +454,56 @@
       "small": "S",
       "normal": "M",
       "large": "L"
+    }
+  },
+  "missions": {
+    "board": {
+      "title": "Mga Misyon ng Guild",
+      "description": "Magsimula ng misyon na may hanggang 5 miyembro ng guild. Magtakda ng timer ng paghihintay at makipaglaban nang magkasama.",
+      "history": "Kasaysayan",
+      "maxPlayers": "Maks. manlalaro",
+      "waitTimer": "Timer ng paghihintay",
+      "minutes": "min",
+      "create": "Lumikha",
+      "enemy": "kaaway",
+      "enemies": "kaaway",
+      "exp": "EXP",
+      "ducats": "Ducats",
+      "enemyList": "Mga Kaaway"
+    },
+    "lobby": {
+      "location": "Lokasyon",
+      "opponents": "mga kalaban",
+      "startsIn": "Magsisimula sa",
+      "party": "Partido",
+      "leader": "Pinuno",
+      "openSlot": "Bukas na puwang",
+      "enemies": "Mga Kaaway",
+      "startNow": "Simulan ang Misyon Ngayon",
+      "abandon": "Iwan",
+      "availableMates": "Mga Available na Kasama",
+      "addMember": "Idagdag sa Grupo",
+      "remove": "Alisin"
+    },
+    "travel": {
+      "travelingTo": "Naglalakbay sa {{location}}"
+    },
+    "combat": {
+      "replay": "I-replay",
+      "backToBoard": "Bumalik sa Mga Misyon",
+      "combatBegins": "Magsisimula ang labanan kapang naabot ang pakikipaglaban."
+    },
+    "history": {
+      "title": "Kasaysayan ng Misyon",
+      "back": "Bumalik",
+      "empty": "Wala pang natapos na mga misyon.",
+      "victory": "Tagumpay",
+      "defeat": "Pagkatalo",
+      "location": "Lokasyon",
+      "turns": "Mga Liko",
+      "time": "Oras",
+      "party": "Partido",
+      "enemies": "Mga Kaaway"
     }
   }
 }
