@@ -65,6 +65,17 @@ Before substantial implementation work:
 - Keep edits scoped to the user request and avoid unrelated refactors.
 - When touching generated outputs, update upstream source + generator usage first, then commit the regenerated artifacts that are tracked by the repo.
 
+## Git Workflow Default
+- For implementation tasks, use this sequence unless the user explicitly asks for a different flow.
+- Create or switch to a task branch.
+- Implement the requested changes on that branch.
+- Run the appropriate verification for the touched surface.
+- Merge `main` into the current branch and resolve conflicts there before opening a PR.
+- Open a pull request and add a comment containing `@codex review`.
+- Wait for the Codex review to complete.
+- If the review finds issues, apply the fix, re-verify, and update the branch.
+- Merge only after the branch is clean.
+
 ## Verification Matrix
 - Shared contract changes: `npm.cmd --workspace @ebonkeep/shared run build`
 - API-only changes: `npm.cmd --workspace @ebonkeep/api run build`
