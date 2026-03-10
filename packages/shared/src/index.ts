@@ -794,3 +794,26 @@ export type ServerEvent =
   | z.infer<(typeof serverEventSchemas)["SystemStatusChanged"]>;
 
 export const mainStatToFlatDamageRatio = 0.1;
+
+// Leaderboard schemas
+export const leaderboardTypeSchema = z.enum(["power", "level"]);
+export type LeaderboardType = z.infer<typeof leaderboardTypeSchema>;
+
+export const leaderboardEntrySchema = z.object({
+  rank: z.number().int().min(1),
+  playerId: z.string(),
+  username: z.string(),
+  class: playerClassSchema,
+  level: z.number().int().min(1),
+  gearScore: z.number().int().min(0),
+  value: z.number().int().min(0) // The ranked value (either level or gearScore)
+});
+export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
+
+export const leaderboardResponseSchema = z.object({
+  leaderboardType: leaderboardTypeSchema,
+  entries: z.array(leaderboardEntrySchema),
+  totalPlayers: z.number().int().min(0),
+  currentPlayerRank: z.number().int().min(0).nullable() // null if player not in rankings
+});
+export type LeaderboardResponse = z.infer<typeof leaderboardResponseSchema>;

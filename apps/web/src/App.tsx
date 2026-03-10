@@ -66,6 +66,7 @@ import {
 } from "./components/CombatEncounterPanel";
 import { ImperialShop } from "./components/ImperialShop";
 import { AuctionHouse } from "./components/AuctionHouse";
+import { Leaderboard } from "./components/Leaderboard";
 import { IMPERIALS_ICON_PATH } from "./constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "./generated/itemArtManifest";
 import {
@@ -6989,7 +6990,7 @@ export function App() {
       case "shop":
         return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
       case "leaderboards":
-        return renderPlaceholderPanel(i18n.t("menu.leaderboards"), i18n.t("placeholders.leaderboards"));
+        return <Leaderboard token={token} currentPlayerId={playerState?.playerId ?? null} />;
       case "settings":
         return renderSettingsPanel();
       default:

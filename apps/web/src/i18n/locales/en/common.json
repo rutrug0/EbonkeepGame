@@ -374,6 +374,27 @@
     "selectItemPlaceholder": "← Select an item from the left",
     "enterBidPlaceholder": "Enter starting bid amount..."
   },
+  "leaderboards": {
+    "title": "Leaderboards",
+    "loading": "Loading rankings...",
+    "error": "Failed to load leaderboard",
+    "typePower": "Power",
+    "typeLevel": "Level",
+    "filterAll": "All Classes",
+    "filterWarrior": "Warriors",
+    "filterMage": "Mages",
+    "filterRanger": "Rangers",
+    "rank": "Rank",
+    "player": "Player",
+    "class": "Class",
+    "level": "Level",
+    "power": "Power",
+    "yourRank": "Your Rank: #{{rank}}",
+    "notRanked": "Not Ranked",
+    "totalPlayers": "{{count}} Players",
+    "refreshLeaderboard": "Refresh Rankings",
+    "viewingTop": "Viewing Top {{count}}"
+  },
   "placeholders": {
     "missions": "Mission selection and launch board will appear here.",
     "arena": "Arena matchmaking and battle history will appear here.",

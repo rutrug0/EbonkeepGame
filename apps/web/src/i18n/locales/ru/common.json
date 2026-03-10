@@ -183,5 +183,26 @@
   },
   "inventory": {"consumables": "Расходники", "noItems": "Предметы отсутствуют."},
   "profile": {"inventoryTab": "Инвентарь", "consumablesTab": "Расходники", "statsTab": "Характеристики", "class": "Класс", "level": "Уровень", "unknown": "Неизвестно"},
-  "player": {"classUnknown": "Класс неизвестен", "level": "Уровень {{value}}"}
+  "player": {"classUnknown": "Класс неизвестен", "level": "Уровень {{value}}"},
+  "leaderboards": {
+    "title": "Рейтинги",
+    "loading": "Загрузка рейтинга...",
+    "error": "Ошибка загрузки рейтинга",
+    "typePower": "Сила",
+    "typeLevel": "Уровень",
+    "filterAll": "Все Классы",
+    "filterWarrior": "Воины",
+    "filterMage": "Маги",
+    "filterRanger": "Рейнджеры",
+    "rank": "Место",
+    "player": "Игрок",
+    "class": "Класс",
+    "level": "Уровень",
+    "power": "Сила",
+    "yourRank": "Ваше Место: #{{rank}}",
+    "notRanked": "Вне Рейтинга",
+    "totalPlayers": "{{count}} Игроков",
+    "refreshLeaderboard": "Обновить Рейтинг",
+    "viewingTop": "Топ {{count}}"
+  }
 }

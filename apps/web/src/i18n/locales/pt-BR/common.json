@@ -186,5 +186,26 @@
   },
   "inventory": {"consumables": "Consumíveis", "noItems": "Nenhum item disponível."},
   "profile": {"inventoryTab": "Inventário", "consumablesTab": "Consumíveis", "statsTab": "Atributos", "class": "Classe", "level": "Nível", "unknown": "Desconhecido"},
-  "player": {"classUnknown": "Classe desconhecida", "level": "Nível {{value}}"}
+  "player": {"classUnknown": "Classe desconhecida", "level": "Nível {{value}}"},
+  "leaderboards": {
+    "title": "Classificações",
+    "loading": "Carregando classificação...",
+    "error": "Falha ao carregar classificação",
+    "typePower": "Poder",
+    "typeLevel": "Nível",
+    "filterAll": "Todas as Classes",
+    "filterWarrior": "Guerreiros",
+    "filterMage": "Magos",
+    "filterRanger": "Caçadores",
+    "rank": "Posição",
+    "player": "Jogador",
+    "class": "Classe",
+    "level": "Nível",
+    "power": "Poder",
+    "yourRank": "Sua Posição: #{{rank}}",
+    "notRanked": "Sem Classificação",
+    "totalPlayers": "{{count}} Jogadores",
+    "refreshLeaderboard": "Atualizar Classificação",
+    "viewingTop": "Visualizando Top {{count}}"
+  }
 }

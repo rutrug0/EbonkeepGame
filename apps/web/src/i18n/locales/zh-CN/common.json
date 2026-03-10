@@ -188,5 +188,26 @@
   },
   "inventory": {"consumables": "消耗品", "noItems": "暂无物品。"},
   "profile": {"inventoryTab": "背包", "consumablesTab": "消耗品", "statsTab": "属性", "class": "职业", "level": "等级", "unknown": "未知"},
-  "player": {"classUnknown": "未知职业", "level": "等级 {{value}}"}
+  "player": {"classUnknown": "未知职业", "level": "等级 {{value}}"},
+  "leaderboards": {
+    "title": "排行榜",
+    "loading": "加载排行榜中...",
+    "error": "加载排行榜失败",
+    "typePower": "战力",
+    "typeLevel": "等级",
+    "filterAll": "所有职业",
+    "filterWarrior": "战士",
+    "filterMage": "法师",
+    "filterRanger": "游侠",
+    "rank": "排名",
+    "player": "玩家",
+    "class": "职业",
+    "level": "等级",
+    "power": "战力",
+    "yourRank": "你的排名: #{{rank}}",
+    "notRanked": "未上榜",
+    "totalPlayers": "{{count}} 玩家",
+    "refreshLeaderboard": "刷新排行榜",
+    "viewingTop": "查看前 {{count}} 名"
+  }
 }

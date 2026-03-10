@@ -269,5 +269,26 @@
     "selectedItemTitle": "Napiling Item",
     "selectItemPlaceholder": "← Pumili ng item mula sa kaliwa",
     "enterBidPlaceholder": "Ilagay ang halaga ng panimulang bid..."
+  },
+  "leaderboards": {
+    "title": "Leaderboards",
+    "loading": "Ini-load ang rankings...",
+    "error": "Hindi ma-load ang leaderboard",
+    "typePower": "Kapangyarihan",
+    "typeLevel": "Level",
+    "filterAll": "Lahat ng Klase",
+    "filterWarrior": "Warriors",
+    "filterMage": "Mages",
+    "filterRanger": "Rangers",
+    "rank": "Ranggo",
+    "player": "Manlalaro",
+    "class": "Klase",
+    "level": "Level",
+    "power": "Kapangyarihan",
+    "yourRank": "Iyong Ranggo: #{{rank}}",
+    "notRanked": "Walang Ranggo",
+    "totalPlayers": "{{count}} Manlalaro",
+    "refreshLeaderboard": "I-refresh ang Rankings",
+    "viewingTop": "Tingnan ang Top {{count}}"
   }
 }

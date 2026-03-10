@@ -4,10 +4,13 @@ import type {
   ForgotPasswordBody,
   ForgotPasswordResponse,
   InventoryMoveResponse,
+  LeaderboardResponse,
+  LeaderboardType,
   LoginBody,
   LoginResponse,
   MerchantState,
   MerchantTransactionResponse,
+  PlayerClass,
   PlayerPreferences,
   PlayerState,
   RegisterBody,
@@ -23,6 +26,7 @@ import {
   devGuestLoginResponseSchema,
   forgotPasswordResponseSchema,
   inventoryMoveResponseSchema,
+  leaderboardResponseSchema,
   loginResponseSchema,
   merchantStateSchema,
   merchantTransactionResponseSchema,
@@ -303,6 +307,35 @@ export async function fetchReady(): Promise<Record<string, string>> {
   const response = await fetch(`${API_URL}/ready`);
   const data = (await response.json()) as Record<string, string>;
   return data;
+}
+
+export async function fetchLeaderboard(
+  token: string,
+  leaderboardType: LeaderboardType,
+  classFilter: PlayerClass | "all" = "all",
+  limit: number = 50
+): Promise<LeaderboardResponse> {
+  const params = new URLSearchParams({
+    type: leaderboardType,
+    classFilter,
+    limit: limit.toString()
+  });
+  
+  const response = await fetch(`${API_URL}/v1/leaderboard?${params.toString()}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Failed to fetch leaderboard" }));
+    throw new Error(error.error || `Failed to fetch leaderboard (${response.status})`);
+  }
+
+  const data = await response.json();
+  return leaderboardResponseSchema.parse(data);
 }
 
 export function getWsUrl(): string {
