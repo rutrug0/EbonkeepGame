@@ -309,19 +309,25 @@ export function CombatEncounterLogPanel({
 }
 
 export function CombatEncounterPanel(props: CombatEncounterPanelProps) {
-  return (
-    <CombatEncounterTravelPanel
-      encounter={props.encounter}
-      timeline={props.timeline}
-      currentEventIndex={props.currentEventIndex}
-      nowMs={props.nowMs}
-      travelEndsAt={props.travelEndsAt}
-      travelDurationMs={props.travelDurationMs}
-      travelDescription={props.travelDescription}
-      formatContractDifficulty={props.formatContractDifficulty}
-      formatDurationFromMs={props.formatDurationFromMs}
-    />
-  );
+  if (props.phase === "travel") {
+    return (
+      <CombatEncounterTravelPanel
+        encounter={props.encounter}
+        timeline={props.timeline}
+        currentEventIndex={props.currentEventIndex}
+        nowMs={props.nowMs}
+        travelEndsAt={props.travelEndsAt}
+        travelDurationMs={props.travelDurationMs}
+        travelDescription={props.travelDescription}
+        formatContractDifficulty={props.formatContractDifficulty}
+        formatDurationFromMs={props.formatDurationFromMs}
+      />
+    );
+  }
+
+  // Combat phase - should not be rendered through this component
+  // Combat is rendered directly via CombatEncounterArenaPanel in App.tsx
+  return null;
 }
 
 export function CombatEncounterTurnTrackPanel({

@@ -2235,7 +2235,7 @@ function renderPlayerCardScoreIcon(kind: "gear" | "offense" | "defense") {
     strokeWidth: 1.8,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
-    ariaHidden: true
+    "aria-hidden": true
   };
 
   switch (kind) {
