@@ -9072,3 +9072,20 @@ button:focus-visible {
     height: 2rem;
   }
 }
+
+
+.crestCarousel {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: start;
+  width: 100%;
+}
+
+.crestCarouselTrack {
+  width: 100%;
+}
+
+.crestCarouselControls {
+  width: 100%;
+  justify-content: center;
+}
