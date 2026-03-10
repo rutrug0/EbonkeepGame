@@ -11,6 +11,7 @@ import type {
   UpdateGuildRequest,
   GuildSearchQuery
 } from "@ebonkeep/shared";
+import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared";
 import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrestId } from "./validation.js";
 import {
   canEditGuildSettings
@@ -24,6 +25,8 @@ export async function createGuild(
   playerId: string,
   data: CreateGuildRequest
 ): Promise<{ guild: Guild; membership: GuildMember }> {
+  const crestId = data.crestId ?? DEFAULT_GUILD_CREST_ID;
+
   // Validate guild name
   const nameValidation = validateGuildName(data.name);
   if (!nameValidation.valid) {
@@ -45,7 +48,7 @@ export async function createGuild(
   }
 
   // Validate crest
-  const crestValidation = validateGuildCrestId(data.crestId);
+  const crestValidation = validateGuildCrestId(crestId);
   if (!crestValidation.valid) {
     throw new Error(crestValidation.error);
   }
@@ -95,7 +98,7 @@ export async function createGuild(
         name: data.name,
         tag: data.tag,
         description: data.description ?? "",
-        crestId: data.crestId,
+        crestId,
         leaderId: playerId,
         totalPower: player.gearScore,
         crestBgShape: "shield_01",
@@ -194,6 +197,19 @@ export async function updateGuild(
     throw new Error(permCheck.reason ?? "INSUFFICIENT_PERMISSIONS");
   }
 
+  const existingGuild = await prisma.guild.findUnique({
+    where: { id: guildId },
+    select: {
+      description: true,
+      isRecruiting: true,
+      crestId: true
+    }
+  });
+
+  if (!existingGuild) {
+    throw new Error("GUILD_NOT_FOUND");
+  }
+
   // Validate description if provided
   if (data.description !== undefined) {
     const descValidation = validateGuildDescription(data.description);
@@ -222,6 +238,14 @@ export async function updateGuild(
     updateData.crestId = data.crestId;
   }
 
+  const nextDescription = data.description ?? existingGuild.description;
+  const nextIsRecruiting = data.isRecruiting ?? existingGuild.isRecruiting;
+  const nextCrestId = data.crestId ?? existingGuild.crestId;
+
+  const crestChanged = nextCrestId !== existingGuild.crestId;
+  const descriptionChanged = nextDescription !== existingGuild.description;
+  const recruitingChanged = nextIsRecruiting !== existingGuild.isRecruiting;
+
   const guild = await prisma.$transaction(async (tx) => {
     const updated = await tx.guild.update({
       where: { id: guildId },
@@ -229,19 +253,23 @@ export async function updateGuild(
     });
 
     // Log activity
-    const actionType = data.crestId
+    const actionType = crestChanged
       ? "crest_changed"
-      : data.description !== undefined
+      : descriptionChanged
         ? "description_changed"
-        : "recruiting_toggled";
-    await tx.guildActivity.create({
-      data: {
-        guildId,
-        actorId: playerId,
-        actionType,
-        timestamp: new Date()
-      }
-    });
+        : recruitingChanged
+          ? "recruiting_toggled"
+          : null;
+    if (actionType) {
+      await tx.guildActivity.create({
+        data: {
+          guildId,
+          actorId: playerId,
+          actionType,
+          timestamp: new Date()
+        }
+      });
+    }
 
     return updated;
   });
