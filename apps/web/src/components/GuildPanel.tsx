@@ -14,13 +14,15 @@ function safeHtml(raw: string): string {
 }
 import type {
   CreateGuildRequest,
+  GuildCrestId,
   GuildDetailsResponse,
   GuildMemberWithPlayer,
   GuildActivityWithDetails,
   Guild,
   GuildMember,
-  GuildRole,
+  GuildRole
 } from "@ebonkeep/shared";
+import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared";
 import {
   createGuild,
   getMyGuild,
@@ -39,6 +41,8 @@ import {
   transferLeadership,
   sendGuildInvite,
 } from "../api";
+import { GuildCrestEditor } from "./GuildCrestEditor";
+import { GuildCrestDisplay } from "./GuildList";
 
 const GUILD_MIN_LEVEL = 10;
 
@@ -139,8 +143,8 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
 
   if (!token) {
     return (
-      <section className="contentShell">
-        <section className="contentStack">
+      <section className="contentShell guildPanelShell">
+        <section className="contentStack guildPanelStack">
           <article className="contentCard">
             <h2>{t("guild.title")}</h2>
             <p>{t("placeholder.guild")}</p>
@@ -154,11 +158,11 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
   // When a mission is active, we just add height:100% so the travel/combat shells fill the panel.
   return (
     <section
-      className="contentShell"
+      className="contentShell guildPanelShell"
       style={isActiveMission ? { height: "100%", background: "transparent", border: "none" } : undefined}
     >
       <section
-        className="contentStack"
+        className="contentStack guildPanelStack"
         style={isActiveMission ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}
       >
         {/* Nav only visible when no active mission — but kept at stable position (index 0) */}
@@ -285,7 +289,7 @@ function MyGuildView({
 
   if (showCreateForm) {
     return (
-      <article className="contentCard">
+      <article className="contentCard guildPanelFillCard">
         <CreateGuildForm
           token={token}
           onSuccess={() => { setShowCreateForm(false); loadGuildData(); }}
@@ -357,7 +361,7 @@ function MyGuildView({
           {/* ── Hero banner ── */}
           <article className="contentCard guildHeroBanner">
             <div className="guildHeroCrest">
-              <ShieldIcon size={72} />
+              <GuildCrestDisplay crestId={guildData.guild.crestId} size="medium" />
             </div>
             <div className="guildHeroBody">
               <h2 className="guildHeroName">
@@ -424,7 +428,7 @@ function MyGuildView({
           </article>
 
           {/* ── Tab content ── */}
-          <article className="contentCard">
+          <article className={`contentCard${activeTab === "settings" ? " guildPanelFillCard" : ""}`}>
             {activeTab === "members" && (
               <GuildMembersTab
                 token={token}
@@ -977,14 +981,7 @@ function CreateGuildForm({
     name: "",
     tag: "",
     description: "",
-    crestConfig: {
-      bgShape: "shield_01",
-      bgColor: "crimson",
-      bgPattern: null,
-      fgSymbol: "sword_01",
-      fgColor: "gold",
-      frame: null,
-    },
+    crestId: DEFAULT_GUILD_CREST_ID,
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -1005,14 +1002,23 @@ function CreateGuildForm({
 
   return (
     <div className="guildCreateFormWrapper">
-      <div className="guildCreateFormHeader">
-        <h3 className="guildCreateFormTitle">{t("guild.create")}</h3>
-        <p className="guildCreateFormSubtitle">{t("guild.createSubtitle")}</p>
-      </div>
-
       {error && <div className="error">{error}</div>}
 
       <form onSubmit={handleSubmit} className="guildCreateFormContent">
+        <div className="guildCreatePreview">
+          <div className="guildCreatePreviewCrest">
+            <GuildCrestDisplay crestId={formData.crestId} size="large" />
+          </div>
+          <div className="guildCreatePreviewBody">
+            <div className="guildCreatePreviewName">
+              {formData.name.trim() || t("guild.namePlaceholder")}
+            </div>
+            <div className="guildCreatePreviewTag">
+              [{formData.tag.trim() || "TAG"}]
+            </div>
+          </div>
+        </div>
+
         <div className="guildCreateFormFields">
           <div className="guildFormField">
             <label htmlFor="guildName" className="guildFormLabel">
@@ -1050,27 +1056,18 @@ function CreateGuildForm({
             />
           </div>
 
-          <div className="guildFormField guildFormFieldFull">
-            <label className="guildFormLabel">
-              {t("guild.description")}
-              <span className="guildFormLabelHint">{t("guild.descriptionHint")}</span>
-            </label>
-            <GuildDescEditor
-              value={formData.description ?? ""}
-              onChange={(html) => setFormData({ ...formData, description: html })}
-            />
-          </div>
-        </div>
-
-        <div className="guildFormCrestSection">
-          <div className="guildFormCrestHeader">
-            <span className="guildFormLabel">{t("guild.crest.title")}</span>
-            <span className="guildFormLabelHint">{t("guild.crestEditorComingSoon")}</span>
-          </div>
-          <div className="guildFormCrestPreview">
-            <div className="guildCrestPlaceholder">
-              <ShieldIcon size={64} />
-              <span className="guildCrestPlaceholderText">{t("guild.crestDefault")}</span>
+          <div className="guildFormField guildFormFieldFull guildDescriptionWithCrest">
+            <div className="guildDescriptionEditorBlock">
+              <GuildDescEditor
+                value={formData.description ?? ""}
+                onChange={(html) => setFormData({ ...formData, description: html })}
+              />
+            </div>
+            <div className="guildDescriptionCrestBlock">
+              <GuildCrestEditor
+                crestId={formData.crestId}
+                onChange={(crestId) => setFormData({ ...formData, crestId })}
+              />
             </div>
           </div>
         </div>
@@ -1390,13 +1387,11 @@ function GuildDescEditor({
   const { t } = useTranslation("common");
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // Load initial HTML on mount only
   useEffect(() => {
-    if (editorRef.current) {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [value]);
 
   const handleInput = () => {
     onChange(editorRef.current?.innerHTML ?? "");
@@ -1453,6 +1448,7 @@ function GuildDescEditor({
         contentEditable
         suppressContentEditableWarning
         className="guildDescEditorArea"
+        data-placeholder={t("guild.descriptionPlaceholder")}
         onInput={handleInput}
         onPaste={handlePaste}
       />
@@ -1482,9 +1478,18 @@ function GuildSettingsTab({
   const [formData, setFormData] = useState({
     description: guild.description || "",
     isRecruiting: guild.isRecruiting,
+    crestId: guild.crestId ?? DEFAULT_GUILD_CREST_ID,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormData({
+      description: guild.description || "",
+      isRecruiting: guild.isRecruiting,
+      crestId: guild.crestId ?? DEFAULT_GUILD_CREST_ID,
+    });
+  }, [guild.crestId, guild.description, guild.isRecruiting]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1529,15 +1534,19 @@ function GuildSettingsTab({
       {canManage && (
         <form onSubmit={handleSubmit} className="guildSettingsForm">
           <h3 className="guildSectionTitle">{t("guild.settings")}</h3>
-          <div className="guildFormGroup">
-            <label className="guildFormLabel">
-              {t("guild.description")}
-              <span className="guildFormLabelHint">{t("guild.descriptionHint")}</span>
-            </label>
-            <GuildDescEditor
-              value={formData.description}
-              onChange={(html) => setFormData({ ...formData, description: html })}
-            />
+          <div className="guildFormGroup guildDescriptionWithCrest">
+            <div className="guildDescriptionEditorBlock">
+              <GuildDescEditor
+                value={formData.description}
+                onChange={(html) => setFormData({ ...formData, description: html })}
+              />
+            </div>
+            <div className="guildDescriptionCrestBlock">
+              <GuildCrestEditor
+                crestId={formData.crestId as GuildCrestId}
+                onChange={(crestId) => setFormData({ ...formData, crestId })}
+              />
+            </div>
           </div>
 
           <div className="guildFormGroup">
@@ -1560,19 +1569,6 @@ function GuildSettingsTab({
             </button>
           </div>
         </form>
-      )}
-
-      {/* ── Crest (managers only) ── */}
-      {canManage && (
-        <div className="guildSettingsCrestSection">
-          <h3 className="guildSectionTitle">{t("guild.crestEditor")}</h3>
-          <div className="guildFormCrestPreview">
-            <div className="guildCrestPlaceholder">
-              <ShieldIcon size={64} />
-              <p className="placeholderText">{t("guild.crestEditorComingSoon")}</p>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ── Management actions (visible to all) ── */}

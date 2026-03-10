@@ -3,6 +3,8 @@
  * Validates guild names, tags, and crest configurations
  */
 
+import { GUILD_CREST_CATALOG } from "@ebonkeep/shared";
+
 export interface ValidationResult {
   valid: boolean;
   error?: string;
@@ -191,156 +193,20 @@ export function validateGuildDescription(description: string): ValidationResult 
 }
 
 /**
- * Validate guild crest configuration
- * Ensures all crest parts are from the valid asset pool
+ * Validate guild crest selection
  */
-export function validateGuildCrest(crest: {
-  bgShape: string;
-  bgColor: string;
-  bgPattern?: string | null;
-  fgSymbol: string;
-  fgColor: string;
-  frame?: string | null;
-}): ValidationResult {
-  // Valid background shapes
-  const VALID_BG_SHAPES = [
-    "shield_01",
-    "shield_02",
-    "shield_03",
-    "banner_01",
-    "banner_02",
-    "circle_01"
-  ];
-
-  // Valid symbols
-  const VALID_SYMBOLS = [
-    "sword_01",
-    "axe_01",
-    "bow_01",
-    "dragon_01",
-    "wolf_01",
-    "eagle_01",
-    "castle_01",
-    "tower_01"
-  ];
-
-  // Valid colors
-  const VALID_BG_COLORS = [
-    "crimson",
-    "forest",
-    "sapphire",
-    "obsidian",
-    "ivory",
-    "gold",
-    "iron"
-  ];
-
-  const VALID_FG_COLORS = ["gold", "silver", "ivory", "obsidian", "crimson"];
-
-  // Valid patterns (optional)
-  const VALID_PATTERNS = ["stripes", "checkered", "embossed"];
-
-  // Valid frames (optional)
-  const VALID_FRAMES = ["ornate_01", "simple_01", "thorns_01"];
-
-  // Validate background shape
-  if (!VALID_BG_SHAPES.includes(crest.bgShape)) {
+export function validateGuildCrestId(crestId: string): ValidationResult {
+  if (!GUILD_CREST_CATALOG.some((crest) => crest.id === crestId)) {
     return {
       valid: false,
-      error: "CREST_INVALID_BG_SHAPE"
+      error: "INVALID_CREST_ID"
     };
-  }
-
-  // Validate background color
-  if (!VALID_BG_COLORS.includes(crest.bgColor)) {
-    return {
-      valid: false,
-      error: "CREST_INVALID_BG_COLOR"
-    };
-  }
-
-  // Validate pattern if provided
-  if (crest.bgPattern && !VALID_PATTERNS.includes(crest.bgPattern)) {
-    return {
-      valid: false,
-      error: "CREST_INVALID_PATTERN"
-    };
-  }
-
-  // Validate foreground symbol
-  if (!VALID_SYMBOLS.includes(crest.fgSymbol)) {
-    return {
-      valid: false,
-      error: "CREST_INVALID_SYMBOL"
-    };
-  }
-
-  // Validate foreground color
-  if (!VALID_FG_COLORS.includes(crest.fgColor)) {
-    return {
-      valid: false,
-      error: "CREST_INVALID_FG_COLOR"
-    };
-  }
-
-  // Validate frame if provided
-  if (crest.frame && !VALID_FRAMES.includes(crest.frame)) {
-    return {
-      valid: false,
-      error: "CREST_INVALID_FRAME"
-    };
-  }
-
-  // Prevent low-contrast combinations
-  if (crest.bgColor === crest.fgColor) {
-    return {
-      valid: false,
-      error: "CREST_LOW_CONTRAST"
-    };
-  }
-
-  // Specific low-contrast combinations
-  const BAD_COMBOS = [
-    { bg: "ivory", fg: "silver" },
-    { bg: "obsidian", fg: "obsidian" }
-  ];
-
-  for (const combo of BAD_COMBOS) {
-    if (crest.bgColor === combo.bg && crest.fgColor === combo.fg) {
-      return {
-        valid: false,
-        error: "CREST_LOW_CONTRAST"
-      };
-    }
   }
 
   return { valid: true };
 }
 
 /**
- * Export valid asset lists for frontend use
+ * Export valid crest ids for API-side checks and debugging
  */
-export const VALID_CREST_ASSETS = {
-  bgShapes: [
-    "shield_01",
-    "shield_02",
-    "shield_03",
-    "banner_01",
-    "banner_02",
-    "circle_01"
-  ],
-  symbols: [
-    "sword_01",
-    "axe_01",
-    "bow_01",
-    "dragon_01",
-    "wolf_01",
-    "eagle_01",
-    "castle_01",
-    "tower_01"
-  ],
-  bgColors: ["crimson", "forest", "sapphire", "obsidian", "ivory", "gold", "iron"],
-  fgColors: ["gold", "silver", "ivory", "obsidian", "crimson"],
-  patterns: ["stripes", "checkered", "embossed"],
-  frames: ["ornate_01", "simple_01", "thorns_01"]
-};
+export const VALID_CREST_IDS = GUILD_CREST_CATALOG.map((crest) => crest.id);

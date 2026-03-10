@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { DEFAULT_GUILD_CREST_ID, GUILD_CREST_CATALOG } from "./guild-crests.js";
+
+export * from "./guild-crests.js";
 
 export const playerClassSchema = z.enum(["warrior", "mage", "ranger"]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
@@ -846,6 +849,11 @@ export const guildActivityTypeSchema = z.enum([
 ]);
 export type GuildActivityType = z.infer<typeof guildActivityTypeSchema>;
 
+export const guildCrestIdSchema = z.enum(
+  GUILD_CREST_CATALOG.map((crest: (typeof GUILD_CREST_CATALOG)[number]) => crest.id) as [string, ...string[]]
+);
+export type GuildCrestId = z.infer<typeof guildCrestIdSchema>;
+
 // Guild crest configuration
 export const guildCrestSchema = z.object({
   bgShape: z.string(),
@@ -863,6 +871,7 @@ export const guildSchema = z.object({
   name: z.string(),
   tag: z.string(),
   description: z.string(),
+  crestId: guildCrestIdSchema.default(DEFAULT_GUILD_CREST_ID),
   leaderId: z.string(),
   maxMembers: z.number().int(),
   isRecruiting: z.boolean(),
@@ -924,7 +933,7 @@ export const createGuildRequestSchema = z.object({
   name: z.string().min(3).max(32),
   tag: z.string().min(2).max(6),
   description: z.string().max(500).optional(),
-  crestConfig: guildCrestSchema
+  crestId: guildCrestIdSchema.default(DEFAULT_GUILD_CREST_ID)
 });
 export type CreateGuildRequest = z.infer<typeof createGuildRequestSchema>;
 
@@ -937,7 +946,7 @@ export type CreateGuildResponse = z.infer<typeof createGuildResponseSchema>;
 // Update guild
 export const updateGuildRequestSchema = z.object({
   description: z.string().max(500).optional(),
-  crestConfig: guildCrestSchema.optional(),
+  crestId: guildCrestIdSchema.optional(),
   isRecruiting: z.boolean().optional()
 });
 export type UpdateGuildRequest = z.infer<typeof updateGuildRequestSchema>;

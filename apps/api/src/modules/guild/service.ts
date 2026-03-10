@@ -7,24 +7,14 @@ import type { PrismaClient } from "@prisma/client";
 import type {
   Guild,
   GuildMember,
-  GuildInvite,
-  GuildActivity,
   CreateGuildRequest,
   UpdateGuildRequest,
-  GuildSearchQuery,
-  GuildMembersQuery,
-  GuildActivityQuery,
-  GuildLeaderboardQuery
+  GuildSearchQuery
 } from "@ebonkeep/shared";
-import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrest } from "./validation.js";
+import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared";
+import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrestId } from "./validation.js";
 import {
-  canKickMember,
-  canChangeRole,
-  canTransferLeadership,
-  canLeaveGuild,
-  canDisbandGuild,
-  canEditGuildSettings,
-  canSendInvites
+  canEditGuildSettings
 } from "./permissions.js";
 
 /**
@@ -35,6 +25,8 @@ export async function createGuild(
   playerId: string,
   data: CreateGuildRequest
 ): Promise<{ guild: Guild; membership: GuildMember }> {
+  const crestId = data.crestId ?? DEFAULT_GUILD_CREST_ID;
+
   // Validate guild name
   const nameValidation = validateGuildName(data.name);
   if (!nameValidation.valid) {
@@ -56,7 +48,7 @@ export async function createGuild(
   }
 
   // Validate crest
-  const crestValidation = validateGuildCrest(data.crestConfig);
+  const crestValidation = validateGuildCrestId(crestId);
   if (!crestValidation.valid) {
     throw new Error(crestValidation.error);
   }
@@ -106,14 +98,15 @@ export async function createGuild(
         name: data.name,
         tag: data.tag,
         description: data.description ?? "",
+        crestId,
         leaderId: playerId,
         totalPower: player.gearScore,
-        crestBgShape: data.crestConfig.bgShape,
-        crestBgColor: data.crestConfig.bgColor,
-        crestBgPattern: data.crestConfig.bgPattern ?? null,
-        crestFgSymbol: data.crestConfig.fgSymbol,
-        crestFgColor: data.crestConfig.fgColor,
-        crestFrame: data.crestConfig.frame ?? null
+        crestBgShape: "shield_01",
+        crestBgColor: "crimson",
+        crestBgPattern: null,
+        crestFgSymbol: "sword_01",
+        crestFgColor: "gold",
+        crestFrame: null
       }
     });
 
@@ -204,6 +197,19 @@ export async function updateGuild(
     throw new Error(permCheck.reason ?? "INSUFFICIENT_PERMISSIONS");
   }
 
+  const existingGuild = await prisma.guild.findUnique({
+    where: { id: guildId },
+    select: {
+      description: true,
+      isRecruiting: true,
+      crestId: true
+    }
+  });
+
+  if (!existingGuild) {
+    throw new Error("GUILD_NOT_FOUND");
+  }
+
   // Validate description if provided
   if (data.description !== undefined) {
     const descValidation = validateGuildDescription(data.description);
@@ -213,8 +219,8 @@ export async function updateGuild(
   }
 
   // Validate crest if provided
-  if (data.crestConfig) {
-    const crestValidation = validateGuildCrest(data.crestConfig);
+  if (data.crestId) {
+    const crestValidation = validateGuildCrestId(data.crestId);
     if (!crestValidation.valid) {
       throw new Error(crestValidation.error);
     }
@@ -228,14 +234,17 @@ export async function updateGuild(
   if (data.isRecruiting !== undefined) {
     updateData.isRecruiting = data.isRecruiting;
   }
-  if (data.crestConfig) {
-    updateData.crestBgShape = data.crestConfig.bgShape;
-    updateData.crestBgColor = data.crestConfig.bgColor;
-    updateData.crestBgPattern = data.crestConfig.bgPattern ?? null;
-    updateData.crestFgSymbol = data.crestConfig.fgSymbol;
-    updateData.crestFgColor = data.crestConfig.fgColor;
-    updateData.crestFrame = data.crestConfig.frame ?? null;
+  if (data.crestId) {
+    updateData.crestId = data.crestId;
   }
+
+  const nextDescription = data.description ?? existingGuild.description;
+  const nextIsRecruiting = data.isRecruiting ?? existingGuild.isRecruiting;
+  const nextCrestId = data.crestId ?? existingGuild.crestId;
+
+  const crestChanged = nextCrestId !== existingGuild.crestId;
+  const descriptionChanged = nextDescription !== existingGuild.description;
+  const recruitingChanged = nextIsRecruiting !== existingGuild.isRecruiting;
 
   const guild = await prisma.$transaction(async (tx) => {
     const updated = await tx.guild.update({
@@ -244,15 +253,23 @@ export async function updateGuild(
     });
 
     // Log activity
-    const actionType = data.crestConfig ? "crest_changed" : "description_changed";
-    await tx.guildActivity.create({
-      data: {
-        guildId,
-        actorId: playerId,
-        actionType,
-        timestamp: new Date()
-      }
-    });
+    const actionType = crestChanged
+      ? "crest_changed"
+      : descriptionChanged
+        ? "description_changed"
+        : recruitingChanged
+          ? "recruiting_toggled"
+          : null;
+    if (actionType) {
+      await tx.guildActivity.create({
+        data: {
+          guildId,
+          actorId: playerId,
+          actionType,
+          timestamp: new Date()
+        }
+      });
+    }
 
     return updated;
   });

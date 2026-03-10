@@ -51,7 +51,7 @@ export const guildRoutes: FastifyPluginAsync = async (fastify) => {
           INVALID_NAME: { status: 400, message: "Invalid guild name" },
           INVALID_TAG: { status: 400, message: "Invalid guild tag" },
           INVALID_DESCRIPTION: { status: 400, message: "Invalid description" },
-          INVALID_CREST: { status: 400, message: "Invalid crest configuration" },
+          INVALID_CREST_ID: { status: 400, message: "Invalid crest selection" },
           GUILD_NAME_TAKEN: { status: 409, message: "Guild name already exists" },
           GUILD_TAG_TAKEN: { status: 409, message: "Guild tag already exists" }
         };
@@ -81,7 +81,7 @@ export const guildRoutes: FastifyPluginAsync = async (fastify) => {
           INVALID_NAME: { status: 400, message: "Invalid guild name" },
           INVALID_TAG: { status: 400, message: "Invalid guild tag" },
           INVALID_DESCRIPTION: { status: 400, message: "Invalid description" },
-          INVALID_CREST: { status: 400, message: "Invalid crest configuration" },
+          INVALID_CREST_ID: { status: 400, message: "Invalid crest selection" },
           NAME_EXISTS: { status: 409, message: "Guild name already exists" },
           TAG_EXISTS: { status: 409, message: "Guild tag already exists" }
         };
@@ -170,7 +170,7 @@ export const guildRoutes: FastifyPluginAsync = async (fastify) => {
           NOT_GUILD_MEMBER: { status: 403, message: "Not a guild member" },
           INSUFFICIENT_PERMISSIONS: { status: 403, message: "Insufficient permissions" },
           INVALID_DESCRIPTION: { status: 400, message: "Invalid description" },
-          INVALID_CREST: { status: 400, message: "Invalid crest configuration" }
+          INVALID_CREST_ID: { status: 400, message: "Invalid crest selection" }
         };
 
         const mapped = errorMap[error.message];
