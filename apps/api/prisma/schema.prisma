@@ -363,6 +363,7 @@ model Guild {
   name            String          @unique
   tag             String          @unique
   description     String          @default("")
+  crestId         String          @default("crest_0")
   leaderId        String
   maxMembers      Int             @default(50)
   isRecruiting    Boolean         @default(true)

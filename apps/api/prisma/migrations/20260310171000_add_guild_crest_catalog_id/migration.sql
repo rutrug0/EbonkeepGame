@@ -1,0 +1,2 @@
+ALTER TABLE "guilds"
+ADD COLUMN "crestId" TEXT NOT NULL DEFAULT 'crest_0';

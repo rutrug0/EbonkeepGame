@@ -579,11 +579,15 @@ button:focus-visible {
   width: 100%;
   max-width: var(--panel-viewport-max);
   min-width: 0;
+  height: 100%;
+  min-height: 0;
 }
 
 .panelViewportGroup {
   width: max-content;
   min-width: calc(var(--panel-main-max) + var(--panel-stats-max) + var(--space-3));
+  height: 100%;
+  min-height: 0;
   display: grid;
   grid-template-columns: var(--panel-main-max) var(--panel-stats-max);
   gap: var(--space-3);
@@ -628,6 +632,7 @@ button:focus-visible {
   width: var(--panel-main-max);
   min-width: var(--panel-main-max);
   max-width: var(--panel-main-max);
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -794,7 +799,34 @@ button:focus-visible {
   display: grid;
   gap: 0;
   width: 100%;
+  min-height: 0;
   align-content: start;
+}
+
+.guildPanelShell {
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.guildPanelStack {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 100%;
+}
+
+.guildPanelFillCard {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.guildPanelFillCard > * {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .contentCard {
@@ -6111,6 +6143,9 @@ button:focus-visible {
 
 /* ── Guild Description Rich-Text Editor ─────────────────────────────── */
 .guildDescEditor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   border: 1px solid var(--border);
   border-radius: var(--soft-radius);
   background:
@@ -6185,8 +6220,8 @@ button:focus-visible {
 }
 
 .guildDescEditorArea {
+  flex: 1 1 auto;
   min-height: 110px;
-  max-height: 340px;
   overflow-y: auto;
   padding: var(--space-3);
   font-family: var(--font-body);
@@ -7372,12 +7407,16 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  height: 100%;
+  min-height: 0;
 }
 
 .guildSettingsForm {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .guildSettingsCrestSection {
@@ -7451,41 +7490,83 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-.guildCreateFormHeader {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.guildCreateFormTitle {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  color: var(--text-main);
-  margin: 0;
-}
-
-.guildCreateFormSubtitle {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin: 0;
+  height: 100%;
+  min-height: 0;
 }
 
 .guildCreateFormContent {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.guildCreatePreview {
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-content: center;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.guildCreatePreviewCrest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guildCreatePreviewCrest .guildCrest-large {
+  width: 152px;
+  height: 152px;
+}
+
+.guildCreatePreviewBody {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.guildCreatePreviewName,
+.guildCreatePreviewTag {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guildCreatePreviewName {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--text-main);
+  letter-spacing: 0.03em;
+}
+
+.guildCreatePreviewTag {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--accent-warn);
+  letter-spacing: 0.08em;
 }
 
 .guildCreateFormFields {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
   gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: stretch;
 }
 
 .guildFormFieldFull {
   grid-column: 1 / -1;
+  min-height: 0;
 }
 
 .guildFormField {
@@ -7574,6 +7655,7 @@ button:focus-visible {
 }
 
 .guildFormActions {
+  margin-top: auto;
   display: flex;
   gap: var(--space-3);
 }
@@ -7624,6 +7706,7 @@ button:focus-visible {
 }
 
 .guildCreateFormActions {
+  margin-top: auto;
   display: flex;
   gap: var(--space-3);
 }
@@ -7778,6 +7861,213 @@ button:focus-visible {
   .guildHeroStatusBadge {
     font-size: 0.65rem;
     padding: 1px 6px;
+  }
+}
+
+.guildCrest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guildCrestImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+}
+
+.guildDescriptionWithCrest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+}
+
+.guildCreateFormFields > .guildDescriptionWithCrest,
+.guildSettingsForm > .guildDescriptionWithCrest {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.guildDescriptionEditorBlock,
+.guildDescriptionCrestBlock {
+  display: grid;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 0;
+}
+
+.guildDescriptionEditorBlock {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.guildDescriptionCrestBlock {
+  grid-template-rows: 1fr;
+  padding: var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: linear-gradient(180deg, rgba(24, 31, 39, 0.72), rgba(15, 20, 26, 0.82));
+}
+
+.guildCrestEditorGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 0;
+  padding-top: var(--space-2);
+}
+
+.guildCrestGridViewport {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: var(--space-2);
+  align-content: start;
+  min-height: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.guildCrestGridViewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.guildCrestGridItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 132px;
+  padding: 8px;
+  border: 0;
+  border-radius: 18px;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  cursor: pointer;
+  overflow: visible;
+  opacity: 0.68;
+  filter: saturate(0.82);
+  transition:
+    transform 220ms ease,
+    opacity 220ms ease,
+    filter 220ms ease;
+}
+
+.guildCrestGridItem::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(201, 169, 110, 0.28) 0%, rgba(201, 169, 110, 0.14) 38%, rgba(201, 169, 110, 0) 72%);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+.guildCrestGridItem::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(232, 213, 166, 0.96);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.18);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+.guildCrestGridItem .guildCrest-large {
+  width: 118px;
+  height: 118px;
+}
+
+.guildCrestGridItem:hover,
+.guildCrestGridItem:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  opacity: 0.9;
+  filter: saturate(1);
+}
+
+.guildCrestGridItem:hover::before,
+.guildCrestGridItem:focus-visible::before {
+  opacity: 0.52;
+  transform: scale(1);
+}
+
+.guildCrestGridItem--selected {
+  transform: none;
+  opacity: 0.68;
+  filter: saturate(0.82);
+  z-index: auto;
+}
+
+.guildCrestGridItem--selected:hover,
+.guildCrestGridItem--selected:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  opacity: 0.9;
+  filter: saturate(1);
+}
+
+.guildCrestGridCounter {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  background: rgba(16, 22, 29, 0.9);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 768px) {
+  .guildDescriptionWithCrest {
+    grid-template-columns: 1fr;
+  }
+
+  .guildDescriptionCrestBlock {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .guildCrestEditorGrid {
+    max-height: 360px;
+  }
+
+  .guildCrestGridViewport {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+
+  .guildCrestGridItem {
+    min-height: 110px;
+  }
+
+  .guildCrestGridItem .guildCrest-large {
+    width: 92px;
+    height: 92px;
+  }
+
+  .guildCrestGridCounter {
+    font-size: 0.68rem;
+    padding: 3px 8px;
   }
 }
 
