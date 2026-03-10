@@ -1,6 +1,7 @@
 # Ebonkeep
 
 High-level implementation planning docs live in [`docs/`](docs/), starting with [`docs/00-index.md`](docs/00-index.md).
+Repository-specific Codex instructions live in [`AGENTS.md`](AGENTS.md).
 
 ## Development Foundation
 
