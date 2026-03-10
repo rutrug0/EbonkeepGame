@@ -10,6 +10,13 @@ export function initEmailService(config: {
   user: string;
   password: string;
 }) {
+  if (process.env.NODE_ENV === "test") {
+    transporter = nodemailer.createTransport({
+      jsonTransport: true
+    });
+    return;
+  }
+
   transporter = nodemailer.createTransport({
     host: config.host,
     port: config.port,

@@ -152,7 +152,10 @@ export class AuctionSettlementService {
     // For now, just mark as claimed
     await this.prisma.auctionPendingReward.update({
       where: { id: rewardId },
-      data: { claimedAt: new Date() }
+      data: {
+        claimed: true,
+        claimedAt: new Date()
+      }
     });
   }
 
@@ -164,6 +167,7 @@ export class AuctionSettlementService {
       where: {
         playerId,
         claimedAt: null,
+        claimed: false,
         expiresAt: { gt: new Date() }
       },
       orderBy: { createdAt: "desc" }
@@ -177,6 +181,7 @@ export class AuctionSettlementService {
     const expiredRewards = await this.prisma.auctionPendingReward.findMany({
       where: {
         claimedAt: null,
+        claimed: false,
         expiresAt: { lte: new Date() }
       }
     });
@@ -199,7 +204,10 @@ export class AuctionSettlementService {
       // Mark as expired
       await this.prisma.auctionPendingReward.update({
         where: { id: reward.id },
-        data: { claimedAt: new Date() } // Mark as processed
+        data: {
+          claimed: true,
+          claimedAt: new Date()
+        }
       });
 
       processedCount++;

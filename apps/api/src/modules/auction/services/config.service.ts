@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface AuctionConfig {
   instance: {
@@ -110,8 +111,8 @@ export class AuctionConfigService {
   private config: AuctionConfig;
 
   private constructor(configPath?: string) {
-    // Default to auction_config.ini in the auction module directory
-    const defaultPath = path.join(process.cwd(), "src", "modules", "auction", "auction_config.ini");
+    const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+    const defaultPath = path.resolve(moduleDir, "..", "auction_config.ini");
     const iniPath = configPath || process.env.AUCTION_CONFIG_PATH || defaultPath;
 
     if (!fs.existsSync(iniPath)) {

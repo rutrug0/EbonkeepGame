@@ -200,7 +200,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
   const [autoBidDisableTargetId, setAutoBidDisableTargetId] = useState<string | null>(null);
   const [auctionHover, setAuctionHover] = useState<AuctionHoverState | null>(null);
 
-  const API_BASE = "http://localhost:4000";
+  const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
   /**
    * Map backend error messages to localized translations
