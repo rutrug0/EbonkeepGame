@@ -12,14 +12,27 @@
     "dev:web": "npm --workspace @ebonkeep/web run dev",
     "dev:desktop": "npm --workspace @ebonkeep/desktop run dev",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test:ci",
+    "test:unit": "npm --workspace @ebonkeep/shared run test:unit && npm --workspace @ebonkeep/api run test:unit && npm --workspace @ebonkeep/web run test:unit",
+    "test:db:prepare": "node ./tools/test/prepare-db.mjs",
+    "test:integration": "npm run test:db:prepare && npm --workspace @ebonkeep/api run test:integration",
+    "test:smoke": "npm run test:db:prepare && playwright test tests/e2e/smoke",
+    "test:e2e": "npm run test:db:prepare && playwright test tests/e2e",
+    "test:nightly": "npm run test:db:prepare && playwright test tests/e2e/nightly",
+    "test:ci": "npm run test:unit && npm run test:integration && npm run test:smoke",
     "lint": "npm run lint --workspaces --if-present",
     "db:migrate": "npm --workspace @ebonkeep/api run db:migrate",
     "db:seed": "npm --workspace @ebonkeep/api run db:seed",
     "db:generate": "npm --workspace @ebonkeep/api run db:generate"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@playwright/test": "^1.52.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "concurrently": "^9.1.2",
+    "jsdom": "^26.1.0",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=22.0.0"

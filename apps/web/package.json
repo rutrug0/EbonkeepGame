@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run -c vitest.config.ts",
     "i18n:check": "node ../../tools/validate_locales.mjs",
     "preview": "vite preview",
     "lint": "echo \"No lint configured for @ebonkeep/web\""

@@ -170,7 +170,7 @@ export function buildInventoryItemRecordFromAuctionPayload(args: {
   if (parsedItem.inventoryItem) {
     return {
       playerId: args.playerId,
-      slotKey: parsedItem.inventoryItem.category || "inventory",
+      slotKey: "inventory",
       itemCode: parsedItem.inventoryItem.itemCode,
       quantity: 1,
       itemData: parsedItem.inventoryItem
@@ -179,7 +179,7 @@ export function buildInventoryItemRecordFromAuctionPayload(args: {
 
   return {
     playerId: args.playerId,
-    slotKey: parsedItem.viewData.category || "misc",
+    slotKey: "inventory",
     itemCode: args.storedItemCode,
     quantity: 1
   };

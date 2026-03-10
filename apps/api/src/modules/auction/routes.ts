@@ -278,14 +278,10 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         // Check expiry
-        const expiryDays = config.rewards.pendingRewardExpiryDays;
-        const expiryDate = new Date(reward.createdAt);
-        expiryDate.setDate(expiryDate.getDate() + expiryDays);
-
-        if (new Date() > expiryDate) {
+        if (new Date() > reward.expiresAt) {
           return reply.code(400).send({
             error: "Reward has expired",
-            expiredAt: expiryDate.toISOString()
+            expiredAt: reward.expiresAt.toISOString()
           });
         }
 
@@ -302,18 +298,19 @@ export const auctionRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Add item to inventory
         const inventoryItem = await tx.inventoryItem.create({
-          data: {
+          data: buildInventoryItemRecordFromAuctionPayload({
             playerId: request.user.playerId,
-            itemCode: reward.itemCode,
-            source: "auction_win",
-            createdAt: new Date()
-          }
+            storedItemCode: reward.itemCode
+          })
         });
 
         // Mark reward as claimed
         await tx.auctionPendingReward.update({
           where: { id: body.rewardId },
-          data: { claimed: true, claimedAt: new Date() }
+          data: {
+            claimed: true,
+            claimedAt: new Date()
+          }
         });
 
         // Log telemetry

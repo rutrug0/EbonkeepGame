@@ -5024,6 +5024,7 @@ export function App() {
       <div
         key={slotId}
         className={classNames}
+        data-testid={`equipment-slot-${slotId}`}
         draggable={hasItem}
         onDragStart={hasItem ? (event) => handleEquipmentSlotDragStart(event, slotId) : undefined}
         onDragOver={(event) => handleEquipmentSlotDragOver(event, slotId)}
@@ -5682,6 +5683,7 @@ export function App() {
             <article
               key={item.id}
               className={`inventoryItemCard rarity-${item.rarity}${dragSourceClass}${dropCueClass}`}
+              data-testid={`inventory-card-${item.id}`}
               draggable={allowDrag}
               onDragStart={allowDrag ? (event) => handleInventoryCardDragStart(event, item.id) : undefined}
               onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
@@ -5834,6 +5836,7 @@ export function App() {
             <article
               key={offer.offerId}
               className={`inventoryItemCard rarity-${offer.item.rarity}${draggingMerchantOfferId === offer.offerId ? " isDragSource" : ""}`}
+              data-testid={`merchant-offer-${offer.offerId}`}
               draggable={!isMerchantMutating}
               onDragStart={(event) => handleMerchantOfferDragStart(event, offer.offerId, offer.item.id)}
               onDragEnd={handleInventoryCardDragEnd}
@@ -5879,6 +5882,7 @@ export function App() {
             <article
               key={`${entry.fromSlot}-${entry.item.id}`}
               className={`inventoryItemCard rarity-${entry.item.rarity}`}
+              data-testid={`merchant-player-item-${entry.item.id}`}
               draggable={!isMerchantMutating}
               onDragStart={
                 entry.fromSlot === "inventory"
@@ -6452,6 +6456,7 @@ export function App() {
                       <tr
                         key={slot.slotIndex}
                         className="contractsActionRow"
+                        data-testid={`contract-row-${slot.slotIndex}`}
                         tabIndex={0}
                         role="button"
                         aria-label={i18n.t("contracts.enterAria", {
@@ -7202,7 +7207,7 @@ export function App() {
               </form>
 
               <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
-                <button onClick={handleGuestLogin} style={{ width: "100%", opacity: 0.7 }}>
+                <button data-testid="guest-login-button" onClick={handleGuestLogin} style={{ width: "100%", opacity: 0.7 }}>
                   {i18n.t("auth.loginGuest")}
                 </button>
               </div>
@@ -7412,6 +7417,7 @@ export function App() {
                     <button
                       key={menuItemId}
                       className={`menuButton${activeTab === menuItemId ? " active" : ""}`}
+                      data-testid={`menu-${menuItemId}`}
                       onClick={() => {
                         setActiveTab(menuItemId);
                         if (menuItemId === "inventory") {

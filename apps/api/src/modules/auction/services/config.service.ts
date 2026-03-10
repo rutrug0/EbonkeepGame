@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface AuctionConfig {
   instance: {
@@ -102,6 +103,27 @@ function parseIniFile(filePath: string): Record<string, Record<string, string>> 
   return config;
 }
 
+function resolveAuctionConfigPath(explicitPath?: string): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const configuredPath = explicitPath || process.env.AUCTION_CONFIG_PATH;
+
+  const candidatePaths = [
+    configuredPath,
+    path.resolve(moduleDir, "..", "auction_config.ini"),
+    path.resolve(moduleDir, "..", "..", "..", "modules", "auction", "auction_config.ini"),
+    path.resolve(moduleDir, "..", "..", "..", "..", "src", "modules", "auction", "auction_config.ini"),
+    path.resolve(process.cwd(), "src", "modules", "auction", "auction_config.ini"),
+    path.resolve(process.cwd(), "apps", "api", "src", "modules", "auction", "auction_config.ini")
+  ].filter((candidate): candidate is string => Boolean(candidate));
+
+  const resolvedPath = candidatePaths.find((candidate) => fs.existsSync(candidate));
+  if (!resolvedPath) {
+    throw new Error(`Auction config file not found. Checked: ${candidatePaths.join(", ")}`);
+  }
+
+  return resolvedPath;
+}
+
 /**
  * Load and parse auction configuration from auction_config.ini
  */
@@ -110,13 +132,7 @@ export class AuctionConfigService {
   private config: AuctionConfig;
 
   private constructor(configPath?: string) {
-    // Default to auction_config.ini in the auction module directory
-    const defaultPath = path.join(process.cwd(), "src", "modules", "auction", "auction_config.ini");
-    const iniPath = configPath || process.env.AUCTION_CONFIG_PATH || defaultPath;
-
-    if (!fs.existsSync(iniPath)) {
-      throw new Error(`Auction config file not found: ${iniPath}`);
-    }
+    const iniPath = resolveAuctionConfigPath(configPath);
 
     const ini = parseIniFile(iniPath);
     this.config = this.parseConfig(ini);
