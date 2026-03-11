@@ -1,0 +1,539 @@
+﻿
+/* ====================================
+   AUCTION HOUSE STYLES
+   ==================================== */
+
+.auctionBrowseSection {
+  position: relative;
+  overflow: visible;
+}
+
+.auctionBrowseGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.auctionBrowseCard {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: calc(var(--soft-radius) + 2px);
+  padding: 0.72rem;
+  background:
+    radial-gradient(circle at top, rgba(233, 218, 178, 0.08), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0)),
+    var(--panel);
+  display: grid;
+  gap: 0.58rem;
+  align-content: start;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.08),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.3);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.auctionBrowseCard.rarity-common {
+  border-color: rgba(201, 176, 125, 0.34);
+}
+
+.auctionBrowseCard.rarity-uncommon {
+  border-color: color-mix(in srgb, var(--uncommon) 58%, var(--border-soft) 42%);
+  box-shadow:
+    inset 0 1px 0 rgba(223, 245, 214, 0.12),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.32),
+    0 0 0 1px rgba(112, 172, 87, 0.08),
+    0 0 20px rgba(88, 144, 70, 0.12);
+}
+
+.auctionBrowseCard.rarity-rare {
+  border-color: color-mix(in srgb, var(--rare) 64%, var(--border-soft) 36%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 240, 204, 0.13),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.32),
+    0 0 0 1px rgba(223, 182, 76, 0.1),
+    0 0 22px rgba(214, 165, 44, 0.14);
+}
+
+.auctionBrowseCard.rarity-epic {
+  border-color: color-mix(in srgb, var(--epic) 62%, var(--border-soft) 38%);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 228, 255, 0.14),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 14px 28px rgba(4, 8, 12, 0.32),
+    0 0 0 1px rgba(167, 111, 218, 0.08),
+    0 0 22px rgba(128, 78, 163, 0.14);
+}
+
+.auctionBrowseItemHeader {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.auctionBrowseIconButton {
+  width: var(--inventory-compact-card-width);
+  min-width: var(--inventory-compact-card-width);
+  height: var(--inventory-compact-card-height);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.auctionBrowseIconButton.inventoryItemCard {
+  width: var(--inventory-compact-card-width);
+  min-height: var(--inventory-compact-card-height);
+  height: var(--inventory-compact-card-height);
+}
+
+.auctionBrowseOriginTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  color: color-mix(in srgb, var(--text-main) 86%, #f6dfab 14%);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.auctionBrowseInfo {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.auctionBrowseLine {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.45rem;
+  align-items: baseline;
+  font-size: 0.96rem;
+  color: var(--text-main);
+}
+
+.auctionBrowseLine strong {
+  color: inherit;
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.auctionDucatAmount {
+  gap: 0.18rem;
+}
+
+.auctionDucatAmount .ducatInlineIcon {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+.auctionBrowseBidder {
+  margin: 0;
+  min-height: 1.15em;
+  text-align: center;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.auctionBrowseBidControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.auctionBrowseBidInput {
+  min-width: 0;
+  border: 1px solid rgba(190, 173, 142, 0.18);
+  border-radius: calc(var(--soft-radius) - 2px);
+  background: rgba(12, 17, 23, 0.96);
+  color: var(--text-main);
+  padding: 0.34rem 0.42rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.auctionBrowseBidButton {
+  border: 0;
+  border-radius: calc(var(--soft-radius) - 2px);
+  padding: 0.26rem 0.42rem;
+  min-width: 54px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-focus) 82%, #f0ddb8), color-mix(in srgb, var(--accent-focus) 66%, #bf9f64));
+  color: #101418;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.auctionBrowseBidButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auctionBrowseReservedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.1rem;
+  padding: 0.22rem 0.5rem;
+  border: 1px solid rgba(217, 187, 114, 0.28);
+  border-radius: 999px;
+  background: rgba(20, 14, 9, 0.74);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.auctionBrowseReservedBadgeLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-soft) 82%, #d8c49a 18%);
+}
+
+.auctionBrowseReservedBadgeValue {
+  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
+  text-shadow:
+    0 2px 6px rgba(2, 4, 8, 0.72),
+    0 0 14px rgba(2, 4, 8, 0.4);
+}
+
+.auctionBrowseReserved {
+  margin: 0.1rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--text-soft) 88%, #d8c49a 12%);
+}
+
+.auctionHoverDetailCard {
+  min-height: 0;
+}
+
+@media (max-width: 1280px) {
+  .auctionBrowseGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .auctionBrowseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.auctionItemCard {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  padding: 0.75rem;
+  background: var(--panel-soft);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auctionItemCard:hover {
+  background: var(--panel-elevated);
+  transform: scale(1.02);
+}
+
+.auctionItemCard.selected {
+  background: var(--panel-elevated);
+  transform: scale(1.02);
+}
+
+.auctionItemCard.selected.rarity-common {
+  border: 2px solid var(--common);
+  box-shadow: 0 0 20px rgba(163, 157, 143, 0.25);
+}
+
+.auctionItemCard.selected.rarity-uncommon {
+  border: 2px solid var(--uncommon);
+  box-shadow: 0 0 20px rgba(121, 152, 102, 0.25);
+}
+
+.auctionItemCard.selected.rarity-rare {
+  border: 2px solid var(--rare);
+  box-shadow: 0 0 20px rgba(201, 165, 89, 0.25);
+}
+
+.auctionItemCard.selected.rarity-epic {
+  border: 2px solid var(--epic);
+  box-shadow: 0 0 20px rgba(157, 123, 184, 0.25);
+}
+
+.auctionItemCardIcon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  min-height: 48px;
+  border-radius: var(--soft-radius);
+  overflow: hidden;
+}
+
+.auctionRarityIconFrame {
+  position: relative;
+  overflow: hidden;
+}
+
+.auctionRarityIconFrame.isRestricted {
+  border-color: rgba(178, 76, 76, 0.62) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(145, 40, 40, 0.26),
+    0 0 14px rgba(126, 34, 34, 0.08);
+}
+
+.auctionRarityIconFrame.isRestricted::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(168, 44, 44, 0.24), rgba(92, 18, 18, 0.34)),
+    radial-gradient(circle at 50% 30%, rgba(185, 54, 54, 0.16), transparent 62%);
+}
+
+.auctionRarityIconFrame.isRestricted .itemVisualImage,
+.auctionRarityIconFrame.isRestricted .itemVisualImageCard {
+  filter: saturate(0.28) sepia(0.5) hue-rotate(-24deg) brightness(0.84);
+}
+
+.auctionItemCardTitle {
+  margin: 0 0 0.15rem 0;
+  font-size: 0.85rem;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.auctionItemCardTitle.rarity-common { color: var(--common); }
+.auctionItemCardTitle.rarity-uncommon { color: var(--uncommon); }
+.auctionItemCardTitle.rarity-rare { color: var(--rare); }
+.auctionItemCardTitle.rarity-epic { color: var(--epic); }
+
+.auctionItemCardCategory {
+  font-size: 0.7rem;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.auctionItemCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.auctionItemCardLevel {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.auctionItemCardRarity {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.auctionItemCardRarity.rarity-common { color: var(--common); }
+.auctionItemCardRarity.rarity-uncommon { color: var(--uncommon); }
+.auctionItemCardRarity.rarity-rare { color: var(--rare); }
+.auctionItemCardRarity.rarity-epic { color: var(--epic); }
+
+.auctionStickyPanel {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.auctionInfoPanel {
+  padding: 1rem;
+  border-radius: var(--soft-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auctionInfoPanel.success {
+  background: rgba(111, 141, 95, 0.2);
+  border: 2px solid var(--accent-success);
+}
+
+.auctionInfoPanel.danger {
+  background: rgba(151, 80, 74, 0.2);
+  border: 2px solid var(--accent-danger);
+}
+
+.auctionSelectedItemPanel {
+  padding: 1.25rem;
+  background: rgba(111, 141, 95, 0.15);
+  border: 2px solid rgba(111, 141, 95, 0.4);
+  border-radius: var(--soft-radius);
+}
+
+.auctionPlaceholderPanel {
+  padding: 2rem 1.25rem;
+  background: var(--panel-soft);
+  border: 2px dashed var(--border);
+  border-radius: var(--soft-radius);
+  text-align: center;
+}
+
+.auctionListingFeePanel {
+  padding: 1rem;
+  background: rgba(151, 80, 74, 0.2);
+  border: 2px solid var(--accent-danger);
+  border-radius: var(--soft-radius);
+}
+
+.auctionSubmitButton {
+  padding: 1rem 1.5rem;
+  font-size: 1.1rem;
+  font-weight: bold;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(111, 141, 95, 0.4);
+}
+
+.auctionSubmitButton:disabled {
+  background: var(--bg-slate);
+  box-shadow: none;
+}
+
+@keyframes inventoryStatFlashPositive {
+  0% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(111, 141, 95, 0);
+  }
+
+  20% {
+    border-color: color-mix(in srgb, var(--accent-success) 82%, transparent);
+    box-shadow: 0 0 0 1px rgba(111, 141, 95, 0.18), 0 0 18px rgba(111, 141, 95, 0.18);
+  }
+
+  100% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(111, 141, 95, 0);
+  }
+}
+
+@keyframes inventoryStatFlashNegative {
+  0% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(151, 80, 74, 0);
+  }
+
+  20% {
+    border-color: color-mix(in srgb, var(--accent-danger) 84%, transparent);
+    box-shadow: 0 0 0 1px rgba(151, 80, 74, 0.2), 0 0 18px rgba(151, 80, 74, 0.18);
+  }
+
+  100% {
+    border-color: var(--border-soft);
+    box-shadow: 0 0 0 rgba(151, 80, 74, 0);
+  }
+}
+
+@keyframes inventoryStatValuePositive {
+  0% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+
+  18% {
+    color: color-mix(in srgb, var(--accent-success) 84%, var(--text-main) 16%);
+    text-shadow: 0 0 14px rgba(111, 141, 95, 0.24);
+    transform: translateY(-1px);
+  }
+
+  100% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+}
+
+@keyframes inventoryStatValueNegative {
+  0% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+
+  18% {
+    color: color-mix(in srgb, var(--accent-danger) 82%, var(--text-main) 18%);
+    text-shadow: 0 0 14px rgba(151, 80, 74, 0.22);
+    transform: translateY(-1px);
+  }
+
+  100% {
+    color: var(--text-main);
+    text-shadow: none;
+    transform: translateY(0);
+  }
+}
+
+.inventoryStatFlash-positive {
+  animation: inventoryStatFlashPositive 2.1s ease-out;
+}
+
+.inventoryStatFlash-negative {
+  animation: inventoryStatFlashNegative 2.1s ease-out;
+}
+
+.inventoryStatFlashValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  will-change: color, text-shadow, transform;
+}
+
+.inventoryStatFlashValue-positive {
+  animation: inventoryStatValuePositive 2.1s ease-out;
+}
+
+.inventoryStatFlashValue-negative {
+  animation: inventoryStatValueNegative 2.1s ease-out;
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

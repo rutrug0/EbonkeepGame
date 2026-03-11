@@ -1,0 +1,2756 @@
+﻿
+/* ========================================
+   Guild System Styles
+   ======================================== */
+
+/* Guild View Content */
+.guildViewEmpty,
+.guildViewContent {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.guildViewEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  min-height: 320px;
+  border: 1px dashed var(--border);
+  border-radius: var(--soft-radius);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(190, 150, 81, 0.05), transparent 60%),
+    rgba(18, 24, 30, 0.4);
+}
+
+.guildViewEmpty p {
+  margin: 0;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--text-soft);
+  letter-spacing: 0.02em;
+  text-align: center;
+  max-width: 400px;
+}
+
+.guildViewEmpty button {
+  margin-top: var(--space-2);
+  min-width: 180px;
+  min-height: 54px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 50%, transparent);
+  background:
+    linear-gradient(165deg, rgba(190, 150, 81, 0.24), rgba(140, 102, 48, 0.32)),
+    linear-gradient(180deg, rgba(64, 56, 42, 0.8), rgba(42, 36, 28, 0.92));
+  color: color-mix(in srgb, var(--text-main) 95%, var(--accent-warn) 5%);
+  box-shadow:
+    inset 0 1px 0 rgba(249, 232, 201, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Guild List */
+.guildList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.guildListEmpty {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+.guildListItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-iron);
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+
+.guildListItem-clickable {
+  cursor: pointer;
+}
+
+.guildListItem-clickable:hover {
+  background: var(--bg-slate);
+  border-color: var(--accent-focus);
+}
+
+.guildCrestSmall {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+}
+
+.guildListItemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.guildListItemHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.guildTag {
+  color: var(--accent-focus);
+  font-weight: bold;
+  font-size: 0.88rem;
+}
+
+.guildName {
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.guildBadge {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.guildBadge-recruiting {
+  background: rgba(11, 77, 27, 0.5);
+  color: #7CFC00;
+  border: 1px solid rgba(124, 252, 0, 0.3);
+}
+
+.guildListItemStats {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.guildStat {
+  color: var(--text-soft);
+  font-size: 0.81rem;
+}
+
+.guildDescription {
+  color: var(--text-muted);
+  font-size: 0.81rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Guild Crest Display */
+.guildCrest {
+  width: 100%;
+  height: 100%;
+}
+
+.guildCrest svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.guildCrest-small {
+  width: 60px;
+  height: 60px;
+}
+
+.guildCrest-medium {
+  width: 100px;
+  height: 100px;
+}
+
+.guildCrest-large {
+  width: 180px;
+  height: 180px;
+}
+
+/* Guild Crest Editor */
+.guildCrestEditor {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--space-5);
+  padding: var(--space-4);
+}
+
+.crestEditorPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-iron);
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius);
+}
+
+.crestEditorPreview h4 {
+  color: var(--accent-focus);
+  margin: 0;
+}
+
+.crestEditorControls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.crestEditorSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.crestEditorLabel {
+  color: var(--accent-focus);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.crestEditorOptions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.crestOption {
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-slate);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.81rem;
+  border-radius: var(--soft-radius);
+}
+
+.crestOption:hover {
+  background: var(--panel-soft-solid);
+  color: var(--text-main);
+}
+
+.crestOption-active {
+  background: var(--accent-focus);
+  border-color: var(--accent-focus);
+  color: var(--bg-stone);
+}
+
+.crestEditorColors {
+  gap: var(--space-3);
+}
+
+.crestColorOption {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--border);
+  border-radius: var(--soft-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.crestColorOption:hover {
+  border-color: var(--accent-focus);
+  transform: scale(1.1);
+}
+
+.crestColorOption-active {
+  border-color: var(--accent-focus);
+  border-width: 3px;
+  transform: scale(1.15);
+}
+
+/* Guild Search */
+.guildSearchForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.guildSearchInput {
+  width: 100%;
+  min-height: 42px;
+  border-radius: var(--soft-radius);
+  border: 1px solid var(--border);
+  background: var(--bg-slate);
+  color: var(--text-main);
+  padding: 0 var(--space-3);
+  font-size: 0.94rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.guildSearchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.guildSearchInput:focus {
+  outline: none;
+  border-color: var(--accent-focus);
+  background: var(--panel-soft-solid);
+}
+
+.guildSearchForm .buttonPrimary {
+  min-width: 94px;
+  min-height: 42px;
+}
+
+.guildSearchResults {
+  margin-top: var(--space-4);
+}
+
+/* Guild Search Bar (new) */
+.guildSearchBar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.guildSearchBar .buttonPrimary {
+  min-width: 94px;
+  min-height: 42px;
+}
+
+.guildSearchCount {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.guildSearchHint {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3) 0;
+  font-style: italic;
+}
+
+.guildSearchHint--warn {
+  color: var(--accent-warn);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.guildLoadMore {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) 0 var(--space-2);
+}
+
+/* Guild List Card */
+.guildListCard {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: rgba(24, 31, 39, 0.45);
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+  margin-bottom: var(--space-2);
+}
+
+.guildListCard:hover {
+  border-color: color-mix(in srgb, var(--accent-warn) 50%, transparent);
+  background: rgba(28, 36, 45, 0.65);
+}
+
+.guildListCard:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
+}
+
+.guildListCardCrest {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.guildListCardBody {
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.guildListCardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.guildListCardName {
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.025em;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guildListCardDesc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60ch;
+}
+
+.guildListCardStats {
+  display: flex;
+  gap: var(--space-4);
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  flex-wrap: wrap;
+}
+
+.guildListCardStats strong {
+  color: var(--text-main);
+}
+
+.guildListCardActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* Guild Detail View */
+.guildDetailView {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.guildDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.guildDetailHero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: rgba(24, 31, 39, 0.5);
+}
+
+@media (max-width: 560px) {
+  .guildDetailHero {
+    grid-template-columns: 1fr;
+  }
+}
+
+.guildDetailCrest {
+  color: color-mix(in srgb, var(--accent-warn) 70%, var(--text-muted));
+}
+
+.guildDetailInfo {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.guildDetailTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.guildTagLarge {
+  font-size: 1.1rem;
+  letter-spacing: 0.07em;
+}
+
+.guildDetailName {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-main);
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.guildDetailStatusRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.guildDetailStats {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: var(--space-1);
+}
+
+.guildDetailStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guildDetailStatLabel {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.guildDetailStatValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--text-main);
+}
+
+.guildDetailDesc {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid color-mix(in srgb, var(--accent-warn) 60%, transparent);
+  border-radius: var(--soft-radius);
+  background: rgba(20, 26, 33, 0.4);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text-soft);
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.guildDetailDesc--empty {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.guildDetailDesc b,
+.guildDetailDesc strong { color: var(--text-main); font-weight: 700; }
+.guildDetailDesc em { font-style: italic; color: var(--text-soft); }
+.guildDetailDesc u { text-decoration: underline; }
+.guildDetailDesc s { text-decoration: line-through; opacity: 0.7; }
+.guildDetailDesc small { font-size: 0.82em; }
+.guildDetailDesc big { font-size: 1.15em; font-weight: 600; }
+
+.guildDetailActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+/* small button variant */
+.buttonSmall {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.85rem;
+  min-height: 32px;
+}
+
+/* Guild Leaderboard Filters */
+.guildLeaderboardFilters .profileSwitchButtons {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Guild Invites */
+.guildInvitesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Guild Create Form */
+.guildCreateFormWrapper {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.guildCreateFormHeader {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.guildCreateFormTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.045em;
+  color: color-mix(in srgb, var(--text-main) 90%, var(--accent-warn) 10%);
+  text-transform: uppercase;
+}
+
+.guildCreateFormSubtitle {
+  margin: 0;
+  font-size: 0.92rem;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.guildCreateFormContent {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.guildCreateFormFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.guildFormField {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.guildFormFieldFull {
+  grid-column: 1 / -1;
+}
+
+.guildFormLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.98rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.guildFormLabelHint {
+  font-size: 0.82rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.guildFormInput,
+.guildFormTextarea {
+  width: 100%;
+  min-height: 46px;
+  border-radius: var(--soft-radius);
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(165deg, rgba(28, 35, 43, 0.9), rgba(20, 26, 32, 0.95)),
+    var(--bg-slate);
+  color: var(--text-main);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 180ms ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.guildFormInput::placeholder,
+.guildFormTextarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.guildFormInput:focus,
+.guildFormTextarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-focus) 80%, transparent);
+  background:
+    linear-gradient(165deg, rgba(32, 40, 49, 0.95), rgba(24, 30, 37, 0.98)),
+    var(--bg-slate);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 0 3px color-mix(in srgb, var(--accent-focus) 16%, transparent);
+}
+
+.guildFormTextarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* â”€â”€ Guild Description Rich-Text Editor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildDescEditor {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius);
+  background:
+    linear-gradient(165deg, rgba(28, 35, 43, 0.9), rgba(20, 26, 32, 0.95)),
+    var(--bg-slate);
+  overflow: hidden;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.guildDescEditor:focus-within {
+  border-color: color-mix(in srgb, var(--accent-focus) 80%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-focus) 16%, transparent);
+}
+
+.guildDescToolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border-soft);
+  background: rgba(16, 21, 27, 0.6);
+  flex-wrap: wrap;
+}
+
+.guildDescToolbarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 28px;
+  padding: 0 var(--space-1);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  line-height: 1;
+}
+
+.guildDescToolbarBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  border-color: var(--border-soft);
+}
+
+.guildDescToolbarBtn:active {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.guildDescToolbarBtnBold {
+  font-weight: 900;
+  font-size: 0.92rem;
+}
+
+.guildDescToolbarBtnItalic {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.guildDescToolbarSep {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: var(--border-soft);
+  margin: 0 var(--space-1);
+  flex-shrink: 0;
+}
+
+.guildDescEditorArea {
+  flex: 1 1 auto;
+  min-height: 110px;
+  overflow-y: auto;
+  padding: var(--space-3);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--text-main);
+  outline: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.guildDescEditorArea:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Heading styles inside editor */
+.guildDescEditorArea h1,
+.guildDescEditorArea h2,
+.guildDescEditorArea h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-main);
+  margin: 0.25em 0 0.15em;
+  line-height: 1.2;
+}
+
+.guildDescEditorArea h1 { font-size: 1.45rem; }
+.guildDescEditorArea h2 { font-size: 1.2rem; }
+.guildDescEditorArea h3 { font-size: 1.05rem; }
+
+.guildDescEditorArea p,
+.guildDescEditorArea div {
+  margin: 0.15em 0;
+}
+
+.guildDescEditorArea b,
+.guildDescEditorArea strong { font-weight: 700; color: var(--text-main); }
+.guildDescEditorArea em,
+.guildDescEditorArea i { font-style: italic; }
+.guildDescEditorArea small { font-size: 0.82em; }
+.guildDescEditorArea big  { font-size: 1.18em; font-weight: 600; }
+
+/* Mirror heading styles in the hero display */
+.guildHeroDesc h1,
+.guildHeroDesc h2,
+.guildHeroDesc h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0.25em 0 0.1em;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+.guildHeroDesc h1 { font-size: 1.35rem; }
+.guildHeroDesc h2 { font-size: 1.1rem; }
+.guildHeroDesc h3 { font-size: 0.98rem; }
+
+/* Same for guild detail view */
+.guildDetailDesc h1,
+.guildDetailDesc h2,
+.guildDetailDesc h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0.3em 0 0.1em;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+.guildDetailDesc h1 { font-size: 1.35rem; }
+.guildDetailDesc h2 { font-size: 1.1rem; }
+.guildDetailDesc h3 { font-size: 0.98rem; }
+
+.guildFormInputTag {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+/* Guild Crest Section */
+.guildFormCrestSection {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: rgba(24, 31, 39, 0.5);
+}
+
+.guildFormCrestHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.guildFormCrestPreview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  border: 1px dashed var(--border);
+  border-radius: var(--soft-radius);
+  background: rgba(18, 24, 30, 0.6);
+  min-height: 180px;
+}
+
+.guildCrestPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.guildCrestPlaceholder svg {
+  width: 64px;
+  height: 64px;
+  color: color-mix(in srgb, var(--accent-warn) 60%, var(--text-muted) 40%);
+}
+
+.guildCrestPlaceholderText {
+  font-size: 0.9rem;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+/* Guild Form Actions */
+.guildCreateFormActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-soft);
+}
+
+.guildFormButton {
+  min-width: 140px;
+  min-height: 52px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--soft-radius);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.guildFormButtonPrimary {
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 50%, transparent);
+  background:
+    linear-gradient(165deg, rgba(190, 150, 81, 0.24), rgba(140, 102, 48, 0.32)),
+    linear-gradient(180deg, rgba(64, 56, 42, 0.8), rgba(42, 36, 28, 0.92));
+  color: color-mix(in srgb, var(--text-main) 95%, var(--accent-warn) 5%);
+  box-shadow:
+    inset 0 1px 0 rgba(249, 232, 201, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.guildFormButtonPrimary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-warn) 70%, transparent);
+  background:
+    linear-gradient(165deg, rgba(210, 165, 95, 0.28), rgba(160, 115, 58, 0.38)),
+    linear-gradient(180deg, rgba(72, 62, 46, 0.85), rgba(48, 40, 30, 0.95));
+  box-shadow:
+    inset 0 1px 0 rgba(249, 232, 201, 0.16),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.guildFormButtonPrimary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.guildFormButtonPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.guildFormButtonSecondary {
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(56, 66, 77, 0.6), rgba(30, 38, 46, 0.8));
+  color: var(--text-soft);
+  box-shadow: inset 0 1px 0 rgba(249, 232, 201, 0.06);
+}
+
+.guildFormButtonSecondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--border) 100%, var(--text-soft) 20%);
+  color: var(--text-main);
+  background:
+    linear-gradient(180deg, rgba(62, 72, 84, 0.65), rgba(36, 44, 52, 0.85));
+}
+
+.guildFormButtonSecondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.guildFormButtonSecondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Guild Detail View - Header and Stats */
+.guildDetailHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--bg-stone) 0%, rgba(var(--rgb-bg-iron), 0.5) 100%);
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.guildDetailHeaderMain {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.guildCrestDisplay {
+  flex-shrink: 0;
+  color: var(--accent-warn);
+}
+
+.guildDetailHeaderInfo {
+  flex: 1;
+}
+
+.guildDetailName {
+  font-family: 'Cinzel', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.guildDetailTag {
+  margin-left: 0.75rem;
+  font-size: 1.25rem;
+  color: var(--accent-warn);
+  opacity: 0.8;
+}
+
+.guildDetailDescription {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.guildDetailHeaderStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.guildStatItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guildStatLabel {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.guildStatValue {
+  font-family: 'Cinzel', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* Guild Detail Tabs */
+.guildDetailTabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border-medium);
+}
+
+.guildDetailTab {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.guildDetailTab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent-warn);
+  transform: scaleX(0);
+  transition: transform 0.2s ease;
+}
+
+.guildDetailTab:hover {
+  color: var(--text-main);
+}
+
+.guildDetailTab.active {
+  color: var(--accent-warn);
+}
+
+.guildDetailTab.active::after {
+  transform: scaleX(1);
+}
+
+.guildDetailContent {
+  padding: 1.5rem;
+}
+
+/* Guild Overview Tab */
+.guildOverviewTab {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.guildInfoSection,
+.guildActionsSection {
+  background: var(--bg-iron);
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.guildSectionTitle {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 1rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 0.5rem;
+}
+
+.guildInfoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.guildInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guildInfoLabel {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.guildInfoValue {
+  font-size: 0.95rem;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.guildActionButtons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Guild Members Tab */
+.guildMembersTab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.guildMembersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.guildMemberCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-iron);
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.guildMemberCard:hover {
+  border-color: var(--border-bright);
+  background: rgba(var(--rgb-bg-iron), 0.8);
+}
+
+.guildMemberInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.guildMemberName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.guildMemberYouBadge {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--accent-warn);
+  font-style: italic;
+}
+
+.guildMemberRole {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-transform: capitalize;
+}
+
+.guildMemberStats {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.guildMemberStat {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.guildMemberActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.buttonSmall {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-stone);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.buttonSmall:hover {
+  background: var(--bg-iron);
+  border-color: var(--border-bright);
+}
+
+.buttonSmall.buttonDanger {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #ef4444;
+}
+
+.buttonSmall.buttonDanger:hover {
+  background: rgba(220, 38, 38, 0.2);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+/* Guild Activity Tab */
+.guildActivityTab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.guildActivityList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guildActivityItem {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-iron);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+}
+
+.guildActivityTime {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-family: monospace;
+}
+
+.guildActivityContent {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.guildActivityActor {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.guildActivityAction {
+  color: var(--text-secondary);
+}
+
+.guildActivityTarget {
+  font-weight: 600;
+  color: var(--accent-warn);
+}
+
+
+
+.guildFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guildFormCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.guildFormCheckboxInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.guildFormCheckboxCustom {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(160deg, rgba(22, 28, 36, 0.95), rgba(16, 21, 28, 0.98));
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.guildFormCheckboxLabel:hover .guildFormCheckboxCustom {
+  border-color: color-mix(in srgb, var(--accent-warn) 50%, var(--border) 50%);
+}
+
+.guildFormCheckboxInput:checked + .guildFormCheckboxCustom {
+  background: linear-gradient(160deg, rgba(195, 155, 82, 0.22), rgba(145, 105, 48, 0.30));
+  border-color: color-mix(in srgb, var(--accent-warn) 80%, transparent);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 0 8px color-mix(in srgb, var(--accent-warn) 35%, transparent),
+    inset 0 0 6px color-mix(in srgb, var(--accent-warn) 12%, transparent);
+}
+
+.guildFormCheckboxInput:checked + .guildFormCheckboxCustom::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 7px;
+  height: 12px;
+  border: 2px solid var(--accent-warn);
+  border-top: none;
+  border-left: none;
+  transform: rotate(43deg);
+}
+
+.guildFormCheckboxInput:focus-visible + .guildFormCheckboxCustom {
+  outline: 2px solid color-mix(in srgb, var(--accent-warn) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.guildFormActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.guildFormError {
+  padding: 0.75rem;
+  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 4px;
+  color: #ef4444;
+  font-size: 0.9rem;
+}
+
+/* Tab Loading and Empty States */
+.guildTabLoading,
+.guildTabEmpty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .guildCrestEditor {
+    grid-template-columns: 1fr;
+  }
+
+  .crestEditorPreview {
+    order: -1;
+  }
+
+  .guildCreateFormFields {
+    grid-template-columns: 1fr;
+  }
+
+  .guildCreateFormActions {
+    flex-direction: column-reverse;
+  }
+
+  .guildFormButton {
+    width: 100%;
+  }
+
+  .guildInviteFormRow {
+    grid-template-columns: 1fr;
+  }
+
+  .guildInviteSendButton {
+    width: 100%;
+  }
+}
+
+/* Guild Invite Item Styling */
+.guildInviteItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-iron);
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.guildInviteItem:hover {
+  border-color: var(--border-bright);
+  background: linear-gradient(135deg, rgba(var(--rgb-bg-iron), 0.9), rgba(var(--rgb-bg-iron), 0.8));
+  box-shadow: 0 2px 10px rgba(190, 150, 81, 0.1);
+  transform: translateY(-1px);
+}
+
+.guildInviteInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guildInviteGuildName {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  color: var(--text-gold);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+.guildInviteMessage {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0 0 0;
+  font-style: italic;
+}
+
+.guildInviteMeta {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.5rem;
+}
+
+.guildInviteActions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.guildInviteActions .buttonPrimary,
+.guildInviteActions .buttonSecondary {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  min-width: 90px;
+}
+
+/* Guild List Item Actions */
+.guildListItemActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.guildListItemActions .buttonPrimary {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+}
+
+.guildListItemActions .text-dim {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Additional member action styles */
+.guildMemberActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.guildMemberActions .buttonSmall.buttonPrimary {
+  background: rgba(190, 150, 81, 0.1);
+  border-color: rgba(190, 150, 81, 0.3);
+  color: var(--text-gold);
+}
+
+.guildMemberActions .buttonSmall.buttonPrimary:hover {
+  background: rgba(190, 150, 81, 0.2);
+  border-color: rgba(190, 150, 81, 0.5);
+}
+
+/* â”€â”€ No-Guild Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.noGuildHeroCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 280px;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 0%, rgba(190, 150, 81, 0.08) 0%, transparent 70%),
+    var(--bg-card);
+}
+
+.noGuildHeroCrest {
+  color: var(--accent-warn);
+  opacity: 0.7;
+  margin-bottom: var(--space-2);
+}
+
+.noGuildHeroTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.noGuildHeroSubtitle {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+  max-width: 360px;
+}
+
+.noGuildLevelHint {
+  font-size: 0.8rem;
+  color: #c9704a;
+  margin: var(--space-1) 0 0;
+  max-width: 360px;
+}
+
+.noGuildHeroActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--space-1);
+}
+
+/* â”€â”€ Guild Hero Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildHeroBanner {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-4);
+  background: linear-gradient(135deg, rgba(190, 150, 81, 0.08) 0%, var(--bg-card) 60%);
+  border-left: 3px solid var(--accent-warn);
+}
+
+.guildHeroCrest {
+  color: var(--accent-warn);
+  flex-shrink: 0;
+}
+
+.guildHeroBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.guildHeroName {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--text-main);
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.guildHeroTag {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--accent-warn);
+  opacity: 0.8;
+}
+
+.guildHeroDesc {
+  color: var(--text-soft);
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.guildHeroDesc--empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Rich HTML content inside guild description */
+.guildHeroDesc b,
+.guildHeroDesc strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.guildHeroDesc em,
+.guildHeroDesc i {
+  font-style: italic;
+}
+
+.guildHeroDesc u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.guildHeroDesc s {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.guildHeroDesc small {
+  font-size: 0.78em;
+}
+
+.guildHeroDesc big {
+  font-size: 1.2em;
+  font-family: var(--font-display);
+}
+
+.guildHeroStats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.guildHeroStat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.guildHeroStatLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.guildHeroStatValue {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.guildHeroStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid currentColor;
+  letter-spacing: 0.04em;
+}
+
+.guildHeroStatusBadge--open {
+  color: #c9a96e;
+  background: rgba(190, 150, 81, 0.1);
+}
+
+.guildHeroStatusBadge--closed {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guildHeroLeaveAction {
+  display: flex;
+  align-items: flex-end;
+  padding-left: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* â”€â”€ Guild Inner Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildInnerNavCard {
+  padding: 0 !important;
+}
+
+.guildInnerNav {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.guildInnerNav::-webkit-scrollbar {
+  display: none;
+}
+
+.guildInnerNavTab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  padding: var(--space-3) var(--space-4);
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.guildInnerNavTab:hover {
+  color: var(--text-soft);
+}
+
+.guildInnerNavTab.active {
+  border-bottom-color: var(--accent-warn);
+  color: var(--accent-warn);
+}
+
+/* â”€â”€ Guild Role Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildRoleBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--soft-radius, 4px);
+  border: 1px solid currentColor;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.guildRoleBadge--leader {
+  color: var(--accent-warn);
+  background: rgba(190, 150, 81, 0.12);
+}
+
+.guildRoleBadge--officer {
+  color: #b0b8c8;
+  background: rgba(176, 184, 200, 0.1);
+}
+
+.guildRoleBadge--member {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* â”€â”€ Guild Roster â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildRosterWrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.guildRosterCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-iron, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius, 6px);
+  transition: border-color 0.15s;
+}
+
+.guildRosterCard:hover {
+  border-color: var(--border-medium, rgba(255, 255, 255, 0.15));
+}
+
+.guildRosterAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(190, 150, 81, 0.15);
+  border: 1px solid rgba(190, 150, 81, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.guildRosterAvatarInitial {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--accent-warn);
+}
+
+.guildRosterInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guildRosterNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.guildRosterName {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.guildRosterYou {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.guildRosterMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.guildRosterClass {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+  text-transform: capitalize;
+}
+
+.guildRosterStatPill {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 7px;
+}
+
+.guildRosterActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* â”€â”€ Guild Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.guildTimelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.guildTimelineItem:last-child {
+  border-bottom: none;
+}
+
+.guildTimelineDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+  background: currentColor;
+}
+
+.guildTimelineDot--join { color: #8faa7c; }
+.guildTimelineDot--leave { color: #e05252; }
+.guildTimelineDot--kick { color: #e05252; }
+.guildTimelineDot--promote { color: var(--accent-warn); }
+.guildTimelineDot--transfer { color: var(--accent-warn); }
+.guildTimelineDot--demote { color: var(--text-muted); }
+.guildTimelineDot--invite { color: #5b9bd5; }
+.guildTimelineDot--update { color: var(--text-soft); }
+.guildTimelineDot--default { color: var(--text-muted); }
+
+.guildTimelineBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.guildTimelineText {
+  font-size: 0.875rem;
+  color: var(--text-soft);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.guildTimelineTime {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* â”€â”€ Guild Invite Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildInviteTabContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.guildInviteSendForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.guildInviteSendFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.guildInviteSendActions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* â”€â”€ Guild Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildSettingsTab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.guildSettingsForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 400px;
+}
+
+.guildSettingsCrestSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* â”€â”€ Guild Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildOverviewTab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.guildInfoSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.guildInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.guildInfoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guildInfoLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.guildInfoValue {
+  color: var(--text-main);
+  font-size: 0.9rem;
+  margin: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.guildActionsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+.guildActionButtons {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* â”€â”€ Guild Form Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildCreateFormWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-height: 0;
+}
+
+.guildCreateFormContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.guildCreatePreview {
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-content: center;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.guildCreatePreviewCrest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guildCreatePreviewCrest .guildCrest-large {
+  width: 152px;
+  height: 152px;
+}
+
+.guildCreatePreviewBody {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.guildCreatePreviewName,
+.guildCreatePreviewTag {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guildCreatePreviewName {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  color: var(--text-main);
+  letter-spacing: 0.03em;
+}
+
+.guildCreatePreviewTag {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  color: var(--accent-warn);
+  letter-spacing: 0.08em;
+}
+
+.guildCreateFormFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: stretch;
+}
+
+.guildFormFieldFull {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.guildFormField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.guildFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.guildFormLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.guildFormLabelHint {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.guildFormInput {
+  background: var(--bg-iron, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius, 4px);
+  color: var(--text-main);
+  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-3);
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.guildFormInput:focus {
+  outline: none;
+  border-color: var(--accent-warn);
+}
+
+.guildFormInputTag {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  max-width: 120px;
+}
+
+.guildFormTextarea {
+  background: var(--bg-iron, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius, 4px);
+  color: var(--text-main);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: var(--space-2) var(--space-3);
+  resize: vertical;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.guildFormTextarea:focus {
+  outline: none;
+  border-color: var(--accent-warn);
+}
+
+.guildFormCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-soft);
+}
+
+.guildFormCheckboxInput {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.guildFormCheckboxCustom {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(160deg, rgba(22, 28, 36, 0.95), rgba(16, 21, 28, 0.98));
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.guildFormCheckboxLabel:hover .guildFormCheckboxCustom {
+  border-color: color-mix(in srgb, var(--accent-warn) 50%, var(--border) 50%);
+}
+
+.guildFormCheckboxInput:checked + .guildFormCheckboxCustom {
+  background: linear-gradient(160deg, rgba(195, 155, 82, 0.22), rgba(145, 105, 48, 0.30));
+  border-color: color-mix(in srgb, var(--accent-warn) 80%, transparent);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.4),
+    0 0 8px color-mix(in srgb, var(--accent-warn) 35%, transparent),
+    inset 0 0 6px color-mix(in srgb, var(--accent-warn) 12%, transparent);
+}
+
+.guildFormCheckboxInput:checked + .guildFormCheckboxCustom::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 7px;
+  height: 12px;
+  border: 2px solid var(--accent-warn);
+  border-top: none;
+  border-left: none;
+  transform: rotate(43deg);
+}
+
+.guildFormCheckboxInput:focus-visible + .guildFormCheckboxCustom {
+  outline: 2px solid color-mix(in srgb, var(--accent-warn) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.guildFormActions {
+  margin-top: auto;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.guildFormError {
+  color: #e05252;
+  font-size: 0.85rem;
+  padding: var(--space-2) var(--space-3);
+  background: rgba(224, 82, 82, 0.08);
+  border: 1px solid rgba(224, 82, 82, 0.2);
+  border-radius: var(--soft-radius, 4px);
+}
+
+.guildFormCrestSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.guildFormCrestHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.guildFormCrestPreview {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.guildCrestPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 120px;
+  height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: var(--soft-radius, 6px);
+  color: var(--text-muted);
+}
+
+.guildCrestPlaceholderText {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.guildCreateFormActions {
+  margin-top: auto;
+  display: flex;
+  gap: var(--space-3);
+}
+
+.guildFormButton {
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--soft-radius, 4px);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.guildFormButtonPrimary {
+  background: rgba(190, 150, 81, 0.15);
+  border-color: rgba(190, 150, 81, 0.4);
+  color: var(--accent-warn);
+}
+
+.guildFormButtonPrimary:hover:not(:disabled) {
+  background: rgba(190, 150, 81, 0.25);
+  border-color: var(--accent-warn);
+}
+
+.guildFormButtonSecondary {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  color: var(--text-soft);
+}
+
+.guildFormButtonSecondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.guildFormButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.guildSectionTitle {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  color: var(--accent-warn);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.guildTabLoading,
+.guildTabEmpty {
+  padding: var(--space-4) 0;
+  text-align: center;
+}
+
+/* â”€â”€ Guild Confirm Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildConfirmModal {
+  width: min(100%, 400px);
+  text-align: center;
+}
+
+.guildConfirmModalIcon {
+  color: var(--accent-warn);
+  opacity: 0.7;
+  display: flex;
+  justify-content: center;
+}
+
+.guildConfirmModalTitle {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--text-main);
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.guildConfirmModalMessage {
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.guildConfirmModalActions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-1);
+}
+
+.guildConfirmModalBtn {
+  flex: 1;
+  max-width: 160px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--soft-radius, 4px);
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.guildConfirmModalBtnCancel {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+  color: var(--text-soft);
+}
+
+.guildConfirmModalBtnCancel:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--border-medium, rgba(255,255,255,0.18));
+}
+
+.guildConfirmModalBtnConfirm {
+  background: rgba(190, 150, 81, 0.12);
+  border-color: rgba(190, 150, 81, 0.35);
+  color: var(--accent-warn);
+}
+
+.guildConfirmModalBtnConfirm:hover {
+  background: rgba(190, 150, 81, 0.22);
+  border-color: var(--accent-warn);
+}
+
+.guildConfirmModalBtnDanger {
+  background: rgba(180, 50, 50, 0.12);
+  border-color: rgba(180, 50, 50, 0.35);
+  color: #c97070;
+}
+
+.guildConfirmModalBtnDanger:hover {
+  background: rgba(180, 50, 50, 0.22);
+  border-color: #c97070;
+}
+
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 768px) {
+  .guildHeroBanner {
+    grid-template-columns: auto 1fr;
+    gap: var(--space-3);
+  }
+
+  .guildHeroStats {
+    flex-direction: row;
+    gap: var(--space-4);
+    justify-content: flex-start;
+  }
+
+  .guildHeroStatusBadge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+  }
+}
+
+.guildCrest {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guildCrestImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+}
+
+.guildDescriptionWithCrest {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.guildCreateFormFields > .guildDescriptionWithCrest,
+.guildSettingsForm > .guildDescriptionWithCrest {
+  min-height: 300px;
+}
+
+.guildDescriptionEditorBlock,
+.guildDescriptionCrestBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.guildDescriptionEditorBlock {
+  flex: 1 1 auto;
+}
+
+.guildDescriptionCrestBlock {
+  flex: 1 1 auto;
+  padding: var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: linear-gradient(180deg, rgba(24, 31, 39, 0.72), rgba(15, 20, 26, 0.82));
+}
+
+.guildCrestEditorGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: var(--space-2);
+}
+
+.guildCrestGridViewport {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: var(--space-2);
+  align-content: start;
+  min-height: 80px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.guildCrestGridViewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.guildCrestGridItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 132px;
+  padding: 8px;
+  border: 0;
+  border-radius: 18px;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  cursor: pointer;
+  overflow: visible;
+  opacity: 0.68;
+  filter: saturate(0.82);
+  transition:
+    transform 220ms ease,
+    opacity 220ms ease,
+    filter 220ms ease;
+}
+
+.guildCrestGridItem::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(201, 169, 110, 0.28) 0%, rgba(201, 169, 110, 0.14) 38%, rgba(201, 169, 110, 0) 72%);
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+.guildCrestGridItem::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(232, 213, 166, 0.96);
+  box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.18);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+.guildCrestGridItem .guildCrest-large {
+  width: 118px;
+  height: 118px;
+}
+
+.guildCrestGridItem:hover,
+.guildCrestGridItem:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  opacity: 0.9;
+  filter: saturate(1);
+}
+
+.guildCrestGridItem:hover::before,
+.guildCrestGridItem:focus-visible::before {
+  opacity: 0.52;
+  transform: scale(1);
+}
+
+.guildCrestGridItem--selected {
+  transform: none;
+  opacity: 0.68;
+  filter: saturate(0.82);
+  z-index: auto;
+}
+
+.guildCrestGridItem--selected:hover,
+.guildCrestGridItem--selected:focus-visible {
+  transform: translateY(-2px) scale(1.03);
+  opacity: 0.9;
+  filter: saturate(1);
+}
+
+.guildCrestGridCounter {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 169, 110, 0.3);
+  background: rgba(16, 22, 29, 0.9);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 768px) {
+  .guildDescriptionWithCrest {
+    grid-template-columns: 1fr;
+  }
+
+  .guildDescriptionCrestBlock {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .guildCrestEditorGrid {
+    max-height: 360px;
+  }
+
+  .guildCrestGridViewport {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+
+  .guildCrestGridItem {
+    min-height: 110px;
+  }
+
+  .guildCrestGridItem .guildCrest-large {
+    width: 92px;
+    height: 92px;
+  }
+
+  .guildCrestGridCounter {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+}
+
+.inventoryChatFloatingToggle {
+  position: fixed;
+  right: calc(var(--space-4) + 10px);
+  bottom: calc(var(--space-4) + 10px);
+  width: 76px;
+  min-width: 76px;
+  height: 76px;
+  min-height: 76px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 39;
+  opacity: 0.84;
+  border-color: color-mix(in srgb, var(--accent-warn) 44%, transparent);
+}
+
+.inventoryChatFloatingToggleIcon {
+  width: 40px;
+  height: 40px;
+  display: block;
+  fill: currentColor;
+}
+
+.error {
+  margin-top: var(--space-1);
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 68%, transparent);
+  border-radius: var(--soft-radius);
+  background: rgba(91, 45, 42, 0.4);
+  padding: var(--space-2) var(--space-3);
+  color: color-mix(in srgb, var(--text-main) 85%, #ffd8d4 15%);
+}
+
+.floatingError {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  max-width: 460px;
+}
+
+.settingsRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+}
+
+.settingsRow label {
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.settingsRow select {
+  border: 1px solid var(--border);
+  background: rgba(17, 22, 28, 0.9);
+  color: var(--text-main);
+  border-radius: var(--soft-radius);
+  padding: 8px 10px;
+  font: inherit;
+}

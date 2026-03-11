@@ -1,0 +1,642 @@
+﻿
+/* ----------------------------------------
+   Leaderboard Styles
+   ---------------------------------------- */
+
+.leaderboardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.leaderboardHeader h2 {
+  margin: 0;
+}
+
+.leaderboardRefreshButton {
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-slate);
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius);
+  color: var(--text-soft);
+  font-size: 0.93rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.leaderboardRefreshButton:hover {
+  background: var(--panel-elevated);
+  border-color: var(--accent-focus);
+  color: var(--text-main);
+}
+
+.leaderboardRefreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.leaderboardFilters {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-5);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.leaderboardFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 0 1 auto;
+}
+
+.leaderboardFilterLabel {
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.leaderboardErrorCard {
+  background: rgba(151, 80, 74, 0.2);
+  border-color: var(--accent-danger);
+}
+
+.leaderboardError {
+  color: var(--accent-danger);
+  font-weight: 600;
+  margin: 0;
+}
+
+.leaderboardPlayerRankCard {
+  background: var(--panel-elevated);
+  border-color: var(--accent-focus);
+}
+
+.leaderboardPlayerRank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent-focus);
+  margin: 0;
+  text-align: center;
+}
+
+.leaderboardTableCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.leaderboardTableWrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.leaderboardTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.96rem;
+}
+
+.leaderboardTable thead {
+  background: var(--bg-slate);
+  border-bottom: 2px solid var(--border);
+}
+
+.leaderboardTable thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.leaderboardTable th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+}
+
+.leaderboardColumnRank {
+  width: 80px;
+  text-align: center;
+}
+
+.leaderboardColumnPlayer {
+ min-width: 180px;
+}
+
+.leaderboardColumnClass {
+  width: 130px;
+}
+
+.leaderboardColumnLevel {
+  width: 90px;
+  text-align: center;
+}
+
+.leaderboardColumnPower {
+  width: 110px;
+  text-align: right;
+}
+
+.leaderboardTable tbody tr {
+  border-bottom: 1px solid var(--border-soft);
+  transition: background 0.15s ease;
+}
+
+.leaderboardTable tbody tr:hover {
+  background: var(--panel-soft);
+}
+
+.leaderboardTable td {
+  padding: var(--space-3) var(--space-4);
+}
+
+.leaderboardCellRank {
+  text-align: center;
+}
+
+.leaderboardCellLevel,
+.leaderboardCellPower {
+  text-align: center;
+}
+
+.leaderboardCellPower {
+  text-align: right;
+  font-weight: 600;
+}
+
+.leaderboardRank {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-weight: 700;
+  font-size: 0.93rem;
+}
+
+.leaderboardRank-first {
+  background: rgba(210, 173, 114, 0.25);
+  color: var(--accent-focus);
+  border: 1px solid var(--accent-focus);
+}
+
+.leaderboardRank-second {
+  background: rgba(163, 157, 143, 0.25);
+  color: var(--common);
+  border: 1px solid var(--common);
+}
+
+.leaderboardRank-third {
+  background: rgba(190, 150, 81, 0.25);
+  color: var(--accent-warn);
+  border: 1px solid var(--accent-warn);
+}
+
+.leaderboardCellPlayer strong {
+  color: var(--text-main);
+}
+
+.leaderboardClass {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 3px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.leaderboardClass-warrior {
+  background: rgba(151, 80, 74, 0.2);
+  color: var(--accent-danger);
+  border: 1px solid rgba(151, 80, 74, 0.4);
+}
+
+.leaderboardClass-mage {
+  background: rgba(76, 134, 141, 0.2);
+  color: var(--accent-info);
+  border: 1px solid rgba(76, 134, 141, 0.4);
+}
+
+.leaderboardClass-ranger {
+  background: rgba(111, 141, 95, 0.2);
+  color: var(--accent-success);
+  border: 1px solid rgba(111, 141, 95, 0.4);
+}
+
+.leaderboardFooter {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-slate);
+  border-top: 1px solid var(--border);
+}
+
+.leaderboardFooterText {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .leaderboardTable {
+    font-size: 0.86rem;
+  }
+
+  .leaderboardTable th,
+  .leaderboardTable td {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .leaderboardColumnPlayer {
+    min-width: 140px;
+  }
+
+  .leaderboardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .leaderboardRefreshButton {
+    width: 100%;
+  }
+}
+
+/* â”€â”€ Guild Leaderboard â€“ clickable rows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.leaderboardRowClickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.leaderboardRowClickable:hover td {
+  background: rgba(190, 150, 81, 0.07);
+}
+
+/* â”€â”€ Leaderboard Actions column & invite button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.leaderboardColumnActions {
+  width: 90px;
+  text-align: center;
+}
+
+.leaderboardCellActions {
+  text-align: center;
+}
+
+.leaderboardInviteButton {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  border-radius: 4px;
+  color: #a5b4fc;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.leaderboardInviteButton:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.35);
+}
+
+.leaderboardInviteButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.leaderboardHasGuild {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+/* â”€â”€ Player Profile Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.playerProfileModal {
+  max-width: 680px;
+  width: 95vw;
+}
+
+.profileModalMeta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profileModalMetaItem {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.profileModalHasGuild {
+  font-size: 0.78rem;
+  color: rgba(190, 150, 81, 0.7);
+  font-style: italic;
+}
+
+.profileModalInviteRow {
+  margin-bottom: 0.75rem;
+}
+
+.profileModalClassBadge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  margin-right: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.profileModalClassBadge--warrior { background: rgba(220, 90, 60, 0.2); color: #f87171; }
+.profileModalClassBadge--mage    { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; }
+.profileModalClassBadge--ranger  { background: rgba(52, 211, 153, 0.2); color: #6ee7b7; }
+
+.profileModalSection {
+  margin-bottom: 1rem;
+}
+
+.profileModalSectionTitle {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0 0 0.5rem;
+}
+
+.profileModalEquipment {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.3rem;
+}
+
+.profileModalEquipSlot {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+
+.profileModalSlotLabel {
+  color: rgba(255, 255, 255, 0.4);
+  min-width: 96px;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+}
+
+.profileModalItem {
+  font-weight: 600;
+}
+
+.profileModalItem--common   { color: #ccc; }
+.profileModalItem--uncommon { color: #4ade80; }
+.profileModalItem--rare     { color: #60a5fa; }
+.profileModalItem--epic     { color: #c084fc; }
+
+.profileModalItemEmpty {
+  color: rgba(255, 255, 255, 0.22);
+  font-style: italic;
+  font-size: 0.75rem;
+}
+
+.profileModalStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.3rem;
+}
+
+.profileModalStat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+.profileModalStatLabel {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.profileModalStatValue {
+  font-weight: 600;
+}
+
+.profileModalGuildLink {
+  font-size: 0.8rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: rgba(190, 150, 81, 0.85);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.profileModalGuildLink:hover {
+  color: rgba(190, 150, 81, 1);
+}
+
+.leaderboardGuildTag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(190, 150, 81, 0.7);
+  margin-left: 0.35rem;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+}
+
+.inviteConfirmModal {
+  max-width: 420px;
+}
+
+.inviteConfirmMessage {
+  margin: 0 0 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.inviteConfirmButtons {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.inviteConfirmYesButton {
+  padding: 0.45rem 1rem;
+  background: rgba(99, 102, 241, 0.25);
+  border: 1px solid rgba(99, 102, 241, 0.55);
+  border-radius: 6px;
+  color: #a5b4fc;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.inviteConfirmYesButton:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+/* â”€â”€ Guild Detail Modal (from Leaderboard) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.guildLbModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4);
+}
+
+.guildLbModal {
+  position: relative;
+  background: #1c1810;
+  border: 1px solid rgba(190, 150, 81, 0.3);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(190, 150, 81, 0.15);
+}
+
+.guildLbModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid rgba(190, 150, 81, 0.15);
+  background: rgba(190, 150, 81, 0.04);
+  border-radius: 12px 12px 0 0;
+}
+
+.guildLbModalHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.guildLbModalClose {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.guildLbModalClose:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.guildLbModalBody {
+  padding: 24px 24px 28px;
+}
+
+.guildLbModalHero {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.guildLbModalCrest {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(190, 150, 81, 0.08);
+  border: 1px solid rgba(190, 150, 81, 0.22);
+  color: #c9a96e;
+}
+
+.guildLbModalTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 2px;
+}
+
+.guildLbModalName {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-main);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.guildLbModalStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.guildLbModalStat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.guildLbModalStatLabel {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.guildLbModalStatValue {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: #c9a96e;
+}
+
+.guildLbModalDescHeader {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.guildLbModalDesc {
+  font-size: 0.875rem;
+  color: var(--text-secondary, #b0a898);
+  line-height: 1.65;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.guildLbModalDescEmpty {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 12px 0;
+}
