@@ -25,80 +25,98 @@ export class AuctionInstanceService {
     const levelBrackets = this.configService.getLevelBrackets();
 
     const now = new Date();
-    const endTime = this.configService.calculateAuctionEndTime(now);
+    const auctionCountPerBracket = Math.max(1, this.config.instance.concurrentAuctionsPerBracket);
+    const staggerHours = this.config.instance.auctionDurationHours / auctionCountPerBracket;
+    const staggerMs = staggerHours * 60 * 60 * 1000;
 
     for (const bracket of levelBrackets) {
       const { min, max } = bracket;
-      const totalItems = this.config.instance.itemsPerAuction;
-      const systemItemCount = Math.ceil(
-        (totalItems * this.config.items.systemGeneratedPercentage) / 100
-      );
-      const playerItemCount = totalItems - systemItemCount;
-
-      const systemItems = await this.itemGenerator.generateItemsForAuction(
-        min,
-        max,
-        systemItemCount,
-        {
-          templateScope: options?.systemItemScope ?? "all"
-        }
-      );
-
-      const playerListings = await this.submissionService.getApprovedListingsForAuction(
-        Math.floor((min + max) / 2),
-        playerItemCount
-      );
-
-      const auction = await this.prisma.auctionInstance.create({
-        data: {
+      const activeAuctionCount = await this.prisma.auctionInstance.count({
+        where: {
           levelBracketMin: min,
           levelBracketMax: max,
-          startTime: now,
-          endTime,
           status: "active",
-          items: {
-            create: [
-              ...systemItems.map((item) => ({
-                itemCode: JSON.stringify(item.itemData),
-                itemLevel: item.itemLevel,
-                itemRarity: item.itemRarity,
-                itemCategory: item.itemCategory,
-                startingBid: item.startingBid,
-                currentBid: 0,
-                bidCount: 0,
-                extensionsUsed: 0,
-                isPlayerSubmitted: false,
-                sellerId: null,
-                feePercentage: this.config.fees.systemItemFeePercentage
-              })),
-              ...playerListings.map((listing) => ({
-                itemCode: JSON.stringify(listing.itemData),
-                itemLevel: listing.itemLevel,
-                itemRarity: listing.itemRarity,
-                itemCategory: listing.itemCategory,
-                startingBid: listing.startingBid,
-                currentBid: 0,
-                bidCount: 0,
-                extensionsUsed: 0,
-                isPlayerSubmitted: true,
-                sellerId: listing.sellerId,
-                feePercentage: this.config.fees.playerItemFeePercentage
-              }))
-            ]
+          endTime: {
+            gt: now
           }
         }
       });
+      const missingAuctionCount = Math.max(0, auctionCountPerBracket - activeAuctionCount);
 
-      if (playerListings.length > 0) {
-        await this.submissionService.markListingsAsAdded(
-          playerListings.map((listing) => listing.id),
-          auction.id
+      for (let index = 0; index < missingAuctionCount; index += 1) {
+        const startTime = new Date(now.getTime() - index * staggerMs);
+        const endTime = this.configService.calculateAuctionEndTime(startTime);
+        const totalItems = this.config.instance.itemsPerAuction;
+        const systemItemCount = Math.ceil(
+          (totalItems * this.config.items.systemGeneratedPercentage) / 100
+        );
+        const playerItemCount = totalItems - systemItemCount;
+
+        const systemItems = await this.itemGenerator.generateItemsForAuction(
+          min,
+          max,
+          systemItemCount,
+          {
+            templateScope: options?.systemItemScope ?? "all"
+          }
+        );
+
+        const playerListings = await this.submissionService.getApprovedListingsForAuction(
+          Math.floor((min + max) / 2),
+          playerItemCount
+        );
+
+        const auction = await this.prisma.auctionInstance.create({
+          data: {
+            levelBracketMin: min,
+            levelBracketMax: max,
+            startTime,
+            endTime,
+            status: "active",
+            items: {
+              create: [
+                ...systemItems.map((item) => ({
+                  itemCode: JSON.stringify(item.itemData),
+                  itemLevel: item.itemLevel,
+                  itemRarity: item.itemRarity,
+                  itemCategory: item.itemCategory,
+                  startingBid: item.startingBid,
+                  currentBid: 0,
+                  bidCount: 0,
+                  extensionsUsed: 0,
+                  isPlayerSubmitted: false,
+                  sellerId: null,
+                  feePercentage: this.config.fees.systemItemFeePercentage
+                })),
+                ...playerListings.map((listing) => ({
+                  itemCode: JSON.stringify(listing.itemData),
+                  itemLevel: listing.itemLevel,
+                  itemRarity: listing.itemRarity,
+                  itemCategory: listing.itemCategory,
+                  startingBid: listing.startingBid,
+                  currentBid: 0,
+                  bidCount: 0,
+                  extensionsUsed: 0,
+                  isPlayerSubmitted: true,
+                  sellerId: listing.sellerId,
+                  feePercentage: this.config.fees.playerItemFeePercentage
+                }))
+              ]
+            }
+          }
+        });
+
+        if (playerListings.length > 0) {
+          await this.submissionService.markListingsAsAdded(
+            playerListings.map((listing) => listing.id),
+            auction.id
+          );
+        }
+
+        console.log(
+          `Created auction ${activeAuctionCount + index + 1}/${auctionCountPerBracket} for bracket [${min}-${max}] with ${systemItemCount} system + ${playerListings.length} player items (${Math.round((endTime.getTime() - now.getTime()) / (60 * 60 * 1000))}h remaining)`
         );
       }
-
-      console.log(
-        `Created auction for bracket [${min}-${max}] with ${systemItemCount} system + ${playerListings.length} player items`
-      );
     }
   }
 
@@ -224,6 +242,7 @@ export class AuctionInstanceService {
       },
       include: {
         items: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
           select: {
             id: true,
             itemCode: true,
@@ -282,7 +301,8 @@ export class AuctionInstanceService {
         ...item,
         currentWinnerName: item.currentWinnerId ? winnerNameById.get(item.currentWinnerId) ?? null : null,
         itemData: parseAuctionStoredItem(item.itemCode).viewData,
-        minimumNextBid: this.configService.calculateMinBid(item.currentBid, item.startingBid)
+        minimumNextBid: this.configService.calculateMinimumAcceptedBid(item.currentBid, item.startingBid),
+        amIWinning: item.currentWinnerId === playerId
       }))
     }));
   }
@@ -295,6 +315,7 @@ export class AuctionInstanceService {
       where: { id: auctionId },
       include: {
         items: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
           include: {
             bids: {
               where: { playerId },
@@ -312,7 +333,7 @@ export class AuctionInstanceService {
 
     const itemsWithStatus = auction.items.map((item: any) => ({
       ...item,
-      minimumNextBid: this.configService.calculateMinBid(item.currentBid, item.startingBid),
+      minimumNextBid: this.configService.calculateMinimumAcceptedBid(item.currentBid, item.startingBid),
       myBid: item.bids[0] || null,
       amIWinning: item.currentWinnerId === playerId,
       amIOutbid:

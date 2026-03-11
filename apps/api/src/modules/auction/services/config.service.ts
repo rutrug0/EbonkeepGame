@@ -272,6 +272,15 @@ export class AuctionConfigService {
   }
 
   /**
+   * Calculate the minimum accepted reserve for a newly submitted bid.
+   * This stays aligned with the visible floor returned to clients.
+   */
+  calculateMinimumAcceptedBid(currentBid: number, startingBid: number): number {
+    const visibleBase = currentBid > 0 ? currentBid : startingBid;
+    return Math.max(this.calculateMinBid(currentBid, startingBid), visibleBase + 11);
+  }
+
+  /**
    * Calculate starting bid for an item
    */
   calculateStartingBid(itemLevel: number, rarity: "common" | "uncommon" | "rare" | "epic"): number {

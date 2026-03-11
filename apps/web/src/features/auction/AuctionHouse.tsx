@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { EquipmentSlotId, PlayerClass } from "@ebonkeep/shared/core";
 import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/inventory";
@@ -7,6 +7,8 @@ import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
 type WeaponArchetype = "melee" | "ranged" | "arcane";
 type ArmorArchetype = "heavy" | "light" | "robe";
+
+const AUCTION_HOUSE_BACKGROUND_KEY = "indoors:auction_house";
 
 export interface AuctionHouseProps {
   token: string | null;
@@ -43,6 +45,7 @@ interface AuctionItem {
   extensionsUsed: number;
   isPlayerSubmitted: boolean;
   minimumNextBid?: number;
+  amIWinning?: boolean;
   itemData?: ParsedItemData;
 }
 
@@ -149,15 +152,6 @@ interface PlayerSubmission {
   rejectionReason?: string;
 }
 
-interface BidConfirmationState {
-  itemId: string;
-  itemName: string;
-  bidAmount: number;
-  minimumBid: number;
-  currentBid: number;
-  remainingDucats: number;
-}
-
 interface AuctionHoverState {
   itemId: string;
   itemData: ParsedItemData;
@@ -168,10 +162,53 @@ interface AuctionHoverState {
   maxHeight: number;
 }
 
-type AuctionView = "browse" | "myBids" | "submit" | "mySubmissions" | "rewards";
+type AuctionView = "browse" | "submit" | "mySubmissions";
+
+function preserveAuctionItemOrder(nextAuctions: AuctionInstance[], previousAuctions: AuctionInstance[]): AuctionInstance[] {
+  const previousOrderByAuctionId = new Map(
+    previousAuctions.map((auction) => [
+      auction.id,
+      new Map(auction.items.map((item, index) => [item.id, index]))
+    ])
+  );
+
+  return nextAuctions.map((auction) => {
+    const previousOrder = previousOrderByAuctionId.get(auction.id);
+    if (!previousOrder) {
+      return auction;
+    }
+
+    const items = [...auction.items].sort((left, right) => {
+      const leftIndex = previousOrder.get(left.id);
+      const rightIndex = previousOrder.get(right.id);
+
+      if (leftIndex === undefined && rightIndex === undefined) {
+        return 0;
+      }
+      if (leftIndex === undefined) {
+        return 1;
+      }
+      if (rightIndex === undefined) {
+        return -1;
+      }
+      return leftIndex - rightIndex;
+    });
+
+    return {
+      ...auction,
+      items
+    };
+  });
+}
 
 export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, equipmentBySlot, onDucatsChange }: AuctionHouseProps) {
   const { t } = useTranslation("common");
+  const auctionHouseBackgroundPath = GENERATED_ITEM_ICON_PATHS[AUCTION_HOUSE_BACKGROUND_KEY];
+  const auctionHouseShellStyle = auctionHouseBackgroundPath
+    ? ({
+        "--indoor-scene-image": `url("${auctionHouseBackgroundPath}")`
+      } as CSSProperties)
+    : undefined;
   const [activeView, setActiveView] = useState<AuctionView>("browse");
   const [auctions, setAuctions] = useState<AuctionInstance[]>([]);
   const [selectedAuction, setSelectedAuction] = useState<AuctionInstance | null>(null);
@@ -190,7 +227,6 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
-  const [bidConfirmation, setBidConfirmation] = useState<BidConfirmationState | null>(null);
   const [displayDucats, setDisplayDucats] = useState(currentDucats);
   const [itemFilter, setItemFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -266,7 +302,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       }
 
       const data = await response.json();
-      const nextAuctions = data.auctions || [];
+      const nextAuctions = preserveAuctionItemOrder(data.auctions || [], auctions);
       setAuctions(nextAuctions);
       setSelectedAuction((previous) => {
         if (nextAuctions.length === 0) {
@@ -385,13 +421,6 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         onDucatsChange?.(nextDucats);
       }
 
-      setSuccessMessage(
-        t("auction.rerollSuccess", {
-          count: typeof data.deletedAuctionCount === "number" ? data.deletedAuctionCount : 0
-        })
-      );
-      setTimeout(() => setSuccessMessage(null), 3000);
-
       await Promise.all([loadActiveAuctions(), loadMyBids()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToReroll"));
@@ -405,59 +434,40 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       return item.minimumNextBid;
     }
 
-    return item.currentBid > 0 ? item.currentBid + 10 : item.startingBid;
+    if (item.currentBid <= 0) {
+      return item.startingBid;
+    }
+
+    return Math.max(Math.ceil(item.currentBid * 1.1), item.currentBid + 11);
   };
 
   const getPlayerReservedBidAmount = (itemId: string): number => {
-    return myBids.find((bid) => bid.itemId === itemId)?.bidAmount ?? 0;
+    const bid = myBids.find((entry) => entry.itemId === itemId);
+    return bid ? (bid.maxAutoBid ?? bid.bidAmount) : 0;
   };
 
-  const handlePlaceBid = (item: AuctionItem) => {
+  const handlePlaceBid = async (item: AuctionItem) => {
     if (!token || !bidAmount[item.id]) return;
 
     const amount = parseInt(bidAmount[item.id], 10);
-    const minimumBid = getMinimumNextBid(item);
-    const additionalReserve = Math.max(0, amount - getPlayerReservedBidAmount(item.id));
+    const minimumAcceptedBid = getMinimumNextBid(item);
+    const reserveDelta = amount - getPlayerReservedBidAmount(item.id);
     if (isNaN(amount) || amount <= 0) {
       setError(t("auction.errors.invalidBid"));
       return;
     }
 
-    if (amount < minimumBid) {
-      setError(t("auction.errors.bidBelowMinimum", { amount: minimumBid }));
+    if (amount < minimumAcceptedBid) {
+      setError(t("auction.errors.bidBelowMinimum", { amount: minimumAcceptedBid }));
       return;
     }
 
-    if (additionalReserve > displayDucats) {
+    if (reserveDelta > displayDucats) {
       setError(t("auction.errors.insufficientDucats"));
       return;
     }
 
-    const itemData = parseItemData(item.itemCode);
-    setError(null);
-    setBidConfirmation({
-      itemId: item.id,
-      itemName: itemData.itemName,
-      bidAmount: amount,
-      minimumBid,
-      currentBid: item.currentBid,
-      remainingDucats: displayDucats - additionalReserve
-    });
-  };
-
-  const confirmBidPlacement = async () => {
-    if (!token || !bidConfirmation) return;
-
-    const { itemId, bidAmount: amount, minimumBid } = bidConfirmation;
-    
-    // Re-validate before submitting
-    if (amount < minimumBid) {
-      setError(t("auction.bidTooLow", { minimum: minimumBid }));
-      setBidConfirmation(null);
-      return;
-    }
-    
-    setSubmittingBid(itemId);
+    setSubmittingBid(item.id);
     setError(null);
 
     try {
@@ -467,7 +477,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ itemId, bidAmount: amount })
+        body: JSON.stringify({ itemId: item.id, bidAmount: amount })
       });
 
       const data = await response.json();
@@ -477,8 +487,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         throw new Error(errorMsg);
       }
 
-      setBidAmount((prev) => ({ ...prev, [itemId]: "" }));
-      setBidConfirmation(null);
+      setBidAmount((prev) => ({ ...prev, [item.id]: "" }));
       if (typeof data.remainingDucats === "number") {
         setDisplayDucats(data.remainingDucats);
         onDucatsChange?.(data.remainingDucats);
@@ -494,10 +503,6 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     } finally {
       setSubmittingBid(null);
     }
-  };
-
-  const cancelBidConfirmation = () => {
-    setBidConfirmation(null);
   };
 
   const handleClaimReward = async (rewardId: string) => {
@@ -1294,75 +1299,147 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     const iconAssetPath = resolveAuctionItemIconPath(itemData);
     const minBid = getMinimumNextBid(item);
     const isSubmitting = submittingBid === item.id;
-    const reservedAmount = getPlayerReservedBidAmount(item.id);
     const currentBidValue = item.currentBid > 0 ? item.currentBid : item.startingBid;
+    const minimumAcceptedBid = minBid;
+    const reservedAmount = getPlayerReservedBidAmount(item.id);
+    const isLeadingBid =
+      item.amIWinning === true ||
+      myBids.some((bid) => bid.itemId === item.id && bid.status === "active");
+
+    const setAuctionBidInputValue = (nextValue: string) => {
+      setBidAmount((previous) => ({ ...previous, [item.id]: nextValue }));
+    };
+
+    const ensureSuggestedBidFloor = () => {
+      const currentValue = bidAmount[item.id];
+      const parsed = currentValue ? Number.parseInt(currentValue, 10) : Number.NaN;
+      if (!Number.isFinite(parsed) || parsed < minimumAcceptedBid) {
+        setAuctionBidInputValue(String(minimumAcceptedBid));
+      }
+    };
 
     return (
-      <article key={item.id} className={`auctionBrowseCard rarity-${itemData.rarity}`}>
-        <div className="auctionBrowseItemHeader">
-          <button
-            type="button"
-            className={`auctionBrowseIconButton inventoryItemCard rarity-${itemData.rarity}`}
-            onMouseEnter={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
-            onMouseLeave={() => handleAuctionItemMouseLeave(item.id)}
-            onFocus={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
-            onBlur={() => handleAuctionItemMouseLeave(item.id)}
-          >
-            <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}`}>
-              {renderItemIcon({
-                majorCategory: getItemMajorCategory(itemData),
-                category: itemData.category,
-                itemName: itemData.itemName,
-                iconAssetPath,
-                renderMode: iconAssetPath ? "imageOnly" : "default",
-                className: iconAssetPath ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`
-              })}
-              <span className="inventoryCompactPowerBadge" aria-hidden="true">
-                {itemData.power ?? 0}
-              </span>
-              <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
-                Lv. {itemData.levelRequirement}
-              </span>
-            </div>
-          </button>
-          {item.isPlayerSubmitted ? <span className="auctionBrowseOriginTag">{t("auction.playerSubmitted")}</span> : null}
-        </div>
-        <div className="auctionBrowseInfo">
-          <h4 className={`auctionItemCardTitle rarity-${itemData.rarity}`}>{itemData.itemName}</h4>
-          <p className="auctionItemCardCategory">
-            {itemData.category} · Lv. {itemData.levelRequirement}
-          </p>
-          <p className="auctionBrowseLine">
-            <span>{t("auction.currentBid")}:</span>
-            <strong>{currentBidValue.toLocaleString()} {"\u25CE"}</strong>
-          </p>
-          <p className="auctionBrowseBidder">
-            {item.currentBid > 0 && item.currentWinnerName ? item.currentWinnerName : t("auction.startingBid")}
-          </p>
-          <div className="auctionBrowseBidControls">
-            <input
-              type="number"
-              min={minBid}
-              value={bidAmount[item.id] || ""}
-              onChange={(event) => setBidAmount((previous) => ({ ...previous, [item.id]: event.target.value }))}
-              placeholder={t("auction.minBid", { amount: minBid })}
-              className="auctionBrowseBidInput"
-              disabled={isSubmitting}
-            />
+      <div key={item.id} className="auctionBrowseCardSlot">
+        <article className={`auctionBrowseCard rarity-${itemData.rarity}${isLeadingBid ? " isLeadingBid" : ""}`}>
+          <div className="auctionBrowseItemHeader">
             <button
               type="button"
-              onClick={() => handlePlaceBid(item)}
-              disabled={isSubmitting || !bidAmount[item.id]}
-              className="auctionBrowseBidButton"
+              className={`auctionBrowseIconButton inventoryItemCard rarity-${itemData.rarity}`}
+              onMouseEnter={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
+              onMouseLeave={() => handleAuctionItemMouseLeave(item.id)}
+              onFocus={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
+              onBlur={() => handleAuctionItemMouseLeave(item.id)}
             >
-              {isSubmitting ? t("auction.placing") : t("auction.placeBid")}
+              <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}`}>
+                {renderItemIcon({
+                  majorCategory: getItemMajorCategory(itemData),
+                  category: itemData.category,
+                  itemName: itemData.itemName,
+                  iconAssetPath,
+                  renderMode: iconAssetPath ? "imageOnly" : "default",
+                  className: iconAssetPath ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`
+                })}
+                <span className="inventoryCompactPowerBadge" aria-hidden="true">
+                  {itemData.power ?? 0}
+                </span>
+                <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
+                  Lv. {itemData.levelRequirement}
+                </span>
+                {reservedAmount > 0 ? (
+                  <span className="auctionBrowseReservedBadge" aria-hidden="true">
+                    <span className="auctionBrowseReservedBadgeLabel">Reserved</span>
+                    <span className="auctionBrowseReservedBadgeValue">
+                      {reservedAmount.toLocaleString()} {"\u25CE"}
+                    </span>
+                  </span>
+                ) : null}
+              </div>
             </button>
+            {item.isPlayerSubmitted ? <span className="auctionBrowseOriginTag">{t("auction.playerSubmitted")}</span> : null}
           </div>
-          {reservedAmount > 0 ? (
-            <p className="auctionBrowseReserved">{t("auction.autoBid.reservedAmount", { amount: reservedAmount })}</p>
-          ) : null}
-        </div>
-      </article>
+          <div className="auctionBrowseInfo">
+            <p className="auctionBrowseLine">
+              <span>Bid:</span>
+              <strong>{currentBidValue.toLocaleString()} {"\u25CE"}</strong>
+            </p>
+            <p className="auctionBrowseBidder">
+              {item.currentBid > 0 && item.currentWinnerName ? item.currentWinnerName : t("auction.startingBid")}
+            </p>
+            <div className="auctionBrowseBidControls">
+              <input
+                type="number"
+                min={minimumAcceptedBid}
+                value={bidAmount[item.id] || ""}
+                onFocus={ensureSuggestedBidFloor}
+                onClick={ensureSuggestedBidFloor}
+                onChange={(event) => {
+                  setAuctionBidInputValue(event.target.value);
+                }}
+                className="auctionBrowseBidInput"
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                onClick={() => handlePlaceBid(item)}
+                disabled={isSubmitting || !bidAmount[item.id]}
+                className="auctionBrowseBidButton"
+              >
+                {isSubmitting ? t("auction.placing") : t("auction.placeBid")}
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    );
+  };
+
+  const renderBrowseToolbarControls = () => {
+    if (activeView !== "browse") {
+      return null;
+    }
+
+    return (
+      <div className="profileSwitchActions">
+        <button
+          type="button"
+          className="profileSwitchButton"
+          onClick={() => void handleRerollAuctions()}
+          disabled={rerollingAuctions}
+        >
+          {rerollingAuctions ? t("auction.rerolling") : t("auction.reroll")}
+        </button>
+      </div>
+    );
+  };
+
+  const renderBrowseAuctionSwitcher = () => {
+    if (activeView !== "browse" || auctions.length === 0) {
+      return null;
+    }
+
+    const auctionWingLabels = ["Left Wing", "Middle Wing", "Right Wing"];
+
+    return (
+      <div className="auctionBrowseAuctionSwitcher" aria-label={t("auction.tabs.browse")}>
+        {auctions.map((auction, index) => (
+          <button
+            key={auction.id}
+            type="button"
+            className={`auctionBrowseAuctionButton${
+              selectedAuction?.id === auction.id ? " auctionBrowseAuctionButtonActive" : ""
+            }`}
+            onClick={() => {
+              setAuctionHover(null);
+              setSelectedAuction(auction);
+            }}
+          >
+            <span className="auctionBrowseAuctionButtonLabel">
+              {auctionWingLabels[index] ?? `Wing ${index + 1}`}
+            </span>
+            <strong className="auctionBrowseAuctionButtonTime">{formatTimeRemaining(auction.endTime)}</strong>
+          </button>
+        ))}
+      </div>
     );
   };
 
@@ -1378,17 +1455,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     if (auctions.length === 0) {
       return (
         <article className="contentCard">
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-            <h3>{t("auction.noActiveAuctions")}</h3>
-            <button
-              type="button"
-              className="profileSwitchButton"
-              onClick={() => void handleRerollAuctions()}
-              disabled={rerollingAuctions}
-            >
-              {rerollingAuctions ? t("auction.rerolling") : t("auction.reroll")}
-            </button>
-          </div>
+          <h3>{t("auction.noActiveAuctions")}</h3>
           <p>{t("auction.noActiveAuctionsDesc")}</p>
           <p style={{ fontSize: "0.9rem", opacity: 0.7, marginTop: "1rem" }}>
             {t("auction.auctionTimes")}
@@ -1399,71 +1466,19 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
     return (
       <>
-        <article className="contentCard">
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-            <h3>{t("auction.tabs.browse")}</h3>
-            <button
-              type="button"
-              className="profileSwitchButton"
-              onClick={() => void handleRerollAuctions()}
-              disabled={rerollingAuctions}
-            >
-              {rerollingAuctions ? t("auction.rerolling") : t("auction.reroll")}
-            </button>
-          </div>
-          <p>{t("auction.selectAuction")}</p>
-
-          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", flexWrap: "wrap" }}>
-            {auctions.map((auction) => (
-              <button
-                key={auction.id}
-                type="button"
-                onClick={() => {
-                  setAuctionHover(null);
-                  setSelectedAuction(auction);
-                }}
-                style={{
-                  padding: "0.75rem 1rem",
-                  background: selectedAuction?.id === auction.id ? "var(--accent-focus)" : "var(--panel-soft)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--soft-radius)",
-                  color: selectedAuction?.id === auction.id ? "var(--bg-stone)" : "var(--text-main)",
-                  cursor: "pointer"
-                }}
-              >
-                <div>{t("auction.levelBracket", { min: auction.levelBracketMin, max: auction.levelBracketMax })}</div>
-                <div style={{ fontSize: "0.85rem", opacity: 0.8 }}>
-                  {t("auction.itemCount", { count: auction.items?.length || 0 })}
-                </div>
-                <div style={{ fontSize: "0.8rem", opacity: 0.7, marginTop: "0.25rem" }}>
-                  {formatTimeRemaining(auction.endTime)}
-                </div>
-              </button>
-            ))}
-          </div>
-        </article>
-
         {selectedAuction && selectedAuction.items && selectedAuction.items.length > 0 && (
-          <article className="contentCard auctionBrowseSection">
-            <h3>
-              {t("auction.auctionItems", { min: selectedAuction.levelBracketMin, max: selectedAuction.levelBracketMax })}
-            </h3>
-            <p style={{ marginBottom: "1rem" }}>
-              {t("auction.timeRemaining")}: <strong>{formatTimeRemaining(selectedAuction.endTime)}</strong>
-            </p>
-
+          <article
+            className="contentCard auctionBrowseSection indoorSceneShell auctionBrowseSceneCard"
+            style={auctionHouseShellStyle}
+          >
             <div className="auctionBrowseGrid">
-              {[...selectedAuction.items]
-                .sort((a, b) => {
-                  const aHasBid = myBids.some((bid) => bid.itemId === a.id && bid.status === "active");
-                  const bHasBid = myBids.some((bid) => bid.itemId === b.id && bid.status === "active");
-
-                  if (aHasBid && !bHasBid) return -1;
-                  if (!aHasBid && bHasBid) return 1;
-                  return 0;
-                })
-                .map((item) => renderAuctionItem(item))}
+              {selectedAuction.items.map((item) => renderAuctionItem(item))}
             </div>
+            <div className="auctionBrowseTimeBanner">
+              <span className="auctionBrowseTimeLabel">{t("auction.timeRemaining")}</span>
+              <strong className="auctionBrowseTimeValue">{formatTimeRemaining(selectedAuction.endTime)}</strong>
+            </div>
+            {renderBrowseAuctionSwitcher()}
             {renderAuctionHoverOverlay()}
           </article>
         )}
@@ -1513,7 +1528,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData ? itemData.itemName : t("profile.unknown")}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
-                    <strong>{t("auction.yourBid")}:</strong> {bid.bidAmount} ◎
+                    <strong>{t("auction.yourBid")}:</strong> {(bid.maxAutoBid ?? bid.bidAmount).toLocaleString()} {"\u25CE"}
                   </p>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
                     <strong>{t("auction.status")}:</strong> {bid.status}
@@ -1714,7 +1729,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                   color: "var(--accent-danger)",
                   fontWeight: "500"
                 }}>
-                  ⚠️ {t("auction.maxSubmissionsReached")}
+                  Warning: {t("auction.maxSubmissionsReached")}
                 </p>
               )}
             </div>
@@ -1745,7 +1760,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                       {selectedItemData.itemName}
                     </h3>
                     <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.8 }}>
-                      {t("player.level", { value: selectedItemData.levelRequirement })} • {selectedItemData.rarity}
+                      {t("player.level", { value: selectedItemData.levelRequirement })} - {selectedItemData.rarity}
                     </p>
                   </div>
                 </div>
@@ -1904,7 +1919,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
-                    <strong>{t("auction.startingBid")}:</strong> {submission.minimumBid} ◎
+                    <strong>{t("auction.startingBid")}:</strong> {submission.minimumBid} ducats
                   </p>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
                     <strong>{t("auction.submissionStatus")}:</strong> {t(`auction.${submission.status}` as any)}
@@ -1965,7 +1980,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0" }}>
-                    <strong>{t("auction.winningBid")}:</strong> {reward.winningBid} ◎
+                    <strong>{t("auction.winningBid")}:</strong> {reward.winningBid} ducats
                   </p>
                   <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0.25rem 0" }}>
                     {t("auction.expires")}: {new Date(reward.expiresAt).toLocaleString()}
@@ -1997,8 +2012,8 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
   if (!token) {
     return (
-      <section className="contentShell">
-        <section className="contentStack">
+      <section className="contentShell auctionHouseShell">
+        <section className="contentStack auctionHouseStack">
           <article className="contentCard">
             <h2>{t("auction.title")}</h2>
             <p>{t("auction.loginRequired")}</p>
@@ -2010,133 +2025,6 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
   return (
     <>
-      {/* Bid Confirmation Modal */}
-      {bidConfirmation && (
-        <div 
-          className="imperialShopModalOverlay" 
-          onClick={cancelBidConfirmation}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(0, 0, 0, 0.75)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000
-          }}
-        >
-          <div 
-            className="imperialShopStatusModal" 
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "var(--bg-dark)",
-              border: "2px solid var(--accent-success)",
-              borderRadius: "var(--soft-radius)",
-              padding: "2rem",
-              minWidth: "400px",
-              maxWidth: "90vw",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
-            }}
-          >
-            <h2 style={{ 
-              fontSize: "1.4rem", 
-              marginBottom: "1rem",
-              color: "var(--accent-success)",
-              textAlign: "center"
-            }}>
-              {t("auction.confirmBidTitle")}
-            </h2>
-            <p style={{ 
-              margin: "0 0 1.5rem 0", 
-              color: "var(--text-soft)", 
-              fontSize: "0.95rem", 
-              lineHeight: "1.6",
-              textAlign: "center"
-            }}>
-              {t("auction.confirmBidText", { item: bidConfirmation.itemName })}
-            </p>
-            <div style={{
-              display: "grid",
-              gap: "0.75rem",
-              marginBottom: "2rem",
-              padding: "1.25rem",
-              background: "var(--panel-soft)",
-              border: "2px solid var(--border)",
-              borderRadius: "var(--soft-radius)",
-              textAlign: "left"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1rem" }}>
-                <strong>{t("auction.confirmBidAmount")}:</strong> 
-                <span style={{ color: "var(--accent-success)", fontWeight: "bold" }}>{bidConfirmation.bidAmount} ◎</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{t("auction.confirmBidMinimum")}:</strong> 
-                <span>{bidConfirmation.minimumBid} ◎</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <strong>{t("auction.currentBid")}:</strong> 
-                <span>{bidConfirmation.currentBid > 0 ? `${bidConfirmation.currentBid} ◎` : t("auction.noBidsYet")}</span>
-              </div>
-              <div style={{ 
-                display: "flex", 
-                justifyContent: "space-between",
-                paddingTop: "0.75rem",
-                borderTop: "1px solid var(--border)",
-                marginTop: "0.5rem"
-              }}>
-                <strong>{t("auction.confirmBidRemaining")}:</strong> 
-                <span style={{ color: bidConfirmation.remainingDucats < 100 ? "var(--accent-danger)" : "inherit" }}>
-                  {bidConfirmation.remainingDucats.toLocaleString()} ◎
-                </span>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
-              <button
-                onClick={cancelBidConfirmation}
-                style={{
-                  flex: 1,
-                  padding: "0.875rem 1.5rem",
-                  background: "var(--panel-soft)",
-                  border: "2px solid var(--border)",
-                  borderRadius: "var(--soft-radius)",
-                  color: "var(--text-main)",
-                  cursor: "pointer",
-                  fontWeight: "600",
-                  fontSize: "1rem",
-                  transition: "all 0.2s"
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-slate)"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "var(--panel-soft)"}
-              >
-                {t("auction.editBid")}
-              </button>
-              <button
-                onClick={confirmBidPlacement}
-                disabled={submittingBid === bidConfirmation.itemId}
-                style={{
-                  flex: 1,
-                  padding: "0.875rem 1.5rem",
-                  background: submittingBid === bidConfirmation.itemId ? "var(--bg-slate)" : "var(--accent-success)",
-                  border: "none",
-                  borderRadius: "var(--soft-radius)",
-                  color: submittingBid === bidConfirmation.itemId ? "var(--text-soft)" : "#000",
-                  cursor: submittingBid === bidConfirmation.itemId ? "not-allowed" : "pointer",
-                  fontWeight: "bold",
-                  fontSize: "1rem",
-                  boxShadow: submittingBid === bidConfirmation.itemId ? "none" : "0 2px 8px rgba(111, 141, 95, 0.4)",
-                  transition: "all 0.2s"
-                }}
-              >
-                {submittingBid === bidConfirmation.itemId ? t("auction.placing") : t("auction.confirmBidButton")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Cancel Confirmation Modal */}
       {showCancelModal && (
         <div className="imperialShopModalOverlay" onClick={cancelCancelModal}>
@@ -2271,58 +2159,36 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         </div>
       )}
 
-      <section className="contentShell">
-      <section className="contentStack">
-        <article className="contentCard">
-          <h2>🔨 {t("auction.title")}</h2>
-          <p>{t("auction.description")}</p>
-          
-          <div className="profileSwitchBar">
-            <div className="profileSwitchButtons">
-              <button
-                type="button"
-                onClick={() => setActiveView("browse")}
-                className={`profileSwitchButton${activeView === "browse" ? " active" : ""}`}
-              >
-                {t("auction.tabs.browse")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView("myBids")}
-                className={`profileSwitchButton${activeView === "myBids" ? " active" : ""}`}
-              >
-                {t("auction.tabs.myBids")} ({myBids.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView("submit")}
-                className={`profileSwitchButton${activeView === "submit" ? " active" : ""}`}
-              >
-                {t("auction.tabs.submit")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView("mySubmissions")}
-                className={`profileSwitchButton${activeView === "mySubmissions" ? " active" : ""}`}
-              >
-                {t("auction.tabs.mySubmissions")} ({mySubmissions.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView("rewards")}
-                className={`profileSwitchButton${activeView === "rewards" ? " active" : ""}`}
-              >
-                {t("auction.tabs.rewards")} ({pendingRewards.length})
-              </button>
+      <section className="contentShell auctionHouseShell">
+        <section className="contentStack auctionHouseStack">
+          <article className="contentCard">
+            <div className="profileSwitchBar">
+              <div className="profileSwitchButtons">
+                <button
+                  type="button"
+                  onClick={() => setActiveView("browse")}
+                  className={`profileSwitchButton${activeView === "browse" ? " active" : ""}`}
+                >
+                  {t("auction.tabs.browse")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("submit")}
+                  className={`profileSwitchButton${activeView === "submit" ? " active" : ""}`}
+                >
+                  {t("auction.tabs.submit")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveView("mySubmissions")}
+                  className={`profileSwitchButton${activeView === "mySubmissions" ? " active" : ""}`}
+                >
+                  {t("auction.tabs.mySubmissions")} ({mySubmissions.length})
+                </button>
+              </div>
+              {renderBrowseToolbarControls()}
             </div>
-          </div>
-
-          <div style={{ marginTop: "1rem", padding: "0.75rem", background: "var(--bg-slate)", borderRadius: "var(--soft-radius)" }}>
-            <p style={{ margin: 0, fontSize: "0.9rem" }}>
-              <strong>{t("auction.yourDucats")}:</strong> {currentDucats.toLocaleString()} ◎
-            </p>
-          </div>
-        </article>
+          </article>
 
         {successMessage && (
           <div 
@@ -2360,7 +2226,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                 color: "var(--accent-success)",
                 textAlign: "center"
               }}>
-                ✓ Success
+                Success
               </h2>
               <p style={{ 
                 margin: "0 0 2rem 0", 
@@ -2431,7 +2297,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                 color: "var(--accent-danger)",
                 textAlign: "center"
               }}>
-                ⚠️ Error
+                Error
               </h2>
               <p style={{ 
                 margin: "0 0 2rem 0", 
@@ -2466,11 +2332,10 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
           </div>
         )}
 
+        {pendingRewards.length > 0 && renderRewardsView()}
         {activeView === "browse" && renderBrowseView()}
-        {activeView === "myBids" && renderMyBidsView()}
         {activeView === "submit" && renderSubmitView()}
         {activeView === "mySubmissions" && renderMySubmissionsView()}
-        {activeView === "rewards" && renderRewardsView()}
       </section>
     </section>
     </>

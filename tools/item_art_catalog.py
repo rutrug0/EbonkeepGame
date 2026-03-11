@@ -12,6 +12,7 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "tools" / "item_art_prompts.yaml"
 DEFAULT_ASSET_ROOT = REPO_ROOT / "apps" / "web" / "public" / "assets" / "items" / "generated"
+DEFAULT_INDOOR_SCENE_REGISTRY_PATH = REPO_ROOT / "docs" / "data" / "indoor_scene_assets_v1.csv"
 DEFAULT_MANIFEST_TS_PATH = REPO_ROOT / "apps" / "web" / "src" / "generated" / "itemArtManifest.ts"
 DEFAULT_MANIFEST_JSON_PATH = DEFAULT_ASSET_ROOT / "item_art_manifest.json"
 DEFAULT_ENCYCLOPEDIA_TS_PATH = REPO_ROOT / "apps" / "web" / "src" / "generated" / "itemEncyclopediaData.ts"
@@ -167,7 +168,35 @@ def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
     return None
 
 
-def build_generated_asset_manifest(asset_root: Path) -> dict[str, str]:
+def build_registered_indoor_scene_manifest(asset_root: Path, registry_path: Path) -> dict[str, str]:
+    if not registry_path.exists():
+        return {}
+
+    manifest: dict[str, str] = {}
+    for row in read_csv_rows(registry_path):
+        scene_id = normalize_identifier(row.get("scene_id", ""))
+        asset_subpath = (row.get("asset_subpath") or "").strip().replace("\\", "/")
+        if not scene_id or not asset_subpath:
+            continue
+
+        rel = Path(asset_subpath)
+        if rel.is_absolute() or ".." in rel.parts or rel.suffix.lower() != ".png":
+            continue
+
+        asset_path = asset_root / rel
+        if not asset_path.exists():
+            continue
+
+        manifest[f"indoors:{scene_id}"] = f"/assets/items/generated/{rel.as_posix()}"
+
+    return manifest
+
+
+def build_generated_asset_manifest(
+    asset_root: Path,
+    *,
+    indoor_scene_registry_path: Path | None = None,
+) -> dict[str, str]:
     manifest: dict[str, str] = {}
     for png in sorted(asset_root.rglob("*.png")):
         rel = png.relative_to(asset_root)
@@ -176,6 +205,9 @@ def build_generated_asset_manifest(asset_root: Path) -> dict[str, str]:
             continue
         key, path = parsed
         manifest[key] = path
+
+    registry_path = indoor_scene_registry_path or DEFAULT_INDOOR_SCENE_REGISTRY_PATH
+    manifest.update(build_registered_indoor_scene_manifest(asset_root, registry_path))
     return manifest
 
 

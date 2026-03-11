@@ -383,5 +383,6 @@ export const GENERATED_ITEM_ICON_PATHS: Record<string, string> = {
   "weapon:ranged:thornwake longbow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_thornwake_longbow.png",
   "weapon:ranged:twigbound sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_twigbound_sling.png",
   "weapon:ranged:watcher s sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_watcher_s_sling.png",
-  "weapon:ranged:wolfsight sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_wolfsight_sling.png"
+  "weapon:ranged:wolfsight sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_wolfsight_sling.png",
+  "indoors:auction_house": "/assets/items/generated/indoors/auction_house/auction_house.png"
 };
