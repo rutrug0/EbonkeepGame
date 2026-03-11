@@ -2182,13 +2182,6 @@ button:focus-visible {
   justify-self: center;
 }
 
-.equipmentEconomyBar {
-  margin-top: var(--space-3);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
 .economyItem {
   border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
@@ -2878,10 +2871,10 @@ button:focus-visible {
   border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
   background: rgba(24, 31, 39, 0.72);
-  padding: 8px;
+  padding: 10px 10px 12px;
   display: grid;
   grid-template-rows: auto auto auto 1fr;
-  gap: 6px;
+  gap: 8px;
   align-content: start;
 }
 
@@ -2892,22 +2885,22 @@ button:focus-visible {
 }
 
 .statTrainingSymbol svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.6rem;
+  height: 1.6rem;
   fill: color-mix(in srgb, var(--accent-warn) 62%, var(--text-main) 38%);
 }
 
 .statTrainingLabel {
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: color-mix(in srgb, var(--text-main) 88%, var(--accent-warn) 12%);
   text-align: center;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .statTrainingValue {
-  font-size: 0.94rem;
+  font-size: 1.08rem;
   font-weight: 700;
   color: var(--text-main);
   text-align: center;
@@ -2915,7 +2908,7 @@ button:focus-visible {
 
 .itemBonusValue {
   margin-left: 4px;
-  font-size: 0.88rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: color-mix(in srgb, var(--accent-success) 75%, var(--text-main) 25%);
 }
@@ -2933,17 +2926,17 @@ button:focus-visible {
   justify-content: center;
   align-items: center;
   gap: 4px;
-  font-size: 0.88rem;
-  font-weight: 600;
+  font-size: 0.96rem;
+  font-weight: 700;
   color: color-mix(in srgb, var(--accent-warn) 74%, var(--text-main) 26%);
 }
 
 .statTrainButton {
-  width: 72px;
+  width: 86px;
   justify-self: center;
-  min-height: 36px;
-  padding: 4px 10px;
-  font-size: 0.81rem;
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
   line-height: 1.1;
 }
 
@@ -2981,7 +2974,7 @@ button:focus-visible {
 }
 
 .statTrainingTimer {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: var(--text-soft);
   text-align: center;
 }
@@ -4362,11 +4355,6 @@ button:focus-visible {
   --inventory-compact-card-width: 92px;
   --inventory-compact-card-height: 92px;
   grid-template-columns: repeat(auto-fit, var(--inventory-compact-card-width));
-}
-
-.appRoot.layout-compact .equipmentEconomyBar,
-.appRoot.layout-standard .equipmentEconomyBar {
-  grid-template-columns: 1fr;
 }
 
 .appRoot.layout-compact .statTrainingColumns {
