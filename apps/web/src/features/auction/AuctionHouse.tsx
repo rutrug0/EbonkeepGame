@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { isItemUsableByClass, type InventoryItem, type EquipmentSlotId, type PlayerClass } from "@ebonkeep/shared";
-import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
+import type { EquipmentSlotId, PlayerClass } from "@ebonkeep/shared/core";
+import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/inventory";
+import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
 type WeaponArchetype = "melee" | "ranged" | "arcane";
@@ -875,7 +876,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
   const formatLabel = (value: string): string => {
     return value
-      .replace(/[\/_,-]+/g, " ")
+      .replace(/[/_,-]+/g, " ")
       .replace(/([a-z])([A-Z])/g, "$1 $2")
       .replace(/\b\w/g, (match) => match.toUpperCase())
       .trim();

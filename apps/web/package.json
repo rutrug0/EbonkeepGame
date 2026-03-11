@@ -10,7 +10,7 @@
     "test:unit": "vitest run -c vitest.config.ts",
     "i18n:check": "node ../../tools/validate_locales.mjs",
     "preview": "vite preview",
-    "lint": "echo \"No lint configured for @ebonkeep/web\""
+    "lint": "eslint \"src/**/*.{ts,tsx}\" \"test/**/*.{ts,tsx}\" \"vite.config.ts\""
   },
   "dependencies": {
     "@ebonkeep/shared": "0.1.0",

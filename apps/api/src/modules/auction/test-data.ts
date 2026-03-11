@@ -500,12 +500,13 @@ export class AuctionTestDataGenerator {
     case "cleanup":
       await generator.cleanupTestData();
       break;
-    case "bids":
+    case "bids": {
       const playerCount = parseInt(process.argv[3] || "10");
       const bidCount = parseInt(process.argv[4] || "20");
       const playerIds = Array.from({ length: playerCount }, (_, i) => `test_player_${i + 1}`);
       await generator.simulateRandomBids(playerIds, bidCount);
       break;
+    }
     default:
       console.log("Usage: npx tsx test-data.ts [setup|cleanup|bids]");
   }

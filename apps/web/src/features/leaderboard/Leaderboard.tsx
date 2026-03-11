@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
-import type { LeaderboardEntry, LeaderboardResponse, LeaderboardType, PlayerClass, GuildLeaderboardResponse } from "@ebonkeep/shared";
-import type { GuildDetailsResponse } from "@ebonkeep/shared";
-import { fetchLeaderboard, getGuildLeaderboard, getGuildById } from "../api";
+import type { PlayerClass } from "@ebonkeep/shared/core";
+import type {
+  GuildLeaderboardResponse,
+  LeaderboardEntry,
+  LeaderboardResponse,
+  LeaderboardType
+} from "@ebonkeep/shared/leaderboard";
+import type { GuildDetailsResponse } from "@ebonkeep/shared/guild";
+import { getGuildById } from "../guild";
+import { fetchLeaderboard, getGuildLeaderboard } from "./api";
 
 function safeHtml(raw: string): string {
   return String(DOMPurify.sanitize(raw, {

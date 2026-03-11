@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { IMPERIAL_BUNDLES, type ImperialBundle } from "@ebonkeep/shared";
+import { IMPERIAL_BUNDLES, type ImperialBundle } from "@ebonkeep/shared/economy";
 import {
   DAILY_PROVISION_CRATE_ICON_PATH,
   IMPERIAL_TRIBUTE_WAGON_ICON_PATH,
   IMPERIALS_ICON_PATH,
   QUARTERMASTERS_CHARTER_ICON_PATH
-} from "../constants/uiAssets";
+} from "../../constants/uiAssets";
 import { PaymentMethodSelector, type PaymentMethod, type PaymentMethodSelection } from "./PaymentMethodSelector";
 
 export interface ImperialShopProps {

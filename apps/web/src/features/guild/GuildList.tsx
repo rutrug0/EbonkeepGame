@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { getGuildCrestById, type Guild } from "@ebonkeep/shared";
+import { getGuildCrestById, type Guild } from "@ebonkeep/shared/guild";
 
 export interface GuildListProps {
   guilds: Guild[];

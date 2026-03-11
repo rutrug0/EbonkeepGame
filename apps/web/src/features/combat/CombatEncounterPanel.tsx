@@ -6,7 +6,7 @@ import type {
   CombatPlaybackActor,
   CombatPlaybackEncounter,
   CombatPlaybackEvent
-} from "@ebonkeep/shared";
+} from "@ebonkeep/shared/combat";
 
 import { CombatActorFrame } from "./CombatActorFrame";
 

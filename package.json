@@ -26,12 +26,17 @@
     "db:generate": "npm --workspace @ebonkeep/api run db:generate"
   },
   "devDependencies": {
+    "@eslint/js": "^9.22.0",
     "@playwright/test": "^1.52.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
     "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "^9.1.2",
+    "eslint": "^9.22.0",
+    "eslint-plugin-boundaries": "^5.1.0",
+    "globals": "^16.0.0",
     "jsdom": "^26.1.0",
+    "typescript-eslint": "^8.26.1",
     "vitest": "^3.2.4"
   },
   "engines": {

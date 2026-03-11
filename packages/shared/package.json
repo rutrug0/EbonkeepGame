@@ -9,6 +9,38 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./core": {
+      "types": "./src/core/index.ts",
+      "default": "./src/core/index.ts"
+    },
+    "./auth": {
+      "types": "./src/domains/auth/index.ts",
+      "default": "./src/domains/auth/index.ts"
+    },
+    "./player": {
+      "types": "./src/domains/player/index.ts",
+      "default": "./src/domains/player/index.ts"
+    },
+    "./inventory": {
+      "types": "./src/domains/inventory/index.ts",
+      "default": "./src/domains/inventory/index.ts"
+    },
+    "./combat": {
+      "types": "./src/domains/combat/index.ts",
+      "default": "./src/domains/combat/index.ts"
+    },
+    "./economy": {
+      "types": "./src/domains/economy/index.ts",
+      "default": "./src/domains/economy/index.ts"
+    },
+    "./guild": {
+      "types": "./src/domains/guild/index.ts",
+      "default": "./src/domains/guild/index.ts"
+    },
+    "./leaderboard": {
+      "types": "./src/domains/leaderboard/index.ts",
+      "default": "./src/domains/leaderboard/index.ts"
     }
   },
   "scripts": {
@@ -16,7 +48,7 @@
     "dev": "tsc -w -p tsconfig.json",
     "test": "npm run test:unit",
     "test:unit": "vitest run -c vitest.config.ts",
-    "lint": "echo \"No lint configured for @ebonkeep/shared\""
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" \"vitest.config.ts\""
   },
   "dependencies": {
     "zod": "^3.24.1"
