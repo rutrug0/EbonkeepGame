@@ -9,7 +9,14 @@
     ],
     "paths": {
       "@ebonkeep/shared": ["../../packages/shared/src/index.ts"],
-      "@ebonkeep/shared/*": ["../../packages/shared/src/*"],
+      "@ebonkeep/shared/core": ["../../packages/shared/src/core/index.ts"],
+      "@ebonkeep/shared/auth": ["../../packages/shared/src/domains/auth/index.ts"],
+      "@ebonkeep/shared/player": ["../../packages/shared/src/domains/player/index.ts"],
+      "@ebonkeep/shared/inventory": ["../../packages/shared/src/domains/inventory/index.ts"],
+      "@ebonkeep/shared/combat": ["../../packages/shared/src/domains/combat/index.ts"],
+      "@ebonkeep/shared/economy": ["../../packages/shared/src/domains/economy/index.ts"],
+      "@ebonkeep/shared/guild": ["../../packages/shared/src/domains/guild/index.ts"],
+      "@ebonkeep/shared/leaderboard": ["../../packages/shared/src/domains/leaderboard/index.ts"],
       "@ebonkeep/transactions/*": ["../../transactions/*"]
     }
   },
