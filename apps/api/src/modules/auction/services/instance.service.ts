@@ -31,8 +31,19 @@ export class AuctionInstanceService {
 
     for (const bracket of levelBrackets) {
       const { min, max } = bracket;
+      const activeAuctionCount = await this.prisma.auctionInstance.count({
+        where: {
+          levelBracketMin: min,
+          levelBracketMax: max,
+          status: "active",
+          endTime: {
+            gt: now
+          }
+        }
+      });
+      const missingAuctionCount = Math.max(0, auctionCountPerBracket - activeAuctionCount);
 
-      for (let index = 0; index < auctionCountPerBracket; index += 1) {
+      for (let index = 0; index < missingAuctionCount; index += 1) {
         const startTime = new Date(now.getTime() - index * staggerMs);
         const endTime = this.configService.calculateAuctionEndTime(startTime);
         const totalItems = this.config.instance.itemsPerAuction;
@@ -103,7 +114,7 @@ export class AuctionInstanceService {
         }
 
         console.log(
-          `Created auction ${index + 1}/${auctionCountPerBracket} for bracket [${min}-${max}] with ${systemItemCount} system + ${playerListings.length} player items (${Math.round((endTime.getTime() - now.getTime()) / (60 * 60 * 1000))}h remaining)`
+          `Created auction ${activeAuctionCount + index + 1}/${auctionCountPerBracket} for bracket [${min}-${max}] with ${systemItemCount} system + ${playerListings.length} player items (${Math.round((endTime.getTime() - now.getTime()) / (60 * 60 * 1000))}h remaining)`
         );
       }
     }

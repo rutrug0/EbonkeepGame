@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { AuctionBidService } from "../../src/modules/auction/services/bid.service.js";
 import { AuctionConfigService } from "../../src/modules/auction/services/config.service.js";
+import { AuctionInstanceService } from "../../src/modules/auction/services/instance.service.js";
 import { AuctionSettlementService } from "../../src/modules/auction/services/settlement.service.js";
 import {
   authHeaders,
@@ -215,6 +216,51 @@ describe("auction routes and services", () => {
     });
     expect(overbidderBidRecord.bidAmount).toBe(350);
     expect(overbidderBidRecord.maxAutoBid).toBe(350);
+  });
+
+  it("tops up concurrent auction wings without exceeding the configured active count", async () => {
+    const instanceService = new AuctionInstanceService(context.prisma);
+
+    await instanceService.createAuctionInstances({
+      systemItemScope: "warriorHeavyAndMelee"
+    });
+
+    const firstWave = await context.prisma.auctionInstance.findMany({
+      where: {
+        levelBracketMin: 1,
+        levelBracketMax: 10,
+        status: "active"
+      },
+      orderBy: { startTime: "desc" }
+    });
+
+    expect(firstWave).toHaveLength(3);
+
+    const initialDurations = firstWave.map((auction) => Math.round((auction.endTime.getTime() - auction.startTime.getTime()) / (60 * 60 * 1000)));
+    expect(initialDurations).toEqual([12, 12, 12]);
+
+    await context.prisma.auctionInstance.update({
+      where: { id: firstWave[2].id },
+      data: {
+        endTime: new Date(Date.now() - 60_000)
+      }
+    });
+
+    await instanceService.createAuctionInstances({
+      systemItemScope: "warriorHeavyAndMelee"
+    });
+
+    const secondWave = await context.prisma.auctionInstance.findMany({
+      where: {
+        levelBracketMin: 1,
+        levelBracketMax: 10,
+        status: "active",
+        endTime: { gt: new Date() }
+      },
+      orderBy: { startTime: "desc" }
+    });
+
+    expect(secondWave).toHaveLength(3);
   });
 
   it("settles auctions idempotently and lets winners claim pending rewards", async () => {

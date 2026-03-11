@@ -2329,6 +2329,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
           </div>
         )}
 
+        {pendingRewards.length > 0 && renderRewardsView()}
         {activeView === "browse" && renderBrowseView()}
         {activeView === "submit" && renderSubmitView()}
         {activeView === "mySubmissions" && renderMySubmissionsView()}

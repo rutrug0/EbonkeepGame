@@ -107,6 +107,12 @@ export class AuctionBidService {
         }
 
         const existingBid = activeBidByPlayer.get(playerId) ?? null;
+        const existingReserveAmount = existingBid ? this.getReservedAmount(existingBid) : 0;
+        const minimumAcceptedReserve = Math.max(minimumAcceptedBid, existingReserveAmount);
+        if (bidAmount < minimumAcceptedReserve) {
+          throw new Error(`Bid must be at least ${minimumAcceptedReserve} ducats`);
+        }
+
         const submittedCandidate: BidCandidate = {
           id: existingBid?.id ?? null,
           playerId,
