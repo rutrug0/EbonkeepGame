@@ -1436,6 +1436,7 @@ export function AppShell() {
   const [resetPasswordMessage, setResetPasswordMessage] = useState<string | null>(null);
   const [emailVerified, setEmailVerified] = useState(true); // assume true until we check
   const [verifyEmailMessage, setVerifyEmailMessage] = useState<string | null>(null);
+  const [resendEmailNotif, setResendEmailNotif] = useState<{ msg: string; success: boolean } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showRepeatPassword, setShowRepeatPassword] = useState(false);
   const [accountInfo, setAccountInfo] = useState<AccountOverviewResponse | null>(null);
@@ -2769,9 +2770,9 @@ export function AppShell() {
     if (!token) return;
     try {
       const response = await resendVerificationEmail(token);
-      alert(response.message || "Verification email sent!");
+      setResendEmailNotif({ msg: response.message || i18n.t("auth.resendSuccess"), success: true });
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to resend verification email");
+      setResendEmailNotif({ msg: err instanceof Error ? err.message : i18n.t("auth.resendFailed"), success: false });
     }
   }
 
@@ -4189,6 +4190,40 @@ export function AppShell() {
               }}
             >
               {i18n.t("settings.resendEmail")}
+            </button>
+          </div>
+        )}
+{resendEmailNotif && (
+          <div style={{
+            position: "fixed",
+            top: emailVerified ? 0 : "52px",
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            background: resendEmailNotif.success ? "rgba(34, 197, 94, 0.9)" : "rgba(239, 68, 68, 0.9)",
+            color: "#fff",
+            padding: "12px 20px",
+            textAlign: "center",
+            fontWeight: "bold",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "12px"
+          }}>
+            {resendEmailNotif.msg}
+            <button
+              onClick={() => setResendEmailNotif(null)}
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                border: "1px solid rgba(255,255,255,0.5)",
+                color: "#fff",
+                padding: "4px 12px",
+                borderRadius: "4px",
+                cursor: "pointer"
+              }}
+            >
+              {i18n.t("auth.dismiss")}
             </button>
           </div>
         )}

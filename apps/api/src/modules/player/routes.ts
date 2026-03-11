@@ -1,10 +1,11 @@
 import {
   playerPreferencesSchema,
+  publicPlayerProfileSchema,
   updatePlayerPreferencesBodySchema
 } from "@ebonkeep/shared";
 
 import type { FastifyPluginAsync } from "fastify";
-import { loadPlayerState } from "./state-service.js";
+import { loadPlayerState, getPublicPlayerProfile } from "./state-service.js";
 
 export const playerRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
@@ -60,6 +61,27 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send(payload);
+    }
+  );
+
+  fastify.get(
+    "/v1/player/:playerId/public-profile",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const { playerId } = request.params as { playerId: string };
+        const profile = await getPublicPlayerProfile(fastify.prisma, playerId);
+        if (!profile) {
+          return reply.code(404).send({ error: "Player not found." });
+        }
+        return reply.send(publicPlayerProfileSchema.parse(profile));
+      } catch (error) {
+        fastify.log.error({ err: error }, "Error in GET /v1/player/:playerId/public-profile");
+        return reply.code(500).send({
+          error: "Internal server error",
+          details: error instanceof Error ? error.message : String(error)
+        });
+      }
     }
   );
 };

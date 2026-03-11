@@ -42,3 +42,6 @@ tools/.cache/
 
 # Editor backup files
 *.bak
+
+# Local Copilot instructions (not shared with other contributors)
+.github/copilot-instructions.md

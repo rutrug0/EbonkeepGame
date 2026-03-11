@@ -7,10 +7,12 @@ import {
   getAllowedClassesForArchetype,
   mainStatToFlatDamageRatio,
   playerStateSchema,
+  publicPlayerProfileSchema,
   type CoreStatKey,
   type EquipmentState,
   type PlayerClass,
   type PlayerState,
+  type PublicPlayerProfile,
   type PlayerStatBlock,
   type PlayerStatBonuses,
   type PlayerStatSnapshot,
@@ -360,5 +362,59 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
       ducats: currency.ducats,
       imperials: currency.imperials
     }
+  });
+}
+
+export async function getPublicPlayerProfile(
+  prisma: PrismaClient,
+  playerId: string
+): Promise<PublicPlayerProfile | null> {
+  await ensurePlayerEquipmentSlots(prisma, playerId);
+
+  const profile = await prisma.playerProfile.findUnique({
+    where: { id: playerId },
+    include: {
+      stats: true,
+      equipmentSlots: {
+        include: {
+          item: {
+            select: { id: true, itemCode: true, itemData: true }
+          }
+        }
+      },
+      account: { select: { username: true } },
+      guildMembership: { select: { guildId: true } }
+    }
+  });
+
+  if (!profile) return null;
+
+  const stats = profile.stats ?? {
+    strength: 10, intelligence: 10, dexterity: 10,
+    vitality: 10, initiative: 10, luck: 10
+  };
+  const equipment = buildEquipmentState(profile.equipmentSlots);
+  const statSnapshot = buildPlayerStatSnapshot({
+    playerClass: profile.class as PlayerClass,
+    baseStats: {
+      strength: stats.strength,
+      intelligence: stats.intelligence,
+      dexterity: stats.dexterity,
+      vitality: stats.vitality,
+      initiative: stats.initiative,
+      luck: stats.luck
+    },
+    equipment
+  });
+
+  return publicPlayerProfileSchema.parse({
+    playerId: profile.id,
+    username: profile.account.username ?? "Unknown Warden",
+    class: profile.class,
+    level: profile.level,
+    gearScore: profile.gearScore,
+    guildId: profile.guildMembership?.guildId ?? null,
+    equipment,
+    statSnapshot
   });
 }

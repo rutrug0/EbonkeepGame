@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  # Attach these labels to every time series scraped by this Prometheus instance.
+  external_labels:
+    monitor: "ebonkeep-local"
+
+scrape_configs:
+  # Scrape Prometheus itself.
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Scrape the Ebonkeep Fastify API.
+  # On Docker Desktop (Windows/macOS), host.docker.internal resolves to the host machine.
+  # Change the port below if your API runs on a different port than 4000.
+  - job_name: "ebonkeep-api"
+    scrape_interval: 10s
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["host.docker.internal:4000"]
+        labels:
+          service: "api"
+          env: "local"

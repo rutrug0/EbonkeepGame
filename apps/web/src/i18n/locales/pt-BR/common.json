@@ -1,9 +1,10 @@
 ﻿{  "loading": "Carregando...",
   "cancel": "Cancelar",
+  "ok": "OK",
   "save": "Salvar",
   "yes": "Sim",
   "no": "Não",
-  "you": "Você",  "auth": {"subtitle": "Faça login para abrir sua página principal.", "loginGuest": "Entrar como convidado", "verifyEmailBanner": "Por favor, verifique seu endereço de e-mail. Confira sua caixa de entrada para o link de verificação.", "dismiss": "Fechar"},
+  "you": "Você",  "auth": {"subtitle": "Faça login para abrir sua página principal.", "loginGuest": "Entrar como convidado", "verifyEmailBanner": "Por favor, verifique seu endereço de e-mail. Confira sua caixa de entrada para o link de verificação.", "dismiss": "Fechar", "resendSuccess": "E-mail de verificação enviado!", "resendFailed": "Falha ao reenviar e-mail de verificação"},
   "menu": {
     "title": "Menu", "inventory": "Inventário", "encyclopedia": "Enciclopédia", "contracts": "Contratos", "missions": "Missões", "arena": "Arena", "guild": "Guilda", "castles": "Castelos", "auctionHouse": "Casa de Leilões", "merchant": "Mercador", "shop": "Loja Imperial", "leaderboards": "Rankings", "settings": "Configurações", "logout": "Sair"
   },
@@ -210,10 +211,23 @@
     "notRanked": "Sem Classificação",
     "totalPlayers": "{{count}} Jogadores",
     "refreshLeaderboard": "Atualizar Classificação",
-    "viewingTop": "Visualizando Top {{count}}"
+    "viewingTop": "Visualizando Top {{count}}",
+    "viewProfile": "Ver perfil",
+    "actions": "Ações",
+    "invite": "Convidar",
+    "inviting": "Convidando...",
+    "hasGuild": "Tem guilda",
+    "equipment": "Equipamento",
+    "stats": "Estatísticas",
+    "viewGuild": "Ver guilda",
+    "inviteConfirmTitle": "Convidar para a guilda?",
+    "inviteConfirmMessage": "Enviar um convite de guilda para {{playerName}}?",
+    "inviteConfirm": "Sim, convidar"
   },
-  "guild": {
-    "title": "Guildas",
+  "guild": {    "notifications": {
+      "success": "Sucesso",
+      "error": "Erro"
+    },    "title": "Guildas",
     "create": "Criar Guilda",
     "search": "Buscar Guildas",
     "searchPlaceholder": "Pesquisar por nome ou tag da guilda...",
@@ -318,7 +332,10 @@
         "sent": "Convite enviado com sucesso!"
       },
       "error": {
-        "playerIdRequired": "ID do jogador é obrigatório"
+        "playerIdRequired": "ID do jogador é obrigatório",
+        "failedToAccept": "Falha ao aceitar o convite",
+        "failedToDecline": "Falha ao recusar o convite",
+        "failedToSend": "Falha ao enviar o convite"
       },
       "invitesTab": "Convites",
       "cannotSend": "Apenas oficiais e líderes da guilda podem enviar convites."

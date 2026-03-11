@@ -13,7 +13,10 @@ export const leaderboardEntrySchema = z.object({
   class: playerClassSchema,
   level: z.number().int().min(1),
   gearScore: z.number().int().min(0),
-  value: z.number().int().min(0)
+  value: z.number().int().min(0),
+  guildId: z.string().nullable().optional().default(null),
+  guildTag: z.string().nullable().optional().default(null),
+  guildName: z.string().nullable().optional().default(null)
 });
 export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
 

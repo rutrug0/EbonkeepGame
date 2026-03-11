@@ -1,10 +1,11 @@
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import type { PrismaClient } from "@prisma/client";
-import Fastify, { type FastifyBaseLogger, type FastifyInstance, type FastifyLoggerOptions } from "fastify";
+import Fastify, { type FastifyBaseLogger, type FastifyInstance } from "fastify";
 import type { Redis } from "ioredis";
 
 import { getEnv } from "./config/env.js";
+import { createLogger, genReqId } from "./config/logger.js";
 import { initializeAuctionJobs } from "./modules/auction/background-jobs.js";
 import { auctionRoutes } from "./modules/auction/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
@@ -18,12 +19,14 @@ import { playerRoutes } from "./modules/player/routes.js";
 import { schedulerRoutes } from "./modules/scheduler/routes.js";
 import { telemetryRoutes } from "./modules/telemetry/routes.js";
 import { authPlugin } from "./plugins/auth.js";
+import { metricsPlugin } from "./plugins/metrics.js";
 import { prismaPlugin } from "./plugins/prisma.js";
 import { redisPlugin } from "./plugins/redis.js";
 import { websocketRoutes } from "./routes/ws.js";
 
 export type BuildServerOptions = {
-  logger?: FastifyLoggerOptions<FastifyBaseLogger> | boolean;
+  /** Pass `false` to silence logs in tests. Defaults to the Pino logger from config/logger.ts. */
+  logger?: boolean;
   prisma?: PrismaClient;
   redis?: Redis;
   startBackgroundJobs?: boolean;
@@ -52,10 +55,18 @@ function attachExternalClients(fastify: FastifyInstance, options: BuildServerOpt
 export async function buildServer(options: BuildServerOptions = {}): Promise<FastifyInstance> {
   initializeEmailTransport();
 
-  const fastify = Fastify({
-    logger: options.logger ?? {
-      level: "info"
-    }
+  // Fastify v5: use `loggerInstance` for a pre-built Pino logger so that it
+  // doesn't conflict with the server type inference done by the `logger` option.
+  // Tests silence logging by passing `logger: false`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fastify: FastifyInstance = (options.logger === false
+    ? Fastify({ logger: false, genReqId })
+    : Fastify({ loggerInstance: createLogger(), genReqId })) as any;
+
+  // Echo the request/correlation ID back to the caller on every response.
+  fastify.addHook("onSend", async (request, _reply, payload) => {
+    _reply.header("X-Request-Id", request.id);
+    return payload;
   });
 
   await fastify.register(cors, {
@@ -63,6 +74,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
     credentials: true
   });
   await fastify.register(websocket);
+  await fastify.register(metricsPlugin);
   await fastify.register(authPlugin);
 
   if (options.prisma || options.redis) {

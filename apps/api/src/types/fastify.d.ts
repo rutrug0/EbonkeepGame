@@ -16,6 +16,8 @@ declare module "fastify" {
       playerId: string;
       level?: number; // Player level for auction bracket matching
     };
+    /** High-resolution start timestamp set by the metrics plugin. */
+    metricsStartTime: bigint;
   }
 }
 

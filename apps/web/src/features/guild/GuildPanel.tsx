@@ -320,7 +320,7 @@ function MyGuildView({
     { id: "activity",  label: t("guild.activityLog") },
     { id: "missions",  label: t("menu.missions") },
     { id: "invites",   label: t("guild.invite.invitesTab"), manageOnly: true },
-    { id: "settings",  label: t("guild.settings"), leaderOnly: true },
+    { id: "settings",  label: t("guild.settings"), manageOnly: true },
   ];
 
   return (
@@ -427,33 +427,35 @@ function MyGuildView({
           </article>
 
           {/* ── Tab content ── */}
-          <article className={`contentCard${activeTab === "settings" ? " guildPanelFillCard" : ""}`}>
-            {activeTab === "members" && (
-              <GuildMembersTab
-                token={token}
-                guildId={guildData.guild.id}
-                currentPlayerId={currentPlayerId}
-                currentUserRole={role}
-              />
-            )}
-            {activeTab === "activity" && (
-              <GuildActivityTab token={token} guildId={guildData.guild.id} />
-            )}
-            {activeTab === "invites" && canManage && (
-              <GuildInvitesTab token={token} guildId={guildData.guild.id} />
-            )}
-            {activeTab === "settings" && isLeader && (
-              <GuildSettingsTab
-                token={token}
-                guild={guildData.guild}
-                membership={guildData.currentUserMembership}
-                canManage={canManage}
-                onUpdate={loadGuildData}
-                onLeave={handleLeave}
-                onDisband={handleDisband}
-              />
-            )}
-          </article>
+          {activeTab !== "missions" && (
+            <article className="contentCard">
+              {activeTab === "members" && (
+                <GuildMembersTab
+                  token={token}
+                  guildId={guildData.guild.id}
+                  currentPlayerId={currentPlayerId}
+                  currentUserRole={role}
+                />
+              )}
+              {activeTab === "activity" && (
+                <GuildActivityTab token={token} guildId={guildData.guild.id} />
+              )}
+              {activeTab === "invites" && canManage && (
+                <GuildInvitesTab token={token} guildId={guildData.guild.id} />
+              )}
+              {activeTab === "settings" && canManage && (
+                <GuildSettingsTab
+                  token={token}
+                  guild={guildData.guild}
+                  membership={guildData.currentUserMembership}
+                  canManage={canManage}
+                  onUpdate={loadGuildData}
+                  onLeave={handleLeave}
+                  onDisband={handleDisband}
+                />
+              )}
+            </article>
+          )}
         </>
       )}
       {/* GuildMissions at stable position — always rendered when missions tab OR mission active */}
@@ -486,6 +488,7 @@ function NoGuildView({
   const [invites, setInvites] = useState<any[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
   const [showLevelWarning, setShowLevelWarning] = useState(false);
+  const [notifyModal, setNotifyModal] = useState<{ title: string; message: string; onClose?: () => void } | null>(null);
 
   const handleCreateClick = () => {
     if (playerLevel != null && playerLevel < GUILD_MIN_LEVEL) {
@@ -505,10 +508,16 @@ function NoGuildView({
   const handleAccept = async (inviteId: string, guildName: string) => {
     try {
       await acceptGuildInvite(token, inviteId);
-      alert(t("guild.invite.accepted", { guildName }));
-      window.location.reload();
+      setNotifyModal({
+        title: t("guild.notifications.success"),
+        message: t("guild.invite.accepted", { guildName }),
+        onClose: () => window.location.reload(),
+      });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to accept invite");
+      setNotifyModal({
+        title: t("guild.notifications.error"),
+        message: err instanceof Error ? err.message : t("guild.invite.error.failedToAccept"),
+      });
     }
   };
 
@@ -517,12 +526,24 @@ function NoGuildView({
       await declineGuildInvite(token, inviteId);
       setInvites((prev) => prev.filter((i) => i.id !== inviteId));
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to decline invite");
+      setNotifyModal({
+        title: t("guild.notifications.error"),
+        message: err instanceof Error ? err.message : t("guild.invite.error.failedToDecline"),
+      });
     }
   };
 
   return (
     <>
+      {notifyModal && (
+        <ConfirmModal
+          title={notifyModal.title}
+          message={notifyModal.message}
+          confirmLabel={t("ok")}
+          onConfirm={() => { const cb = notifyModal.onClose; setNotifyModal(null); cb?.(); }}
+          onCancel={() => { const cb = notifyModal.onClose; setNotifyModal(null); cb?.(); }}
+        />
+      )}
       {showLevelWarning && (
         <ConfirmModal
           title={t("guild.createLevelRequiredTitle", { level: GUILD_MIN_LEVEL })}
@@ -1305,21 +1326,22 @@ function GuildInvitesTab({ token, guildId }: { token: string; guildId: string })
   const [invitePlayerId, setInvitePlayerId] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [notifyModal, setNotifyModal] = useState<{ title: string; message: string } | null>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invitePlayerId.trim()) {
-      alert(t("guild.invite.error.playerIdRequired"));
+      setNotifyModal({ title: t("guild.notifications.error"), message: t("guild.invite.error.playerIdRequired") });
       return;
     }
     try {
       setSending(true);
       await sendGuildInvite(token, guildId, invitePlayerId, inviteMessage || undefined);
-      alert(t("guild.invite.success.sent"));
+      setNotifyModal({ title: t("guild.notifications.success"), message: t("guild.invite.success.sent") });
       setInvitePlayerId("");
       setInviteMessage("");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to send invite");
+      setNotifyModal({ title: t("guild.notifications.error"), message: err instanceof Error ? err.message : t("guild.invite.error.failedToSend") });
     } finally {
       setSending(false);
     }
@@ -1327,6 +1349,15 @@ function GuildInvitesTab({ token, guildId }: { token: string; guildId: string })
 
   return (
     <div className="guildInviteTabContent">
+      {notifyModal && (
+        <ConfirmModal
+          title={notifyModal.title}
+          message={notifyModal.message}
+          confirmLabel={t("ok")}
+          onConfirm={() => setNotifyModal(null)}
+          onCancel={() => setNotifyModal(null)}
+        />
+      )}
       <h3 className="guildSectionTitle">{t("guild.invite.sendInvitation")}</h3>
       <form onSubmit={handleSend} className="guildInviteSendForm">
         <div className="guildInviteSendFields">
@@ -1554,8 +1585,9 @@ function GuildSettingsTab({
                 type="checkbox"
                 checked={formData.isRecruiting}
                 onChange={(e) => setFormData({ ...formData, isRecruiting: e.target.checked })}
-                className="guildFormCheckbox"
+                className="guildFormCheckboxInput"
               />
+              <span className="guildFormCheckboxCustom" />
               <span>{t("guild.openRecruitment")}</span>
             </label>
           </div>

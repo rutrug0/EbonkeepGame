@@ -1,6 +1,7 @@
 {
   "loading": "로딩 중...",
   "cancel": "취소",
+  "ok": "확인",
   "save": "저장",
   "yes": "예",
   "no": "아니오",
@@ -9,7 +10,9 @@
     "subtitle": "로그인하여 메인 페이지를 여세요.",
     "loginGuest": "게스트로 로그인",
     "verifyEmailBanner": "이메일 주소를 인증해 주세요. 받은 편지함에서 인증 링크를 확인하세요.",
-    "dismiss": "닫기"
+    "dismiss": "닫기",
+    "resendSuccess": "인증 이메일이 전송되었습니다!",
+    "resendFailed": "인증 이메일 재전송에 실패했습니다"
   },
   "menu": {
     "title": "메뉴",
@@ -298,8 +301,24 @@
     "notRanked": "순위권 밖",
     "totalPlayers": "{{count}}명의 플레이어",
     "refreshLeaderboard": "순위 새로고침",
-    "viewingTop": "상위 {{count}}명"  },
+    "viewingTop": "상위 {{count}}명",
+    "viewProfile": "프로필 보기",
+    "actions": "작업",
+    "invite": "초대",
+    "inviting": "초대 중...",
+    "hasGuild": "길드 있음",
+    "equipment": "장비",
+    "stats": "능력치",
+    "viewGuild": "길드 보기",
+    "inviteConfirmTitle": "길드에 초대할까요?",
+    "inviteConfirmMessage": "{{playerName}} 님에게 길드 초대를 보내시겠습니까?",
+    "inviteConfirm": "네, 초대하기"
+  },
   "guild": {
+    "notifications": {
+      "success": "성공",
+      "error": "오류"
+    },
     "title": "길드",
     "create": "길드 생성",
     "search": "길드 검색",
@@ -405,7 +424,10 @@
         "sent": "초대장을 성공적으로 보냈습니다!"
       },
       "error": {
-        "playerIdRequired": "플레이어 ID가 필요합니다"
+        "playerIdRequired": "플레이어 ID가 필요합니다",
+        "failedToAccept": "초대 수락에 실패했습니다",
+        "failedToDecline": "초대 거절에 실패했습니다",
+        "failedToSend": "초대 전송에 실패했습니다"
       },
       "invitesTab": "초대장",
       "cannotSend": "길드 장교와 리더만 초대를 보낼 수 있습니다."

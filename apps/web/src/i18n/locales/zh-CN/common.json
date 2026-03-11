@@ -1,11 +1,12 @@
 ﻿{
   "loading": "加载中...",
   "cancel": "取消",
+  "ok": "确定",
   "save": "保存",
   "yes": "是",
   "no": "否",
   "you": "你",
-  "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录", "verifyEmailBanner": "请验证您的电子邮件地址。请查收邮件中的验证链接。", "dismiss": "关闭"},
+  "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录", "verifyEmailBanner": "请验证您的电子邮件地址。请查收邮件中的验证链接。", "dismiss": "关闭", "resendSuccess": "验证邮件已发送！", "resendFailed": "重新发送验证邮件失败"},
   "menu": {
     "title": "菜单", "inventory": "背包", "encyclopedia": "图鉴", "contracts": "契约", "missions": "任务", "arena": "竞技场", "guild": "公会", "castles": "城堡", "auctionHouse": "拍卖行", "merchant": "商人", "shop": "帝国商店", "leaderboards": "排行榜", "settings": "设置", "logout": "退出登录"
   },
@@ -216,9 +217,24 @@
     "notRanked": "未上榜",
     "totalPlayers": "{{count}} 玩家",
     "refreshLeaderboard": "刷新排行榜",
-    "viewingTop": "查看前 {{count}} 名"
+    "viewingTop": "查看前 {{count}} 名",
+    "viewProfile": "查看档案",
+    "actions": "操作",
+    "invite": "邀请",
+    "inviting": "邀请中...",
+    "hasGuild": "已有公会",
+    "equipment": "装备",
+    "stats": "属性",
+    "viewGuild": "查看公会",
+    "inviteConfirmTitle": "邀请加入公会？",
+    "inviteConfirmMessage": "确认向 {{playerName}} 发送公会邀请？",
+    "inviteConfirm": "确认邀请"
   },
   "guild": {
+    "notifications": {
+      "success": "成功",
+      "error": "错误"
+    },
     "title": "公会",
     "create": "创建公会",
     "search": "搜索公会",
@@ -321,7 +337,10 @@
         "sent": "邀请已成功发送！"
       },
       "error": {
-        "playerIdRequired": "需要玩家ID"
+        "playerIdRequired": "需要玩家ID",
+        "failedToAccept": "接受邀请失败",
+        "failedToDecline": "拒绝邀请失败",
+        "failedToSend": "发送邀请失败"
       },
       "invitesTab": "邀请",
       "cannotSend": "只有公会官员和领袖才能发送邀请。"
