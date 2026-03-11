@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { AuctionConfigService } from "./config.service.js";
 
 export class AuctionSettlementService {
@@ -35,56 +35,89 @@ export class AuctionSettlementService {
     });
 
     for (const auction of expiredAuctions) {
-      // Settle all items in the auction
-      for (const item of auction.items) {
-        if (item.currentWinnerId) {
-          // Item was sold - create pending reward for winner
-          await this.prisma.auctionPendingReward.create({
-            data: {
-              playerId: item.currentWinnerId,
-              itemId: item.id,
-              itemCode: item.itemCode,
-              auctionId: item.auctionInstanceId,
-              winningBid: item.currentBid,
-              expiresAt: new Date(
-                Date.now() + this.config.rewards.pendingRewardExpiryDays * 24 * 60 * 60 * 1000
-              )
-            }
-          });
+      const { feesCollected, settledItems } = await this.prisma.$transaction(async (tx) => {
+        let feesCollected = 0;
+        let settledItems = 0;
 
-          // If player-submitted item, pay seller minus fee
-          if (item.isPlayerSubmitted && item.sellerId) {
-            const { fee, sellerProceeds } = this.calculateSellerProceeds(
-              item.currentBid,
-              item.feePercentage
-            );
-
-            await this.prisma.currencyBalance.update({
-              where: { playerId: item.sellerId },
-              data: { ducats: { increment: sellerProceeds } }
+        for (const item of auction.items) {
+          if (item.currentWinnerId) {
+            const winningBid = await tx.auctionBid.findFirst({
+              where: {
+                itemId: item.id,
+                playerId: item.currentWinnerId,
+                status: "active"
+              },
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                bidAmount: true,
+                maxAutoBid: true
+              }
             });
 
-            totalFeesCollected += fee;
+            if (winningBid) {
+              const reservedAmount = this.getReservedAmount(winningBid);
+              const refundAmount = Math.max(0, reservedAmount - item.currentBid);
+
+              if (refundAmount > 0) {
+                await tx.currencyBalance.update({
+                  where: { playerId: item.currentWinnerId },
+                  data: { ducats: { increment: refundAmount } }
+                });
+              }
+
+              await tx.auctionBid.update({
+                where: { id: winningBid.id },
+                data: {
+                  bidAmount: item.currentBid,
+                  status: "won"
+                }
+              });
+            }
+
+            await tx.auctionPendingReward.create({
+              data: {
+                playerId: item.currentWinnerId,
+                itemId: item.id,
+                itemCode: item.itemCode,
+                auctionId: item.auctionInstanceId,
+                winningBid: item.currentBid,
+                expiresAt: new Date(
+                  Date.now() + this.config.rewards.pendingRewardExpiryDays * 24 * 60 * 60 * 1000
+                )
+              }
+            });
+
+            if (item.isPlayerSubmitted && item.sellerId) {
+              const { fee, sellerProceeds } = this.calculateSellerProceeds(
+                item.currentBid,
+                item.feePercentage
+              );
+
+              await tx.currencyBalance.update({
+                where: { playerId: item.sellerId },
+                data: { ducats: { increment: sellerProceeds } }
+              });
+
+              feesCollected += fee;
+            }
+          } else if (item.isPlayerSubmitted && item.sellerId) {
+            await this.returnItemToSeller(tx, item.id, item.sellerId, item.itemCode, auction.id);
           }
 
-          // Item sold successfully - no status field to update
-        } else {
-          // Item did not sell
-          if (item.isPlayerSubmitted && item.sellerId) {
-            // Return item to seller's inventory
-            await this.returnItemToSeller(item.id, item.sellerId, item.itemCode, auction.id);
-          }
-          // No status field to update
+          settledItems++;
         }
 
-        settledCount++;
-      }
+        await tx.auctionInstance.update({
+          where: { id: auction.id },
+          data: { status: "completed" }
+        });
 
-      // Mark auction as completed
-      await this.prisma.auctionInstance.update({
-        where: { id: auction.id },
-        data: { status: "completed" }
+        return { feesCollected, settledItems };
       });
+
+      settledCount += settledItems;
+      totalFeesCollected += feesCollected;
     }
 
     return { settledCount, totalFeesCollected };
@@ -107,6 +140,7 @@ export class AuctionSettlementService {
    * This is a placeholder - integrate with your inventory system
    */
   private async returnItemToSeller(
+    tx: Prisma.TransactionClient,
     itemId: string,
     sellerId: string,
     itemData: any,
@@ -114,7 +148,7 @@ export class AuctionSettlementService {
   ): Promise<void> {
     // TODO: Integrate with inventory system
     // For now, create a pending reward so seller can claim it back
-    await this.prisma.auctionPendingReward.create({
+    await tx.auctionPendingReward.create({
       data: {
         playerId: sellerId,
         itemId,
@@ -126,6 +160,10 @@ export class AuctionSettlementService {
         )
       }
     });
+  }
+
+  private getReservedAmount(bid: { bidAmount: number; maxAutoBid?: number | null }): number {
+    return bid.maxAutoBid ?? bid.bidAmount;
   }
 
   /**

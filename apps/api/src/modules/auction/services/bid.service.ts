@@ -486,40 +486,17 @@ export class AuctionBidService {
       startingBid,
       newLeader,
       runnerUp,
-      previousLeader,
-      submittedPlayerId,
-      submittedReserve
+      previousLeader
     } = args;
 
-    if (newLeader.playerId !== submittedPlayerId) {
-      return Math.min(newLeader.reserveAmount, this.calculateMinBid(submittedReserve, startingBid));
+    if (runnerUp) {
+      return Math.min(newLeader.reserveAmount, this.calculateMinBid(runnerUp.reserveAmount, startingBid));
     }
 
-    if (previousLeader?.playerId === submittedPlayerId) {
-      if (runnerUp) {
-        return Math.min(newLeader.reserveAmount, this.calculateMinBid(runnerUp.reserveAmount, startingBid));
-      }
-
-      return currentBid > 0 ? currentBid : startingBid;
+    if (previousLeader?.playerId === newLeader.playerId && currentBid > 0) {
+      return currentBid;
     }
 
-    if (!previousLeader) {
-      if (runnerUp) {
-        return Math.min(newLeader.reserveAmount, this.calculateMinBid(runnerUp.reserveAmount, startingBid));
-      }
-
-      if (currentBid > 0) {
-        return Math.min(newLeader.reserveAmount, this.calculateMinBid(currentBid, startingBid));
-      }
-
-      return startingBid;
-    }
-
-    const previousLeaderReserve = this.getReservedAmount(previousLeader);
-    if (previousLeaderReserve > currentBid) {
-      return submittedReserve;
-    }
-
-    return Math.min(newLeader.reserveAmount, this.calculateMinBid(currentBid, startingBid));
+    return Math.min(newLeader.reserveAmount, this.calculateMinBid(0, startingBid));
   }
 }

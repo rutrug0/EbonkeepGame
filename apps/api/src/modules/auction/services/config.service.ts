@@ -257,27 +257,19 @@ export class AuctionConfigService {
   }
 
   /**
-   * Calculate minimum bid based on current bid
+   * Calculate the next visible bid using the configured fixed step.
    */
   calculateMinBid(currentBid: number, startingBid: number): number {
-    if (currentBid === 0) {
-      return startingBid;
-    }
-
-    const percentIncrement = Math.ceil(
-      (currentBid * this.config.bidding.minBidIncrementPercentage) / 100
-    );
-    const increment = Math.max(this.config.bidding.minBidIncrementAbsolute, percentIncrement);
-    return currentBid + increment;
+    const bidStep = this.config.bidding.minBidIncrementAbsolute;
+    const visibleBase = currentBid > 0 ? currentBid : startingBid;
+    return visibleBase + bidStep;
   }
 
   /**
    * Calculate the minimum accepted reserve for a newly submitted bid.
-   * This stays aligned with the visible floor returned to clients.
    */
   calculateMinimumAcceptedBid(currentBid: number, startingBid: number): number {
-    const visibleBase = currentBid > 0 ? currentBid : startingBid;
-    return Math.max(this.calculateMinBid(currentBid, startingBid), visibleBase + 11);
+    return this.calculateMinBid(currentBid, startingBid);
   }
 
   /**
