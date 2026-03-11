@@ -754,7 +754,7 @@ function MissionBoardView({
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: "0.76rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                      <span className="ducatsAmount" style={{ fontSize: "0.76rem", whiteSpace: "nowrap" }}>
                         {tpl.rewardDucats.min}–{tpl.rewardDucats.max} ◎
                       </span>
                       <button
@@ -774,7 +774,7 @@ function MissionBoardView({
                         {tpl.description}
                       </p>
                       <div style={{ display: "flex", gap: "0.9rem", flexWrap: "wrap" }}>
-                        <span style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
+                        <span className="ducatsAmount" style={{ fontSize: "0.76rem" }}>
                           {t("missions.board.exp")}: {tpl.rewardExperience.min}–{tpl.rewardExperience.max}
                         </span>
                         <span style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
