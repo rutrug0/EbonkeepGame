@@ -3,7 +3,6 @@
   useMemo,
   useRef,
   useState,
-  type DragEvent,
   type FormEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -12,6 +11,24 @@
 } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AuthScreen } from "./AuthScreen";
+import { CharacterHubTabs } from "./CharacterHubTabs";
+import { ChatPanel } from "./ChatPanel";
+import { PlaceholderPanel } from "./PlaceholderPanel";
+import { SettingsPanel } from "./SettingsPanel";
+import { createInventoryInteractions, type InventoryInsertPosition } from "./inventoryInteractions";
+import { createInitialChatMessages, type ChatMessage } from "./chat";
+import {
+  MENU_ITEMS,
+  formatMenuLabel,
+  getLayoutMode,
+  renderMenuIcon,
+  type CharacterHubTab,
+  type ChatChannel,
+  type LandingTab,
+  type LayoutMode,
+  type ProfileSideTab
+} from "./navigation";
 import {
   mainStatToFlatDamageRatio,
   type ArmorArchetype,
@@ -64,38 +81,68 @@ import {
   CombatEncounterPanel,
   CombatEncounterTurnTrackPanel
 } from "../features/combat";
-import { ImperialShop } from "../features/economy";
+import {
+  COMBAT_FAST_FORWARD_ANIMATION_RATE,
+  COMBAT_PLAYBACK_BEAT_MS,
+  COMBAT_PLAYBACK_IMPACT_DELAY_MS,
+  COMBAT_PLAYBACK_START_DELAY_MS,
+  COMBAT_SUMMARY_TYPE_DELAY_MS,
+  CONTRACT_REPLENISH_MAX_MS,
+  CONTRACT_REPLENISH_MIN_MS,
+  ContractsPanel,
+  buildMockCombatEncounterState,
+  createContractOffer,
+  createContractSlots,
+  getEncounterAnimationRate,
+  getEncounterPlaybackProgress,
+  getEncounterPlaybackThresholdMs,
+  getEncounterTravelDescription,
+  resetCombatEncounterPlayback,
+  snapshotEncounterPlayback,
+  type ActiveContractEncounterState,
+  type ContractDifficulty,
+  type ContractOffer,
+  type ContractRoll,
+  type ContractSlotState
+} from "../features/contracts";
+import { ImperialShop, MerchantPanel } from "../features/economy";
 import { GuildMissions, GuildPanel } from "../features/guild";
 import { Leaderboard } from "../features/leaderboard";
+import {
+  DEFAULT_RENOWN_NODE_ID,
+  EncyclopediaPanel,
+  GENERATED_WEAPON_ICON_PATHS_BY_NAME,
+  InventoryManagementPanel,
+  ITEM_POWER_BASE_PER_LEVEL,
+  LedgerEntryCard,
+  MODIFIER_TIER_POWER_PER_LEVEL,
+  MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS,
+  MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL,
+  MOCK_MELEE_RARITY_POOL,
+  MOCK_MELEE_WEAPON_TEMPLATES,
+  ProfileSidePanel,
+  RARITY_POWER_BONUS_RATE,
+  RENOWN_INITIAL_VIEW,
+  RENOWN_MAX_SCALE,
+  RENOWN_MIN_SCALE,
+  RENOWN_SCENE_HEIGHT,
+  RENOWN_SCENE_WIDTH,
+  RenownPanel,
+  WEAPON_BASE_LEVEL_POWER_WEIGHT,
+  WEAPON_POWER_MULTIPLIER,
+  normalizeEncyclopediaItems,
+  type EncyclopediaArmorArchetype,
+  type EncyclopediaCategory,
+  type EncyclopediaWeaponArchetype,
+  type MockInventoryItemSeed,
+  type RenownViewState
+} from "../features/profile";
 import { IMPERIALS_ICON_PATH } from "../constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
-import {
-  GENERATED_ITEM_ENCYCLOPEDIA_DATA,
-  type GeneratedEncyclopediaItem
-} from "../generated/itemEncyclopediaData";
+import { GENERATED_ITEM_ENCYCLOPEDIA_DATA, type GeneratedEncyclopediaItem } from "../generated/itemEncyclopediaData";
 import i18n, { setLocale } from "../i18n";
-import { LOCALE_OPTIONS, LOCALE_STORAGE_KEY, normalizeLocale } from "../i18n/supportedLocales";
-
-type LandingTab =
-  | "inventory"
-  | "encyclopedia"
-  | "contracts"
-  | "missions"
-  | "arena"
-  | "guild"
-  | "castles"
-  | "auctionHouse"
-  | "merchant"
-  | "shop"
-  | "leaderboards"
-  | "settings";
+import { LOCALE_STORAGE_KEY, normalizeLocale } from "../i18n/supportedLocales";
 type Rarity = "common" | "uncommon" | "rare" | "epic";
-type ContractDifficulty = "easy" | "medium" | "hard";
-type ContractRoll = "low" | "medium" | "high";
-type LayoutMode = "compact" | "standard" | "wide";
-type CharacterHubTab = "character" | "renown" | "ledger" | "encyclopedia";
-type ProfileSideTab = "inventory" | "consumables" | "stats";
-type InventoryInsertPosition = "before" | "after";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
 type InventoryStatFlashKey = TrainableStatKey | "gearScore";
 type InventoryStatFlashDirection = "positive" | "negative";
@@ -103,64 +150,12 @@ type InventoryStatFlash = {
   direction: InventoryStatFlashDirection;
 };
 type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
-type ChatChannel = "world" | "guild";
-type EncyclopediaCategory = "armor" | "weapon" | "jewelry" | "monster";
-type EncyclopediaArmorArchetype = "heavy" | "light" | "robe";
-type EncyclopediaWeaponArchetype = "melee" | "ranged" | "arcane";
 type LedgerZoneGroup = {
   zoneId: string;
   zoneName: string;
   familyName: string;
   baseLevel: number;
   items: GeneratedEncyclopediaItem[];
-};
-type RenownNodeStatus = "unlocked" | "available" | "locked";
-type RenownBranchTone = "root" | "ledger" | "garden" | "campaign" | "industry";
-type RenownIconKey =
-  | "sigil"
-  | "quill"
-  | "sprout"
-  | "banner"
-  | "map"
-  | "lantern"
-  | "vial"
-  | "satchel"
-  | "route"
-  | "hammer"
-  | "archive"
-  | "tower";
-type RenownNode = {
-  id: string;
-  label: string;
-  branch: string;
-  tone: RenownBranchTone;
-  icon: RenownIconKey;
-  description: string;
-  effect: string;
-  requirements: string[];
-  cost: number;
-  tier: number;
-  status: RenownNodeStatus;
-  x: number;
-  y: number;
-};
-type RenownEdge = {
-  from: string;
-  to: string;
-};
-type RenownCanopy = {
-  id: string;
-  tone: Exclude<RenownBranchTone, "root">;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotate: number;
-};
-type RenownViewState = {
-  x: number;
-  y: number;
-  scale: number;
 };
 
 type EquipmentSlotId = SharedEquipmentSlotId;
@@ -212,13 +207,6 @@ type ItemModifierStatLine = {
   value: string;
 };
 
-type MeleeDamageRollWindow = {
-  minLow: number;
-  minHigh: number;
-  maxLow: number;
-  maxHigh: number;
-};
-
 type EquippedItems = Record<EquipmentSlotId, InventoryItem | null>;
 
 type MerchantOffer = {
@@ -235,11 +223,6 @@ type MerchantState = {
   sellPrices: Record<string, number>;
   nextRefreshAtMs: number;
 };
-
-type DragPayload =
-  | { source: "inventory"; itemId: string }
-  | { source: "equipment"; slotId: EquipmentSlotId; itemId: string }
-  | { source: "merchant"; offerId: string; itemId: string };
 
 type InventoryComparisonHoverState = {
   hoverKey: string;
@@ -259,92 +242,14 @@ type InventoryFilterState = {
   powerSortDirection: "desc" | "asc";
 };
 
-type ContractBand = {
-  low: number;
-  medium: number;
-  high: number;
-};
-
-type ContractTemplate = {
-  id: string;
-  name: string;
-  difficulty: ContractDifficulty;
-  experience: ContractBand;
-  ducats: ContractBand;
-  materials: ContractBand;
-  itemDrop: ContractBand;
-  staminaCost: ContractBand;
-};
-
-type ContractOffer = {
-  instanceId: string;
-  template: ContractTemplate;
-  rollCue: {
-    experience: ContractRoll;
-    ducats: ContractRoll;
-    materials: ContractRoll;
-    itemDrop: ContractRoll;
-    staminaCost: ContractRoll;
-  };
-  expiresAt: number;
-};
-
-type ContractSlotState = {
-  slotIndex: number;
-  offer: ContractOffer | null;
-  replenishReadyAt: number | null;
-};
-
-type ContractEncounterPhase = "board" | "travel" | "combat";
-
-type CombatEncounterResolutionState = "playing" | "summarizing" | "awaiting_return";
-
-type ActiveContractEncounterState = {
-  slotIndex: number;
-  offer: ContractOffer;
-  phase: ContractEncounterPhase;
-  travelEndsAt: number | null;
-  encounter: CombatPlaybackEncounter;
-  travelDescription: string;
-  timeline: CombatPlaybackEvent[];
-  currentEventIndex: number;
-  hpByActorId: Record<string, number>;
-  combatLogEntries: string[];
-  activeAction: CombatPlaybackActionResolved | null;
-  impactTargetId: string | null;
-  resolutionState: CombatEncounterResolutionState;
-  finalSummaryLine: string | null;
-  typedSummaryLine: string;
-  playbackRate: 1 | 5;
-  segmentPlaybackRate: 1 | 5;
-  playbackProgressMs: number;
-  lastPlaybackTickAtMs: number | null;
-};
-
 type StatContributionLine = {
   label: string;
   ratioLabel: string;
   valueLabel: string;
 };
-type ChatMessage = {
-  id: string;
-  channel: ChatChannel;
-  sender: string;
-  text: string;
-  sentAtMs: number;
-};
 type DevWeaponInventorySeed = DevWeapon;
 
 const INVENTORY_ITEM_LIMIT = 20;
-const CONTRACT_SLOT_COUNT = 6;
-const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
-const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
-const CONTRACT_TRAVEL_DURATION_MS = 10 * 1000;
-const COMBAT_PLAYBACK_START_DELAY_MS = 330;
-const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 760;
-const COMBAT_PLAYBACK_BEAT_MS = 1470;
-const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
-const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
 const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
 const TEST_MIN_DUCATS = 0;
@@ -354,12 +259,7 @@ const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
 const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
-const DRAG_PAYLOAD_MIME = "application/x-ebonkeep-drag-payload";
 const CHAT_DOCK_TOLERANCE_PX = 1;
-const CHAT_CHANNEL_LABEL_KEYS: Record<ChatChannel, string> = {
-  world: "chat.world",
-  guild: "chat.guild"
-};
 const DEFAULT_INVENTORY_FILTER_STATE: InventoryFilterState = {
   showOnlyWeapons: false,
   showOnlyArmor: false,
@@ -377,69 +277,6 @@ const GENERATED_CHARACTER_VISUALS: Array<{ key: string; assetName: string; path:
     path
   }))
   .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }));
-
-function formatChatTime(sentAtMs: number): string {
-  const sentAt = new Date(sentAtMs);
-  const hours = sentAt.getHours().toString().padStart(2, "0");
-  const minutes = sentAt.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-function createInitialChatMessages(nowMs: number = Date.now()): Record<ChatChannel, ChatMessage[]> {
-  return {
-    world: [
-      {
-        id: "world-seed-1",
-        channel: "world",
-        sender: "Town Crier",
-        text: "World bosses are stirring near Dreadmoor.",
-        sentAtMs: nowMs - 5 * 60 * 1000
-      },
-      {
-        id: "world-seed-2",
-        channel: "world",
-        sender: "Mercenary-Rin",
-        text: "Selling rare iron bundles, whisper me.",
-        sentAtMs: nowMs - 3 * 60 * 1000
-      },
-      {
-        id: "world-seed-3",
-        channel: "world",
-        sender: "Archmage Sol",
-        text: "Need one more for hard contract chain.",
-        sentAtMs: nowMs - 90 * 1000
-      }
-    ],
-    guild: [
-      {
-        id: "guild-seed-1",
-        channel: "guild",
-        sender: "Guildmaster",
-        text: "Guild reset at dawn. Donate materials before then.",
-        sentAtMs: nowMs - 6 * 60 * 1000
-      },
-      {
-        id: "guild-seed-2",
-        channel: "guild",
-        sender: "Quartermaster",
-        text: "Bench upgrades are queued after tonight's run.",
-        sentAtMs: nowMs - 2 * 60 * 1000
-      }
-    ]
-  };
-}
-
-const MENU_ITEMS: LandingTab[] = [
-  "inventory",
-  "contracts",
-  "arena",
-  "guild",
-  "auctionHouse",
-  "merchant",
-  "shop",
-  "leaderboards",
-  "settings"
-];
 
 const EQUIPMENT_LEFT_SLOTS: EquipmentSlotId[] = [
   "helmet",
@@ -480,391 +317,11 @@ const EQUIPMENT_SLOTS: Record<EquipmentSlotId, EquipmentSlot> = {
   vestige2: { labelKey: "slots.vestige2", majorCategory: "vestige" },
   vestige3: { labelKey: "slots.vestige3", majorCategory: "vestige" }
 };
-const ENCYCLOPEDIA_ARMOR_SLOT_ORDER: string[] = [
-  "helmet",
-  "upper_armor",
-  "pauldrons",
-  "gloves",
-  "belt",
-  "lower_armor",
-  "boots"
-];
-const ENCYCLOPEDIA_CATEGORY_ORDER: EncyclopediaCategory[] = ["armor", "weapon", "jewelry", "monster"];
-const ENCYCLOPEDIA_ARMOR_ARCHETYPE_ORDER: EncyclopediaArmorArchetype[] = ["heavy", "light", "robe"];
-const ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER: EncyclopediaWeaponArchetype[] = ["melee", "ranged", "arcane"];
 const LEDGER_MOCK_DISCOVERED_ZONE_IDS: string[] = [
   "snagtooth_hollow_00",
   "mirepool_boglings_04",
   "ternfield_hobgoblins_08"
 ];
-const RENOWN_SCENE_WIDTH = 1260;
-const RENOWN_SCENE_HEIGHT = 1040;
-const RENOWN_MIN_SCALE = 0.62;
-const RENOWN_MAX_SCALE = 1.45;
-const RENOWN_INITIAL_VIEW: RenownViewState = {
-  x: 62,
-  y: -8,
-  scale: 0.78
-};
-const RENOWN_CANOPIES: RenownCanopy[] = [
-  {
-    id: "ledger-canopy",
-    tone: "ledger",
-    x: 172,
-    y: 132,
-    width: 330,
-    height: 230,
-    rotate: -14
-  },
-  {
-    id: "garden-canopy",
-    tone: "garden",
-    x: 440,
-    y: 92,
-    width: 360,
-    height: 250,
-    rotate: -4
-  },
-  {
-    id: "campaign-canopy",
-    tone: "campaign",
-    x: 724,
-    y: 132,
-    width: 330,
-    height: 230,
-    rotate: 10
-  },
-  {
-    id: "industry-canopy",
-    tone: "industry",
-    x: 882,
-    y: 264,
-    width: 236,
-    height: 184,
-    rotate: 16
-  }
-];
-const RENOWN_NODES: RenownNode[] = [
-  {
-    id: "first_charter",
-    label: "First Charter",
-    branch: "Foundation",
-    tone: "root",
-    icon: "sigil",
-    description: "The first charter anchors your account's standing beyond a single server life. Every later branch grows from this sworn record.",
-    effect: "Establishes the Renown tree and preserves its passive unlocks across server resets.",
-    requirements: [],
-    cost: 0,
-    tier: 0,
-    status: "unlocked",
-    x: 634,
-    y: 904
-  },
-  {
-    id: "ledger_quills",
-    label: "Ledger Quills",
-    branch: "Ledger",
-    tone: "ledger",
-    icon: "quill",
-    description: "Field scribes keep cleaner first-contact notes, so the Ledger fills with fewer gaps when a new threat is met.",
-    effect: "Newly discovered monster families begin with one recorded behavior already noted in the Ledger.",
-    requirements: ["First Charter"],
-    cost: 1,
-    tier: 1,
-    status: "unlocked",
-    x: 464,
-    y: 742
-  },
-  {
-    id: "garden_patronage",
-    label: "Garden Patronage",
-    branch: "Garden",
-    tone: "garden",
-    icon: "sprout",
-    description: "Steady patronage keeps beds fertile, water stores filled, and cuttings alive between campaigns.",
-    effect: "Apothecary Garden plots mature slightly faster and suffer less minor yield loss from missed tending windows.",
-    requirements: ["First Charter"],
-    cost: 1,
-    tier: 1,
-    status: "unlocked",
-    x: 634,
-    y: 700
-  },
-  {
-    id: "campaign_banners",
-    label: "Campaign Banners",
-    branch: "Campaign",
-    tone: "campaign",
-    icon: "banner",
-    description: "March orders are standardized across campaigns, making preparation easier to carry from one server life into the next.",
-    effect: "Contracts and mission prep systems gain small quality-of-life efficiency bonuses account-wide.",
-    requirements: ["First Charter"],
-    cost: 1,
-    tier: 1,
-    status: "available",
-    x: 806,
-    y: 742
-  },
-  {
-    id: "surveyor_marks",
-    label: "Surveyor Marks",
-    branch: "Ledger",
-    tone: "ledger",
-    icon: "map",
-    description: "Trail marks and watch-notes keep newly discovered zones better charted the first time they are breached.",
-    effect: "The first discovered enemies in a newly revealed zone are added to the Ledger faster.",
-    requirements: ["Ledger Quills"],
-    cost: 2,
-    tier: 2,
-    status: "available",
-    x: 360,
-    y: 568
-  },
-  {
-    id: "wardens_lantern",
-    label: "Warden's Lantern",
-    branch: "Ledger",
-    tone: "ledger",
-    icon: "lantern",
-    description: "Watch-lantern protocols ensure scouting parties return with clearer accounts of what stalked them in the dark.",
-    effect: "Ledger kill thresholds reveal their next milestone a little earlier for known monster families.",
-    requirements: ["Ledger Quills"],
-    cost: 2,
-    tier: 2,
-    status: "locked",
-    x: 524,
-    y: 520
-  },
-  {
-    id: "stillroom_measures",
-    label: "Stillroom Measures",
-    branch: "Garden",
-    tone: "garden",
-    icon: "vial",
-    description: "Stillroom measures are standardized, reducing waste and keeping every pressing or draught more predictable.",
-    effect: "Stillroom crafting has a small chance to refund part of the ingredient cost on simple consumables.",
-    requirements: ["Garden Patronage"],
-    cost: 2,
-    tier: 2,
-    status: "available",
-    x: 610,
-    y: 482
-  },
-  {
-    id: "seed_vaults",
-    label: "Seed Vaults",
-    branch: "Garden",
-    tone: "garden",
-    icon: "satchel",
-    description: "Sealed stores keep rare cuttings viable longer, giving your apothecary work more reliable follow-through.",
-    effect: "Rare and slow-growing seeds keep better condition while idle and lose less quality from delay.",
-    requirements: ["Garden Patronage"],
-    cost: 2,
-    tier: 2,
-    status: "locked",
-    x: 748,
-    y: 500
-  },
-  {
-    id: "quartermaster_routes",
-    label: "Quartermaster Routes",
-    branch: "Campaign",
-    tone: "campaign",
-    icon: "route",
-    description: "Known courier lanes and reserve depots make it easier to move supplies where future runs need them most.",
-    effect: "Queued support systems recover and complete a little more efficiently during active play periods.",
-    requirements: ["Campaign Banners"],
-    cost: 2,
-    tier: 2,
-    status: "locked",
-    x: 858,
-    y: 560
-  },
-  {
-    id: "tempering_clause",
-    label: "Tempering Clause",
-    branch: "Industry",
-    tone: "industry",
-    icon: "hammer",
-    description: "Old forge clauses preserve safer routines for risky work, letting tempering hold together through one more bad pull.",
-    effect: "Volatile Tempering gains a small stability floor before severe penalties begin.",
-    requirements: ["Quartermaster Routes"],
-    cost: 3,
-    tier: 2,
-    status: "locked",
-    x: 984,
-    y: 518
-  },
-  {
-    id: "archive_ciphers",
-    label: "Archive Ciphers",
-    branch: "Ledger",
-    tone: "ledger",
-    icon: "archive",
-    description: "Cross-server codebooks make old reports easier to read and connect, even when the names of places have changed.",
-    effect: "Ledger pages preview one deeper milestone for already discovered families.",
-    requirements: ["Surveyor Marks", "Warden's Lantern"],
-    cost: 3,
-    tier: 3,
-    status: "locked",
-    x: 284,
-    y: 326
-  },
-  {
-    id: "draught_reserve",
-    label: "Draught Reserve",
-    branch: "Garden",
-    tone: "garden",
-    icon: "tower",
-    description: "A better reserve culture keeps stocks of finished tonics ready for the next hard run rather than the last one.",
-    effect: "Selected consumable categories can hold slightly deeper reserve caps.",
-    requirements: ["Stillroom Measures", "Seed Vaults"],
-    cost: 3,
-    tier: 3,
-    status: "locked",
-    x: 646,
-    y: 274
-  },
-  {
-    id: "veteran_dispatch",
-    label: "Veteran Dispatch",
-    branch: "Campaign",
-    tone: "campaign",
-    icon: "banner",
-    description: "Veteran dispatch circles pass along the habits that let expeditions start faster and waste fewer supplies.",
-    effect: "Preparation-heavy activities begin with a small long-tail efficiency bonus once unlocked.",
-    requirements: ["Quartermaster Routes", "Tempering Clause"],
-    cost: 3,
-    tier: 3,
-    status: "locked",
-    x: 1044,
-    y: 334
-  }
-];
-const RENOWN_EDGES: RenownEdge[] = [
-  { from: "first_charter", to: "ledger_quills" },
-  { from: "first_charter", to: "garden_patronage" },
-  { from: "first_charter", to: "campaign_banners" },
-  { from: "ledger_quills", to: "surveyor_marks" },
-  { from: "ledger_quills", to: "wardens_lantern" },
-  { from: "garden_patronage", to: "stillroom_measures" },
-  { from: "garden_patronage", to: "seed_vaults" },
-  { from: "campaign_banners", to: "quartermaster_routes" },
-  { from: "quartermaster_routes", to: "tempering_clause" },
-  { from: "surveyor_marks", to: "archive_ciphers" },
-  { from: "wardens_lantern", to: "archive_ciphers" },
-  { from: "stillroom_measures", to: "draught_reserve" },
-  { from: "seed_vaults", to: "draught_reserve" },
-  { from: "quartermaster_routes", to: "veteran_dispatch" },
-  { from: "tempering_clause", to: "veteran_dispatch" }
-];
-const RENOWN_NODE_BY_ID = new Map<string, RenownNode>(RENOWN_NODES.map((node) => [node.id, node]));
-
-function buildRenownEdgePath(source: RenownNode, target: RenownNode): string {
-  const controlYOffset = Math.max(54, Math.abs(source.y - target.y) * 0.38);
-  return `M ${source.x} ${source.y} C ${source.x} ${source.y - controlYOffset}, ${target.x} ${
-    target.y + controlYOffset
-  }, ${target.x} ${target.y}`;
-}
-
-function renderRenownNodeGlyph(icon: RenownIconKey): ReactElement {
-  switch (icon) {
-    case "sigil":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M12 3l6 3v5c0 4.2-2.5 7.7-6 9-3.5-1.3-6-4.8-6-9V6l6-3z" />
-          <path d="M12 7v9m-3-5h6" />
-        </svg>
-      );
-    case "quill":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M18 5c-1.3 5-4.3 8.9-9 11.7L5 19l2.4-4c2.8-4.7 6.7-7.7 11.6-10z" />
-          <path d="M8 16l-2 2m4-5l4 4" />
-        </svg>
-      );
-    case "sprout":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M12 20v-8" />
-          <path d="M12 12c0-4 2.8-6.5 7-7-0.4 4.6-3.2 7-7 7z" />
-          <path d="M12 15c0-3.4-2.5-5.6-6.4-5.9 0.2 4 2.6 6.3 6.4 5.9z" />
-        </svg>
-      );
-    case "banner":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M7 20V4" />
-          <path d="M8 5h9l-2.2 3L17 11H8z" />
-        </svg>
-      );
-    case "map":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2V6z" />
-          <path d="M9 4v14m6-12v14" />
-        </svg>
-      );
-    case "lantern":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M9 7V5a3 3 0 016 0v2" />
-          <path d="M8 7h8l1 3-1.3 8H8.3L7 10l1-3z" />
-          <path d="M10 11h4" />
-        </svg>
-      );
-    case "vial":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M10 4h4" />
-          <path d="M11 4v5l-4.5 7.2A3 3 0 009.1 20h5.8a3 3 0 002.6-3.8L13 9V4" />
-          <path d="M9 15h6" />
-        </svg>
-      );
-    case "satchel":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M8 9V7a4 4 0 018 0v2" />
-          <path d="M5 10h14l-1 9H6l-1-9z" />
-          <path d="M9 12h6" />
-        </svg>
-      );
-    case "route":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M6 18c1.5-6.2 4.6-9.9 12-12" />
-          <path d="M6 18h5" />
-          <path d="M16 6h2v2" />
-          <circle cx="6" cy="18" r="1.5" />
-          <circle cx="18" cy="6" r="1.5" />
-        </svg>
-      );
-    case "hammer":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M15 5l4 4-2 2-4-4z" />
-          <path d="M13 7L6 14l4 4 7-7" />
-          <path d="M5 19l2-2" />
-        </svg>
-      );
-    case "archive":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M6 5h12v4H6z" />
-          <path d="M7 9h10v10H7z" />
-          <path d="M10 13h4" />
-        </svg>
-      );
-    case "tower":
-      return (
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M9 20V8l3-2 3 2v12" />
-          <path d="M8 8h8l-1-3H9z" />
-          <path d="M11 14h2v6h-2z" />
-        </svg>
-      );
-  }
-}
 
 function createEmptyEquippedItems(): EquippedItems {
   return ALL_EQUIPMENT_SLOTS.reduce(
@@ -956,305 +413,6 @@ function tierIndex(tier: ModifierTier): 0 | 1 | 2 {
   }
   return 2;
 }
-
-const ITEM_POWER_BASE_PER_LEVEL = 8;
-const WEAPON_POWER_MULTIPLIER = 2;
-const WEAPON_BASE_LEVEL_POWER_WEIGHT = 0.25;
-const MOCK_WARRIOR_LEVEL = 80;
-const MOCK_WARRIOR_CLASS: PlayerState["class"] = "warrior";
-const RARITY_POWER_BONUS_RATE: Record<Rarity, number> = {
-  common: 0,
-  uncommon: 0.1,
-  rare: 0.2,
-  epic: 0.3
-};
-const MODIFIER_TIER_POWER_PER_LEVEL: Record<ModifierTier, number> = {
-  T1: 0.25,
-  T2: 0.5,
-  T3: 0.75
-};
-const MOCK_MELEE_RARITY_POOL: Rarity[] = ["uncommon", "rare", "epic"];
-const GENERATED_WEAPON_ICON_PATHS_BY_NAME: Record<string, string> = {
-  "ashbound rod": "/assets/items/generated/weapon/arcane/staff/mage_arcane_ashbound_rod.png",
-  "aetherwake staff": "/assets/items/generated/weapon/arcane/staff/mage_arcane_aetherwake_staff.png",
-  "cathedral spire": "/assets/items/generated/weapon/arcane/staff/mage_arcane_cathedral_spire.png",
-  "seraphim ashrod": "/assets/items/generated/weapon/arcane/staff/mage_arcane_seraphim_ashrod.png",
-  "oracle s eclipse": "/assets/items/generated/weapon/arcane/staff/mage_arcane_oracle_s_eclipse.png",
-  "dominion arcanum": "/assets/items/generated/weapon/arcane/staff/mage_arcane_dominion_arcanum.png",
-  "dormant hazel wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_dormant_hazel_wand.png",
-  "cinderprick wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_cinderprick_wand.png",
-  "mothglass wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_mothglass_wand.png",
-  "starveil wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_starveil_wand.png",
-  "eclipsed scepter": "/assets/items/generated/weapon/arcane/wand/mage_arcane_eclipsed_scepter.png",
-  "abyssal choir wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_abyssal_choir_wand.png",
-  "woodcutter s axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_woodcutter_s_axe.png",
-  "bearded war axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_bearded_war_axe.png",
-  valenmark: "/assets/items/generated/weapon/melee/axe/warrior_melee_valenmark.png",
-  "durnholde axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_durnholde_axe.png",
-  harthorn: "/assets/items/generated/weapon/melee/axe/warrior_melee_harthorn.png",
-  "stormvale axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_stormvale_axe.png",
-  "plainsteel longsword": "/assets/items/generated/weapon/melee/sword/warrior_melee_plainsteel_longsword.png",
-  valdaryn: "/assets/items/generated/weapon/melee/sword/warrior_melee_valdaryn.png",
-  "redmark sabre": "/assets/items/generated/weapon/melee/sword/warrior_melee_redmark_sabre.png",
-  "tempered longblade": "/assets/items/generated/weapon/melee/sword/warrior_melee_tempered_longblade.png",
-  "gilded bastard sword": "/assets/items/generated/weapon/melee/sword/warrior_melee_gilded_bastard_sword.png",
-  "highguard claymore": "/assets/items/generated/weapon/melee/sword/warrior_melee_highguard_claymore.png",
-  "longreach recurve": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_longreach_recurve.png",
-  "skylash longbow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_skylash_longbow.png",
-  "dreadfletch bow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_dreadfletch_bow.png",
-  "black meridian bow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_black_meridian_bow.png",
-  "eclipsed huntmaster": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_eclipsed_huntmaster.png",
-  "hollowsnap sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_hollowsnap_sling.png",
-  "shardwhistle sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_shardwhistle_sling.png"
-};
-const MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL: Record<number, Record<Rarity, MeleeDamageRollWindow>> = {
-  // Source: docs/data/warrior_melee_weapon_ilvl_scaling_v2.csv
-  18: {
-    common: { minLow: 41, minHigh: 48, maxLow: 50, maxHigh: 59 },
-    uncommon: { minLow: 43, minHigh: 51, maxLow: 53, maxHigh: 62 },
-    rare: { minLow: 45, minHigh: 53, maxLow: 55, maxHigh: 65 },
-    epic: { minLow: 47, minHigh: 56, maxLow: 58, maxHigh: 68 }
-  },
-  19: {
-    common: { minLow: 43, minHigh: 50, maxLow: 53, maxHigh: 62 },
-    uncommon: { minLow: 45, minHigh: 53, maxLow: 55, maxHigh: 65 },
-    rare: { minLow: 47, minHigh: 55, maxLow: 58, maxHigh: 68 },
-    epic: { minLow: 49, minHigh: 58, maxLow: 60, maxHigh: 71 }
-  },
-  20: {
-    common: { minLow: 45, minHigh: 52, maxLow: 55, maxHigh: 64 },
-    uncommon: { minLow: 47, minHigh: 55, maxLow: 57, maxHigh: 67 },
-    rare: { minLow: 49, minHigh: 58, maxLow: 60, maxHigh: 71 },
-    epic: { minLow: 51, minHigh: 60, maxLow: 63, maxHigh: 74 }
-  },
-  21: {
-    common: { minLow: 46, minHigh: 55, maxLow: 57, maxHigh: 67 },
-    uncommon: { minLow: 49, minHigh: 57, maxLow: 60, maxHigh: 70 },
-    rare: { minLow: 51, minHigh: 60, maxLow: 62, maxHigh: 73 },
-    epic: { minLow: 53, minHigh: 63, maxLow: 65, maxHigh: 77 }
-  },
-  22: {
-    common: { minLow: 48, minHigh: 57, maxLow: 59, maxHigh: 69 },
-    uncommon: { minLow: 51, minHigh: 59, maxLow: 62, maxHigh: 73 },
-    rare: { minLow: 53, minHigh: 62, maxLow: 65, maxHigh: 76 },
-    epic: { minLow: 55, minHigh: 65, maxLow: 68, maxHigh: 80 }
-  }
-};
-const MOCK_MELEE_WEAPON_TEMPLATES: Array<{
-  itemName: string;
-  levelRequirement: number;
-  weaponFamily: WeaponFamily;
-  description: string;
-  iconAssetPath: string;
-}> = [
-  {
-    itemName: "Plainsteel Longsword",
-    levelRequirement: 18,
-    weaponFamily: "sword",
-    description: "Balanced steel with practical wear from constant drill work.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_plainsteel_longsword.png"
-  },
-  {
-    itemName: "Woodcutter's Axe",
-    levelRequirement: 18,
-    weaponFamily: "axe",
-    description: "Repurposed work axe hardened by militia duty.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_woodcutter_s_axe.png"
-  },
-  {
-    itemName: "Valdaryn",
-    levelRequirement: 19,
-    weaponFamily: "sword",
-    description: "Slim blade profile made for fast pressure and quick recovery.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_valdaryn.png"
-  },
-  {
-    itemName: "Bearded War Axe",
-    levelRequirement: 19,
-    weaponFamily: "axe",
-    description: "Broad-bearded head built to hook and break defensive lines.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_bearded_war_axe.png"
-  },
-  {
-    itemName: "Redmark Sabre",
-    levelRequirement: 20,
-    weaponFamily: "sword",
-    description: "Curved sabre favored by riders who strike on the pass.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_redmark_sabre.png"
-  },
-  {
-    itemName: "Tempered Longblade",
-    levelRequirement: 20,
-    weaponFamily: "sword",
-    description: "Heat-treated steel that keeps edge alignment under stress.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_tempered_longblade.png"
-  },
-  {
-    itemName: "Valenmark",
-    levelRequirement: 21,
-    weaponFamily: "axe",
-    description: "A grim standard among wardens of besieged keeps.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_valenmark.png"
-  },
-  {
-    itemName: "Durnholde Axe",
-    levelRequirement: 21,
-    weaponFamily: "axe",
-    description: "Each notch in its head marks a broken line of men.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_durnholde_axe.png"
-  },
-  {
-    itemName: "Gilded Bastard Sword",
-    levelRequirement: 22,
-    weaponFamily: "sword",
-    description: "Court-finished steel tuned for battlefield authority.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_gilded_bastard_sword.png"
-  },
-  {
-    itemName: "Harthorn",
-    levelRequirement: 22,
-    weaponFamily: "axe",
-    description: "Its crescent edge howls through plate at full swing.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_harthorn.png"
-  },
-  {
-    itemName: "Highguard Claymore",
-    levelRequirement: 22,
-    weaponFamily: "sword",
-    description: "Long two-hander built for line-breaking overhead cuts.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_highguard_claymore.png"
-  },
-  {
-    itemName: "Stormvale Axe",
-    levelRequirement: 22,
-    weaponFamily: "axe",
-    description: "Storm-battered steel that lands like a falling gate.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_stormvale_axe.png"
-  }
-];
-
-type MockInventoryItemSeed = Omit<InventoryItem, "power" | "prefix" | "affix">;
-
-const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
-  {
-    id: "itm_mock_ironwall_helm",
-    itemName: "Braced Plate",
-    rarity: "uncommon",
-    category: "Armor",
-    equipable: true,
-    archetype: {
-      majorCategory: "armor",
-      armorArchetype: "heavy"
-    },
-    equipSlotId: "helmet",
-    levelRequirement: 18,
-    statBonuses: { strength: 3, vitality: 4 },
-    description: "Reinforced steel with a practical fit for regular frontline duty."
-  },
-  {
-    id: "itm_mock_bastion_cuirass",
-    itemName: "Guard Plate",
-    rarity: "rare",
-    category: "Armor",
-    equipable: true,
-    archetype: {
-      majorCategory: "armor",
-      armorArchetype: "heavy"
-    },
-    equipSlotId: "upperArmor",
-    levelRequirement: 20,
-    statBonuses: { strength: 4, vitality: 5 },
-    description: "Dense field-forged armor built to absorb repeated close impacts."
-  },
-  {
-    id: "itm_mock_legion_girdle",
-    itemName: "Field Belt",
-    rarity: "uncommon",
-    category: "Armor",
-    equipable: true,
-    archetype: {
-      majorCategory: "armor",
-      armorArchetype: "heavy"
-    },
-    equipSlotId: "belt",
-    levelRequirement: 19,
-    statBonuses: { vitality: 3, initiative: 2 },
-    description: "A stabilized belt that keeps heavy kit settled through long fights."
-  },
-  {
-    id: "itm_mock_bulwark_greaves",
-    itemName: "War Greaves",
-    rarity: "rare",
-    category: "Armor",
-    equipable: true,
-    archetype: {
-      majorCategory: "armor",
-      armorArchetype: "heavy"
-    },
-    equipSlotId: "lowerArmor",
-    levelRequirement: 21,
-    statBonuses: { strength: 3, vitality: 4 },
-    description: "Weighted leg armor tuned for steady pressure over quick pivots."
-  },
-  {
-    id: "itm_mock_duskstalker_gloves",
-    itemName: "Trail Gloves",
-    rarity: "uncommon",
-    category: "Armor",
-    equipable: true,
-    archetype: {
-      majorCategory: "armor",
-      armorArchetype: "light"
-    },
-    equipSlotId: "gloves",
-    levelRequirement: 20,
-    statBonuses: { dexterity: 4, initiative: 2 },
-    description: "Light reinforced gloves that keep grip control stable under motion."
-  },
-  {
-    id: "itm_mock_runespun_mantle",
-    itemName: "Runed Weave",
-    rarity: "epic",
-    category: "Armor",
-    equipable: true,
-    archetype: {
-      majorCategory: "armor",
-      armorArchetype: "robe"
-    },
-    equipSlotId: "upperArmor",
-    levelRequirement: 22,
-    statBonuses: { intelligence: 5, vitality: 2, initiative: 2 },
-    description: "Arcane-thread cloth layered with stable ward marks for hard casting."
-  },
-  {
-    id: "itm_mock_oath_loop",
-    itemName: "Oath Ring",
-    rarity: "rare",
-    category: "Jewelry",
-    equipable: true,
-    archetype: {
-      majorCategory: "jewelry"
-    },
-    equipSlotId: "ringLeft",
-    levelRequirement: 19,
-    statBonuses: { luck: 3, initiative: 2 },
-    description: "A field-forged ring favored by officers trusted with rapid response."
-  },
-  {
-    id: "itm_mock_warden_charm",
-    itemName: "Guard Charm",
-    rarity: "uncommon",
-    category: "Jewelry",
-    equipable: true,
-    archetype: {
-      majorCategory: "jewelry"
-    },
-    equipSlotId: "necklace",
-    levelRequirement: 20,
-    statBonuses: { vitality: 3, luck: 2 },
-    description: "A simple steel charm that helps keep focus when fights turn chaotic."
-  }
-];
 
 function randomRarityFromPool(pool: Rarity[]): Rarity {
   return pool[randomInRange(0, pool.length - 1)];
@@ -1725,509 +883,6 @@ function applyMockPlayerStateOverrides(state: PlayerState): PlayerState {
   };
 }
 
-const CONTRACT_TEMPLATES: ContractTemplate[] = [
-  {
-    id: "ashfen-trail",
-    name: "Ashfen Caravan Escort",
-    difficulty: "easy",
-    experience: { low: 120, medium: 180, high: 260 },
-    ducats: { low: 70, medium: 110, high: 170 },
-    materials: { low: 2, medium: 4, high: 6 },
-    itemDrop: { low: 8, medium: 14, high: 20 },
-    staminaCost: { low: 8, medium: 11, high: 14 }
-  },
-  {
-    id: "bogwatch-recon",
-    name: "Bogwatch Recon Sweep",
-    difficulty: "easy",
-    experience: { low: 130, medium: 200, high: 280 },
-    ducats: { low: 65, medium: 105, high: 165 },
-    materials: { low: 3, medium: 5, high: 7 },
-    itemDrop: { low: 9, medium: 15, high: 22 },
-    staminaCost: { low: 9, medium: 12, high: 15 }
-  },
-  {
-    id: "cinderhold-rats",
-    name: "Cinderhold Purge Detail",
-    difficulty: "medium",
-    experience: { low: 200, medium: 300, high: 420 },
-    ducats: { low: 120, medium: 180, high: 260 },
-    materials: { low: 4, medium: 7, high: 10 },
-    itemDrop: { low: 12, medium: 20, high: 29 },
-    staminaCost: { low: 12, medium: 15, high: 18 }
-  },
-  {
-    id: "spire-wardens",
-    name: "Spire Warden Relief",
-    difficulty: "medium",
-    experience: { low: 210, medium: 320, high: 430 },
-    ducats: { low: 125, medium: 190, high: 275 },
-    materials: { low: 5, medium: 8, high: 11 },
-    itemDrop: { low: 13, medium: 21, high: 30 },
-    staminaCost: { low: 12, medium: 16, high: 19 }
-  },
-  {
-    id: "blackbriar-break",
-    name: "Blackbriar Siege Break",
-    difficulty: "hard",
-    experience: { low: 310, medium: 470, high: 620 },
-    ducats: { low: 190, medium: 270, high: 380 },
-    materials: { low: 7, medium: 11, high: 15 },
-    itemDrop: { low: 18, medium: 28, high: 39 },
-    staminaCost: { low: 16, medium: 19, high: 22 }
-  },
-  {
-    id: "thornkeep-nightfall",
-    name: "Thornkeep Nightfall Hunt",
-    difficulty: "hard",
-    experience: { low: 330, medium: 490, high: 650 },
-    ducats: { low: 200, medium: 285, high: 395 },
-    materials: { low: 8, medium: 12, high: 16 },
-    itemDrop: { low: 19, medium: 30, high: 41 },
-    staminaCost: { low: 17, medium: 20, high: 23 }
-  }
-];
-
-const CONTRACT_AVAILABILITY_WINDOWS: Record<ContractDifficulty, { minMs: number; maxMs: number }> = {
-  easy: { minMs: 35 * 60 * 1000, maxMs: 90 * 60 * 1000 },
-  medium: { minMs: 25 * 60 * 1000, maxMs: 75 * 60 * 1000 },
-  hard: { minMs: 20 * 60 * 1000, maxMs: 60 * 60 * 1000 }
-};
-
-function getMonsterAssetPath(key: string): string | undefined {
-  return GENERATED_ITEM_ICON_PATHS[key];
-}
-
-function getGeneratedStageAssetPath(prefix: string, legacyExactKey?: string): string | undefined {
-  if (legacyExactKey) {
-    const legacyAssetPath = GENERATED_ITEM_ICON_PATHS[legacyExactKey];
-    if (legacyAssetPath) {
-      return legacyAssetPath;
-    }
-  }
-
-  const matchedEntry = Object.entries(GENERATED_ITEM_ICON_PATHS).find(([key]) => key.startsWith(prefix));
-  return matchedEntry?.[1];
-}
-
-function getCombatStageAssetPath(familyId: string): string | undefined {
-  return getGeneratedStageAssetPath(`combat_stage:${familyId}:`, `combat_stage:${familyId}`);
-}
-
-function getTravelStageAssetPath(familyId: string): string | undefined {
-  return getGeneratedStageAssetPath(`travel_stage:${familyId}:default`, `travel_stage:${familyId}`);
-}
-
-function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
-  switch (difficulty) {
-    case "easy":
-      return "Torch smoke drifts through cramped goblin tunnels ahead. The hollow is close, noisy, and badly kept.";
-    case "medium":
-      return "Cold mirewater gathers around reed roots and black pools. Something in the hollow is already listening.";
-    case "hard":
-      return "Bright grass, white tents, and wagon tracks spread ahead. The land looks good until the camp comes into focus.";
-    default:
-      return "The path ahead tightens toward the contract target.";
-  }
-}
-
-function getEncounterPreset(difficulty: ContractDifficulty): {
-  familyId: string;
-  locationName: string;
-  enemyId: string;
-  enemyName: string;
-  enemyMaxHp: number;
-  enemyPower: number;
-  enemyCombatStat: "strength" | "dexterity" | "intelligence";
-  travelImagePath?: string;
-  combatBackgroundPath?: string;
-  travelImageMode: "image" | "silhouette";
-  avatarPath?: string;
-  usesSilhouetteFallback?: boolean;
-} {
-  switch (difficulty) {
-    case "easy": {
-      const easyTravelImagePath =
-        getTravelStageAssetPath("snagtooth_hollow_00") ??
-        getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss");
-      return {
-        familyId: "snagtooth_hollow_00",
-        locationName: "Snagtooth Hollow",
-        enemyId: "enemy-snagtooth-boss",
-        enemyName: "Snagtooth Boss",
-        enemyMaxHp: 72,
-        enemyPower: 84,
-        enemyCombatStat: "strength",
-        travelImagePath: easyTravelImagePath,
-        combatBackgroundPath: getCombatStageAssetPath("snagtooth_hollow_00"),
-        travelImageMode: easyTravelImagePath ? "image" : "silhouette",
-        avatarPath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss")
-      };
-    }
-    case "medium": {
-      const mediumTravelImagePath =
-        getTravelStageAssetPath("mirepool_boglings_04") ??
-        getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker");
-      return {
-        familyId: "mirepool_boglings_04",
-        locationName: "Mirepool Grotto",
-        enemyId: "enemy-mire-croaker",
-        enemyName: "The Mire Croaker",
-        enemyMaxHp: 88,
-        enemyPower: 112,
-        enemyCombatStat: "dexterity",
-        travelImagePath: mediumTravelImagePath,
-        combatBackgroundPath: getCombatStageAssetPath("mirepool_boglings_04"),
-        travelImageMode: mediumTravelImagePath ? "image" : "silhouette",
-        avatarPath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker")
-      };
-    }
-    case "hard": {
-      const hardTravelImagePath = getTravelStageAssetPath("ternfield_hobgoblins_08");
-      return {
-        familyId: "ternfield_hobgoblins_08",
-        locationName: "Ternfields",
-        enemyId: "enemy-camp-reeve",
-        enemyName: "The Camp Reeve",
-        enemyMaxHp: 102,
-        enemyPower: 136,
-        enemyCombatStat: "intelligence",
-        travelImagePath: hardTravelImagePath,
-        combatBackgroundPath: getCombatStageAssetPath("ternfield_hobgoblins_08"),
-        travelImageMode: hardTravelImagePath ? "image" : "silhouette",
-        avatarPath: getMonsterAssetPath("monster:ternfield_hobgoblins_08:the camp reeve"),
-        usesSilhouetteFallback: !hardTravelImagePath
-      };
-    }
-    default:
-      return {
-        familyId: "unknown_reach",
-        locationName: "Unknown Reach",
-        enemyId: "enemy-unknown",
-        enemyName: "Unknown Enemy",
-        enemyMaxHp: 80,
-        enemyPower: 100,
-        enemyCombatStat: "strength",
-        travelImageMode: "silhouette",
-        usesSilhouetteFallback: true
-      };
-  }
-}
-
-function buildMockCombatEncounterState(args: {
-  offer: ContractOffer;
-  slotIndex: number;
-  playerName: string;
-  playerClass: PlayerClass;
-  playerPower: number;
-  playerAvatarPath?: string | null;
-  nowMs: number;
-}): ActiveContractEncounterState {
-  const { offer, slotIndex, playerName, playerClass, playerPower, playerAvatarPath, nowMs } = args;
-  const preset = getEncounterPreset(offer.template.difficulty);
-  const playerMaxHp = 100;
-  const playerCombatStat: "strength" | "dexterity" | "intelligence" =
-    playerClass === "mage" ? "intelligence" : playerClass === "ranger" ? "dexterity" : "strength";
-  const playerActor = {
-    id: "player-warden",
-    side: "player" as const,
-    name: playerName,
-    maxHp: playerMaxHp,
-    power: playerPower,
-    combatStat: playerCombatStat,
-    avatarPath: playerAvatarPath ?? undefined
-  };
-  const enemyActor = {
-    id: preset.enemyId,
-    side: "enemy" as const,
-    name: preset.enemyName,
-    maxHp: preset.enemyMaxHp,
-    power: preset.enemyPower,
-    combatStat: preset.enemyCombatStat,
-    avatarPath: preset.avatarPath,
-    usesSilhouetteFallback: preset.usesSilhouetteFallback
-  };
-  const encounter = combatPlaybackEncounterSchema.parse({
-    encounterId: `${offer.instanceId}-encounter`,
-    contractInstanceId: offer.instanceId,
-    contractName: offer.template.name,
-    difficulty: offer.template.difficulty,
-    locationName: preset.locationName,
-    travelImagePath: preset.travelImagePath,
-    combatBackgroundPath: preset.combatBackgroundPath,
-    travelImageMode: preset.travelImageMode,
-    player: playerActor,
-    enemies: [enemyActor]
-  });
-  const timeline = combatPlaybackEventSchema.array().parse([
-    {
-      type: "CombatPlaybackStarted",
-      eventId: `${encounter.encounterId}-start`,
-      encounterId: encounter.encounterId
-    },
-    {
-      type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.encounterId}-turn-1`,
-      encounterId: encounter.encounterId,
-      turnIndex: 1,
-      actorId: playerActor.id,
-      targetId: enemyActor.id,
-      actionType: "basic_attack",
-      damage: 18,
-      targetHpAfter: Math.max(0, enemyActor.maxHp - 18),
-      attackerLungeDirection: "left-to-right",
-      logLine: `${playerActor.name} strikes ${enemyActor.name} for 18 damage.`
-    },
-    {
-      type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.encounterId}-turn-2`,
-      encounterId: encounter.encounterId,
-      turnIndex: 2,
-      actorId: enemyActor.id,
-      targetId: playerActor.id,
-      actionType: "basic_attack",
-      damage: 9,
-      targetHpAfter: Math.max(0, playerActor.maxHp - 9),
-      attackerLungeDirection: "right-to-left",
-      logLine: `${enemyActor.name} clips ${playerActor.name} for 9 damage.`
-    },
-    {
-      type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.encounterId}-turn-3`,
-      encounterId: encounter.encounterId,
-      turnIndex: 3,
-      actorId: playerActor.id,
-      targetId: enemyActor.id,
-      actionType: "basic_attack",
-      damage: 17,
-      targetHpAfter: Math.max(0, enemyActor.maxHp - 35),
-      attackerLungeDirection: "left-to-right",
-      logLine: `${playerActor.name} presses forward and deals 17 damage to ${enemyActor.name}.`
-    },
-    {
-      type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.encounterId}-turn-4`,
-      encounterId: encounter.encounterId,
-      turnIndex: 4,
-      actorId: enemyActor.id,
-      targetId: playerActor.id,
-      actionType: "basic_attack",
-      damage: 8,
-      targetHpAfter: Math.max(0, playerActor.maxHp - 17),
-      attackerLungeDirection: "right-to-left",
-      logLine: `${enemyActor.name} catches ${playerActor.name} for 8 damage.`
-    },
-    {
-      type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.encounterId}-turn-5`,
-      encounterId: encounter.encounterId,
-      turnIndex: 5,
-      actorId: playerActor.id,
-      targetId: enemyActor.id,
-      actionType: "basic_attack",
-      damage: Math.max(0, enemyActor.maxHp - 35),
-      targetHpAfter: 0,
-      attackerLungeDirection: "left-to-right",
-      logLine: `${playerActor.name} finishes ${enemyActor.name} with a final blow.`
-    },
-    {
-      type: "CombatPlaybackEnded",
-      eventId: `${encounter.encounterId}-end`,
-      encounterId: encounter.encounterId,
-      winnerSide: "player",
-      summaryLine: `${offer.template.name} is complete. ${enemyActor.name} has been driven off.`
-    }
-  ]);
-
-  return {
-    slotIndex,
-    offer,
-    phase: "travel",
-    travelEndsAt: nowMs + CONTRACT_TRAVEL_DURATION_MS,
-    encounter,
-    travelDescription: getEncounterTravelDescription(offer.template.difficulty),
-    timeline,
-    currentEventIndex: 0,
-    hpByActorId: {
-      [playerActor.id]: playerActor.maxHp,
-      [enemyActor.id]: enemyActor.maxHp
-    },
-    combatLogEntries: [],
-    activeAction: null,
-    impactTargetId: null,
-    resolutionState: "playing",
-    finalSummaryLine: null,
-    typedSummaryLine: "",
-    playbackRate: 1,
-    segmentPlaybackRate: 1,
-    playbackProgressMs: 0,
-    lastPlaybackTickAtMs: null
-  };
-}
-
-function resetCombatEncounterPlayback(previousEncounter: ActiveContractEncounterState): ActiveContractEncounterState {
-  return {
-    ...previousEncounter,
-    phase: "combat",
-    travelEndsAt: null,
-    currentEventIndex: 0,
-    hpByActorId: {
-      [previousEncounter.encounter.player.id]: previousEncounter.encounter.player.maxHp,
-      ...Object.fromEntries(
-        previousEncounter.encounter.enemies.map((enemy) => [enemy.id, enemy.maxHp] as const)
-      )
-    },
-    combatLogEntries: [],
-    activeAction: null,
-    impactTargetId: null,
-    resolutionState: "playing",
-    finalSummaryLine: null,
-    typedSummaryLine: "",
-    playbackRate: previousEncounter.playbackRate,
-    segmentPlaybackRate: previousEncounter.playbackRate,
-    playbackProgressMs: 0,
-    lastPlaybackTickAtMs: null
-  };
-}
-
-function getEncounterPlaybackProgress(encounter: ActiveContractEncounterState, nowMs: number = Date.now()): number {
-  if (encounter.lastPlaybackTickAtMs === null) {
-    return encounter.playbackProgressMs;
-  }
-  return encounter.playbackProgressMs + Math.max(0, nowMs - encounter.lastPlaybackTickAtMs) * encounter.segmentPlaybackRate;
-}
-
-function snapshotEncounterPlayback(encounter: ActiveContractEncounterState, nowMs: number = Date.now()) {
-  return {
-    ...encounter,
-    playbackProgressMs: getEncounterPlaybackProgress(encounter, nowMs),
-    lastPlaybackTickAtMs: nowMs
-  };
-}
-
-function getEncounterAnimationRate(encounter: ActiveContractEncounterState): number {
-  if (encounter.segmentPlaybackRate === 5) {
-    return COMBAT_FAST_FORWARD_ANIMATION_RATE;
-  }
-  return encounter.segmentPlaybackRate;
-}
-
-function getEncounterPlaybackThresholdMs(baseMs: number, encounter: ActiveContractEncounterState): number {
-  return (baseMs * encounter.segmentPlaybackRate) / getEncounterAnimationRate(encounter);
-}
-
-function getLayoutMode(viewportWidth: number): LayoutMode {
-  if (viewportWidth < 900) {
-    return "compact";
-  }
-  if (viewportWidth >= 1400) {
-    return "wide";
-  }
-  return "standard";
-}
-
-function renderMenuIcon(tab: LandingTab) {
-  const iconProps = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2.1,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const
-  };
-
-  switch (tab) {
-    case "inventory":
-      return (
-        <svg {...iconProps}>
-          <circle cx="12" cy="8" r="3" />
-          <path d="M5.5 20c1.8-3.3 4.2-5 6.5-5s4.7 1.7 6.5 5" />
-        </svg>
-      );
-    case "encyclopedia":
-      return (
-        <svg {...iconProps}>
-          <path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 0-2 2V4z" />
-          <path d="M7 8h8M7 12h8M7 16h6" />
-        </svg>
-      );
-    case "contracts":
-      return (
-        <svg {...iconProps}>
-          <path d="M7 4h10v16H7z" />
-          <path d="M10 8h4M9.5 12h5M9.5 15h3" />
-          <circle cx="16" cy="17" r="2" />
-        </svg>
-      );
-    case "missions":
-      return (
-        <svg {...iconProps}>
-          <circle cx="12" cy="12" r="8" />
-          <path d="m12 8 3 3-3 5-3-3z" />
-        </svg>
-      );
-    case "arena":
-      return (
-        <svg {...iconProps}>
-          <path d="m8 5 3 3-5 5-2 1 1-2 5-5" />
-          <path d="m16 5-3 3 5 5 2 1-1-2-5-5" />
-          <path d="M9 19h6" />
-        </svg>
-      );
-    case "guild":
-      return (
-        <svg {...iconProps}>
-          <path d="M12 3L4 7v5c0 5 3 9 8 11 5-2 8-6 8-11V7l-8-4z" />
-          <path d="M12 8v8M9 11l3-3 3 3" />
-        </svg>
-      );
-    case "castles":
-      return (
-        <svg {...iconProps}>
-          <path d="M5 20h14V8h-2V5h-2v3h-2V5h-2v3H9V5H7v3H5z" />
-          <path d="M11 20v-4h2v4" />
-        </svg>
-      );
-    case "auctionHouse":
-      return (
-        <svg {...iconProps}>
-          <circle cx="9" cy="9" r="3" />
-          <path d="m13 13 6 6M15 10l3-3 2 2-3 3z" />
-        </svg>
-      );
-    case "merchant":
-      return (
-        <svg {...iconProps}>
-          <path d="M12 6v12M8 6h8M5 10h6l-3 4zM13 10h6l-3 4zM8 20h8" />
-        </svg>
-      );
-    case "shop":
-      return (
-        <svg {...iconProps}>
-          <path d="M3 9h18M5 9v10h14V9M9 9V6h6v3M12 13v4" />
-          <circle cx="9" cy="16" r="0.5" fill="currentColor" />
-          <circle cx="15" cy="16" r="0.5" fill="currentColor" />
-        </svg>
-      );
-    case "leaderboards":
-      return (
-        <svg {...iconProps}>
-          <path d="M6 19V11M12 19V8M18 19V13M4 19h16" />
-          <path d="M7 6c-1 1-2 3-2 5M17 6c1 1 2 3 2 5" />
-        </svg>
-      );
-    case "settings":
-      return (
-        <svg {...iconProps}>
-          <path d="M12 3 14 6 18 6 19 10 22 12 19 14 18 18 14 18 12 21 10 18 6 18 5 14 2 12 5 10 6 6 10 6z" />
-          <circle cx="12" cy="12" r="2.5" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
 function renderPlayerCardScoreIcon(kind: "gear" | "offense" | "defense") {
   const iconProps = {
     viewBox: "0 0 20 20",
@@ -2301,68 +956,8 @@ function formatTokenLabel(value: unknown): string {
     .join(" ");
 }
 
-function formatMenuLabel(tab: LandingTab): string {
-  if (tab === "inventory") {
-    return "Character";
-  }
-  return i18n.t(`menu.${tab}`);
-}
-
-function formatCharacterHubTabLabel(tab: CharacterHubTab): string {
-  switch (tab) {
-    case "character":
-      return "Character";
-    case "renown":
-      return "Renown";
-    case "ledger":
-      return "Ledger";
-    case "encyclopedia":
-      return "Encyclopedia";
-    default:
-      return tab;
-  }
-}
-
 function formatEquipmentSlotLabel(slotId: EquipmentSlotId): string {
   return i18n.t(EQUIPMENT_SLOTS[slotId].labelKey);
-}
-
-function formatChatChannelLabel(channel: ChatChannel): string {
-  return i18n.t(CHAT_CHANNEL_LABEL_KEYS[channel]);
-}
-
-function sanitizeEncyclopediaItem(raw: GeneratedEncyclopediaItem): GeneratedEncyclopediaItem {
-  return {
-    key: typeof raw.key === "string" && raw.key.length > 0 ? raw.key : `unknown:${Math.random().toString(36).slice(2)}`,
-    contentId:
-      typeof raw.contentId === "string" && raw.contentId.length > 0
-        ? raw.contentId
-        : `unknown:${Math.random().toString(36).slice(2)}`,
-    majorCategory: typeof raw.majorCategory === "string" ? raw.majorCategory : "unknown",
-    archetype: typeof raw.archetype === "string" ? raw.archetype : "unknown",
-    family: typeof raw.family === "string" ? raw.family : "unknown",
-    familyId: typeof raw.familyId === "string" ? raw.familyId : "",
-    slotFamily: typeof raw.slotFamily === "string" ? raw.slotFamily : "unknown",
-    itemType: typeof raw.itemType === "string" ? raw.itemType : i18n.t("item.unknown"),
-    itemName: typeof raw.itemName === "string" ? raw.itemName : i18n.t("item.missingItem"),
-    flavorText: typeof raw.flavorText === "string" ? raw.flavorText : "",
-    baseLevel: Number.isFinite(raw.baseLevel) ? raw.baseLevel : 0,
-    dropMinLevel: Number.isFinite(raw.dropMinLevel) ? raw.dropMinLevel : 0,
-    dropMaxLevel: Number.isFinite(raw.dropMaxLevel) ? raw.dropMaxLevel : 0,
-    iconPath: typeof raw.iconPath === "string" ? raw.iconPath : null,
-    sourceId: typeof raw.sourceId === "string" ? raw.sourceId : "unknown",
-    sequence: Number.isFinite(raw.sequence) ? raw.sequence : 0,
-    locationName: typeof raw.locationName === "string" ? raw.locationName : "",
-    isBoss: raw.isBoss === true,
-    bossKind: typeof raw.bossKind === "string" ? raw.bossKind : "",
-  };
-}
-
-function normalizeEncyclopediaItems(input: GeneratedEncyclopediaItem[]): GeneratedEncyclopediaItem[] {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-  return input.map((item) => sanitizeEncyclopediaItem(item));
 }
 
 function getLedgerMockKillCount(item: GeneratedEncyclopediaItem): number {
@@ -2789,43 +1384,6 @@ function formatDurationFromMs(value: number): string {
   return `${minutes.toString().padStart(2, "0")}m ${seconds.toString().padStart(2, "0")}s`;
 }
 
-function randomContractRoll(): ContractRoll {
-  const roll = randomInRange(1, 3);
-  if (roll === 1) {
-    return "low";
-  }
-  if (roll === 2) {
-    return "medium";
-  }
-  return "high";
-}
-
-function createContractOffer(nowMs: number): ContractOffer {
-  const template = CONTRACT_TEMPLATES[randomInRange(0, CONTRACT_TEMPLATES.length - 1)];
-  const availabilityWindow = CONTRACT_AVAILABILITY_WINDOWS[template.difficulty];
-  const durationMs = randomInRange(availabilityWindow.minMs, availabilityWindow.maxMs);
-  return {
-    instanceId: `${template.id}-${nowMs}-${randomInRange(1000, 9999)}`,
-    template,
-    rollCue: {
-      experience: randomContractRoll(),
-      ducats: randomContractRoll(),
-      materials: randomContractRoll(),
-      itemDrop: randomContractRoll(),
-      staminaCost: randomContractRoll()
-    },
-    expiresAt: nowMs + durationMs
-  };
-}
-
-function createContractSlots(nowMs: number): ContractSlotState[] {
-  return Array.from({ length: CONTRACT_SLOT_COUNT }, (_, index) => ({
-    slotIndex: index + 1,
-    offer: createContractOffer(nowMs),
-    replenishReadyAt: null
-  }));
-}
-
 export function AppShell() {
   useTranslation();
   const initialContractSlots = useMemo(() => createContractSlots(Date.now()), []);
@@ -2853,7 +1411,7 @@ export function AppShell() {
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
   const [characterHubTab, setCharacterHubTab] = useState<CharacterHubTab>("character");
-  const [selectedRenownNodeId, setSelectedRenownNodeId] = useState<string>("first_charter");
+  const [selectedRenownNodeId, setSelectedRenownNodeId] = useState<string>(DEFAULT_RENOWN_NODE_ID);
   const [renownView, setRenownView] = useState<RenownViewState>(RENOWN_INITIAL_VIEW);
   const [isRenownDragging, setIsRenownDragging] = useState(false);
   const [selectedLedgerZoneId, setSelectedLedgerZoneId] = useState<string>(LEDGER_MOCK_DISCOVERED_ZONE_IDS[0]);
@@ -4325,86 +2883,6 @@ export function AppShell() {
     });
   }
 
-  function isEquipmentSlotId(value: string): value is EquipmentSlotId {
-    return ALL_EQUIPMENT_SLOTS.includes(value as EquipmentSlotId);
-  }
-
-  function setDragPayload(event: DragEvent<HTMLElement>, payload: DragPayload) {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(DRAG_PAYLOAD_MIME, JSON.stringify(payload));
-    event.dataTransfer.setData("application/x-ebonkeep-item-id", payload.itemId);
-    if (payload.source === "merchant") {
-      event.dataTransfer.setData("application/x-ebonkeep-merchant-offer-id", payload.offerId);
-    }
-    event.dataTransfer.setData("text/plain", payload.itemId);
-  }
-
-  function readDragPayload(event: DragEvent<HTMLElement>): DragPayload | null {
-    const serializedPayload = event.dataTransfer.getData(DRAG_PAYLOAD_MIME);
-    if (serializedPayload) {
-      try {
-        const parsedPayload = JSON.parse(serializedPayload) as Partial<DragPayload>;
-        if (parsedPayload.source === "inventory" && typeof parsedPayload.itemId === "string") {
-          return { source: "inventory", itemId: parsedPayload.itemId };
-        }
-        if (
-          parsedPayload.source === "equipment" &&
-          typeof parsedPayload.itemId === "string" &&
-          typeof parsedPayload.slotId === "string" &&
-          isEquipmentSlotId(parsedPayload.slotId)
-        ) {
-          return { source: "equipment", itemId: parsedPayload.itemId, slotId: parsedPayload.slotId };
-        }
-        if (
-          parsedPayload.source === "merchant" &&
-          typeof parsedPayload.itemId === "string" &&
-          typeof parsedPayload.offerId === "string"
-        ) {
-          return { source: "merchant", itemId: parsedPayload.itemId, offerId: parsedPayload.offerId };
-        }
-      } catch {
-        return null;
-      }
-    }
-
-    const fallbackItemId =
-      event.dataTransfer.getData("application/x-ebonkeep-item-id") ||
-      event.dataTransfer.getData("text/plain");
-    if (fallbackItemId) {
-      return { source: "inventory", itemId: fallbackItemId };
-    }
-
-    if (draggingEquipmentSlotId) {
-      const equippedItem = equippedItems[draggingEquipmentSlotId];
-      if (equippedItem) {
-        return { source: "equipment", slotId: draggingEquipmentSlotId, itemId: equippedItem.id };
-      }
-    }
-
-    if (draggingInventoryCardId) {
-      return { source: "inventory", itemId: draggingInventoryCardId };
-    }
-
-    if (draggingMerchantOfferId) {
-      const merchantOffer = merchantState?.offers.find((offer) => offer.offerId === draggingMerchantOfferId);
-      if (merchantOffer) {
-        return { source: "merchant", offerId: merchantOffer.offerId, itemId: merchantOffer.item.id };
-      }
-    }
-
-    return null;
-  }
-
-  function clearDragState() {
-    setDraggingInventoryCardId(null);
-    setDraggingEquipmentSlotId(null);
-    setDraggingMerchantOfferId(null);
-    setDropTargetInventoryCardId(null);
-    setEquipmentDropTargetSlotId(null);
-    setEquipmentDropState(null);
-    setInventoryComparisonHover(null);
-  }
-
   function getItemById(itemId: string): InventoryItem | null {
     return inventoryItems.find((item) => item.id === itemId) ?? null;
   }
@@ -4484,6 +2962,49 @@ export function AppShell() {
     }
     await handleMerchantSell(itemId, fromSlot);
   }
+
+  const {
+    readDragPayload,
+    handleEquipmentSlotDoubleClick,
+    handleInventoryCardDragStart,
+    handleEquipmentSlotDragStart,
+    handleMerchantOfferDragStart,
+    handleInventoryCardDragOver,
+    handleInventoryCardDrop,
+    handleMerchantInventoryDrop,
+    handlePlayerMerchantListDrop,
+    handleInventoryCardDragEnd,
+    handleEquipmentSlotDragOver,
+    handleEquipmentSlotDrop,
+    handleEquipmentSlotDragLeave,
+    handleInventoryListDragOver,
+    handleInventoryListDrop
+  } = createInventoryInteractions({
+    allEquipmentSlots: ALL_EQUIPMENT_SLOTS,
+    dragPayloadMime: "application/x-ebonkeep-drag-payload",
+    sidePanelScrollRef,
+    equippedItems,
+    merchantOffers: merchantState?.offers,
+    draggingEquipmentSlotId,
+    draggingInventoryCardId,
+    draggingMerchantOfferId,
+    dropTargetInventoryCardId,
+    dropInsertPosition,
+    equipmentDropTargetSlotId,
+    setDraggingInventoryCardId,
+    setDraggingEquipmentSlotId,
+    setDraggingMerchantOfferId,
+    setDropTargetInventoryCardId,
+    setDropInsertPosition,
+    setEquipmentDropTargetSlotId,
+    setEquipmentDropState,
+    clearInventoryComparisonHover: () => setInventoryComparisonHover(null),
+    getItemById,
+    getEquipValidationError,
+    performInventoryMove,
+    handleMerchantPlayerItemInteract,
+    handleMerchantOfferInteract
+  });
 
   function toggleInventoryPowerSort() {
     const nextDirection = powerSortDirection === "asc" ? "desc" : "asc";
@@ -4585,143 +3106,6 @@ export function AppShell() {
   function handleChatComposerSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     sendChatMessage();
-  }
-
-  async function handleEquipmentSlotDoubleClick(slotId: EquipmentSlotId) {
-    const sourceItem = equippedItems[slotId];
-    if (!sourceItem) {
-      return;
-    }
-    await performInventoryMove(sourceItem.id, slotId, "inventory");
-  }
-
-  function autoScrollInventoryList(pointerY: number) {
-    const scrollContainer = sidePanelScrollRef.current;
-    if (!scrollContainer) {
-      return;
-    }
-
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const edgeThreshold = 72;
-    const maxStep = 24;
-
-    if (pointerY < containerRect.top + edgeThreshold) {
-      const intensity = (containerRect.top + edgeThreshold - pointerY) / edgeThreshold;
-      scrollContainer.scrollTop -= Math.ceil(maxStep * intensity);
-      return;
-    }
-
-    if (pointerY > containerRect.bottom - edgeThreshold) {
-      const intensity = (pointerY - (containerRect.bottom - edgeThreshold)) / edgeThreshold;
-      scrollContainer.scrollTop += Math.ceil(maxStep * intensity);
-    }
-  }
-
-  function handleInventoryCardDragStart(event: DragEvent<HTMLElement>, itemId: string) {
-    setDragPayload(event, { source: "inventory", itemId });
-    setDraggingInventoryCardId(itemId);
-    setDraggingEquipmentSlotId(null);
-    setDraggingMerchantOfferId(null);
-    setDropTargetInventoryCardId(itemId);
-    setDropInsertPosition("before");
-    setEquipmentDropTargetSlotId(null);
-    setEquipmentDropState(null);
-    setInventoryComparisonHover(null);
-  }
-
-  function handleEquipmentSlotDragStart(event: DragEvent<HTMLElement>, slotId: EquipmentSlotId) {
-    const sourceItem = equippedItems[slotId];
-    if (!sourceItem) {
-      return;
-    }
-
-    setDragPayload(event, { source: "equipment", slotId, itemId: sourceItem.id });
-    setDraggingEquipmentSlotId(slotId);
-    setDraggingInventoryCardId(null);
-    setDraggingMerchantOfferId(null);
-    setDropTargetInventoryCardId(null);
-    setEquipmentDropTargetSlotId(null);
-    setEquipmentDropState(null);
-  }
-
-  function handleMerchantOfferDragStart(event: DragEvent<HTMLElement>, offerId: string, itemId: string) {
-    setDragPayload(event, { source: "merchant", offerId, itemId });
-    setDraggingMerchantOfferId(offerId);
-    setDraggingInventoryCardId(null);
-    setDraggingEquipmentSlotId(null);
-    setDropTargetInventoryCardId(null);
-    setEquipmentDropTargetSlotId(null);
-    setEquipmentDropState(null);
-    setInventoryComparisonHover(null);
-  }
-
-  function handleInventoryCardDragOver(event: DragEvent<HTMLElement>, targetItemId: string) {
-    const payload = readDragPayload(event);
-    if (!payload) {
-      return;
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    const cardRect = event.currentTarget.getBoundingClientRect();
-    const insertPosition: InventoryInsertPosition =
-      event.clientY < cardRect.top + cardRect.height / 2 ? "before" : "after";
-    if (dropTargetInventoryCardId !== targetItemId) {
-      setDropTargetInventoryCardId(targetItemId);
-    }
-    if (dropInsertPosition !== insertPosition) {
-      setDropInsertPosition(insertPosition);
-    }
-    if (equipmentDropTargetSlotId !== null) {
-      setEquipmentDropTargetSlotId(null);
-      setEquipmentDropState(null);
-    }
-    autoScrollInventoryList(event.clientY);
-  }
-
-  function handleInventoryCardDrop(event: DragEvent<HTMLElement>, targetItemId: string) {
-    event.preventDefault();
-    const payload = readDragPayload(event);
-    if (payload?.source === "equipment") {
-      void performInventoryMove(payload.itemId, payload.slotId, "inventory");
-    }
-    clearDragState();
-  }
-
-  function handleMerchantInventoryDrop(event: DragEvent<HTMLElement>) {
-    event.preventDefault();
-    const payload = readDragPayload(event);
-    if (!payload) {
-      clearDragState();
-      return;
-    }
-
-    if (payload.source === "inventory") {
-      void handleMerchantPlayerItemInteract(payload.itemId, "inventory");
-    } else if (payload.source === "equipment") {
-      void handleMerchantPlayerItemInteract(payload.itemId, payload.slotId);
-    }
-
-    clearDragState();
-  }
-
-  function handlePlayerMerchantListDrop(event: DragEvent<HTMLElement>) {
-    event.preventDefault();
-    const payload = readDragPayload(event);
-    if (!payload) {
-      clearDragState();
-      return;
-    }
-
-    if (payload.source === "merchant") {
-      void handleMerchantOfferInteract(payload.offerId);
-    }
-
-    clearDragState();
-  }
-
-  function handleInventoryCardDragEnd() {
-    clearDragState();
   }
 
   function handleInventoryCardMouseEnter(
@@ -4826,78 +3210,6 @@ export function AppShell() {
         </div>
       </div>
     );
-  }
-
-  function handleEquipmentSlotDragOver(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
-    const payload = readDragPayload(event);
-    if (!payload) {
-      return;
-    }
-
-    event.preventDefault();
-    const sourceItem =
-      payload.source === "inventory"
-        ? getItemById(payload.itemId)
-        : payload.source === "equipment" && payload.slotId
-          ? equippedItems[payload.slotId]
-          : null;
-    const validationError = sourceItem ? getEquipValidationError(sourceItem, targetSlotId) : i18n.t("errors.invalidItem");
-    event.dataTransfer.dropEffect = validationError ? "none" : "move";
-    setEquipmentDropTargetSlotId(targetSlotId);
-    setEquipmentDropState(validationError ? "invalid" : "valid");
-  }
-
-  function handleEquipmentSlotDrop(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
-    event.preventDefault();
-    const payload = readDragPayload(event);
-    if (payload?.source === "inventory") {
-      void performInventoryMove(payload.itemId, "inventory", targetSlotId);
-    } else if (payload?.source === "equipment") {
-      void performInventoryMove(payload.itemId, payload.slotId, targetSlotId);
-    }
-    clearDragState();
-  }
-
-  function handleEquipmentSlotDragLeave(event: DragEvent<HTMLElement>, targetSlotId: EquipmentSlotId) {
-    const relatedTarget = event.relatedTarget as Node | null;
-    if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
-      return;
-    }
-    if (equipmentDropTargetSlotId === targetSlotId) {
-      setEquipmentDropTargetSlotId(null);
-      setEquipmentDropState(null);
-    }
-  }
-
-  function handleInventoryListDragOver(event: DragEvent<HTMLDivElement>) {
-    const payload = readDragPayload(event);
-    if (!payload) {
-      return;
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-    if (equipmentDropTargetSlotId !== null) {
-      setEquipmentDropTargetSlotId(null);
-      setEquipmentDropState(null);
-    }
-    autoScrollInventoryList(event.clientY);
-  }
-
-  function handleInventoryListDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    const payload = readDragPayload(event);
-    if (!payload) {
-      clearDragState();
-      return;
-    }
-
-    if (payload.source === "equipment") {
-      void performInventoryMove(payload.itemId, payload.slotId, "inventory");
-      clearDragState();
-      return;
-    }
-    clearDragState();
   }
 
   function formatContractDifficulty(difficulty: ContractDifficulty): string {
@@ -5025,7 +3337,7 @@ export function AppShell() {
         data-testid={`equipment-slot-${slotId}`}
         draggable={hasItem}
         onDragStart={hasItem ? (event) => handleEquipmentSlotDragStart(event, slotId) : undefined}
-        onDragOver={(event) => handleEquipmentSlotDragOver(event, slotId)}
+        onDragOver={(event) => handleEquipmentSlotDragOver(event, slotId, i18n.t("errors.invalidItem"))}
         onDrop={(event) => handleEquipmentSlotDrop(event, slotId)}
         onDragLeave={(event) => handleEquipmentSlotDragLeave(event, slotId)}
         onDoubleClick={hasItem ? () => handleEquipmentSlotDoubleClick(slotId) : undefined}
@@ -5069,26 +3381,7 @@ export function AppShell() {
   }
 
   function renderCharacterHubTabs(): ReactElement {
-    const tabs: CharacterHubTab[] = ["character", "renown", "ledger", "encyclopedia"];
-
-    return (
-      <article className="contentCard">
-        <div className="profileSwitchBar">
-          <div className="profileSwitchButtons characterHubSwitchButtons">
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className={`profileSwitchButton${characterHubTab === tab ? " active" : ""}`}
-                onClick={() => setCharacterHubTab(tab)}
-              >
-                {formatCharacterHubTabLabel(tab)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </article>
-    );
+    return <CharacterHubTabs activeTab={characterHubTab} onTabChange={setCharacterHubTab} />;
   }
 
   function renderCharacterHubPlaceholderPanel(
@@ -5113,132 +3406,17 @@ export function AppShell() {
   }
 
   function renderRenownPanel(): ReactElement {
-    const selectedNode = RENOWN_NODE_BY_ID.get(selectedRenownNodeId) ?? RENOWN_NODES[0];
-    const unlockedCount = RENOWN_NODES.filter((node) => node.status === "unlocked").length;
-
     return (
-      <section className="contentShell">
-        <section className="contentStack">
-          {renderCharacterHubTabs()}
-          <article className="contentCard renownTreeCard">
-            <div className="renownTreeLayout">
-              <div
-                ref={renownViewportRef}
-                className={`renownTreeViewport${isRenownDragging ? " isDragging" : ""}`}
-                onMouseDown={handleRenownViewportMouseDown}
-                onWheel={handleRenownViewportWheel}
-              >
-                <div
-                  className="renownTreeScene"
-                  style={{
-                    width: `${RENOWN_SCENE_WIDTH}px`,
-                    height: `${RENOWN_SCENE_HEIGHT}px`,
-                    transform: `translate(${renownView.x}px, ${renownView.y}px) scale(${renownView.scale})`
-                  }}
-                >
-                  <svg
-                    className="renownTreeConnections"
-                    viewBox={`0 0 ${RENOWN_SCENE_WIDTH} ${RENOWN_SCENE_HEIGHT}`}
-                    aria-hidden="true"
-                    focusable="false"
-                  >
-                    {RENOWN_EDGES.map((edge) => {
-                      const source = RENOWN_NODE_BY_ID.get(edge.from);
-                      const target = RENOWN_NODE_BY_ID.get(edge.to);
-                      if (!source || !target) {
-                        return null;
-                      }
-                      const isUnlocked =
-                        source.status === "unlocked" && (target.status === "unlocked" || target.status === "available");
-                      return (
-                        <path
-                          key={`${edge.from}-${edge.to}`}
-                          className={`renownTreeEdge${isUnlocked ? " isUnlocked" : ""}`}
-                          d={buildRenownEdgePath(source, target)}
-                        />
-                      );
-                    })}
-                  </svg>
-                  {RENOWN_CANOPIES.map((canopy) => (
-                    <div
-                      key={canopy.id}
-                      className={`renownCanopy tone-${canopy.tone}`}
-                      style={{
-                        left: `${canopy.x}px`,
-                        top: `${canopy.y}px`,
-                        width: `${canopy.width}px`,
-                        height: `${canopy.height}px`,
-                        transform: `rotate(${canopy.rotate}deg)`
-                      }}
-                    />
-                  ))}
-                  {RENOWN_NODES.map((node) => (
-                    <button
-                      key={node.id}
-                      type="button"
-                      className={`renownNode renownNode-${node.status} tone-${node.tone}${
-                        selectedNode.id === node.id ? " isSelected" : ""
-                      }${node.tier === 0 ? " isRoot" : ""}`}
-                      style={{ left: `${node.x}px`, top: `${node.y}px` }}
-                      onMouseDown={(event) => event.stopPropagation()}
-                      onClick={() => setSelectedRenownNodeId(node.id)}
-                      aria-label={node.label}
-                      title={node.label}
-                    >
-                      <span className="renownNodeFrame" aria-hidden="true">
-                        {renderRenownNodeGlyph(node.icon)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <aside className="renownDetailPanel">
-                <div className="renownDetailHeader">
-                  <div className="renownDetailTitleBlock">
-                    <p className="renownDetailEyebrow">{selectedNode.branch}</p>
-                    <h3>{selectedNode.label}</h3>
-                  </div>
-                  <span className={`renownStatusBadge status-${selectedNode.status}`}>{selectedNode.status}</span>
-                </div>
-                <div className="renownDetailStats">
-                  <div>
-                    <span>Cost</span>
-                    <strong>{selectedNode.cost === 0 ? "Root" : `${selectedNode.cost} Renown`}</strong>
-                  </div>
-                  <div>
-                    <span>Branch</span>
-                    <strong>{selectedNode.branch}</strong>
-                  </div>
-                  <div>
-                    <span>Unlocked</span>
-                    <strong>{unlockedCount} nodes</strong>
-                  </div>
-                </div>
-                <article className="renownDetailSection">
-                  <h4>Doctrine</h4>
-                  <p>{selectedNode.description}</p>
-                </article>
-                <article className="renownDetailSection">
-                  <h4>Passive</h4>
-                  <p>{selectedNode.effect}</p>
-                </article>
-                <article className="renownDetailSection">
-                  <h4>Requirements</h4>
-                  {selectedNode.requirements.length > 0 ? (
-                    <ul className="renownRequirementList">
-                      {selectedNode.requirements.map((requirement) => (
-                        <li key={`${selectedNode.id}-${requirement}`}>{requirement}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>Foundational doctrine. No prior charter required.</p>
-                  )}
-                </article>
-              </aside>
-            </div>
-          </article>
-        </section>
-      </section>
+      <RenownPanel
+        renownViewportRef={renownViewportRef}
+        selectedRenownNodeId={selectedRenownNodeId}
+        renownView={renownView}
+        isRenownDragging={isRenownDragging}
+        onViewportMouseDown={handleRenownViewportMouseDown}
+        onViewportWheel={handleRenownViewportWheel}
+        onSelectNode={setSelectedRenownNodeId}
+        renderCharacterHubTabs={renderCharacterHubTabs}
+      />
     );
   }
 
@@ -5246,34 +3424,8 @@ export function AppShell() {
     item: GeneratedEncyclopediaItem,
     killCount: number
   ): ReactElement {
-    const cardLabel = [
-      item.isBoss ? i18n.t("encyclopedia.boss") : formatTokenLabel(item.slotFamily),
-      formatTokenLabel(item.itemType)
-    ]
-      .filter((value) => typeof value === "string" && value.length > 0)
-      .join(" • ");
-
     return (
-      <article className={`ledgerEntryCard${item.isBoss ? " isBoss" : ""}`}>
-        <div className="ledgerEntryImageWrap" aria-hidden="true">
-          {item.iconPath ? (
-            <img className="ledgerEntryImage" src={item.iconPath} alt={item.itemName} loading="lazy" />
-          ) : (
-            <div className="encyclopediaItemPlaceholder">{i18n.t("item.artPending")}</div>
-          )}
-        </div>
-        <div className="ledgerEntryBody">
-          <p className="ledgerEntryMeta">{cardLabel}</p>
-          <h3 className="ledgerEntryName">{item.itemName}</h3>
-          <p className="ledgerEntryFlavor">{item.flavorText || i18n.t("item.noEntry")}</p>
-          <div className="ledgerEntryStats">
-            <p className="ledgerEntryStat">
-              <span>Slain</span>
-              <strong>{killCount}</strong>
-            </p>
-          </div>
-        </div>
-      </article>
+      <LedgerEntryCard item={item} killCount={killCount} formatTokenLabel={formatTokenLabel} />
     );
   }
 
@@ -5378,286 +3530,53 @@ export function AppShell() {
   }
 
   function renderProfilePanel() {
-    if (isLoadingState) {
-      return (
-        <section className="contentShell">
-          <section className="contentStack">
-            {renderCharacterHubTabs()}
-            <article className="contentCard">
-              <h2>Character</h2>
-              <p>{i18n.t("inventory.loading")}</p>
-            </article>
-          </section>
-        </section>
-      );
-    }
-
-    if (!playerState) {
-      return (
-        <section className="contentShell">
-          <section className="contentStack">
-            {renderCharacterHubTabs()}
-            <article className="contentCard">
-              <h2>Character</h2>
-              <p>{i18n.t("inventory.unavailable")}</p>
-            </article>
-          </section>
-        </section>
-      );
-    }
-
-    const effectiveBaseStats: Record<TrainableStatKey, number> = baseStats ?? {
-      strength: playerState.stats.strength,
-      intelligence: playerState.stats.intelligence,
-      dexterity: playerState.stats.dexterity,
-      vitality: playerState.stats.vitality,
-      initiative: playerState.stats.initiative,
-      luck: playerState.stats.luck
-    };
-    const effectiveCurrencies = currencies ?? {
-      ducats: Math.max(playerState.currency.ducats, TEST_MIN_DUCATS),
-      imperials: playerState.currency.imperials
-    };
-    const mainStatColumns: Array<{ key: TrainableStatKey; label: string; iconPath: string }> = [
-      { key: "strength", label: "STR", iconPath: "M6.2 17c-1.2 0-2.2-1-2.2-2.2V10h1.9V7.8a1 1 0 112 0V10h.8V7.2a1 1 0 112 0V10h.8V7.5a1 1 0 112 0V10h.7a2 2 0 012 2v2.8c0 1.2-1 2.2-2.2 2.2H6.2z" },
-      { key: "intelligence", label: "INT", iconPath: "M4 4h5a3 3 0 013 3v9a3 3 0 00-3-3H4V4zm12 0h-5a3 3 0 00-3 3v9a3 3 0 013-3h5V4z" },
-      { key: "dexterity", label: "DEX", iconPath: "M4 5h5l1 4h4l2 3H4V5zm0 8h13v2H4v-2z" },
-      { key: "vitality", label: "VIT", iconPath: "M10 17l-1.4-1.2C5 12.6 3 10.8 3 8.5 3 6.6 4.6 5 6.5 5c1.1 0 2.2.5 2.9 1.4.7-.9 1.8-1.4 2.9-1.4C14.4 5 16 6.6 16 8.5c0 2.3-2 4.1-5.6 7.3L10 17zM9 7h2v2h2v2h-2v2H9v-2H7V9h2V7z" },
-      { key: "initiative", label: "INI", iconPath: "M9 2l-5 9h4l-1 7 8-11h-4l1-5H9z" },
-      { key: "luck", label: "LCK", iconPath: "M5 4h10a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zm2 2a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2zM10 9a1 1 0 100 2 1 1 0 000-2zm-3 3a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2z" }
-    ];
-
     return (
-      <section className="contentShell">
-        <section className="contentStack">
-          {renderCharacterHubTabs()}
-
-          <article className="contentCard">
-            <div className="equipmentBoard">
-              <div className="equipmentColumn equipmentColumnLeft">
-                {EQUIPMENT_LEFT_SLOTS.map((slotId) => renderEquipmentSlotCell(slotId, "", "right"))}
-              </div>
-
-              <div className="equipmentCenterColumn">
-                <div className="characterVisual">
-                  <div className="characterVisualFrame">
-                    {activeCharacterVisualPath ? (
-                      <img
-                        src={activeCharacterVisualPath}
-                        alt={`${activeCharacterVisualName ?? profileName} ${i18n.t("profile.portraitSuffix")}`}
-                        className="characterVisualImage"
-                        draggable={false}
-                      />
-                    ) : (
-                      <div className="characterSilhouette" aria-hidden="true" />
-                    )}
-                    {canCycleCharacterVisuals ? (
-                      <>
-                        <button
-                          type="button"
-                          className="characterCycleButton characterCycleButtonPrev"
-                          onClick={() => {
-                            setActiveCharacterVisualIndex((currentIndex) => {
-                              const total = GENERATED_CHARACTER_VISUALS.length;
-                              if (total === 0) {
-                                return -1;
-                              }
-                              const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-                              return (safeIndex - 1 + total) % total;
-                            });
-                          }}
-                          aria-label={i18n.t("profile.showPreviousPortrait")}
-                        >
-                          <span aria-hidden="true">{"<"}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="characterCycleButton characterCycleButtonNext"
-                          onClick={() => {
-                            setActiveCharacterVisualIndex((currentIndex) => {
-                              const total = GENERATED_CHARACTER_VISUALS.length;
-                              if (total === 0) {
-                                return -1;
-                              }
-                              const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-                              return (safeIndex + 1) % total;
-                            });
-                          }}
-                          aria-label={i18n.t("profile.showNextPortrait")}
-                        >
-                          <span aria-hidden="true">{">"}</span>
-                        </button>
-                      </>
-                    ) : null}
-                    <p className="characterVisualLabel">{profileName}</p>
-                    {renderEquipmentSlotCell("weapon", "equipmentWeaponCell equipmentWeaponOverlay", "top")}
-                    <div className="vestigeRack vestigeRackOverlay">
-                      {EQUIPMENT_VESTIGE_SLOTS.map((slotId) =>
-                        renderEquipmentSlotCell(slotId, "vestigeCell", "top")
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="equipmentColumn equipmentColumnRight">
-                {EQUIPMENT_RIGHT_SLOTS.map((slotId) => renderEquipmentSlotCell(slotId, "", "left"))}
-              </div>
-            </div>
-
-            <div className="equipmentEconomyBar">
-              <div className="economyItem">
-                <span className="currencyIcon ducatIcon" aria-hidden="true">
-                  ◎
-                </span>
-                <span>{i18n.t("currencies.ducats")}</span>
-                <strong>{effectiveCurrencies.ducats}</strong>
-              </div>
-              <div className="economyItem">
-                <span className="currencyIcon imperialIcon" aria-hidden="true">
-                  <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
-                </span>
-                <span>{i18n.t("currencies.imperials")}</span>
-                <strong>{effectiveCurrencies.imperials}</strong>
-              </div>
-              <div
-                className={`economyItem${
-                  inventoryStatFlashes.gearScore
-                    ? ` inventoryStatFlash inventoryStatFlash-${inventoryStatFlashes.gearScore.direction}`
-                    : ""
-                }`}
-              >
-                <span className="currencyIcon gearScoreIcon" aria-hidden="true">
-                  {"\u26E8"}
-                </span>
-                <span>{i18n.t("currencies.gearScore")}</span>
-                <strong
-                  className={`economyValue${
-                    inventoryStatFlashes.gearScore
-                      ? ` inventoryStatFlashValue inventoryStatFlashValue-${inventoryStatFlashes.gearScore.direction}`
-                      : ""
-                  }`}
-                >
-                  {playerState.gearScore}
-                </strong>
-              </div>
-            </div>
-
-            <div className="mainStatsTraining">
-              <div className="statTrainingColumns">
-                {mainStatColumns.map((statColumn, statIndex) => {
-                  const baseValue = effectiveBaseStats[statColumn.key];
-                  const itemBonus = equipmentStatBonuses[statColumn.key];
-                  const statFlash = inventoryStatFlashes[statColumn.key];
-                  const statContributionLines = getStatContributionLines(
-                    statColumn.key,
-                    baseValue,
-                    playerState.class
-                  );
-                  const trainingCost = getTrainingCost(baseValue);
-                  const hasEnoughDucats = effectiveCurrencies.ducats >= trainingCost;
-                  const isTrainingThisStat = activeStatTraining?.stat === statColumn.key;
-                  const isTrainingAnyStat = activeStatTraining !== null;
-                  const trainingCountdown = isTrainingThisStat
-                    ? formatDurationFromMs(activeStatTraining.completesAt - nowMs)
-                    : null;
-                  const trainingProgressPercent = isTrainingThisStat
-                    ? Math.round(
-                        ((STAT_TRAIN_DURATION_MS -
-                          Math.max(0, activeStatTraining.completesAt - nowMs)) /
-                          STAT_TRAIN_DURATION_MS) *
-                          100
-                      )
-                    : 0;
-
-                  const statTooltipAnchorClass =
-                    statIndex === 0
-                      ? "statTrainingTooltipAnchorStart"
-                      : statIndex === mainStatColumns.length - 1
-                        ? "statTrainingTooltipAnchorEnd"
-                        : "";
-
-                  return (
-                    <div
-                      key={statColumn.key}
-                      className={`statTrainingColumn${statFlash ? ` inventoryStatFlash inventoryStatFlash-${statFlash.direction}` : ""}`}
-                    >
-                      <span className="statTrainingSymbol" aria-hidden="true">
-                        <svg viewBox="0 0 20 20" focusable="false">
-                          <path d={statColumn.iconPath} />
-                        </svg>
-                      </span>
-                      <span className="statTrainingLabel">{statColumn.label}</span>
-                      <div
-                        className={`statTrainingTooltip${statTooltipAnchorClass ? ` ${statTooltipAnchorClass}` : ""}`}
-                        role="tooltip"
-                      >
-                        <p className="statTrainingTooltipTitle">{i18n.t("training.derivedContributions")}</p>
-                        {statContributionLines.map((line) => (
-                          <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
-                            <span>
-                              {line.label} ({line.ratioLabel})
-                            </span>
-                            <strong>{line.valueLabel}</strong>
-                          </p>
-                        ))}
-                      </div>
-                      <span
-                        className={`statTrainingValue${
-                          statFlash ? ` inventoryStatFlashValue inventoryStatFlashValue-${statFlash.direction}` : ""
-                        }`}
-                      >
-                        {baseValue}
-                        <span className="itemBonusValue">(+{itemBonus})</span>
-                      </span>
-                      <div className="statTrainingAction">
-                        <span className="statTrainingCost">
-                          {trainingCost}
-                          <span className="currencyIcon ducatIcon" aria-hidden="true">
-                            ◎
-                          </span>
-                        </span>
-                        <button
-                          className="statTrainButton"
-                          onClick={() => startStatTraining(statColumn.key)}
-                          disabled={!hasEnoughDucats || isTrainingAnyStat}
-                        >
-                          {isTrainingThisStat
-                            ? i18n.t("training.training")
-                            : isTrainingAnyStat
-                              ? i18n.t("training.busy")
-                              : i18n.t("training.train")}
-                        </button>
-                        {isTrainingThisStat ? (
-                          <>
-                            <div
-                              className="statTrainingProgressTrack"
-                              role="progressbar"
-                              aria-label={i18n.t("training.progressAria", { stat: statColumn.label })}
-                              aria-valuemin={0}
-                              aria-valuemax={100}
-                              aria-valuenow={trainingProgressPercent}
-                            >
-                              <span
-                                className="statTrainingProgressFill"
-                                style={{ width: `${Math.max(0, Math.min(100, trainingProgressPercent))}%` }}
-                              />
-                            </div>
-                            <span className="statTrainingTimer">{trainingCountdown}</span>
-                          </>
-                        ) : (
-                          <div className="statTrainingIdleSpacer" aria-hidden="true" />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </article>
-
-        </section>
-      </section>
+      <InventoryManagementPanel
+        isLoadingState={isLoadingState}
+        playerState={playerState}
+        baseStats={baseStats}
+        currencies={currencies}
+        minimumPreviewDucats={TEST_MIN_DUCATS}
+        equipmentStatBonuses={equipmentStatBonuses}
+        inventoryStatFlashes={inventoryStatFlashes}
+        activeStatTraining={activeStatTraining}
+        nowMs={nowMs}
+        statTrainDurationMs={STAT_TRAIN_DURATION_MS}
+        profileName={profileName}
+        activeCharacterVisualPath={activeCharacterVisualPath}
+        activeCharacterVisualName={activeCharacterVisualName}
+        canCycleCharacterVisuals={canCycleCharacterVisuals}
+        imperialsIconPath={IMPERIALS_ICON_PATH}
+        equipmentLeftSlots={EQUIPMENT_LEFT_SLOTS}
+        equipmentRightSlots={EQUIPMENT_RIGHT_SLOTS}
+        equipmentVestigeSlots={EQUIPMENT_VESTIGE_SLOTS}
+        renderCharacterHubTabs={renderCharacterHubTabs}
+        renderEquipmentSlotCell={renderEquipmentSlotCell}
+        onShowPreviousPortrait={() => {
+          setActiveCharacterVisualIndex((currentIndex) => {
+            const total = GENERATED_CHARACTER_VISUALS.length;
+            if (total === 0) {
+              return -1;
+            }
+            const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+            return (safeIndex - 1 + total) % total;
+          });
+        }}
+        onShowNextPortrait={() => {
+          setActiveCharacterVisualIndex((currentIndex) => {
+            const total = GENERATED_CHARACTER_VISUALS.length;
+            if (total === 0) {
+              return -1;
+            }
+            const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+            return (safeIndex + 1) % total;
+          });
+        }}
+        onStartStatTraining={startStatTraining}
+        getTrainingCost={getTrainingCost}
+        getStatContributionLines={getStatContributionLines}
+        formatDurationFromMs={formatDurationFromMs}
+      />
     );
   }
 
@@ -5685,7 +3604,7 @@ export function AppShell() {
               draggable={allowDrag}
               onDragStart={allowDrag ? (event) => handleInventoryCardDragStart(event, item.id) : undefined}
               onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
-              onDrop={allowDrag ? (event) => handleInventoryCardDrop(event, item.id) : undefined}
+              onDrop={allowDrag ? (event) => handleInventoryCardDrop(event) : undefined}
               onDoubleClick={allowDrag ? () => handleInventoryCardDoubleClick(item.id) : undefined}
               onContextMenu={
                 allowDrag
@@ -5719,93 +3638,91 @@ export function AppShell() {
     onToggleWearable: () => void;
   }): ReactElement {
     return (
-      <>
-        <div className="inventoryToolbarSticky">
-          <div className="inventoryControlsRow">
+      <div className="inventoryToolbarSticky">
+        <div className="inventoryControlsRow">
+          <div className="inventoryControlWithTooltip">
+            <button
+              type="button"
+              className="inventoryIconButton"
+              onClick={args.onTogglePowerSort}
+              aria-label={i18n.t("inventory.sortByPower")}
+              aria-describedby={`${args.idPrefix}-power-sort-tooltip`}
+            >
+              <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M7 4L4 7h2v9h2V7h2L7 4zM13 16l3-3h-2V4h-2v9h-2l3 3z" />
+              </svg>
+            </button>
+            <div
+              id={`${args.idPrefix}-power-sort-tooltip`}
+              className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
+              role="tooltip"
+            >
+              <p className="uiHoverTooltipTitle">{i18n.t("inventory.sortItems")}</p>
+            </div>
+          </div>
+
+          <div className="inventoryFilterButtons">
             <div className="inventoryControlWithTooltip">
               <button
                 type="button"
-                className="inventoryIconButton"
-                onClick={args.onTogglePowerSort}
-                aria-label={i18n.t("inventory.sortByPower")}
-                aria-describedby={`${args.idPrefix}-power-sort-tooltip`}
+                className={`inventoryIconButton${args.filters.showOnlyWeapons ? " active" : ""}`}
+                onClick={() => args.onToggleCategory("weapon")}
+                aria-label={i18n.t("inventory.filterWeaponsAria")}
+                aria-pressed={args.filters.showOnlyWeapons}
               >
                 <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                  <path d="M7 4L4 7h2v9h2V7h2L7 4zM13 16l3-3h-2V4h-2v9h-2l3 3z" />
+                  <path d="M4 16l4-4 2 2-4 4H4v-2zm8-9l1.5-1.5L16 8l-1.5 1.5L12 7zM10.5 8.5l1-1 1.5 1.5-1 1-1.5-1.5zM8 11l2-2 1.5 1.5-2 2L8 11z" />
                 </svg>
               </button>
-              <div
-                id={`${args.idPrefix}-power-sort-tooltip`}
-                className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
-                role="tooltip"
-              >
-                <p className="uiHoverTooltipTitle">{i18n.t("inventory.sortItems")}</p>
-              </div>
             </div>
-
-            <div className="inventoryFilterButtons">
-              <div className="inventoryControlWithTooltip">
-                <button
-                  type="button"
-                  className={`inventoryIconButton${args.filters.showOnlyWeapons ? " active" : ""}`}
-                  onClick={() => args.onToggleCategory("weapon")}
-                  aria-label={i18n.t("inventory.filterWeaponsAria")}
-                  aria-pressed={args.filters.showOnlyWeapons}
-                >
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <path d="M4 16l4-4 2 2-4 4H4v-2zm8-9l1.5-1.5L16 8l-1.5 1.5L12 7zM10.5 8.5l1-1 1.5 1.5-1 1-1.5-1.5zM8 11l2-2 1.5 1.5-2 2L8 11z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="inventoryControlWithTooltip">
-                <button
-                  type="button"
-                  className={`inventoryIconButton${args.filters.showOnlyArmor ? " active" : ""}`}
-                  onClick={() => args.onToggleCategory("armor")}
-                  aria-label={i18n.t("inventory.filterArmorAria")}
-                  aria-pressed={args.filters.showOnlyArmor}
-                >
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <path d="M10 3l5 2v4c0 3.5-2.2 6-5 8-2.8-2-5-4.5-5-8V5l5-2zm0 2.2L7 6.3v2.6c0 2.4 1.4 4.3 3 5.8 1.6-1.5 3-3.4 3-5.8V6.3l-3-1.1z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="inventoryControlWithTooltip">
-                <button
-                  type="button"
-                  className={`inventoryIconButton${args.filters.showOnlyJewelry ? " active" : ""}`}
-                  onClick={() => args.onToggleCategory("jewelry")}
-                  aria-label={i18n.t("inventory.filterJewelryAria")}
-                  aria-pressed={args.filters.showOnlyJewelry}
-                >
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <path d="M10 5a5 5 0 105 5 5 5 0 00-5-5zm0 2a3 3 0 110 6 3 3 0 010-6zM4 4h3v2H4zM13 4h3v2h-3z" />
-                  </svg>
-                </button>
-              </div>
-              <div className="inventoryControlWithTooltip">
-                <button
-                  type="button"
-                  className={`inventoryIconButton${args.filters.showOnlyWearable ? " active" : ""}`}
-                  onClick={args.onToggleWearable}
-                  aria-label={i18n.t("inventory.filterWearableAria")}
-                  aria-pressed={args.filters.showOnlyWearable}
-                >
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <path d="M7 3h6l2 3-2 2-1-1v9H8V7L7 8 5 6l2-3z" />
-                  </svg>
-                </button>
-              </div>
+            <div className="inventoryControlWithTooltip">
+              <button
+                type="button"
+                className={`inventoryIconButton${args.filters.showOnlyArmor ? " active" : ""}`}
+                onClick={() => args.onToggleCategory("armor")}
+                aria-label={i18n.t("inventory.filterArmorAria")}
+                aria-pressed={args.filters.showOnlyArmor}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M10 3l5 2v4c0 3.5-2.2 6-5 8-2.8-2-5-4.5-5-8V5l5-2zm0 2.2L7 6.3v2.6c0 2.4 1.4 4.3 3 5.8 1.6-1.5 3-3.4 3-5.8V6.3l-3-1.1z" />
+                </svg>
+              </button>
+            </div>
+            <div className="inventoryControlWithTooltip">
+              <button
+                type="button"
+                className={`inventoryIconButton${args.filters.showOnlyJewelry ? " active" : ""}`}
+                onClick={() => args.onToggleCategory("jewelry")}
+                aria-label={i18n.t("inventory.filterJewelryAria")}
+                aria-pressed={args.filters.showOnlyJewelry}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M10 5a5 5 0 105 5 5 5 0 00-5-5zm0 2a3 3 0 110 6 3 3 0 010-6zM4 4h3v2H4zM13 4h3v2h-3z" />
+                </svg>
+              </button>
+            </div>
+            <div className="inventoryControlWithTooltip">
+              <button
+                type="button"
+                className={`inventoryIconButton${args.filters.showOnlyWearable ? " active" : ""}`}
+                onClick={args.onToggleWearable}
+                aria-label={i18n.t("inventory.filterWearableAria")}
+                aria-pressed={args.filters.showOnlyWearable}
+              >
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M7 3h6l2 3-2 2-1-1v9H8V7L7 8 5 6l2-3z" />
+                </svg>
+              </button>
             </div>
           </div>
-          <p className="inventoryFilterSummary">
-            {i18n.t("inventory.summary", {
-              shown: args.shownCount,
-              total: args.totalCount
-            })}
-          </p>
         </div>
-      </>
+        <p className="inventoryFilterSummary">
+          {i18n.t("inventory.summary", {
+            shown: args.shownCount,
+            total: args.totalCount
+          })}
+        </p>
+      </div>
     );
   }
 
@@ -5907,124 +3824,69 @@ export function AppShell() {
   }
 
   function renderMerchantPanel(): ReactElement {
-    if (isMerchantLoading) {
-      return renderPlaceholderPanel(i18n.t("menu.merchant"), "Loading merchant stock...");
-    }
-
-    if (!playerState || !merchantState) {
-      return renderPlaceholderPanel(i18n.t("menu.merchant"), "Merchant stock is unavailable.");
-    }
-
-    const nextRefreshMs = Math.max(0, merchantState.nextRefreshAtMs - nowMs);
-    const inventorySellEntries = filteredMerchantInventoryItems.map((item) => ({
-      item,
-      fromSlot: "inventory"
-    }));
-    const equippedSellEntries = filteredMerchantEquippedEntries.map((entry) => ({
-      item: entry.item,
-      fromSlot: entry.slotId
-    }));
-    const currentDucats = currencies?.ducats ?? playerState.currency.ducats;
-
     return (
-      <section className="contentShell merchantShell">
-        <section className="contentStack merchantStack">
-          <article className="contentCard merchantHeaderCard">
-            <div className="merchantHeaderTop">
-              <div>
-                <h2>{i18n.t("menu.merchant")}</h2>
-                <p className="merchantHeaderText">
-                  Rotating heavy armor and melee stock. Inventory refreshes every 12 hours.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="merchantTradeButton"
-                onClick={handleMerchantRestock}
-                disabled={isMerchantMutating}
-              >
-                Restock
-              </button>
-            </div>
-            <div className="merchantStatusRow">
-              <span className="merchantTradePrice merchantTradePriceXL">Ducats: {currentDucats.toLocaleString()}</span>
-              <span className="merchantTradeMeta">Next refresh in {formatDurationFromMs(nextRefreshMs)}</span>
-            </div>
-          </article>
-
-          <section className="merchantColumns">
-            <article className="contentCard merchantColumnCard">
-              <div className="inventoryHeader">
-                <h3>Merchant Inventory</h3>
-                <p>{filteredMerchantOffers.length} offers</p>
-              </div>
-              {renderInventoryControlsRow({
-                idPrefix: "merchant-stock",
-                filters: merchantOfferFilters,
-                totalCount: merchantState.offers.length,
-                shownCount: filteredMerchantOffers.length,
-                onTogglePowerSort: () => toggleFilterStatePowerSort(setMerchantOfferFilters),
-                onToggleCategory: (filter) => toggleExclusiveFilterStateCategory(setMerchantOfferFilters, filter),
-                onToggleWearable: () => toggleFilterStateWearable(setMerchantOfferFilters)
-              })}
-              <div className="merchantColumnBody">{renderMerchantOffers()}</div>
-            </article>
-
-            <article className="contentCard merchantColumnCard">
-              <div className="inventoryHeader">
-                <h3>Your Inventory</h3>
-                <p>{inventorySellEntries.length} bag items</p>
-              </div>
-              {renderInventoryControlsRow({
-                idPrefix: "merchant-player",
-                filters: merchantPlayerFilters,
-                totalCount: merchantInventoryItems.length + merchantEquippedEntries.length,
-                shownCount: inventorySellEntries.length + equippedSellEntries.length,
-                onTogglePowerSort: () => toggleFilterStatePowerSort(setMerchantPlayerFilters),
-                onToggleCategory: (filter) => toggleExclusiveFilterStateCategory(setMerchantPlayerFilters, filter),
-                onToggleWearable: () => toggleFilterStateWearable(setMerchantPlayerFilters)
-              })}
-              <div className="merchantColumnBody merchantColumnBodyStacked">
-                {renderMerchantSellCards(inventorySellEntries)}
-
-                <div className="inventoryHeader merchantSectionHeader">
-                  <h3>Equipped</h3>
-                  <p>{merchantEquippedEntries.length} equipped items</p>
-                </div>
-                {renderMerchantSellCards(equippedSellEntries)}
-              </div>
-            </article>
-          </section>
-          {renderInventoryComparisonOverlay()}
-        </section>
-      </section>
+      <MerchantPanel
+        isMerchantLoading={isMerchantLoading}
+        playerState={playerState}
+        merchantState={merchantState}
+        nowMs={nowMs}
+        currencies={currencies}
+        isMerchantMutating={isMerchantMutating}
+        merchantOfferFilters={merchantOfferFilters}
+        merchantPlayerFilters={merchantPlayerFilters}
+        merchantInventoryItemsCount={merchantInventoryItems.length}
+        merchantEquippedEntriesCount={merchantEquippedEntries.length}
+        filteredMerchantOffersCount={filteredMerchantOffers.length}
+        filteredMerchantInventoryItems={filteredMerchantInventoryItems.map((item) => ({ item, fromSlot: "inventory" }))}
+        filteredMerchantEquippedEntries={filteredMerchantEquippedEntries.map((entry) => ({
+          item: entry.item,
+          fromSlot: entry.slotId
+        }))}
+        onRestock={handleMerchantRestock}
+        formatDurationFromMs={formatDurationFromMs}
+        renderPlaceholderPanel={renderPlaceholderPanel}
+        renderInventoryControlsRow={renderInventoryControlsRow}
+        renderMerchantOffers={renderMerchantOffers}
+        renderMerchantSellCards={renderMerchantSellCards}
+        onToggleOfferPowerSort={() => toggleFilterStatePowerSort(setMerchantOfferFilters)}
+        onToggleOfferCategory={(filter) => toggleExclusiveFilterStateCategory(setMerchantOfferFilters, filter)}
+        onToggleOfferWearable={() => toggleFilterStateWearable(setMerchantOfferFilters)}
+        onTogglePlayerPowerSort={() => toggleFilterStatePowerSort(setMerchantPlayerFilters)}
+        onTogglePlayerCategory={(filter) => toggleExclusiveFilterStateCategory(setMerchantPlayerFilters, filter)}
+        onTogglePlayerWearable={() => toggleFilterStateWearable(setMerchantPlayerFilters)}
+        renderInventoryComparisonOverlay={renderInventoryComparisonOverlay}
+      />
     );
   }
 
   function renderProfileSidePanel() {
-    if (isLoadingState) {
+    if (isLoadingState || !playerState) {
       return (
-        <section className="contentShell">
-          <section className="contentStack">
-            <article className="contentCard">
-              <h2>{i18n.t("profile.panel")}</h2>
-              <p>{i18n.t("profile.loading")}</p>
-            </article>
-          </section>
-        </section>
-      );
-    }
-
-    if (!playerState) {
-      return (
-        <section className="contentShell">
-          <section className="contentStack">
-            <article className="contentCard">
-              <h2>{i18n.t("profile.panel")}</h2>
-              <p>{i18n.t("inventory.unavailable")}</p>
-            </article>
-          </section>
-        </section>
+        <ProfileSidePanel
+          isLoadingState={isLoadingState}
+          playerState={playerState}
+          inventoryItems={inventoryItems}
+          profileSideTab={profileSideTab}
+          sidePanelScrollRef={sidePanelScrollRef}
+          filteredInventoryItems={filteredInventoryItems}
+          consumableItems={[]}
+          groupedStats={[]}
+          onTabChange={setProfileSideTab}
+          onInventoryScroll={() => setInventoryComparisonHover(null)}
+          onInventoryDragOver={handleInventoryListDragOver}
+          onInventoryDrop={handleInventoryListDrop}
+          onToggleInventoryPowerSort={toggleInventoryPowerSort}
+          onToggleInventoryCategory={toggleExclusiveInventoryCategoryFilter}
+          onToggleWearable={() => setShowOnlyWearable((previous) => !previous)}
+          showOnlyWeapons={showOnlyWeapons}
+          showOnlyArmor={showOnlyArmor}
+          showOnlyJewelry={showOnlyJewelry}
+          showOnlyWearable={showOnlyWearable}
+          renderInventoryCards={renderInventoryCards}
+          renderInventoryComparisonOverlay={renderInventoryComparisonOverlay}
+          formatClassLabel={formatClassLabel}
+          renderUnavailablePanel={renderPlaceholderPanel}
+        />
       );
     }
 
@@ -6073,871 +3935,105 @@ export function AppShell() {
     const consumableItems = inventoryItems.filter((item) => item.category === "Consumable");
 
     return (
-      <section className="contentShell statsViewportShell">
-        <section className="contentStack statsViewportStack sidePanelStack">
-          <article className="contentCard sidePanelTabsCard">
-            <div className="profileSideTabs">
-              <button
-                className={`profileSwitchButton${profileSideTab === "inventory" ? " active" : ""}`}
-                onClick={() => setProfileSideTab("inventory")}
-              >
-                {i18n.t("profile.inventoryTab")}
-              </button>
-              <button
-                className={`profileSwitchButton${profileSideTab === "consumables" ? " active" : ""}`}
-                onClick={() => setProfileSideTab("consumables")}
-              >
-                {i18n.t("profile.consumablesTab")}
-              </button>
-              <button
-                className={`profileSwitchButton${profileSideTab === "stats" ? " active" : ""}`}
-                onClick={() => setProfileSideTab("stats")}
-              >
-                {i18n.t("profile.statsTab")}
-              </button>
-            </div>
-          </article>
-
-          <article className="contentCard statsViewportBody sidePanelBodyCard">
-            <div
-              className="sidePanelScroll"
-              ref={sidePanelScrollRef}
-              onScroll={profileSideTab === "inventory" ? () => setInventoryComparisonHover(null) : undefined}
-              onDragOver={profileSideTab === "inventory" ? handleInventoryListDragOver : undefined}
-              onDrop={profileSideTab === "inventory" ? handleInventoryListDrop : undefined}
-            >
-              {profileSideTab === "inventory" ? (
-                <>
-                  <div className="inventoryToolbarSticky">
-                    <div className="inventoryControlsRow">
-                      <div className="inventoryControlWithTooltip">
-                        <button
-                          type="button"
-                          className="inventoryIconButton"
-                          onClick={toggleInventoryPowerSort}
-                          aria-label={i18n.t("inventory.sortByPower")}
-                          aria-describedby="inventory-power-sort-tooltip"
-                        >
-                          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                            <path d="M7 4L4 7h2v9h2V7h2L7 4zM13 16l3-3h-2V4h-2v9h-2l3 3z" />
-                          </svg>
-                        </button>
-                        <div
-                          id="inventory-power-sort-tooltip"
-                          className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart"
-                          role="tooltip"
-                        >
-                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.sortItems")}</p>
-                        </div>
-                      </div>
-
-                      <div className="inventoryFilterButtons">
-                        <div className="inventoryControlWithTooltip">
-                          <button
-                            type="button"
-                            className={`inventoryIconButton${showOnlyWeapons ? " active" : ""}`}
-                            onClick={() => toggleExclusiveInventoryCategoryFilter("weapon")}
-                            aria-label={i18n.t("inventory.filterWeaponsAria")}
-                            aria-pressed={showOnlyWeapons}
-                            aria-describedby="inventory-filter-weapons-tooltip"
-                          >
-                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                              <path d="M4 16l4-4 2 2-4 4H4v-2zm8-9l1.5-1.5L16 8l-1.5 1.5L12 7zM10.5 8.5l1-1 1.5 1.5-1 1-1.5-1.5zM8 11l2-2 1.5 1.5-2 2L8 11z" />
-                            </svg>
-                          </button>
-                          <div
-                            id="inventory-filter-weapons-tooltip"
-                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
-                            role="tooltip"
-                          >
-                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterWeapons")}</p>
-                          </div>
-                        </div>
-                        <div className="inventoryControlWithTooltip">
-                          <button
-                            type="button"
-                            className={`inventoryIconButton${showOnlyArmor ? " active" : ""}`}
-                            onClick={() => toggleExclusiveInventoryCategoryFilter("armor")}
-                            aria-label={i18n.t("inventory.filterArmorAria")}
-                            aria-pressed={showOnlyArmor}
-                            aria-describedby="inventory-filter-armor-tooltip"
-                          >
-                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                              <path d="M10 3l5 2v4c0 3.5-2.2 6-5 8-2.8-2-5-4.5-5-8V5l5-2zm0 2.2L7 6.3v2.6c0 2.4 1.4 4.3 3 5.8 1.6-1.5 3-3.4 3-5.8V6.3l-3-1.1z" />
-                            </svg>
-                          </button>
-                          <div
-                            id="inventory-filter-armor-tooltip"
-                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
-                            role="tooltip"
-                          >
-                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterArmor")}</p>
-                          </div>
-                        </div>
-                        <div className="inventoryControlWithTooltip">
-                          <button
-                            type="button"
-                            className={`inventoryIconButton${showOnlyJewelry ? " active" : ""}`}
-                            onClick={() => toggleExclusiveInventoryCategoryFilter("jewelry")}
-                            aria-label={i18n.t("inventory.filterJewelryAria")}
-                            aria-pressed={showOnlyJewelry}
-                            aria-describedby="inventory-filter-jewelry-tooltip"
-                          >
-                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                              <path d="M10 5a5 5 0 105 5 5 5 0 00-5-5zm0 2a3 3 0 110 6 3 3 0 010-6zM4 4h3v2H4zM13 4h3v2h-3z" />
-                            </svg>
-                          </button>
-                          <div
-                            id="inventory-filter-jewelry-tooltip"
-                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
-                            role="tooltip"
-                          >
-                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterJewelry")}</p>
-                          </div>
-                        </div>
-                        <div className="inventoryControlWithTooltip">
-                          <button
-                            type="button"
-                            className={`inventoryIconButton${showOnlyWearable ? " active" : ""}`}
-                            onClick={() => setShowOnlyWearable((previous) => !previous)}
-                            aria-label={i18n.t("inventory.filterWearableAria")}
-                            aria-pressed={showOnlyWearable}
-                            aria-describedby="inventory-filter-wearable-tooltip"
-                          >
-                            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                              <path d="M7 3h6l2 3-2 2-1-1v9H8V7L7 8 5 6l2-3z" />
-                            </svg>
-                          </button>
-                          <div
-                            id="inventory-filter-wearable-tooltip"
-                            className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd"
-                            role="tooltip"
-                          >
-                            <p className="uiHoverTooltipTitle">{i18n.t("inventory.filterWearable")}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="inventoryFilterSummary">
-                      {i18n.t("inventory.summary", {
-                        shown: filteredInventoryItems.length,
-                        total: inventoryItems.length
-                      })}
-                    </p>
-                  </div>
-                  {renderInventoryCards(filteredInventoryItems, true)}
-                </>
-              ) : null}
-
-              {profileSideTab === "consumables" ? (
-                <>
-                  <div className="inventoryHeader">
-                    <h3>{i18n.t("inventory.consumables")}</h3>
-                    <p>{i18n.t("inventory.itemCount", { count: consumableItems.length })}</p>
-                  </div>
-                  {renderInventoryCards(consumableItems, false)}
-                </>
-              ) : null}
-
-              {profileSideTab === "stats" ? (
-                <>
-                  <div className="profileMeta">
-                    <p>
-                      {i18n.t("profile.class")}: <strong>{formatClassLabel(playerState.class)}</strong>
-                    </p>
-                    <p>
-                      {i18n.t("profile.level")}: <strong>{playerState.level}</strong>
-                    </p>
-                  </div>
-                  <div className="statsGroups">
-                    {groupedStats.map((group) => (
-                      <section key={group.title} className="statsGroup">
-                        <h3 className="statsGroupTitle">{group.title}</h3>
-                        <div className="statsRows">
-                          {group.rows.map((row) => (
-                            <div key={row.label} className="statsRow">
-                              <span className="statsRowLabel">{row.label}</span>
-                              <span className="statsRowValue">{row.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    ))}
-                  </div>
-                </>
-              ) : null}
-              {renderInventoryComparisonOverlay()}
-            </div>
-          </article>
-        </section>
-      </section>
+      <ProfileSidePanel
+        isLoadingState={isLoadingState}
+        playerState={playerState}
+        inventoryItems={inventoryItems}
+        profileSideTab={profileSideTab}
+        sidePanelScrollRef={sidePanelScrollRef}
+        filteredInventoryItems={filteredInventoryItems}
+        consumableItems={consumableItems}
+        groupedStats={groupedStats}
+        onTabChange={setProfileSideTab}
+        onInventoryScroll={() => setInventoryComparisonHover(null)}
+        onInventoryDragOver={handleInventoryListDragOver}
+        onInventoryDrop={handleInventoryListDrop}
+        onToggleInventoryPowerSort={toggleInventoryPowerSort}
+        onToggleInventoryCategory={toggleExclusiveInventoryCategoryFilter}
+        onToggleWearable={() => setShowOnlyWearable((previous) => !previous)}
+        showOnlyWeapons={showOnlyWeapons}
+        showOnlyArmor={showOnlyArmor}
+        showOnlyJewelry={showOnlyJewelry}
+        showOnlyWearable={showOnlyWearable}
+        renderInventoryCards={renderInventoryCards}
+        renderInventoryComparisonOverlay={renderInventoryComparisonOverlay}
+        formatClassLabel={formatClassLabel}
+        renderUnavailablePanel={renderPlaceholderPanel}
+      />
     );
   }
 
   function renderChatPanel() {
     return (
-      <section className="contentShell statsViewportShell">
-        <section className="contentStack statsViewportStack chatPanelStack">
-          <article className="contentCard chatPanelTabsCard">
-            <div className="chatPanelHeaderRow">
-              <div className="chatChannelTabs" role="tablist" aria-label={i18n.t("chat.channels")}>
-                {Object.keys(CHAT_CHANNEL_LABEL_KEYS).map((channel) => (
-                  <button
-                    key={channel}
-                    className={`profileSwitchButton${activeChatChannel === channel ? " active" : ""}`}
-                    onClick={() => setActiveChatChannel(channel as ChatChannel)}
-                    role="tab"
-                    aria-selected={activeChatChannel === channel}
-                  >
-                    {formatChatChannelLabel(channel as ChatChannel)}
-                  </button>
-                ))}
-              </div>
-              <button className="chatOverlayCloseButton" onClick={closeInventoryChat} aria-label={i18n.t("chat.close")}>
-                x
-              </button>
-            </div>
-          </article>
-
-          <article className="contentCard statsViewportBody sidePanelBodyCard chatMessagesCard">
-            <div className="chatMessagesScroll" ref={chatMessagesScrollRef}>
-              {activeChatMessages.length > 0 ? (
-                <ul className="chatMessageList">
-                  {activeChatMessages.map((message) => (
-                    <li key={message.id} className="chatMessageItem">
-                      <p className="chatMessageMeta">
-                        <strong>{message.sender}</strong>
-                        <span>{formatChatTime(message.sentAtMs)}</span>
-                      </p>
-                      <p className="chatMessageText">{message.text}</p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="chatEmptyState">{i18n.t("chat.empty")}</p>
-              )}
-            </div>
-
-            <form className="chatComposer" onSubmit={handleChatComposerSubmit}>
-              <input
-                type="text"
-                value={chatDraft}
-                onChange={(event) => setChatDraft(event.currentTarget.value)}
-                placeholder={i18n.t("chat.messagePlaceholder", {
-                  channel: formatChatChannelLabel(activeChatChannel)
-                })}
-                maxLength={180}
-              />
-              <button type="submit" disabled={chatDraft.trim().length === 0}>
-                {i18n.t("chat.send")}
-              </button>
-            </form>
-          </article>
-        </section>
-      </section>
+      <ChatPanel
+        activeChatChannel={activeChatChannel}
+        activeChatMessages={activeChatMessages}
+        chatDraft={chatDraft}
+        chatMessagesScrollRef={chatMessagesScrollRef}
+        onChannelChange={setActiveChatChannel}
+        onClose={closeInventoryChat}
+        onDraftChange={setChatDraft}
+        onSubmit={handleChatComposerSubmit}
+      />
     );
   }
 
   function renderContractsPanel() {
-    if (isLoadingState) {
-      return (
-        <section className="contentShell">
-          <section className="contentStack">
-            <article className="contentCard">
-              <h2>{i18n.t("menu.contracts")}</h2>
-              <p>{i18n.t("contracts.loading")}</p>
-            </article>
-          </section>
-        </section>
-      );
-    }
-
-    if (!playerState) {
-      return (
-        <section className="contentShell">
-          <section className="contentStack">
-            <article className="contentCard">
-              <h2>{i18n.t("menu.contracts")}</h2>
-              <p>{i18n.t("inventory.unavailable")}</p>
-            </article>
-          </section>
-        </section>
-      );
-    }
-
-    if (activeContractEncounter && activeContractEncounter.phase === "travel") {
-      return (
-        <CombatEncounterPanel
-          phase={activeContractEncounter.phase}
-          encounter={activeContractEncounter.encounter}
-          timeline={activeContractEncounter.timeline}
-          currentEventIndex={activeContractEncounter.currentEventIndex}
-          nowMs={nowMs}
-          travelEndsAt={activeContractEncounter.travelEndsAt}
-          travelDurationMs={CONTRACT_TRAVEL_DURATION_MS}
-          travelDescription={activeContractEncounter.travelDescription}
-          hpByActorId={activeContractEncounter.hpByActorId}
-          combatLogEntries={activeContractEncounter.combatLogEntries}
-          currentAction={activeContractEncounter.activeAction}
-          impactTargetId={activeContractEncounter.impactTargetId}
-          resolutionState={activeContractEncounter.resolutionState}
-          typedSummaryLine={activeContractEncounter.typedSummaryLine}
-          playbackRate={getEncounterAnimationRate(activeContractEncounter)}
-          isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
-          onToggleFastForward={toggleCombatFastForward}
-          onReplayCombat={replayContractEncounter}
-          onBackToBoard={returnToContractsBoard}
-          formatContractDifficulty={formatContractDifficulty}
-          formatDurationFromMs={formatDurationFromMs}
-        />
-      );
-    }
-
     return (
-      <section className="contentShell">
-        <section className="contentStack">
-          <article className="contentCard">
-            <div className="contractsHeader">
-              <h2>{i18n.t("menu.contracts")}</h2>
-              <p>
-                {i18n.t("contracts.available", {
-                  available: availableContractSlots.length,
-                  total: CONTRACT_SLOT_COUNT,
-                  replenishing: replenishingContractSlots.length
-                })}
-              </p>
-            </div>
-            <p>{i18n.t("contracts.description")}</p>
-          </article>
-
-          <article className="contentCard">
-            <div className="contractsTableWrap">
-              <table className="contractsTable">
-                <thead>
-                  <tr>
-                    <th>{i18n.t("contracts.table.contract")}</th>
-                    <th>{i18n.t("contracts.table.difficulty")}</th>
-                    <th>{i18n.t("contracts.table.experienceRoll")}</th>
-                    <th>{i18n.t("contracts.table.ducatsRoll")}</th>
-                    <th>{i18n.t("contracts.table.materialsRoll")}</th>
-                    <th>{i18n.t("contracts.table.itemDropRoll")}</th>
-                    <th>{i18n.t("contracts.table.staminaRoll")}</th>
-                    <th>{i18n.t("contracts.table.expiresIn")}</th>
-                    <th>{i18n.t("contracts.table.action")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contractSlots.map((slot) => {
-                    if (!slot.offer) {
-                      return (
-                        <tr key={slot.slotIndex} className="contractsReplenishRow">
-                          <td data-label={i18n.t("contracts.table.contract")}>
-                            <div className="contractsNameCell">
-                              <strong>{i18n.t("contracts.slot", { index: slot.slotIndex })}</strong>
-                              <span>{i18n.t("contracts.replenishing")}</span>
-                            </div>
-                          </td>
-                          <td data-label="Status" colSpan={8} className="contractsReplenishMessage">
-                            {i18n.t("contracts.newIn", {
-                              duration: slot.replenishReadyAt
-                                ? formatDurationFromMs(slot.replenishReadyAt - nowMs)
-                                : "00m 00s"
-                            })}
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    const { template, rollCue } = slot.offer;
-
-                    return (
-                      <tr
-                        key={slot.slotIndex}
-                        className="contractsActionRow"
-                        data-testid={`contract-row-${slot.slotIndex}`}
-                        tabIndex={0}
-                        role="button"
-                        aria-label={i18n.t("contracts.enterAria", {
-                          contract: template.name,
-                          difficulty: formatContractDifficulty(template.difficulty)
-                        })}
-                        onClick={() => startContractEncounter(slot.slotIndex, slot.offer as ContractOffer)}
-                        onKeyDown={(event) =>
-                          handleContractRowKeyDown(event, slot.slotIndex, slot.offer as ContractOffer)
-                        }
-                      >
-                        <td data-label={i18n.t("contracts.table.contract")}>
-                          <div className="contractsNameCell">
-                            <strong>{template.name}</strong>
-                            <span>{i18n.t("contracts.slot", { index: slot.slotIndex })}</span>
-                          </div>
-                        </td>
-                        <td data-label={i18n.t("contracts.table.difficulty")}>
-                          <span className={`contractDifficulty contractDifficulty-${template.difficulty}`}>
-                            {formatContractDifficulty(template.difficulty)}
-                          </span>
-                        </td>
-                        <td data-label={i18n.t("contracts.table.experienceRoll")}>{formatContractRoll(rollCue.experience)}</td>
-                        <td data-label={i18n.t("contracts.table.ducatsRoll")}>{formatContractRoll(rollCue.ducats)}</td>
-                        <td data-label={i18n.t("contracts.table.materialsRoll")}>{formatContractRoll(rollCue.materials)}</td>
-                        <td data-label={i18n.t("contracts.table.itemDropRoll")}>{formatContractRoll(rollCue.itemDrop)}</td>
-                        <td data-label={i18n.t("contracts.table.staminaRoll")}>{formatContractRoll(rollCue.staminaCost)}</td>
-                        <td data-label={i18n.t("contracts.table.expiresIn")} className="contractsTimeCell">
-                          {formatDurationFromMs(slot.offer.expiresAt - nowMs)}
-                        </td>
-                        <td data-label={i18n.t("contracts.table.action")}>
-                          <button
-                            className="contractAbandonButton"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              abandonContractSlot(slot.slotIndex);
-                            }}
-                            onKeyDown={(event) => {
-                              event.stopPropagation();
-                            }}
-                          >
-                            {i18n.t("contracts.abandon")}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </article>
-        </section>
-      </section>
+      <ContractsPanel
+        isLoadingState={isLoadingState}
+        hasPlayerState={Boolean(playerState)}
+        activeContractEncounter={activeContractEncounter}
+        nowMs={nowMs}
+        contractSlots={contractSlots}
+        availableContractCount={availableContractSlots.length}
+        replenishingContractCount={replenishingContractSlots.length}
+        onToggleFastForward={toggleCombatFastForward}
+        onReplayCombat={replayContractEncounter}
+        onBackToBoard={returnToContractsBoard}
+        onStartContractEncounter={startContractEncounter}
+        onContractRowKeyDown={handleContractRowKeyDown}
+        onAbandonContractSlot={abandonContractSlot}
+        formatContractDifficulty={formatContractDifficulty}
+        formatContractRoll={formatContractRoll}
+        formatDurationFromMs={formatDurationFromMs}
+      />
     );
   }
 
   function renderPlaceholderPanel(title: string, description: string) {
-    return (
-      <section className="contentShell">
-        <section className="contentStack">
-          <article className="contentCard">
-            <h2>{title}</h2>
-            <p>{description}</p>
-          </article>
-        </section>
-      </section>
-    );
+    return <PlaceholderPanel title={title} description={description} />;
   }
 
   function renderSettingsPanel() {
     return (
-      <section className="contentShell">
-        <section className="contentStack">
-          <article className="contentCard">
-            <h2>{i18n.t("settings.title")}</h2>
-            <p>{i18n.t("settings.description")}</p>
-          </article>
-          {accountInfo && (
-            <article className="contentCard">
-              <h3 style={{ marginTop: 0 }}>{i18n.t("settings.accountInfo")}</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("settings.username")}</span>
-                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.username || i18n.t("settings.notSet")}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("settings.email")}</span>
-                  <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "var(--text-main)" }}>{accountInfo.email || i18n.t("settings.notSet")}</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                  <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("settings.emailVerified")}</span>
-                  <span style={{ flex: "0 0 60%", display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontWeight: "bold", color: accountInfo.emailVerified ? "#6f8d5f" : "#97504a" }}>
-                      {accountInfo.emailVerified ? i18n.t("settings.verified") : i18n.t("settings.notVerified")}
-                    </span>
-                    {!accountInfo.emailVerified && (
-                      <button
-                        onClick={handleResendVerification}
-                        style={{
-                          padding: "4px 12px",
-                          fontSize: "12px",
-                          background: "var(--accent-focus)",
-                          color: "var(--bg-stone)",
-                          border: "none",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontWeight: "600"
-                        }}
-                      >
-                        {i18n.t("settings.resendEmail")}
-                      </button>
-                    )}
-                  </span>
-                </div>
-                {accountInfo.currency && (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
-                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("currencies.ducats")}</span>
-                      <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#be9651" }}>{accountInfo.currency.ducats.toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", padding: "8px 0" }}>
-                      <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("currencies.imperials")}</span>
-                      <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#9d7bb8" }}>{accountInfo.currency.imperials.toLocaleString()}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </article>
-          )}
-          <article className="contentCard">
-            <div className="settingsRow">
-              <label htmlFor="language-select">{i18n.t("settings.languageLabel")}</label>
-              <select
-                id="language-select"
-                value={preferredLocale}
-                onChange={(event) => void handleLocaleChange(normalizeLocale(event.currentTarget.value))}
-                disabled={isSavingLocale}
-              >
-                {LOCALE_OPTIONS.map((option) => (
-                  <option key={option.code} value={option.code}>
-                    {option.nativeName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {isSavingLocale ? <p>{i18n.t("settings.saving")}</p> : null}
-            {localeStatusMessage ? <p>{localeStatusMessage}</p> : null}
-          </article>
-        </section>
-      </section>
-    );
-  }
-
-  function renderEncyclopediaItemCard(
-    item: GeneratedEncyclopediaItem | null,
-    fallbackLabel: string | null = null
-  ): ReactElement {
-    const isMonster = item?.majorCategory === "monster";
-    const cardLabel = isMonster
-      ? [item?.isBoss ? i18n.t("encyclopedia.boss") : formatTokenLabel(item?.slotFamily), formatTokenLabel(item?.itemType)]
-          .filter((value) => typeof value === "string" && value.length > 0)
-          .join(" • ")
-      : formatTokenLabel(item?.slotFamily || item?.family || item?.itemType || fallbackLabel || "item");
-    return (
-      <article
-        className={`encyclopediaItemCard${item ? "" : " isMissing"}${isMonster ? " isMonster" : ""}${
-          item?.isBoss ? " isBoss" : ""
-        }`}
-      >
-        <div className="encyclopediaItemImageWrap" aria-hidden="true">
-          {item?.iconPath ? (
-            <img className="encyclopediaItemImage" src={item.iconPath} alt={item.itemName} loading="lazy" />
-          ) : (
-            <div className="encyclopediaItemPlaceholder">{i18n.t("item.artPending")}</div>
-          )}
-        </div>
-        <div className="encyclopediaItemBody">
-          <p className="encyclopediaItemMeta">{cardLabel}</p>
-          <h3 className="encyclopediaItemName">{item?.itemName ?? i18n.t("item.missingItem")}</h3>
-          <p className="encyclopediaItemFlavor">{item?.flavorText || i18n.t("item.noEntry")}</p>
-        </div>
-      </article>
+      <SettingsPanel
+        accountInfo={accountInfo}
+        preferredLocale={preferredLocale}
+        isSavingLocale={isSavingLocale}
+        localeStatusMessage={localeStatusMessage}
+        onResendVerification={handleResendVerification}
+        onLocaleChange={(locale) => void handleLocaleChange(locale)}
+      />
     );
   }
 
   function renderEncyclopediaPanel(embedCharacterHubTabs = false) {
-    try {
-      const allItems = normalizeEncyclopediaItems(GENERATED_ITEM_ENCYCLOPEDIA_DATA);
-      return (
-        <section className="contentShell">
-          <section className="contentStack">
-            {embedCharacterHubTabs ? renderCharacterHubTabs() : null}
-            <article className="contentCard encyclopediaControlsCard">
-              <h2>{i18n.t("menu.encyclopedia")}</h2>
-              <p>{i18n.t("encyclopedia.description")}</p>
-              <div className="encyclopediaTabRow">
-                {ENCYCLOPEDIA_CATEGORY_ORDER.map((category) => (
-                  <button
-                    key={category}
-                    className={`profileSwitchButton${encyclopediaCategory === category ? " active" : ""}`}
-                    onClick={() => setEncyclopediaCategory(category)}
-                  >
-                    {formatTokenLabel(category)}
-                  </button>
-                ))}
-              </div>
-              {encyclopediaCategory === "armor" ? (
-                <div className="encyclopediaTabRow">
-                  {ENCYCLOPEDIA_ARMOR_ARCHETYPE_ORDER.map((archetype) => (
-                    <button
-                      key={archetype}
-                      className={`profileSwitchButton${encyclopediaArmorArchetype === archetype ? " active" : ""}`}
-                      onClick={() => setEncyclopediaArmorArchetype(archetype)}
-                    >
-                      {formatTokenLabel(archetype)}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {encyclopediaCategory === "weapon" ? (
-                <div className="encyclopediaTabRow">
-                  {ENCYCLOPEDIA_WEAPON_ARCHETYPE_ORDER.map((archetype) => (
-                    <button
-                      key={archetype}
-                      className={`profileSwitchButton${encyclopediaWeaponArchetype === archetype ? " active" : ""}`}
-                      onClick={() => setEncyclopediaWeaponArchetype(archetype)}
-                    >
-                      {formatTokenLabel(archetype)}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </article>
-
-            {encyclopediaCategory === "armor" ? (
-              (() => {
-                const armorItems = allItems.filter(
-                  (item) => item.majorCategory === "armor" && item.archetype === encyclopediaArmorArchetype
-                );
-                const byBaseLevel = new Map<number, Map<string, GeneratedEncyclopediaItem>>();
-                for (const item of armorItems) {
-                  const slotMap = byBaseLevel.get(item.baseLevel) ?? new Map<string, GeneratedEncyclopediaItem>();
-                  slotMap.set(item.slotFamily, item);
-                  byBaseLevel.set(item.baseLevel, slotMap);
-                }
-                const levels = [...byBaseLevel.keys()].sort((left, right) => left - right);
-                if (levels.length === 0) {
-                  return (
-                    <article className="contentCard">
-                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyArmor")}</p>
-                    </article>
-                  );
-                }
-                return (
-                  <article className="contentCard encyclopediaSetListCard">
-                    <div className="encyclopediaSetList">
-                      {levels.map((baseLevel) => {
-                        const slotMap = byBaseLevel.get(baseLevel);
-                        return (
-                          <section
-                            className="encyclopediaSetSection"
-                            key={`armor-${encyclopediaArmorArchetype}-${baseLevel}`}
-                          >
-                            <div className="encyclopediaSetHeader">
-                              <h3>
-                                {i18n.t("encyclopedia.armorSet", {
-                                  archetype: formatTokenLabel(encyclopediaArmorArchetype)
-                                })}
-                              </h3>
-                              <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: baseLevel })}</span>
-                            </div>
-                            <div className="encyclopediaSetGrid">
-                              {ENCYCLOPEDIA_ARMOR_SLOT_ORDER.map((slotFamily) => (
-                                <div key={`slot-${baseLevel}-${slotFamily}`}>
-                                  {renderEncyclopediaItemCard(slotMap?.get(slotFamily) ?? null, slotFamily)}
-                                </div>
-                              ))}
-                            </div>
-                          </section>
-                        );
-                      })}
-                    </div>
-                  </article>
-                );
-              })()
-            ) : null}
-
-            {encyclopediaCategory === "weapon" ? (
-              (() => {
-                const weaponItems = allItems.filter(
-                  (item) => item.majorCategory === "weapon" && item.archetype === encyclopediaWeaponArchetype
-                );
-                type WeaponGroup = {
-                  family: string;
-                  baseLevel: number;
-                  items: GeneratedEncyclopediaItem[];
-                };
-                const byGroup = new Map<string, WeaponGroup>();
-                for (const item of weaponItems) {
-                  const key = `${item.family}:${item.baseLevel}`;
-                  const current = byGroup.get(key);
-                  if (current) {
-                    current.items.push(item);
-                    continue;
-                  }
-                  byGroup.set(key, { family: item.family, baseLevel: item.baseLevel, items: [item] });
-                }
-                const groups = [...byGroup.values()].sort((left, right) => {
-                  if (left.baseLevel !== right.baseLevel) {
-                    return left.baseLevel - right.baseLevel;
-                  }
-                  return String(left.family).localeCompare(String(right.family), preferredLocale);
-                });
-                if (groups.length === 0) {
-                  return (
-                    <article className="contentCard">
-                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyWeapon")}</p>
-                    </article>
-                  );
-                }
-                return (
-                  <article className="contentCard encyclopediaGroupListCard">
-                    <div className="encyclopediaGroupList">
-                      {groups.map((group) => (
-                        <section
-                          className="encyclopediaGroupSection"
-                          key={`weapon-${encyclopediaWeaponArchetype}-${group.family}-${group.baseLevel}`}
-                        >
-                          <div className="encyclopediaSetHeader">
-                            <h3>{formatTokenLabel(group.family)}</h3>
-                            <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: group.baseLevel })}</span>
-                          </div>
-                          <div className="encyclopediaGroupGrid">
-                            {group.items
-                              .slice()
-                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName), preferredLocale))
-                              .map((item) => (
-                                <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
-                              ))}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  </article>
-                );
-              })()
-            ) : null}
-
-            {encyclopediaCategory === "jewelry" ? (
-              (() => {
-                const jewelryItems = allItems.filter((item) => item.majorCategory === "jewelry");
-                if (jewelryItems.length === 0) {
-                  return (
-                    <article className="contentCard">
-                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyJewelry")}</p>
-                    </article>
-                  );
-                }
-                type JewelryGroup = {
-                  family: string;
-                  baseLevel: number;
-                  items: GeneratedEncyclopediaItem[];
-                };
-                const byGroup = new Map<string, JewelryGroup>();
-                for (const item of jewelryItems) {
-                  const key = `${item.family}:${item.baseLevel}`;
-                  const current = byGroup.get(key);
-                  if (current) {
-                    current.items.push(item);
-                    continue;
-                  }
-                  byGroup.set(key, { family: item.family, baseLevel: item.baseLevel, items: [item] });
-                }
-                const groups = [...byGroup.values()].sort((left, right) => {
-                  if (left.family !== right.family) {
-                    return String(left.family).localeCompare(String(right.family), preferredLocale);
-                  }
-                  return left.baseLevel - right.baseLevel;
-                });
-                return (
-                  <article className="contentCard encyclopediaGroupListCard">
-                    <div className="encyclopediaGroupList">
-                      {groups.map((group) => (
-                        <section className="encyclopediaGroupSection" key={`jewelry-${group.family}-${group.baseLevel}`}>
-                          <div className="encyclopediaSetHeader">
-                            <h3>{formatTokenLabel(group.family)}</h3>
-                            <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: group.baseLevel })}</span>
-                          </div>
-                          <div className="encyclopediaGroupGrid">
-                            {group.items
-                              .slice()
-                              .sort((left, right) => String(left.itemName).localeCompare(String(right.itemName), preferredLocale))
-                              .map((item) => (
-                                <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
-                              ))}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  </article>
-                );
-              })()
-            ) : null}
-
-            {encyclopediaCategory === "monster" ? (
-              (() => {
-                const monsterItems = allItems.filter((item) => item.majorCategory === "monster");
-                if (monsterItems.length === 0) {
-                  return (
-                    <article className="contentCard">
-                      <p className="encyclopediaEmptyState">{i18n.t("encyclopedia.emptyMonster")}</p>
-                    </article>
-                  );
-                }
-                type MonsterGroup = {
-                  familyId: string;
-                  familyName: string;
-                  locationName: string;
-                  baseLevel: number;
-                  items: GeneratedEncyclopediaItem[];
-                };
-                const byGroup = new Map<string, MonsterGroup>();
-                for (const item of monsterItems) {
-                  const key = item.familyId || `${item.family}:${item.baseLevel}`;
-                  const current = byGroup.get(key);
-                  if (current) {
-                    current.items.push(item);
-                    continue;
-                  }
-                  byGroup.set(key, {
-                    familyId: item.familyId,
-                    familyName: item.family,
-                    locationName: item.locationName,
-                    baseLevel: item.baseLevel,
-                    items: [item]
-                  });
-                }
-                const groups = [...byGroup.values()].sort((left, right) => {
-                  if (left.baseLevel !== right.baseLevel) {
-                    return left.baseLevel - right.baseLevel;
-                  }
-                  return String(left.familyName).localeCompare(String(right.familyName), preferredLocale);
-                });
-                return (
-                  <article className="contentCard encyclopediaGroupListCard">
-                    <div className="encyclopediaGroupList">
-                      {groups.map((group) => (
-                        <section className="encyclopediaGroupSection" key={`monster-${group.familyId}-${group.baseLevel}`}>
-                          <div className="encyclopediaSetHeader">
-                            <div className="encyclopediaSectionHeading">
-                              <h3>{group.familyName}</h3>
-                              {group.locationName ? (
-                                <p className="encyclopediaSectionSubline">
-                                  {i18n.t("encyclopedia.location", { value: group.locationName })}
-                                </p>
-                              ) : null}
-                            </div>
-                            <span className="encyclopediaSetBadge">{i18n.t("encyclopedia.base", { value: group.baseLevel })}</span>
-                          </div>
-                          <div className="encyclopediaGroupGrid encyclopediaMonsterGrid">
-                            {group.items
-                              .slice()
-                              .sort((left, right) => left.sequence - right.sequence)
-                              .map((item) => (
-                                <div key={item.key}>{renderEncyclopediaItemCard(item)}</div>
-                              ))}
-                          </div>
-                        </section>
-                      ))}
-                    </div>
-                  </article>
-                );
-              })()
-            ) : null}
-          </section>
-        </section>
-      );
-    } catch {
-      return renderPlaceholderPanel(
-        embedCharacterHubTabs ? "Encyclopedia" : i18n.t("menu.encyclopedia"),
-        i18n.t("encyclopedia.renderError")
-      );
-    }
+    return (
+      <EncyclopediaPanel
+        embedCharacterHubTabs={embedCharacterHubTabs}
+        encyclopediaCategory={encyclopediaCategory}
+        encyclopediaArmorArchetype={encyclopediaArmorArchetype}
+        encyclopediaWeaponArchetype={encyclopediaWeaponArchetype}
+        preferredLocale={preferredLocale}
+        onCategoryChange={setEncyclopediaCategory}
+        onArmorArchetypeChange={setEncyclopediaArmorArchetype}
+        onWeaponArchetypeChange={setEncyclopediaWeaponArchetype}
+        formatTokenLabel={formatTokenLabel}
+        renderCharacterHubTabs={renderCharacterHubTabs}
+        renderErrorPanel={renderPlaceholderPanel}
+      />
+    );
   }
 
   function renderCharacterHubActivePanel(): ReactElement {
@@ -7013,250 +4109,47 @@ export function AppShell() {
 
   if (!token) {
     return (
-      <main className={`appRoot layout-${layoutMode}`}>
-        <div className="appSurface">
-          <section className="authPage">
-            <section className="authCard">
-              <h1>{i18n.t("app.title")}</h1>
-              <p>{i18n.t("auth.subtitle")}</p>
-              
-              {resetToken ? (
-                <>
-                  <h2 style={{ marginTop: 0 }}>Reset Your Password</h2>
-                  <form onSubmit={handleResetPasswordForm} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <input
-                      type="password"
-                      placeholder="New Password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      required
-                      minLength={8}
-                      style={{ padding: "8px", fontSize: "16px" }}
-                    />
-                    <input
-                      type="password"
-                      placeholder="Confirm New Password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      minLength={8}
-                      style={{ padding: "8px", fontSize: "16px" }}
-                    />
-                    <button type="submit" style={{ padding: "10px", fontSize: "16px", fontWeight: "bold" }}>
-                      Reset Password
-                    </button>
-                  </form>
-                  {resetPasswordMessage && (
-                    <div style={{ 
-                      marginTop: "12px", 
-                      padding: "8px", 
-                      background: resetPasswordMessage.includes("success") ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.2)", 
-                      borderRadius: "4px" 
-                    }}>
-                      {resetPasswordMessage}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-                    <button 
-                      onClick={() => setAuthMode("login")}
-                      style={{ 
-                        flex: 1,
-                        opacity: authMode === "login" ? 1 : 0.6,
-                        fontWeight: authMode === "login" ? "bold" : "normal"
-                      }}
-                    >
-                      Login
-                    </button>
-                    <button 
-                      onClick={() => setAuthMode("register")}
-                      style={{ 
-                        flex: 1,
-                        opacity: authMode === "register" ? 1 : 0.6,
-                        fontWeight: authMode === "register" ? "bold" : "normal"
-                      }}
-                    >
-                      Register
-                    </button>
-                  </div>
-
-                  <form onSubmit={authMode === "login" ? handleLogin : handleRegister} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {authMode === "register" && (
-                      <input
-                        type="text"
-                        placeholder="Username"
-                        value={authUsername}
-                        onChange={(e) => setAuthUsername(e.target.value)}
-                        required
-                        minLength={3}
-                        maxLength={32}
-                        pattern="[a-zA-Z0-9_]+"
-                        title="Username can only contain letters, numbers, and underscores"
-                        style={{ padding: "8px", fontSize: "16px" }}
-                      />
-                    )}
-                    <input
-                      type="email"
-                      placeholder="Email"
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      required
-                      style={{ padding: "8px", fontSize: "16px" }}
-                    />
-                    <div style={{ position: "relative" }}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        required
-                        minLength={authMode === "register" ? 8 : 6}
-                        style={{ padding: "8px", paddingRight: "40px", fontSize: "16px", width: "100%", boxSizing: "border-box" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: "absolute",
-                          right: "8px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          fontSize: "18px",
-                          padding: "4px"
-                        }}
-                        title={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? "👁️" : "👁️‍🗨️"}
-                      </button>
-                    </div>
-                    
-                    {authMode === "register" && (
-                      <div style={{ position: "relative" }}>
-                        <input
-                          type={showRepeatPassword ? "text" : "password"}
-                          placeholder="Repeat Password"
-                          value={authRepeatPassword}
-                          onChange={(e) => setAuthRepeatPassword(e.target.value)}
-                          required
-                          minLength={8}
-                          style={{ padding: "8px", paddingRight: "40px", fontSize: "16px", width: "100%", boxSizing: "border-box" }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowRepeatPassword(!showRepeatPassword)}
-                          style={{
-                            position: "absolute",
-                            right: "8px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            fontSize: "18px",
-                            padding: "4px"
-                          }}
-                          title={showRepeatPassword ? "Hide password" : "Show password"}
-                        >
-                          {showRepeatPassword ? "👁️" : "👁️‍🗨️"}
-                        </button>
-                      </div>
-                    )}
-                
-                {authMode === "login" && (
-                  <div style={{ textAlign: "right" }}>
-                    <button 
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      style={{ 
-                        background: "none", 
-                        border: "none", 
-                        color: "#60a5fa", 
-                        cursor: "pointer", 
-                        fontSize: "14px",
-                        textDecoration: "underline",
-                        padding: 0
-                      }}
-                    >
-                      Forgot Password?
-                    </button>
-                  </div>
-                )}
-                
-                {authMode === "register" && (
-                  <select
-                    value={authClass}
-                    onChange={(e) => setAuthClass(e.target.value as PlayerClass)}
-                    style={{ padding: "8px", fontSize: "16px" }}
-                  >
-                    <option value="warrior">Warrior</option>
-                    <option value="ranger">Ranger</option>
-                    <option value="mage">Mage</option>
-                  </select>
-                )}
-
-                <button type="submit" style={{ padding: "10px", fontSize: "16px", fontWeight: "bold" }}>
-                  {authMode === "login" ? "Login" : "Create Account"}
-                </button>
-              </form>
-
-              <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
-                <button data-testid="guest-login-button" onClick={handleGuestLogin} style={{ width: "100%", opacity: 0.7 }}>
-                  {i18n.t("auth.loginGuest")}
-                </button>
-              </div>
-
-              {error ? <div className="error">{i18n.t("app.errorPrefix")}: {error}</div> : null}
-                </>
-              )}
-            </section>
-
-            {showForgotPassword && (
-              <section className="authCard" style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: 10, minWidth: "400px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                  <h2 style={{ margin: 0 }}>Reset Password</h2>
-                  <button 
-                    onClick={() => {
-                      setShowForgotPassword(false);
-                      setForgotPasswordMessage(null);
-                      setForgotPasswordEmail("");
-                    }}
-                    style={{ background: "none", border: "none", fontSize: "24px", cursor: "pointer", padding: "0 8px" }}
-                  >
-                    ×
-                  </button>
-                </div>
-                
-                <p style={{ marginBottom: "16px" }}>Enter your email address and we'll send you a link to reset your password.</p>
-                
-                <form onSubmit={handleForgotPassword} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    value={forgotPasswordEmail}
-                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                    required
-                    style={{ padding: "8px", fontSize: "16px" }}
-                  />
-                  <button type="submit" style={{ padding: "10px", fontSize: "16px", fontWeight: "bold" }}>
-                    Send Reset Link
-                  </button>
-                </form>
-
-                {forgotPasswordMessage && (
-                  <div style={{ marginTop: "12px", padding: "8px", background: "rgba(96, 165, 250, 0.2)", borderRadius: "4px" }}>
-                    {forgotPasswordMessage}
-                  </div>
-                )}
-              </section>
-            )}
-          </section>
-        </div>
-      </main>
+      <AuthScreen
+        layoutMode={layoutMode}
+        resetToken={resetToken}
+        newPassword={newPassword}
+        confirmPassword={confirmPassword}
+        resetPasswordMessage={resetPasswordMessage}
+        authMode={authMode}
+        authUsername={authUsername}
+        authEmail={authEmail}
+        authPassword={authPassword}
+        authRepeatPassword={authRepeatPassword}
+        showPassword={showPassword}
+        showRepeatPassword={showRepeatPassword}
+        authClass={authClass}
+        showForgotPassword={showForgotPassword}
+        forgotPasswordEmail={forgotPasswordEmail}
+        forgotPasswordMessage={forgotPasswordMessage}
+        error={error}
+        onResetPasswordSubmit={handleResetPasswordForm}
+        onNewPasswordChange={setNewPassword}
+        onConfirmPasswordChange={setConfirmPassword}
+        onAuthModeChange={setAuthMode}
+        onLoginSubmit={handleLogin}
+        onRegisterSubmit={handleRegister}
+        onAuthUsernameChange={setAuthUsername}
+        onAuthEmailChange={setAuthEmail}
+        onAuthPasswordChange={setAuthPassword}
+        onAuthRepeatPasswordChange={setAuthRepeatPassword}
+        onToggleShowPassword={() => setShowPassword((previous) => !previous)}
+        onToggleShowRepeatPassword={() => setShowRepeatPassword((previous) => !previous)}
+        onShowForgotPassword={() => setShowForgotPassword(true)}
+        onForgotPasswordClose={() => {
+          setShowForgotPassword(false);
+          setForgotPasswordMessage(null);
+          setForgotPasswordEmail("");
+        }}
+        onAuthClassChange={setAuthClass}
+        onGuestLogin={handleGuestLogin}
+        onForgotPasswordSubmit={handleForgotPassword}
+        onForgotPasswordEmailChange={setForgotPasswordEmail}
+      />
     );
   }
 

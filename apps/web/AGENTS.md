@@ -2,30 +2,31 @@
 
 These instructions apply to `apps/web/**`.
 
-## UI Consistency Rules
-- Preserve established interaction patterns in `src/App.tsx` unless task explicitly requests redesign.
-- Reuse shared visual systems from `src/styles.css` (buttons, tooltips, cards, rarity styling).
-- Keep existing responsive behavior (`compact`, `standard`, `wide`) intact.
-- `src/App.tsx` is a large prototype hotspot; keep diffs surgical and avoid opportunistic refactors or broad formatting churn.
+## Start Points
+- App-layer orchestration lives in `src/app/AppShell.tsx` and `src/app/*`.
+- Feature code lives in `src/features/{auth,player,profile,economy,combat,contracts,guild,leaderboard,auction}`.
+- Generated outputs live in `src/generated/*`.
+- `src/App.tsx` is only a thin entrypoint now.
 
-## Data and Contracts
-- Treat `packages/shared/src/index.ts` as source of truth for typed API contracts.
-- Keep frontend API adapters in `src/api.ts` aligned with shared schemas.
-- Prefer flowing network access through `src/api.ts` and shared helpers rather than adding new hardcoded fetch URLs in feature code.
-- If a UI feature depends on shared contract changes, update shared types first and then adapt the web state/view logic.
+## Structure Rules
+- Keep app-shell concerns in `src/app`; move domain-specific UI/state/helpers into the owning `src/features/*` folder.
+- Prefer feature-local API modules such as `src/features/*/api.ts`.
+- `src/api.ts` is a compatibility barrel. Do not grow it with new logic.
+- Preserve the current app/feature boundary rules enforced by ESLint. App-layer files should import feature entrypoints, not feature internals.
 
-## Generated Assets
-- Generated icon maps, manifests, and encyclopedia data are versioned in git and should be refreshed when their upstream source data or generators change.
-- Prefer script-driven updates for generated manifests and art outputs.
-- `src/generated/itemArtManifest.ts` is generated and should track pipeline outputs.
-- `src/generated/itemEncyclopediaData.ts` is generated data and should stay aligned with the current pipeline output.
+## Contracts And Imports
+- Prefer `@ebonkeep/shared/<domain>` or `@ebonkeep/shared/core` imports in refactored web files.
+- Keep frontend adapters aligned with shared domain contracts.
+- Do not add new hardcoded fetch URLs in feature code; use existing feature API modules or `src/lib/api/system.ts`.
 
-## Localization
-- Supported locales are defined in `packages/shared/src/index.ts` and `src/i18n/supportedLocales.ts`; keep them aligned.
-- When adding user-facing copy, update the locale JSON files that already participate in the UI flow unless the task explicitly scopes to one locale only.
+## Generated Assets And Localization
+- Treat `src/generated/itemArtManifest.ts` and `src/generated/itemEncyclopediaData.ts` as generated, versioned outputs.
+- Update generators or upstream source data first, then regenerate tracked outputs.
+- Keep `src/i18n/supportedLocales.ts` aligned with shared locale definitions in `@ebonkeep/shared/core`.
+- When adding user-facing copy, update the locale files participating in that flow.
 
 ## Verification
-- Prefer TypeScript check before broader build:
-  - `cmd /d /s /c "cd apps\\web && node ..\\..\\node_modules\\typescript\\bin\\tsc -p tsconfig.json --noEmit"`
-- Use the full web build when the change affects bundling, generated imports, or Vite-only behavior:
-  - `npm.cmd --workspace @ebonkeep/web run build`
+- Build/typecheck: `npm.cmd --workspace @ebonkeep/web run build`
+- Unit tests: `npm.cmd --workspace @ebonkeep/web run test:unit`
+- Lint: `npm.cmd --workspace @ebonkeep/web run lint`
+- Locale validation when touching translations/locales: `npm.cmd --workspace @ebonkeep/web run i18n:check`

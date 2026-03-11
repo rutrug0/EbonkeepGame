@@ -1,104 +1,84 @@
-# Ebonkeep Codex Working Guide
+# Ebonkeep Agent Guide
 
-This file is the root instruction set for the whole repository.
+This file applies to the whole repo. Read a nested `AGENTS.md` only when you work inside that subtree.
 
-## Startup Preflight (Required)
-Before substantial implementation work:
-1. Run `python tools/codex/build_docs_context_pack.py`.
-2. Read `.codex/cache/docs_context_pack.md`.
-3. Read `docs/codex-context-map.md` for task routing and common commands.
-4. Load full text for only the docs directly relevant to the task.
+## Start Here
+- For substantial work, run `python tools/codex/build_docs_context_pack.py`.
+- Read `.codex/cache/docs_context_pack.md` for broad context.
+- Read `README.md` and `docs/codex-context-map.md`.
+- Then open only the docs directly relevant to the task. Do not preload large parts of `docs/`.
 
-## Dynamic Docs Context Policy
-- Treat all `docs/**/*.md` files as project context sources.
-- Always include root `README.md` in project context.
-- Do not rely on hardcoded document lists, because docs will grow.
-- Use the generated context pack for broad awareness, then open full files for task-specific detail.
+## Keep Current
+- If you discover this file is stale while already touching adjacent docs or workflow guidance, update the stale lines in the same change. Keep the edit narrow.
 
-## Project Map
-- `apps/api`: Fastify API modules, auth, persistence, websocket entrypoints.
-- `apps/web`: React/Vite UI mockup and gameplay-facing frontend interactions.
-- `apps/desktop`: Electron wrapper around web client.
-- `packages/shared`: Shared schemas/types and contract constants.
-- `docs`: Product, architecture, design, balance, and pipeline docs.
-- `docs/data`: Canonical coefficient and generated data tables.
-- `tools`: Generators, validators, and migration tooling for data/art pipelines.
+## Repo Map
+- `apps/api`: Fastify API. Main code lives in `src/modules/*`, `src/routes`, `src/plugins`, and `prisma/`.
+- `apps/web`: React/Vite client. App orchestration is in `src/app/AppShell.tsx`; feature code is in `src/features/*`; generated assets/data live in `src/generated/*`.
+- `apps/desktop`: Electron wrapper around the web client. Keep it thin.
+- `packages/shared`: shared contracts. Core primitives are in `src/core`; domain contracts are in `src/domains/{auth,player,inventory,combat,economy,guild,leaderboard}`; `src/index.ts` is a compatibility barrel.
+- `docs`: product, architecture, runtime, and pipeline docs.
+- `docs/data`: canonical balance/data tables used by generators.
+- `tools`: generators, validators, test DB prep, and Codex helpers.
+- `tests/e2e`: Playwright coverage.
 
-## Source of Truth Rules
-- API/Web contracts are defined in `packages/shared/src/index.ts`.
-- Balance and progression tables are owned by `docs/data/*.csv` and their generator scripts.
-- Generated assets and manifests are versioned in git and should be kept in sync with their upstream sources and generators.
-- If planning docs and runtime code diverge, treat `packages/shared/src/index.ts`, active app code, and Prisma schema as the current implementation truth. Call out the mismatch instead of silently forcing docs or code to match.
+## Open First By Task
+- Auth/account: `apps/api/src/modules/auth`, `packages/shared/src/domains/auth`, `apps/web/src/features/auth`
+- Player/inventory/equipment: `apps/api/src/modules/player`, `apps/api/src/modules/inventory`, `packages/shared/src/domains/player`, `packages/shared/src/domains/inventory`, `apps/web/src/features/player`, `apps/web/src/features/profile`, `apps/web/src/app/AppShell.tsx`
+- Economy/merchant/shop/payments: `apps/api/src/modules/economy`, `apps/api/src/modules/payments`, `packages/shared/src/domains/economy`, `apps/web/src/features/economy`
+- Combat/contracts: `apps/api/src/modules/combat`, `packages/shared/src/domains/combat`, `apps/web/src/features/combat`, `apps/web/src/features/contracts`
+- Guild: `apps/api/src/modules/guild`, `packages/shared/src/domains/guild`, `apps/web/src/features/guild`
+- Leaderboard: `apps/api/src/modules/leaderboard`, `packages/shared/src/domains/leaderboard`, `apps/web/src/features/leaderboard`
+- Auction: `apps/api/src/modules/auction`, `apps/web/src/features/auction`
+- Frontend shell/layout: `apps/web/src/app`, then the specific `apps/web/src/features/*` folder
+- Shared contract changes: start in `packages/shared/src/core` or the relevant `packages/shared/src/domains/*` entrypoint, then update API/web consumers
+- Data or art pipeline: relevant `docs/data/*.csv`, `tools/*.ps1`, `tools/*.py`, and generated outputs under `apps/web/src/generated/*`
 
-## Task Routing
-- Auth/account work: start with `apps/api/src/modules/auth/*` and `packages/shared/src/index.ts`.
-- Player/inventory/equipment work: start with `apps/api/src/modules/player/*`, `apps/api/src/modules/inventory/*`, and `packages/shared/src/index.ts`.
-- Economy/merchant/shop work: start with `apps/api/src/modules/economy/*`, `apps/web/src/App.tsx`, and shared contracts.
-- Combat/contracts work: start with `apps/api/src/modules/combat/*`, `apps/web/src/components/CombatEncounterPanel.tsx`, `apps/web/src/App.tsx`, and shared contracts.
-- Auction work: start with `apps/api/src/modules/auction/*` before touching adjacent systems.
-- Frontend-only UI work: start with `apps/web/src/App.tsx`, `apps/web/src/styles.css`, and `apps/web/src/components/*`.
-- Shared contract work: start with `packages/shared/src/index.ts` and then update API/web consumers.
-- Balance/data/art pipeline work: start with the relevant `docs/data/*.csv`, `docs/*.md`, and `tools/*` generator or validator.
-
-## Generated and Derived Files
-- Treat `apps/web/src/generated/*` as versioned generated output. When source data or generators change, regenerate these files and keep the checked-in results current.
-- Generated item art manifests, prompt sidecars, and similar pipeline outputs should stay synced with the upstream pipeline and remain committed when they are part of the repo output contract.
-- In `apps/api/src/services/transactions/`, edit the `.ts` sources by default. Do not manually maintain checked-in `.js` or `.d.ts` sidecars unless the task is specifically about emitted artifacts.
-- Prisma migrations are append-only history. Update `apps/api/prisma/schema.prisma`, then create a new migration instead of rewriting old ones unless the user explicitly asks for migration surgery.
-
-## Runtime and Validation Baseline
-- Local start: `run-local.bat`
-- Local stop: `stop-local.bat`
+## Canonical Commands
+- Full local stack: `run-local.bat`
+- Stop local stack: `stop-local.bat`
 - Workspace build: `npm.cmd run build`
-- API build: `npm.cmd --workspace @ebonkeep/api run build`
-- Web typecheck/build: `npm.cmd --workspace @ebonkeep/web run build`
+- Workspace lint: `npm.cmd run lint`
+- Workspace unit+integration+smoke: `npm.cmd run test:ci`
+- Workspace unit tests only: `npm.cmd run test:unit`
+- Prepare integration/e2e DB: `npm.cmd run test:db:prepare`
+- API build/typecheck: `npm.cmd --workspace @ebonkeep/api run build`
+- API unit tests: `npm.cmd --workspace @ebonkeep/api run test:unit`
+- API integration tests: `npm.cmd --workspace @ebonkeep/api run test:integration`
+- Web build/typecheck: `npm.cmd --workspace @ebonkeep/web run build`
+- Web unit tests: `npm.cmd --workspace @ebonkeep/web run test:unit`
+- Web locale validation: `npm.cmd --workspace @ebonkeep/web run i18n:check`
+- Shared build/typecheck: `npm.cmd --workspace @ebonkeep/shared run build`
+- Shared unit tests: `npm.cmd --workspace @ebonkeep/shared run test:unit`
+- Playwright smoke: `npm.cmd run test:smoke`
+- Playwright full e2e: `npm.cmd run test:e2e`
+- There is no separate repo-wide typecheck script. Use the workspace `build` commands above when you need TypeScript validation.
 
-## Known Local Constraints
-- In sandboxed environments, Vite build can fail with `spawn EPERM` from `esbuild`.
-- API TypeScript build may fail due an existing `ioredis` construct-signature typing issue in `apps/api/src/plugins/redis.ts`.
-- The web app currently concentrates a large amount of behavior in `apps/web/src/App.tsx`; keep edits narrow unless the task is explicitly a refactor.
-- Local runtime and helper scripts are Windows-first.
+## Repo-Specific Conventions
+- New or refactored shared imports should use `@ebonkeep/shared/<domain>` or `@ebonkeep/shared/core`. The root `@ebonkeep/shared` barrel exists for compatibility only.
+- In the web app, app-layer code belongs in `apps/web/src/app`; domain UI/state belongs in `apps/web/src/features/*`; shared web utilities belong in `apps/web/src/lib`, `src/constants`, `src/i18n`, or `src/generated`.
+- Keep API changes within the owning module under `apps/api/src/modules/*`; avoid cross-module leakage through unrelated routes or services.
+- Treat `apps/web/src/generated/*` as generated, versioned output. Update the generator or upstream source first, then regenerate.
+- Treat Prisma migrations as append-only. Change `apps/api/prisma/schema.prisma`, then create a new migration; do not rewrite old migrations unless explicitly asked.
+- If docs disagree with runtime code, treat current code plus Prisma schema plus shared contracts as implementation truth and call out the mismatch.
 
-## Safety Defaults
-- Never use destructive git commands unless explicitly requested.
-- Prefer `rg` for text/file search.
-- Keep edits scoped to the user request and avoid unrelated refactors.
-- When touching generated outputs, update upstream source + generator usage first, then commit the regenerated artifacts that are tracked by the repo.
+## Do Not
+- Do not manually maintain generated web assets or generated sidecars when a tool or source file should be changed instead.
+- Do not add new hardcoded API URLs in web feature code; use the existing feature API modules or `apps/web/src/lib/api/system.ts`.
+- Do not use the root shared barrel in newly touched refactored files just because it is convenient.
+- Do not assume `apps/web/src/App.tsx` is the main hotspot anymore; the active shell lives in `apps/web/src/app/AppShell.tsx`.
+- Do not rewrite old Prisma migrations or emitted JS sidecars unless the task is explicitly about artifacts/history.
+- Do not load large swaths of docs by default. Start narrow.
 
-## Git Workflow Default
-- For implementation tasks, use this sequence unless the user explicitly asks for a different flow.
-- Create or switch to a task branch.
-- Implement the requested changes on that branch.
-- Run the appropriate verification for the touched surface.
-- Merge `main` into the current branch and resolve conflicts there before opening a PR.
-- Open a pull request and add a comment containing `@codex review`.
-- Wait for the Codex review to complete.
-- If the review finds issues, apply the fix, re-verify, and update the branch.
-- Merge only after the branch is clean.
+## Done When
+- The touched surface builds successfully.
+- The relevant lint and test commands for the touched surface pass.
+- If shared contracts changed, build `packages/shared` first, then every touched consumer workspace.
+- If generator or pipeline code changed, regenerate the tracked outputs that depend on it and inspect the affected artifacts.
+- If a local stack is already running and the change affects runtime behavior, verify the smallest affected route, screen, or workflow rather than stopping at static checks.
 
-## Review Quality Bar
-- In code review, report only findings with a clear, evidence-backed risk.
-- Do not raise comments for style preferences, vague maintainability concerns, or hypothetical edge cases unless they materially affect correctness, safety, performance, or operability.
-- If a finding depends on an assumption, state that assumption explicitly.
-- Prefer no finding over a low-confidence or weakly supported finding.
-- When possible, describe the user-visible impact, regression risk, or failure mode instead of only naming the code smell.
-- If no substantive issues are found, state that clearly.
-
-## Verification Matrix
-- Shared contract changes: `npm.cmd --workspace @ebonkeep/shared run build`
-- API-only changes: `npm.cmd --workspace @ebonkeep/api run build`
-- Web-only changes: `npm.cmd --workspace @ebonkeep/web run build`
-- Cross-cutting contract changes: build shared first, then API/web surfaces that consume it.
-- Data pipeline changes: rerun only the affected generator/validator and inspect the touched outputs.
-- If local services are already running, prefer targeted runtime checks such as `/health`, `/ready`, or the changed route rather than starting unrelated services.
-
-## Local Skill Registry
-- `ebonkeep-feature-workflow`: `.codex/skills/ebonkeep-feature-workflow/SKILL.md`
-- `ebonkeep-balance-data-workflow`: `.codex/skills/ebonkeep-balance-data-workflow/SKILL.md`
-- `ebonkeep-item-art-workflow`: `.codex/skills/ebonkeep-item-art-workflow/SKILL.md`
-
-## Skill Trigger Rules
-- Use a skill when the task clearly matches its workflow domain.
-- If a user names a skill, use it for that turn.
-- If multiple skills could apply, pick the smallest set that fully covers the task.
-- Keep context lean: load only references needed for current scope.
+## Nested AGENTS
+- `apps/api/AGENTS.md`: keep for API-specific contract, auth, and persistence rules.
+- `apps/web/AGENTS.md`: keep for web-specific UI, generated asset, and localization rules.
+- `packages/shared/AGENTS.md`: keep for contract package rules.
+- `tools/AGENTS.md`: keep for pipeline and generator rules.
+- `apps/desktop/AGENTS.md`: keep only if you are touching Electron wrapper behavior.
