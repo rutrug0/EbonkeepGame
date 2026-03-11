@@ -427,14 +427,18 @@ button:focus-visible {
 }
 
 .playerCardCurrencyRow {
-  display: inline-grid;
-  grid-template-columns: repeat(4, auto);
+  display: inline-flex;
   justify-content: center;
   align-items: center;
-  justify-items: center;
-  gap: 0.76rem;
+  gap: 0.95rem;
   width: 100%;
   padding: 0;
+}
+
+.playerCardCurrencyPair {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
 }
 
 .playerCardCurrencyValue {
@@ -446,12 +450,13 @@ button:focus-visible {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
 }
 
+.ducatsAmount,
 .playerCardCurrencyValue.ducats {
-  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
+  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
 }
 
 .playerCardCurrencyValue.imperials {
-  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
+  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
 }
 
 .playerCardCurrencyIcon {
@@ -461,6 +466,7 @@ button:focus-visible {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
 }
 
+.playerCardCurrencyIcon.ducatIcon,
 .playerCardCurrencyIcon.imperialIcon {
   width: 30px;
   height: 30px;
@@ -2220,6 +2226,18 @@ button:focus-visible {
   filter: drop-shadow(0 0 4px rgba(232, 199, 144, 0.16));
 }
 
+.ducatInlineAmount {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  white-space: nowrap;
+}
+
+.ducatInlineIcon {
+  width: 1em;
+  height: 1em;
+}
+
 .ducatIcon {
   color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-main) 28%);
 }
@@ -3753,7 +3771,7 @@ button:focus-visible {
   font-size: 1.17rem;
   font-weight: 800;
   line-height: 1;
-  color: #f7e0a4;
+  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
   text-shadow:
     0 3px 6px rgba(2, 4, 8, 0.78),
     0 0 14px rgba(2, 4, 8, 0.4),
@@ -3982,7 +4000,7 @@ button:focus-visible {
   font-size: 1.26rem;
   font-weight: 800;
   line-height: 1;
-  color: #d9bb72;
+  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
 }
 
 .inventoryCardTopAsideNote {
@@ -4179,7 +4197,7 @@ button:focus-visible {
 .merchantTradePrice {
   font-size: 0.96rem;
   font-weight: 700;
-  color: #d9bb72;
+  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
 }
 
 .merchantTradePriceLarge {

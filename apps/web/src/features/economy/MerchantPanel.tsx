@@ -104,7 +104,7 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
             </button>
           </div>
           <div className="merchantStatusRow">
-            <span className="merchantTradePrice merchantTradePriceXL">Ducats: {currentDucats.toLocaleString()}</span>
+            <span className="merchantTradePrice merchantTradePriceXL">Ducats: <span className="ducatsAmount">{currentDucats.toLocaleString()}</span></span>
             <span className="merchantTradeMeta">Next refresh in {props.formatDurationFromMs(nextRefreshMs)}</span>
           </div>
         </article>

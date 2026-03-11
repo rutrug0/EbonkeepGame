@@ -62,7 +62,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
                 <>
                   <div style={{ display: "flex", alignItems: "center", padding: "8px 0", borderBottom: "1px solid rgba(186, 166, 131, 0.14)" }}>
                     <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("currencies.ducats")}</span>
-                    <span style={{ flex: "0 0 60%", fontWeight: "bold", color: "#be9651" }}>{props.accountInfo.currency.ducats.toLocaleString()}</span>
+                    <span className="ducatsAmount" style={{ flex: "0 0 60%", fontWeight: "bold" }}>{props.accountInfo.currency.ducats.toLocaleString()}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", padding: "8px 0" }}>
                     <span style={{ flex: "0 0 40%", color: "var(--text-muted)", fontSize: "14px" }}>{i18n.t("currencies.imperials")}</span>

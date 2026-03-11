@@ -137,7 +137,7 @@ import {
   type MockInventoryItemSeed,
   type RenownViewState
 } from "../features/profile";
-import { IMPERIALS_ICON_PATH } from "../constants/uiAssets";
+import { DUCATS_ICON_PATH, IMPERIALS_ICON_PATH } from "../constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
 import { GENERATED_ITEM_ENCYCLOPEDIA_DATA, type GeneratedEncyclopediaItem } from "../generated/itemEncyclopediaData";
 import i18n, { setLocale } from "../i18n";
@@ -4328,11 +4328,17 @@ export function AppShell() {
                 </div>
 
                 <div className="playerCardCurrencyRow" aria-label="Player currencies">
-                  <strong className="playerCardCurrencyValue ducats">{playerCardCurrencies.ducats.toLocaleString()}</strong>
-                  <span className="currencyIcon ducatIcon playerCardCurrencyIcon" aria-hidden="true">&#9678;</span>
-                  <strong className="playerCardCurrencyValue imperials">{playerCardCurrencies.imperials.toLocaleString()}</strong>
-                  <span className="currencyIcon imperialIcon playerCardCurrencyIcon" aria-hidden="true">
-                    <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
+                  <span className="playerCardCurrencyPair">
+                    <strong className="playerCardCurrencyValue ducats">{playerCardCurrencies.ducats.toLocaleString()}</strong>
+                    <span className="currencyIcon ducatIcon playerCardCurrencyIcon" aria-hidden="true">
+                      <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
+                    </span>
+                  </span>
+                  <span className="playerCardCurrencyPair">
+                    <strong className="playerCardCurrencyValue imperials">{playerCardCurrencies.imperials.toLocaleString()}</strong>
+                    <span className="currencyIcon imperialIcon playerCardCurrencyIcon" aria-hidden="true">
+                      <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
+                    </span>
                   </span>
                 </div>
               </section>

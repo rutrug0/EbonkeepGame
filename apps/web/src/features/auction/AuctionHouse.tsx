@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 import type { EquipmentSlotId, PlayerClass } from "@ebonkeep/shared/core";
 import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/inventory";
+import { DUCATS_ICON_PATH } from "../../constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
@@ -238,6 +239,19 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
   const [auctionHover, setAuctionHover] = useState<AuctionHoverState | null>(null);
 
   const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+
+  const renderDucatIcon = (extraClassName?: string) => (
+    <span className={`currencyIcon ducatIcon${extraClassName ? ` ${extraClassName}` : ""}`} aria-hidden="true">
+      <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
+    </span>
+  );
+
+  const renderDucatAmount = (amount: number, extraClassName?: string) => (
+    <span className={`ducatInlineAmount ducatsAmount${extraClassName ? ` ${extraClassName}` : ""}`}>
+      <span>{amount.toLocaleString()}</span>
+      {renderDucatIcon("ducatInlineIcon")}
+    </span>
+  );
 
   /**
    * Map backend error messages to localized translations
@@ -1349,7 +1363,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                   <span className="auctionBrowseReservedBadge" aria-hidden="true">
                     <span className="auctionBrowseReservedBadgeLabel">Reserved</span>
                     <span className="auctionBrowseReservedBadgeValue">
-                      {reservedAmount.toLocaleString()} {"\u25CE"}
+                      {renderDucatAmount(reservedAmount, "auctionDucatAmount")}
                     </span>
                   </span>
                 ) : null}
@@ -1360,7 +1374,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
           <div className="auctionBrowseInfo">
             <p className="auctionBrowseLine">
               <span>Bid:</span>
-              <strong>{currentBidValue.toLocaleString()} {"\u25CE"}</strong>
+              <strong>{renderDucatAmount(currentBidValue, "auctionDucatAmount")}</strong>
             </p>
             <p className="auctionBrowseBidder">
               {item.currentBid > 0 && item.currentWinnerName ? item.currentWinnerName : t("auction.startingBid")}
@@ -1528,7 +1542,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData ? itemData.itemName : t("profile.unknown")}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
-                    <strong>{t("auction.yourBid")}:</strong> {(bid.maxAutoBid ?? bid.bidAmount).toLocaleString()} {"\u25CE"}
+                    <strong>{t("auction.yourBid")}:</strong> {renderDucatAmount(bid.maxAutoBid ?? bid.bidAmount, "auctionDucatAmount")}
                   </p>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
                     <strong>{t("auction.status")}:</strong> {bid.status}
@@ -1919,7 +1933,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
-                    <strong>{t("auction.startingBid")}:</strong> {submission.minimumBid} ducats
+                    <strong>{t("auction.startingBid")}:</strong> <span className="ducatsAmount">{submission.minimumBid.toLocaleString()}</span> ducats
                   </p>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
                     <strong>{t("auction.submissionStatus")}:</strong> {t(`auction.${submission.status}` as any)}
@@ -1980,7 +1994,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0" }}>
-                    <strong>{t("auction.winningBid")}:</strong> {reward.winningBid} ducats
+                    <strong>{t("auction.winningBid")}:</strong> <span className="ducatsAmount">{reward.winningBid.toLocaleString()}</span> ducats
                   </p>
                   <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0.25rem 0" }}>
                     {t("auction.expires")}: {new Date(reward.expiresAt).toLocaleString()}

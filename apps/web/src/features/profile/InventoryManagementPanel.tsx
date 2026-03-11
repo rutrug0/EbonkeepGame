@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import type { EquipmentSlotId } from "@ebonkeep/shared/core";
 import type { PlayerState } from "@ebonkeep/shared/player";
 
+import { DUCATS_ICON_PATH } from "../../constants/uiAssets";
 import i18n from "../../i18n";
 
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
@@ -192,10 +193,10 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
           <div className="equipmentEconomyBar">
             <div className="economyItem">
               <span className="currencyIcon ducatIcon" aria-hidden="true">
-                {"\u25ce"}
+                <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
               </span>
               <span>{i18n.t("currencies.ducats")}</span>
-              <strong>{effectiveCurrencies.ducats}</strong>
+              <strong className="ducatsAmount">{effectiveCurrencies.ducats}</strong>
             </div>
             <div className="economyItem">
               <span className="currencyIcon imperialIcon" aria-hidden="true">
@@ -294,9 +295,9 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                     </span>
                     <div className="statTrainingAction">
                       <span className="statTrainingCost">
-                        {trainingCost}
+                        <span className="ducatsAmount">{trainingCost}</span>
                         <span className="currencyIcon ducatIcon" aria-hidden="true">
-                          {"\u25ce"}
+                          <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
                         </span>
                       </span>
                       <button
