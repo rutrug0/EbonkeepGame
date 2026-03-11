@@ -2,10 +2,15 @@ import { expect, test } from "@playwright/test";
 
 import { seedPendingAuctionReward, seedPlayableAuction } from "../utils/db";
 
+const apiBaseUrl =
+  process.env.PLAYWRIGHT_API_URL ??
+  `http://127.0.0.1:${process.env.TEST_API_PORT ?? "4010"}`;
+
 test("auction bid and reward claim flows work @nightly", async ({ page, request }) => {
-  const loginResponse = await request.post(`${process.env.VITE_API_URL ?? `http://127.0.0.1:${process.env.TEST_API_PORT ?? "4010"}`}/v1/dev/guest-login`, {
+  const guestId = `auction-nightly-${Date.now()}`;
+  const loginResponse = await request.post(`${apiBaseUrl}/v1/dev/guest-login`, {
     data: {
-      guestId: "auction-nightly"
+      guestId
     }
   });
   const login = await loginResponse.json();
@@ -45,7 +50,7 @@ test("auction bid and reward claim flows work @nightly", async ({ page, request 
   await page.getByTestId("menu-auctionHouse").click();
   await expect(page.getByText(/Playwright Blade/)).toBeVisible();
   await page.locator('input[type="number"]').first().fill("100");
-  await page.getByRole("button", { name: /Place Bid/i }).first().click();
+  await page.getByRole("button", { name: /^Bid$/i }).first().click();
   await page.getByRole("button", { name: /Confirm/i }).first().click();
 
   await page.getByRole("button", { name: /Rewards/i }).click();

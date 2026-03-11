@@ -1327,6 +1327,10 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
           {item.isPlayerSubmitted ? <span className="auctionBrowseOriginTag">{t("auction.playerSubmitted")}</span> : null}
         </div>
         <div className="auctionBrowseInfo">
+          <h4 className={`auctionItemCardTitle rarity-${itemData.rarity}`}>{itemData.itemName}</h4>
+          <p className="auctionItemCardCategory">
+            {itemData.category} · Lv. {itemData.levelRequirement}
+          </p>
           <p className="auctionBrowseLine">
             <span>{t("auction.currentBid")}:</span>
             <strong>{currentBidValue.toLocaleString()} {"\u25CE"}</strong>
