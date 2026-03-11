@@ -606,11 +606,14 @@ button:focus-visible {
 }
 
 .appRoot.layout-compact .leftPanel {
-  max-height: min(44dvh, 360px);
+  max-height: min(56dvh, 480px);
+  min-height: 0;
 }
 
 .appRoot.layout-compact .leftPanelShell {
   height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .appRoot.layout-compact .panelViewport,

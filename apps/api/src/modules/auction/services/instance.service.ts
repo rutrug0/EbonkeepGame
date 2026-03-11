@@ -212,11 +212,15 @@ export class AuctionInstanceService {
     }
 
     const bracket = this.getLevelBracket(player.level);
+    const now = new Date();
     const auctions = await this.prisma.auctionInstance.findMany({
       where: {
         levelBracketMin: bracket.min,
         levelBracketMax: bracket.max,
-        status: "active"
+        status: "active",
+        endTime: {
+          gt: now
+        }
       },
       include: {
         items: {
@@ -236,7 +240,7 @@ export class AuctionInstanceService {
         }
       },
       orderBy: {
-        startTime: "asc"
+        startTime: "desc"
       },
       take: 3
     });
