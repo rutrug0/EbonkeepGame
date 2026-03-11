@@ -49,7 +49,7 @@ test("auction bid and reward claim flows work @nightly", async ({ page, request 
 
   await page.getByTestId("menu-auctionHouse").click();
   await expect(page.getByText(/Playwright Blade/)).toBeVisible();
-  await page.locator('input[type="number"]').first().fill("100");
+  await page.locator('input[type="number"]').first().fill("110");
   await page.getByRole("button", { name: /^Bid$/i }).first().click();
   await page.getByRole("button", { name: /Confirm/i }).first().click();
 

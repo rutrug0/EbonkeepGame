@@ -61,7 +61,7 @@ describe("auction routes and services", () => {
       headers: authHeaders(bidder.body.accessToken)
     });
     expect(detailResponse.statusCode).toBe(200);
-    expect(detailResponse.json().auction.items[0].myBid.bidAmount).toBe(100);
+    expect(detailResponse.json().auction.items[0].myBid.bidAmount).toBe(110);
 
     const historyResponse = await context.app.inject({
       method: "GET",
@@ -69,7 +69,7 @@ describe("auction routes and services", () => {
       headers: authHeaders(bidder.body.accessToken)
     });
     expect(historyResponse.statusCode).toBe(200);
-    expect(historyResponse.json().bids[0].bidAmount).toBe(100);
+    expect(historyResponse.json().bids[0].bidAmount).toBe(110);
   });
 
   it("publishes the enforced bid floor in auction responses", async () => {
@@ -99,7 +99,7 @@ describe("auction routes and services", () => {
       headers: authHeaders(challenger.body.accessToken)
     });
     expect(activeResponse.statusCode).toBe(200);
-    expect(activeResponse.json().auctions[0].items[0].minimumNextBid).toBe(111);
+    expect(activeResponse.json().auctions[0].items[0].minimumNextBid).toBe(110);
 
     const detailResponse = await context.app.inject({
       method: "GET",
@@ -107,7 +107,7 @@ describe("auction routes and services", () => {
       headers: authHeaders(challenger.body.accessToken)
     });
     expect(detailResponse.statusCode).toBe(200);
-    expect(detailResponse.json().auction.items[0].minimumNextBid).toBe(111);
+    expect(detailResponse.json().auction.items[0].minimumNextBid).toBe(110);
 
     const rejectedBidResponse = await context.app.inject({
       method: "POST",
@@ -115,11 +115,11 @@ describe("auction routes and services", () => {
       headers: authHeaders(challenger.body.accessToken),
       payload: {
         itemId: item.id,
-        bidAmount: 110
+        bidAmount: 109
       }
     });
     expect(rejectedBidResponse.statusCode).toBe(400);
-    expect(rejectedBidResponse.json().error).toBe("Bid must be at least 111 ducats");
+    expect(rejectedBidResponse.json().error).toBe("Bid must be at least 110 ducats");
   });
 
   it("handles auto-bid escalation, refund correctness, and rate limiting", async () => {
@@ -144,14 +144,14 @@ describe("auction routes and services", () => {
     expect(enableResponse.statusCode).toBe(200);
 
     const bidService = new AuctionBidService(context.prisma, context.redis);
-    await bidService.placeBid(secondBidder.body.playerId, item.id, 111, true);
+    await bidService.placeBid(secondBidder.body.playerId, item.id, 120, true);
     await bidService.triggerAutoBids(item.id, secondBidder.body.playerId);
 
     const refreshedItem = await context.prisma.auctionItem.findUniqueOrThrow({
       where: { id: item.id }
     });
     expect(refreshedItem.currentWinnerId).toBe(firstBidder.body.playerId);
-    expect(refreshedItem.currentBid).toBe(121);
+    expect(refreshedItem.currentBid).toBe(130);
 
     const secondBidderBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: secondBidder.body.playerId }
@@ -254,7 +254,7 @@ describe("auction routes and services", () => {
       where: { id: item.id }
     });
     expect(afterFinalBid.currentWinnerId).toBe(overbidder.body.playerId);
-    expect(afterFinalBid.currentBid).toBe(350);
+    expect(afterFinalBid.currentBid).toBe(310);
 
     const proxyBidderBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: proxyBidder.body.playerId }
@@ -268,7 +268,7 @@ describe("auction routes and services", () => {
         status: "active"
       }
     });
-    expect(overbidderBidRecord.bidAmount).toBe(350);
+    expect(overbidderBidRecord.bidAmount).toBe(310);
     expect(overbidderBidRecord.maxAutoBid).toBe(350);
   });
 
@@ -323,14 +323,26 @@ describe("auction routes and services", () => {
     const rewardItem = await createInventoryItemForPlayer(context.prisma, winner.body.playerId, {
       itemName: "Pending Reward Sword"
     });
+    await setPlayerDucats(context.prisma, winner.body.playerId, 9_400);
 
     const { auction, item } = await createActiveAuction(context.prisma, {
       itemCode: JSON.stringify(rewardItem),
-      currentBid: 250,
+      currentBid: 310,
       currentWinnerId: winner.body.playerId,
       sellerId: seller.body.playerId,
       isPlayerSubmitted: true,
       feePercentage: 10
+    });
+
+    await context.prisma.auctionBid.create({
+      data: {
+        itemId: item.id,
+        playerId: winner.body.playerId,
+        bidAmount: 310,
+        status: "active",
+        isAutoBid: true,
+        maxAutoBid: 600
+      }
     });
 
     await expireAuction(context.prisma, auction.id);
@@ -348,6 +360,20 @@ describe("auction routes and services", () => {
       }
     });
     expect(pendingRewards).toHaveLength(1);
+
+    const winnerBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
+      where: { playerId: winner.body.playerId }
+    });
+    expect(winnerBalance.ducats).toBe(9_690);
+
+    const winningBid = await context.prisma.auctionBid.findFirstOrThrow({
+      where: {
+        itemId: item.id,
+        playerId: winner.body.playerId
+      }
+    });
+    expect(winningBid.status).toBe("won");
+    expect(winningBid.bidAmount).toBe(310);
 
     const pendingRewardsResponse = await context.app.inject({
       method: "GET",
