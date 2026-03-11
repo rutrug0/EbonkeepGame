@@ -1,0 +1,146 @@
+﻿
+/* -----------------------------------------------------------------------------
+   Guild Missions
+----------------------------------------------------------------------------- */
+
+.missionDiffBadge {
+  display: inline-block;
+  padding: 0.1rem 0.42rem;
+  border-radius: 3px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  line-height: 1.5;
+}
+
+.missionDiffEasy {
+  background: rgba(111, 141, 95, 0.18);
+  color: #8fb87c;
+  border: 1px solid rgba(111, 141, 95, 0.38);
+}
+
+.missionDiffMedium {
+  background: rgba(190, 150, 81, 0.18);
+  color: var(--accent-focus);
+  border: 1px solid rgba(190, 150, 81, 0.38);
+}
+
+.missionDiffHard {
+  background: rgba(151, 80, 74, 0.18);
+  color: #c97870;
+  border: 1px solid rgba(151, 80, 74, 0.38);
+}
+
+.missionSectionLabel {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.45rem;
+}
+
+.missionMemberCard {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0.6rem;
+  border-radius: 5px;
+  background: rgba(55, 65, 81, 0.3);
+  border: 1px solid var(--border-soft, var(--border));
+}
+
+.missionMemberCard.isLeader {
+  background: rgba(210, 173, 114, 0.06);
+  border-color: rgba(210, 173, 114, 0.28);
+}
+
+.missionMemberCard.isEmpty {
+  background: transparent;
+  border: 1px dashed var(--border-soft, var(--border));
+  opacity: 0.45;
+}
+
+.missionMemberAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-slate);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-main);
+  flex-shrink: 0;
+}
+
+.missionMemberAvatar.isEmpty {
+  border: 1px dashed var(--border-soft, var(--border));
+  background: transparent;
+}
+
+.missionLeaderBadge {
+  font-size: 0.62rem;
+  color: var(--accent-focus);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.missionEnemyChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  background: rgba(151, 80, 74, 0.1);
+  border: 1px solid rgba(151, 80, 74, 0.28);
+  color: var(--text-soft);
+  line-height: 1.3;
+}
+
+/* Missions battlefield: override animation travel distance for smaller 150px actors.
+   clip-path:inset(0) kept as extra backstop; the primary GPU containment boundary
+   is contain:layout paint on .combatBattlefield (combat.css). */
+.missionsBattlefield {
+  --combat-attack-travel: 220px;
+  --combat-lift-distance: 20px;
+  --combat-hit-lower-distance: 30px;
+  clip-path: inset(0);
+}
+
+/* Scale actor frames for multi-actor 5v5 lanes */
+.missionsBattlefield .combatActorFrame {
+  flex-basis: min(150px, 22vw);
+  width: min(100%, 150px);
+}
+
+.missionsBattlefield .combatActorPortraitWrap {
+  height: 80px;
+}
+
+/* Missions combat layout â€” arena left, log right, fills parent height */
+.missionsCombatLayout {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-3, 0.75rem);
+  overflow: hidden;
+}
+
+.missionsCombatLayout > .combatEncounterShell {
+  flex: 1;
+  min-width: 0;
+}
+
+.missionsCombatLayout > .combatLogShell {
+  width: 320px;
+  flex: 0 0 320px;
+  min-height: 0;
+}
