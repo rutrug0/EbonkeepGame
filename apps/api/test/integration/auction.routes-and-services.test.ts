@@ -72,6 +72,56 @@ describe("auction routes and services", () => {
     expect(historyResponse.json().bids[0].bidAmount).toBe(100);
   });
 
+  it("publishes the enforced bid floor in auction responses", async () => {
+    const incumbent = await loginAsGuest(context.app, { guestId: "auction-floor-incumbent" });
+    const challenger = await loginAsGuest(context.app, { guestId: "auction-floor-challenger" });
+    const { auction, item } = await createActiveAuction(context.prisma, {
+      itemCode: JSON.stringify({ itemName: "Auction Floor Blade" }),
+      startingBid: 100,
+      currentBid: 100,
+      currentWinnerId: incumbent.body.playerId
+    });
+
+    await context.prisma.auctionBid.create({
+      data: {
+        itemId: item.id,
+        playerId: incumbent.body.playerId,
+        bidAmount: 100,
+        status: "active",
+        isAutoBid: false,
+        maxAutoBid: null
+      }
+    });
+
+    const activeResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/auction/active",
+      headers: authHeaders(challenger.body.accessToken)
+    });
+    expect(activeResponse.statusCode).toBe(200);
+    expect(activeResponse.json().auctions[0].items[0].minimumNextBid).toBe(111);
+
+    const detailResponse = await context.app.inject({
+      method: "GET",
+      url: `/v1/auction/${auction.id}`,
+      headers: authHeaders(challenger.body.accessToken)
+    });
+    expect(detailResponse.statusCode).toBe(200);
+    expect(detailResponse.json().auction.items[0].minimumNextBid).toBe(111);
+
+    const rejectedBidResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/auction/bid",
+      headers: authHeaders(challenger.body.accessToken),
+      payload: {
+        itemId: item.id,
+        bidAmount: 110
+      }
+    });
+    expect(rejectedBidResponse.statusCode).toBe(400);
+    expect(rejectedBidResponse.json().error).toBe("Bid must be at least 111 ducats");
+  });
+
   it("handles auto-bid escalation, refund correctness, and rate limiting", async () => {
     const firstBidder = await loginAsGuest(context.app, { guestId: "auto-bid-1" });
     const secondBidder = await loginAsGuest(context.app, { guestId: "auto-bid-2" });
@@ -163,6 +213,10 @@ describe("auction routes and services", () => {
     });
     expect(proxyBidRecord.bidAmount).toBe(40);
     expect(proxyBidRecord.maxAutoBid).toBe(300);
+
+    await expect(
+      bidService.placeBid(proxyBidder.body.playerId, item.id, 250)
+    ).rejects.toThrow("Bid must be at least 300 ducats");
 
     const incumbentBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: incumbent.body.playerId }

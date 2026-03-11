@@ -301,7 +301,7 @@ export class AuctionInstanceService {
         ...item,
         currentWinnerName: item.currentWinnerId ? winnerNameById.get(item.currentWinnerId) ?? null : null,
         itemData: parseAuctionStoredItem(item.itemCode).viewData,
-        minimumNextBid: this.configService.calculateMinBid(item.currentBid, item.startingBid),
+        minimumNextBid: this.configService.calculateMinimumAcceptedBid(item.currentBid, item.startingBid),
         amIWinning: item.currentWinnerId === playerId
       }))
     }));
@@ -333,7 +333,7 @@ export class AuctionInstanceService {
 
     const itemsWithStatus = auction.items.map((item: any) => ({
       ...item,
-      minimumNextBid: this.configService.calculateMinBid(item.currentBid, item.startingBid),
+      minimumNextBid: this.configService.calculateMinimumAcceptedBid(item.currentBid, item.startingBid),
       myBid: item.bids[0] || null,
       amIWinning: item.currentWinnerId === playerId,
       amIOutbid:

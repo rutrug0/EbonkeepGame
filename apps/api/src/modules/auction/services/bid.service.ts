@@ -457,8 +457,7 @@ export class AuctionBidService {
   }
 
   private calculateSubmittedBidFloor(currentBid: number, startingBid: number): number {
-    const visibleBase = currentBid > 0 ? currentBid : startingBid;
-    return Math.max(this.calculateMinBid(currentBid, startingBid), visibleBase + 11);
+    return this.configService.calculateMinimumAcceptedBid(currentBid, startingBid);
   }
 
   private compareBidCandidates(left: BidCandidate, right: BidCandidate): number {

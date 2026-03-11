@@ -434,7 +434,11 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       return item.minimumNextBid;
     }
 
-    return item.currentBid > 0 ? item.currentBid + 10 : item.startingBid;
+    if (item.currentBid <= 0) {
+      return item.startingBid;
+    }
+
+    return Math.max(Math.ceil(item.currentBid * 1.1), item.currentBid + 11);
   };
 
   const getPlayerReservedBidAmount = (itemId: string): number => {
@@ -446,8 +450,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     if (!token || !bidAmount[item.id]) return;
 
     const amount = parseInt(bidAmount[item.id], 10);
-    const minimumBid = getMinimumNextBid(item);
-    const minimumAcceptedBid = Math.max(minimumBid, (item.currentBid > 0 ? item.currentBid : item.startingBid) + 11);
+    const minimumAcceptedBid = getMinimumNextBid(item);
     const reserveDelta = amount - getPlayerReservedBidAmount(item.id);
     if (isNaN(amount) || amount <= 0) {
       setError(t("auction.errors.invalidBid"));
@@ -1297,7 +1300,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     const minBid = getMinimumNextBid(item);
     const isSubmitting = submittingBid === item.id;
     const currentBidValue = item.currentBid > 0 ? item.currentBid : item.startingBid;
-    const minimumAcceptedBid = Math.max(minBid, currentBidValue + 11);
+    const minimumAcceptedBid = minBid;
     const reservedAmount = getPlayerReservedBidAmount(item.id);
     const isLeadingBid =
       item.amIWinning === true ||
@@ -1726,7 +1729,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                   color: "var(--accent-danger)",
                   fontWeight: "500"
                 }}>
-                  âš ï¸ {t("auction.maxSubmissionsReached")}
+                  Warning: {t("auction.maxSubmissionsReached")}
                 </p>
               )}
             </div>
@@ -1757,7 +1760,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                       {selectedItemData.itemName}
                     </h3>
                     <p style={{ margin: "0", fontSize: "0.85rem", opacity: 0.8 }}>
-                      {t("player.level", { value: selectedItemData.levelRequirement })} â€¢ {selectedItemData.rarity}
+                      {t("player.level", { value: selectedItemData.levelRequirement })} - {selectedItemData.rarity}
                     </p>
                   </div>
                 </div>
@@ -1916,7 +1919,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
-                    <strong>{t("auction.startingBid")}:</strong> {submission.minimumBid} â—Ž
+                    <strong>{t("auction.startingBid")}:</strong> {submission.minimumBid} ducats
                   </p>
                   <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}>
                     <strong>{t("auction.submissionStatus")}:</strong> {t(`auction.${submission.status}` as any)}
@@ -1977,7 +1980,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     {itemData.itemName}
                   </h4>
                   <p style={{ margin: "0.25rem 0" }}>
-                    <strong>{t("auction.winningBid")}:</strong> {reward.winningBid} â—Ž
+                    <strong>{t("auction.winningBid")}:</strong> {reward.winningBid} ducats
                   </p>
                   <p style={{ fontSize: "0.85rem", opacity: 0.7, margin: "0.25rem 0" }}>
                     {t("auction.expires")}: {new Date(reward.expiresAt).toLocaleString()}
@@ -2223,7 +2226,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                 color: "var(--accent-success)",
                 textAlign: "center"
               }}>
-                âœ“ Success
+                Success
               </h2>
               <p style={{ 
                 margin: "0 0 2rem 0", 
@@ -2294,7 +2297,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                 color: "var(--accent-danger)",
                 textAlign: "center"
               }}>
-                âš ï¸ Error
+                Error
               </h2>
               <p style={{ 
                 margin: "0 0 2rem 0", 
