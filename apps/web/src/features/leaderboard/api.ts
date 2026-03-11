@@ -9,6 +9,8 @@ import {
   leaderboardResponseSchema
 } from "@ebonkeep/shared/leaderboard";
 import type { PlayerClass } from "@ebonkeep/shared/core";
+import type { PublicPlayerProfile } from "@ebonkeep/shared/player";
+import { publicPlayerProfileSchema } from "@ebonkeep/shared/player";
 
 import { API_URL, authHeaders, readErrorMessage } from "../../lib/api/http";
 
@@ -56,4 +58,17 @@ export async function getGuildLeaderboard(
   }
 
   return guildLeaderboardResponseSchema.parse(await response.json());
+}
+
+export async function fetchPublicPlayerProfile(token: string, playerId: string): Promise<PublicPlayerProfile> {
+  const response = await fetch(`${API_URL}/v1/player/${encodeURIComponent(playerId)}/public-profile`, {
+    method: "GET",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Failed to load player profile"));
+  }
+
+  return publicPlayerProfileSchema.parse(await response.json());
 }

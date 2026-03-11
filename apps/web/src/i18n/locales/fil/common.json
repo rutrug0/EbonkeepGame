@@ -1,6 +1,7 @@
 {
   "loading": "Naglo-load...",
   "cancel": "Kanselahin",
+  "ok": "OK",
   "save": "I-save",
   "yes": "Oo",
   "no": "Hindi",
@@ -9,7 +10,9 @@
     "subtitle": "Mag-login para buksan ang iyong pangunahing pahina.",
     "loginGuest": "Mag-login bilang Guest",
     "verifyEmailBanner": "Mangyaring i-verify ang iyong email address. Tingnan ang iyong inbox para sa verification link.",
-    "dismiss": "Isara"
+    "dismiss": "Isara",
+    "resendSuccess": "Naipadala na ang verification email!",
+    "resendFailed": "Nabigo ang pagpapadala ng verification email"
   },
   "menu": {
     "title": "Menu",
@@ -299,8 +302,24 @@
     "notRanked": "Walang Ranggo",
     "totalPlayers": "{{count}} Manlalaro",
     "refreshLeaderboard": "I-refresh ang Rankings",
-    "viewingTop": "Tingnan ang Top {{count}}"  },
+    "viewingTop": "Tingnan ang Top {{count}}",
+    "viewProfile": "Tingnan ang Profile",
+    "actions": "Mga Aksyon",
+    "invite": "Imbitahan",
+    "inviting": "Inaanyayahan...",
+    "hasGuild": "May Grupo Na",
+    "equipment": "Kagamitan",
+    "stats": "Mga Istatistika",
+    "viewGuild": "Tingnan ang Grupo",
+    "inviteConfirmTitle": "Imbitahan sa Grupo?",
+    "inviteConfirmMessage": "Magpadala ng imbitasyon sa grupo kay {{playerName}}?",
+    "inviteConfirm": "Oo, Imbitahan"
+  },
   "guild": {
+    "notifications": {
+      "success": "Tagumpay",
+      "error": "Error"
+    },
     "title": "Mga Guild",
     "create": "Lumikha ng Guild",
     "search": "Maghanap ng Mga Guild",
@@ -406,7 +425,10 @@
         "sent": "Matagumpay na naipadala ang imbitasyon!"
       },
       "error": {
-        "playerIdRequired": "Kailangan ang player ID"
+        "playerIdRequired": "Kailangan ang player ID",
+        "failedToAccept": "Nabigo ang pagtanggap ng imbitasyon",
+        "failedToDecline": "Nabigo ang pagtanggi sa imbitasyon",
+        "failedToSend": "Nabigo ang pagpapadala ng imbitasyon"
       },
       "invitesTab": "Mga Imbitasyon",
       "cannotSend": "Ang mga opisyal at lider lamang ng guild ang maaaring magpadala ng imbitasyon."

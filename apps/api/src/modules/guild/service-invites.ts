@@ -28,10 +28,15 @@ export async function getReceivedInvites(
           id: true,
           name: true,
           tag: true,
+          description: true,
           crestId: true,
+          leaderId: true,
+          isRecruiting: true,
           level: true,
           totalPower: true,
           maxMembers: true,
+          createdAt: true,
+          updatedAt: true,
           crestBgShape: true,
           crestBgColor: true,
           crestBgPattern: true,
@@ -64,7 +69,15 @@ export async function getReceivedInvites(
     status: inv.status as GuildInvite["status"],
     createdAt: inv.createdAt.toISOString(),
     expiresAt: inv.expiresAt.toISOString(),
-    respondedAt: inv.respondedAt?.toISOString() || null
+    respondedAt: inv.respondedAt?.toISOString() || null,
+    guild: inv.guild
+      ? {
+          ...inv.guild,
+          createdAt: inv.guild.createdAt.toISOString(),
+          updatedAt: inv.guild.updatedAt.toISOString(),
+          memberCount: inv.guild._count.members,
+        }
+      : inv.guild,
   }));
 }
 
@@ -165,10 +178,15 @@ export async function sendGuildInvite(
             id: true,
             name: true,
             tag: true,
+            description: true,
             crestId: true,
+            leaderId: true,
+            isRecruiting: true,
             level: true,
             totalPower: true,
             maxMembers: true,
+            createdAt: true,
+            updatedAt: true,
             crestBgShape: true,
             crestBgColor: true,
             crestBgPattern: true,
@@ -210,11 +228,15 @@ export async function sendGuildInvite(
   });
 
   return {
-    ...invite,
+    id: invite.id,
+    guildId: invite.guildId,
+    inviterId: invite.inviterId,
+    inviteeId: invite.inviteeId,
+    message: invite.message,
     status: invite.status as GuildInvite["status"],
     createdAt: invite.createdAt.toISOString(),
     expiresAt: invite.expiresAt.toISOString(),
-    respondedAt: invite.respondedAt?.toISOString() || null
+    respondedAt: invite.respondedAt?.toISOString() ?? null,
   };
 }
 

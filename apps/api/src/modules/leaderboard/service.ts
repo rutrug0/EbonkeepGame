@@ -31,6 +31,12 @@ export async function getLeaderboard(
         select: {
           username: true
         }
+      },
+      guildMembership: {
+        select: {
+          guildId: true,
+          guild: { select: { tag: true, name: true } }
+        }
       }
     }
   });
@@ -87,7 +93,10 @@ export async function getLeaderboard(
     class: player.class as PlayerClass,
     level: player.level,
     gearScore: player.gearScore,
-    value: leaderboardType === "power" ? player.gearScore : player.level
+    value: leaderboardType === "power" ? player.gearScore : player.level,
+    guildId: player.guildMembership?.guildId ?? null,
+    guildTag: player.guildMembership?.guild?.tag ?? null,
+    guildName: player.guildMembership?.guild?.name ?? null
   }));
 
   return {

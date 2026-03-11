@@ -1,6 +1,7 @@
 {
   "loading": "Loading...",
   "cancel": "Cancel",
+  "ok": "OK",
   "save": "Save",
   "yes": "Yes",
   "no": "No",
@@ -13,7 +14,9 @@
     "subtitle": "Login to open your post-login landing page.",
     "loginGuest": "Login as Guest",
     "verifyEmailBanner": "Please verify your email address. Check your inbox for the verification link.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "resendSuccess": "Verification email sent!",
+    "resendFailed": "Failed to resend verification email"
   },
   "menu": {
     "title": "Menu",
@@ -209,7 +212,11 @@
     "verified": "✓ Verified",
     "notVerified": "✗ Not Verified",
     "resendEmail": "Resend Email",
-    "notSet": "Not set"
+    "notSet": "Not set",
+    "monitoring": "Monitoring",
+    "monitoringDesc": "Open observability dashboards for the local dev stack.",
+    "openGrafana": "Grafana Dashboards",
+    "openPrometheus": "Prometheus Metrics"
   },
   "shop": {
     "title": "Imperial Shop",
@@ -403,7 +410,18 @@
     "notRanked": "Not Ranked",
     "totalPlayers": "{{count}} Players",
     "refreshLeaderboard": "Refresh Rankings",
-    "viewingTop": "Viewing Top {{count}}"
+    "viewingTop": "Viewing Top {{count}}",
+    "viewProfile": "View Profile",
+    "actions": "Actions",
+    "invite": "Invite",
+    "inviting": "Inviting...",
+    "hasGuild": "Has Guild",
+    "equipment": "Equipment",
+    "stats": "Stats",
+    "viewGuild": "View Guild",
+    "inviteConfirmTitle": "Invite to Guild?",
+    "inviteConfirmMessage": "Send a guild invitation to {{playerName}}?",
+    "inviteConfirm": "Yes, Invite"
   },
   "placeholders": {
     "missions": "Mission selection and launch board will appear here.",
@@ -451,6 +469,10 @@
     "vestige3": "Vestige III"
   },
   "guild": {
+    "notifications": {
+      "success": "Success",
+      "error": "Error"
+    },
     "title": "Guilds",
     "create": "Create Guild",
     "search": "Search Guilds",
@@ -607,7 +629,10 @@
         "sent": "Invitation sent successfully!"
       },
       "error": {
-        "playerIdRequired": "Player ID is required"
+        "playerIdRequired": "Player ID is required",
+        "failedToAccept": "Failed to accept invitation",
+        "failedToDecline": "Failed to decline invitation",
+        "failedToSend": "Failed to send invitation"
       },
       "invitesTab": "Invitations",
       "cannotSend": "Only guild officers and leaders may send invitations."

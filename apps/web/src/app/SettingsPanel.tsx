@@ -74,6 +74,63 @@ export function SettingsPanel(props: SettingsPanelProps) {
           </article>
         )}
         <article className="contentCard">
+          <h3 style={{ marginTop: 0 }}>{i18n.t("settings.monitoring")}</h3>
+          <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: 0, marginBottom: "16px" }}>
+            {i18n.t("settings.monitoringDesc")}
+          </p>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <a
+              href="http://localhost:3000"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                background: "rgba(242, 133, 57, 0.12)",
+                border: "1px solid rgba(242, 133, 57, 0.35)",
+                borderRadius: "6px",
+                color: "#f28539",
+                fontWeight: "600",
+                fontSize: "14px",
+                textDecoration: "none",
+                cursor: "pointer"
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
+              </svg>
+              {i18n.t("settings.openGrafana")}
+            </a>
+            <a
+              href="http://localhost:9090"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "8px 16px",
+                background: "rgba(229, 57, 53, 0.10)",
+                border: "1px solid rgba(229, 57, 53, 0.30)",
+                borderRadius: "6px",
+                color: "#e25a5a",
+                fontWeight: "600",
+                fontSize: "14px",
+                textDecoration: "none",
+                cursor: "pointer"
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 3" />
+              </svg>
+              {i18n.t("settings.openPrometheus")}
+            </a>
+          </div>
+        </article>
+        <article className="contentCard">
           <div className="settingsRow">
             <label htmlFor="language-select">{i18n.t("settings.languageLabel")}</label>
             <select

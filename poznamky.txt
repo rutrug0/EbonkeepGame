@@ -1,0 +1,7 @@
+Invitation sent successfully!
+
+in guild - invitations, after invite successful or not, show it in custom popup of our style that we use everywhere, replace default browser popup alert, 
+scan project if we use anywhere else default browser popups and do the same, replace with custom ones
+and another problem - user invited to the guild dont see any pending invitations in Guild:
+Pending Invitations
+No pending guild invitations

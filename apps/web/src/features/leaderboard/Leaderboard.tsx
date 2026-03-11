@@ -9,8 +9,9 @@ import type {
   LeaderboardType
 } from "@ebonkeep/shared/leaderboard";
 import type { GuildDetailsResponse } from "@ebonkeep/shared/guild";
-import { getGuildById } from "../guild";
-import { fetchLeaderboard, getGuildLeaderboard } from "./api";
+import type { PublicPlayerProfile } from "@ebonkeep/shared/player";
+import { getGuildById, getMyGuild, sendGuildInvite } from "../guild";
+import { fetchLeaderboard, getGuildLeaderboard, fetchPublicPlayerProfile } from "./api";
 
 function safeHtml(raw: string): string {
   return String(DOMPurify.sanitize(raw, {
@@ -116,16 +117,188 @@ function GuildDetailModal({ guildId, token, onClose }: GuildModalProps) {
   );
 }
 
+const EQUIPMENT_SLOT_ORDER = [
+  "weapon", "helmet", "upperArmor", "pauldrons", "lowerArmor",
+  "gloves", "boots", "belt", "necklace", "ringLeft", "ringRight",
+  "vestige1", "vestige2", "vestige3"
+] as const;
+
+interface PlayerProfileModalProps {
+  entry: LeaderboardEntry;
+  token: string;
+  onClose: () => void;
+  canInvite: boolean;
+  myGuildId: string | null;
+  inviteStatuses: Record<string, "sending" | "sent" | "failed">;
+  onInvite: (playerId: string, playerName: string) => void;
+  onViewGuild: (guildId: string) => void;
+}
+
+function PlayerProfileModal({
+  entry,
+  token,
+  onClose,
+  canInvite,
+  inviteStatuses,
+  onInvite,
+  onViewGuild
+}: PlayerProfileModalProps) {
+  const { t } = useTranslation("common");
+  const [profile, setProfile] = useState<PublicPlayerProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    fetchPublicPlayerProfile(token, entry.playerId)
+      .then(setProfile)
+      .catch((err) => setError(err instanceof Error ? err.message : t("leaderboards.error")))
+      .finally(() => setLoading(false));
+  }, [token, entry.playerId, t]);
+
+  const invStat = inviteStatuses[entry.playerId];
+
+  return (
+    <div className="guildLbModalOverlay" onClick={onClose}>
+      <div className="guildLbModal playerProfileModal" onClick={(e) => e.stopPropagation()}>
+        <div className="guildLbModalHeader">
+          <span className="guildLbModalHeaderTitle">
+            <span className={`profileModalClassBadge profileModalClassBadge--${entry.class}`}>
+              {t(`class.${entry.class}`)}
+            </span>
+            {entry.username}
+          </span>
+          <button type="button" className="guildLbModalClose" onClick={onClose} aria-label={t("cancel")}>✕</button>
+        </div>
+
+        <div className="guildLbModalBody">
+          <div className="profileModalMeta">
+            <span className="profileModalMetaItem">{t("leaderboards.level")} <strong>{entry.level}</strong></span>
+            <span className="profileModalMetaItem">{t("leaderboards.power")} <strong>{entry.gearScore}</strong></span>
+            {entry.guildId && (
+              <button
+                type="button"
+                className="profileModalGuildLink"
+                onClick={() => { onClose(); onViewGuild(entry.guildId!); }}
+              >
+                {entry.guildTag ? `[${entry.guildTag}]` : ""} {t("leaderboards.viewGuild")}
+              </button>
+            )}
+          </div>
+
+          {canInvite && (
+            <div className="profileModalInviteRow">
+              <button
+                type="button"
+                className="leaderboardInviteButton"
+                disabled={!!invStat}
+                onClick={() => onInvite(entry.playerId, entry.username)}
+              >
+                {invStat === "sending" ? t("leaderboards.inviting") :
+                 invStat === "sent" ? `✓ ${t("ok")}` :
+                 invStat === "failed" ? t("guild.invite.error.failedToSend") :
+                 t("leaderboards.invite")}
+              </button>
+            </div>
+          )}
+
+          {loading && <p className="placeholderText">{t("loading")}</p>}
+          {error && <p className="guildFormError">{error}</p>}
+
+          {profile && (
+            <>
+              <div className="profileModalSection">
+                <h4 className="profileModalSectionTitle">{t("leaderboards.equipment")}</h4>
+                <div className="profileModalEquipment">
+                  {EQUIPMENT_SLOT_ORDER.map((slot) => {
+                    const item = profile.equipment[slot];
+                    return (
+                      <div key={slot} className="profileModalEquipSlot">
+                        <span className="profileModalSlotLabel">{t(`slots.${slot}`)}</span>
+                        {item ? (
+                          <span className={`profileModalItem profileModalItem--${item.rarity}`}>
+                            {item.itemName}
+                          </span>
+                        ) : (
+                          <span className="profileModalItemEmpty">{t("item.empty")}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="profileModalSection">
+                <h4 className="profileModalSectionTitle">{t("leaderboards.stats")}</h4>
+                <div className="profileModalStats">
+                  {[
+                    ["profile.maxHitpoints", profile.statSnapshot.total.maxHitpoints],
+                    ["profile.armor", profile.statSnapshot.total.armor],
+                    ["profile.spellShield", profile.statSnapshot.total.spellShield],
+                    ["profile.missileResistance", profile.statSnapshot.total.missileResistance],
+                    ["profile.mainDamage", profile.statSnapshot.total.damage],
+                    ["profile.critChance", profile.statSnapshot.total.critChance],
+                    ["profile.critDamage", profile.statSnapshot.total.critMultiplier]
+                  ].map(([key, val]) => (
+                    <div key={key as string} className="profileModalStat">
+                      <span className="profileModalStatLabel">{t(key as string)}</span>
+                      <span className="profileModalStatValue">{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export interface LeaderboardProps {
   token: string | null;
   currentPlayerId?: string | null;
+}
+
+interface InviteConfirmModalProps {
+  playerName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function InviteConfirmModal({ playerName, onConfirm, onCancel }: InviteConfirmModalProps) {
+  const { t } = useTranslation("common");
+  return (
+    <div className="guildLbModalOverlay" onClick={onCancel}>
+      <div className="guildLbModal inviteConfirmModal" onClick={(e) => e.stopPropagation()}>
+        <div className="guildLbModalHeader">
+          <span className="guildLbModalHeaderTitle">{t("leaderboards.inviteConfirmTitle")}</span>
+          <button type="button" className="guildLbModalClose" onClick={onCancel} aria-label={t("cancel")}>✕</button>
+        </div>
+        <div className="guildLbModalBody">
+          <p className="inviteConfirmMessage">
+            {t("leaderboards.inviteConfirmMessage", { playerName })}
+          </p>
+          <div className="inviteConfirmButtons">
+            <button type="button" className="inviteConfirmYesButton" onClick={onConfirm}>
+              {t("leaderboards.inviteConfirm")}
+            </button>
+            <button type="button" className="guildActionButton" onClick={onCancel}>
+              {t("cancel")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 type ClassFilter = PlayerClass | "all";
 type LeaderboardCategory = "players" | "guilds";
 type GuildLeaderboardType = "totalPower" | "level" | "memberCount";
 
-export function Leaderboard({ token }: LeaderboardProps) {
+export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
   const { t } = useTranslation("common");
   const [category, setCategory] = useState<LeaderboardCategory>("players");
   const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>("power");
@@ -136,6 +309,40 @@ export function Leaderboard({ token }: LeaderboardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
+  const [myGuildId, setMyGuildId] = useState<string | null>(null);
+  const [myGuildRole, setMyGuildRole] = useState<"leader" | "officer" | "member" | null>(null);
+  const [selectedPlayerEntry, setSelectedPlayerEntry] = useState<LeaderboardEntry | null>(null);
+  const [inviteStatuses, setInviteStatuses] = useState<Record<string, "sending" | "sent" | "failed">>({});
+  const [pendingInviteTarget, setPendingInviteTarget] = useState<{ playerId: string; playerName: string } | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    getMyGuild(token)
+      .then((data) => {
+        setMyGuildId(data?.guild.id ?? null);
+        setMyGuildRole((data?.currentUserMembership?.role ?? null) as typeof myGuildRole);
+      })
+      .catch(() => {});
+  }, [token]);
+
+  const canInviteToGuild = !!myGuildId && (myGuildRole === "leader" || myGuildRole === "officer");
+
+  function requestInvite(playerId: string, playerName: string) {
+    setPendingInviteTarget({ playerId, playerName });
+  }
+
+  async function confirmInvite() {
+    if (!token || !myGuildId || !pendingInviteTarget) return;
+    const { playerId } = pendingInviteTarget;
+    setPendingInviteTarget(null);
+    setInviteStatuses((prev) => ({ ...prev, [playerId]: "sending" }));
+    try {
+      await sendGuildInvite(token, myGuildId, playerId);
+      setInviteStatuses((prev) => ({ ...prev, [playerId]: "sent" }));
+    } catch {
+      setInviteStatuses((prev) => ({ ...prev, [playerId]: "failed" }));
+    }
+  }
 
   useEffect(() => {
     if (!token) {
@@ -222,6 +429,25 @@ export function Leaderboard({ token }: LeaderboardProps) {
             guildId={selectedGuildId}
             token={token}
             onClose={() => setSelectedGuildId(null)}
+          />
+        )}
+        {selectedPlayerEntry && (
+          <PlayerProfileModal
+            entry={selectedPlayerEntry}
+            token={token}
+            onClose={() => setSelectedPlayerEntry(null)}
+            canInvite={canInviteToGuild && selectedPlayerEntry.guildId === null && selectedPlayerEntry.playerId !== currentPlayerId}
+            myGuildId={myGuildId}
+            inviteStatuses={inviteStatuses}
+            onInvite={requestInvite}
+            onViewGuild={(guildId) => { setSelectedPlayerEntry(null); setSelectedGuildId(guildId); }}
+          />
+        )}
+        {pendingInviteTarget && (
+          <InviteConfirmModal
+            playerName={pendingInviteTarget.playerName}
+            onConfirm={confirmInvite}
+            onCancel={() => setPendingInviteTarget(null)}
           />
         )}
         {/* Category tabs: Players vs Guilds */}
@@ -350,16 +576,25 @@ export function Leaderboard({ token }: LeaderboardProps) {
                       <th className="leaderboardColumnClass">{t("leaderboards.class")}</th>
                       <th className="leaderboardColumnLevel">{t("leaderboards.level")}</th>
                       <th className="leaderboardColumnPower">{t("leaderboards.power")}</th>
+                      {canInviteToGuild && <th className="leaderboardColumnActions">{t("leaderboards.actions")}</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {leaderboardData.entries.map((entry: LeaderboardEntry) => (
-                      <tr key={entry.playerId} className="leaderboardRow">
+                      <tr
+                        key={entry.playerId}
+                        className="leaderboardRow leaderboardRowClickable"
+                        onClick={() => setSelectedPlayerEntry(entry)}
+                        title={t("leaderboards.viewProfile")}
+                      >
                         <td data-label={t("leaderboards.rank")} className="leaderboardCellRank">
                           <span className={getRankClass(entry.rank)}>#{entry.rank}</span>
                         </td>
                         <td data-label={t("leaderboards.player")} className="leaderboardCellPlayer">
                           <strong>{entry.username}</strong>
+                          {entry.guildTag && (
+                            <span className="leaderboardGuildTag">[{entry.guildTag}]</span>
+                          )}
                         </td>
                         <td data-label={t("leaderboards.class")} className="leaderboardCellClass">
                           <span className={`leaderboardClass leaderboardClass-${entry.class}`}>
@@ -372,6 +607,28 @@ export function Leaderboard({ token }: LeaderboardProps) {
                         <td data-label={t("leaderboards.power")} className="leaderboardCellPower">
                           <strong>{entry.gearScore}</strong>
                         </td>
+                        {canInviteToGuild && (
+                          <td
+                            className="leaderboardCellActions"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {entry.guildId === null && entry.playerId !== currentPlayerId ? (
+                              <button
+                                type="button"
+                                className="leaderboardInviteButton"
+                                disabled={!!inviteStatuses[entry.playerId]}
+                                onClick={() => requestInvite(entry.playerId, entry.username)}
+                              >
+                                {inviteStatuses[entry.playerId] === "sending" ? t("leaderboards.inviting") :
+                                 inviteStatuses[entry.playerId] === "sent" ? "✓" :
+                                 inviteStatuses[entry.playerId] === "failed" ? "✗" :
+                                 t("leaderboards.invite")}
+                              </button>
+                            ) : entry.playerId !== currentPlayerId ? (
+                              <span className="leaderboardHasGuild">{t("leaderboards.hasGuild")}</span>
+                            ) : null}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

@@ -1,11 +1,12 @@
 ﻿{
   "loading": "Cargando...",
   "cancel": "Cancelar",
+  "ok": "Aceptar",
   "save": "Guardar",
   "yes": "Sí",
   "no": "No",
   "you": "Tú",
-  "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado", "verifyEmailBanner": "Por favor, verifica tu dirección de correo electrónico. Revisa tu bandeja de entrada para el enlace de verificación.", "dismiss": "Descartar"},
+  "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado", "verifyEmailBanner": "Por favor, verifica tu dirección de correo electrónico. Revisa tu bandeja de entrada para el enlace de verificación.", "dismiss": "Descartar", "resendSuccess": "¡Correo de verificación enviado!", "resendFailed": "Error al reenviar el correo de verificación"},
   "menu": {
     "title": "Menú", "inventory": "Inventario", "encyclopedia": "Enciclopedia", "contracts": "Contratos", "missions": "Misiones", "arena": "Arena", "guild": "Gremio", "castles": "Castillos", "auctionHouse": "Casa de Subastas", "merchant": "Mercader", "shop": "Tienda Imperial", "leaderboards": "Clasificaciones", "settings": "Ajustes", "logout": "Cerrar sesión"
   },
@@ -214,9 +215,24 @@
     "notRanked": "Sin Clasificar",
     "totalPlayers": "{{count}} Jugadores",
     "refreshLeaderboard": "Actualizar Clasificación",
-    "viewingTop": "Viendo Top {{count}}"
+    "viewingTop": "Viendo Top {{count}}",
+    "viewProfile": "Ver perfil",
+    "actions": "Acciones",
+    "invite": "Invitar",
+    "inviting": "Invitando...",
+    "hasGuild": "Tiene gremio",
+    "equipment": "Equipo",
+    "stats": "Estadísticas",
+    "viewGuild": "Ver gremio",
+    "inviteConfirmTitle": "¿Invitar al gremio?",
+    "inviteConfirmMessage": "¿Enviar una invitación de gremio a {{playerName}}?",
+    "inviteConfirm": "Sí, invitar"
   },
   "guild": {
+    "notifications": {
+      "success": "Éxito",
+      "error": "Error"
+    },
     "title": "Gremios",
     "create": "Crear Gremio",
     "search": "Buscar Gremios",
@@ -322,7 +338,10 @@
         "sent": "¡Invitación enviada exitosamente!"
       },
       "error": {
-        "playerIdRequired": "Se requiere ID de jugador"
+        "playerIdRequired": "Se requiere ID de jugador",
+        "failedToAccept": "Error al aceptar la invitación",
+        "failedToDecline": "Error al rechazar la invitación",
+        "failedToSend": "Error al enviar la invitación"
       },
       "invitesTab": "Invitaciones",
       "cannotSend": "Solo los oficiales y líderes del gremio pueden enviar invitaciones."

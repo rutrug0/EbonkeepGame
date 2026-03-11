@@ -40,3 +40,15 @@ export const updatePlayerPreferencesBodySchema = z.object({
   preferredLocale: supportedLocaleSchema
 });
 export type UpdatePlayerPreferencesBody = z.infer<typeof updatePlayerPreferencesBodySchema>;
+
+export const publicPlayerProfileSchema = z.object({
+  playerId: z.string(),
+  username: z.string(),
+  class: playerClassSchema,
+  level: z.number().int().min(1),
+  gearScore: z.number().int().min(0),
+  guildId: z.string().nullable(),
+  equipment: z.lazy(() => equipmentStateSchema),
+  statSnapshot: playerStatSnapshotSchema
+});
+export type PublicPlayerProfile = z.infer<typeof publicPlayerProfileSchema>;
