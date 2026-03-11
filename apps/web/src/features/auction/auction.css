@@ -3,21 +3,48 @@
    AUCTION HOUSE STYLES
    ==================================== */
 
+.contentCard.auctionBrowseSection {
+  padding: 0;
+  border-bottom: none;
+}
+
 .auctionBrowseSection {
+  display: flex;
+  flex-direction: column;
   position: relative;
-  overflow: visible;
+  align-self: stretch;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  min-height: 100%;
+  height: 100%;
+  max-height: none;
+  padding: 0;
+  gap: 0;
+  align-items: center;
 }
 
 .auctionBrowseGrid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  justify-content: center;
+  width: min(calc(100% - 3rem), 1120px);
+  max-width: 100%;
+  margin-top: 18%;
+  gap: clamp(1.9rem, 3vw, 3.3rem);
   align-items: start;
+}
+
+.auctionBrowseCardSlot {
+  display: flex;
+  justify-content: center;
 }
 
 .auctionBrowseCard {
   position: relative;
   min-width: 0;
+  width: 100%;
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--soft-radius) + 2px);
   padding: 0.72rem;
@@ -37,6 +64,28 @@
     transform 160ms ease,
     box-shadow 160ms ease,
     border-color 160ms ease;
+}
+
+.auctionBrowseCard.isLeadingBid {
+  border-color: rgba(223, 182, 76, 0.74);
+  transform: translateY(-8px) scale(1.035);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 244, 215, 0.2),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.16),
+    0 24px 44px rgba(4, 8, 12, 0.42),
+    0 0 0 1px rgba(236, 197, 101, 0.28),
+    0 0 28px rgba(227, 184, 72, 0.22);
+  animation: auctionLeadingCardFloat 2.8s ease-in-out infinite;
+}
+
+.auctionBrowseCard.isBidRefreshing {
+  border-color: rgba(240, 205, 120, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 243, 214, 0.18),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.16),
+    0 22px 34px rgba(4, 8, 12, 0.38),
+    0 0 0 1px rgba(236, 197, 101, 0.24),
+    0 0 26px rgba(227, 184, 72, 0.18);
 }
 
 .auctionBrowseCard.rarity-common {
@@ -93,6 +142,42 @@
   width: var(--inventory-compact-card-width);
   min-height: var(--inventory-compact-card-height);
   height: var(--inventory-compact-card-height);
+}
+
+.auctionBrowseIconButton.isLeadingBid {
+  overflow: visible;
+}
+
+.auctionBrowseItemVisual.isLeadingBid {
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 213, 132, 0.36),
+    0 0 0 1px rgba(238, 195, 93, 0.24),
+    0 0 24px rgba(236, 193, 86, 0.28),
+    0 0 42px rgba(208, 161, 58, 0.2);
+}
+
+.auctionBrowseItemVisual.isLeadingBid::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: calc(var(--soft-radius) + 6px);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 220, 126, 0.42), rgba(255, 220, 126, 0) 68%);
+  opacity: 0.78;
+  filter: blur(8px);
+  z-index: 0;
+  animation: auctionLeadingAuraPulse 2.4s ease-in-out infinite;
+}
+
+.auctionBrowseItemVisual.isLeadingBid .itemVisualImage,
+.auctionBrowseItemVisual.isLeadingBid .itemVisualImageCard {
+  filter:
+    saturate(1.12)
+    brightness(1.05)
+    drop-shadow(0 0 12px rgba(255, 213, 98, 0.45))
+    drop-shadow(0 0 22px rgba(232, 185, 71, 0.24));
+  transform: scale(1.05) translateY(-3px);
 }
 
 .auctionBrowseOriginTag {
@@ -162,7 +247,7 @@
   border-radius: calc(var(--soft-radius) - 2px);
   background: rgba(12, 17, 23, 0.96);
   color: var(--text-main);
-  padding: 0.34rem 0.42rem;
+  padding: 0.24rem 0.42rem;
   font-size: 0.74rem;
   font-weight: 600;
   line-height: 1.1;
@@ -171,7 +256,7 @@
 .auctionBrowseBidButton {
   border: 0;
   border-radius: calc(var(--soft-radius) - 2px);
-  padding: 0.26rem 0.42rem;
+  padding: 0.18rem 0.42rem;
   min-width: 54px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent-focus) 82%, #f0ddb8), color-mix(in srgb, var(--accent-focus) 66%, #bf9f64));
   color: #101418;
@@ -191,18 +276,21 @@
 
 .auctionBrowseReservedBadge {
   display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.1rem;
-  padding: 0.22rem 0.5rem;
-  border: 1px solid rgba(217, 187, 114, 0.28);
-  border-radius: 999px;
-  background: rgba(20, 14, 9, 0.74);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  align-items: flex-end;
+  gap: 0.12rem;
+  padding: 0.36rem 0.5rem 0.42rem;
+  border: 1px solid rgba(233, 196, 97, 0.46);
+  border-radius: 0.72rem;
+  background:
+    linear-gradient(180deg, rgba(34, 24, 10, 0.92), rgba(18, 12, 6, 0.82));
+  box-shadow:
+    0 12px 24px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(225, 176, 52, 0.16);
+  flex-direction: column;
 }
 
 .auctionBrowseReservedBadgeLabel {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -216,6 +304,19 @@
     0 0 14px rgba(2, 4, 8, 0.4);
 }
 
+.auctionBrowseReservedBadgeValue .ducatInlineAmount {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.auctionBrowseReservedBadgeOverlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .auctionBrowseReserved {
   margin: 0.1rem 0 0;
   text-align: center;
@@ -227,15 +328,189 @@
   min-height: 0;
 }
 
+.auctionBrowseTimeBanner {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  pointer-events: none;
+  text-align: center;
+}
+
+.auctionBrowseBottomControls {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-self: center;
+  margin-top: auto;
+  margin-bottom: 5%;
+  gap: 0.45rem;
+  width: min(calc(100% - 3rem), 860px);
+  padding-bottom: 0;
+  z-index: 2;
+}
+
+.auctionBrowseTimeLabel {
+  font-family: var(--font-display);
+  font-size: clamp(0.975rem, 1.35vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-soft) 82%, #f1d8a0 18%);
+  text-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.84),
+    0 0 18px rgba(0, 0, 0, 0.44);
+}
+
+.auctionBrowseTimeValue {
+  display: block;
+  font-family: var(--font-body);
+  font-size: clamp(1.65rem, 3vw, 2.625rem);
+  line-height: 0.88;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #f7edd1;
+  text-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.9),
+    0 0 22px rgba(224, 183, 79, 0.26);
+}
+
+.auctionBrowseAuctionSwitcher {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+  gap: clamp(0.9rem, 2vw, 1.6rem);
+  width: 100%;
+  max-height: none;
+}
+
+.auctionBrowseAuctionButton {
+  min-width: clamp(120px, 14vw, 168px);
+  min-height: 64px;
+  max-height: 70px;
+  padding: 0.45rem 0.75rem 0.4rem;
+  border: 1px solid rgba(194, 164, 110, 0.32);
+  border-radius: calc(var(--soft-radius) + 4px);
+  background:
+    linear-gradient(180deg, rgba(37, 28, 17, 0.92), rgba(16, 12, 8, 0.86));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 213, 0.08),
+    0 14px 24px rgba(0, 0, 0, 0.28);
+  display: grid;
+  align-content: end;
+  justify-items: center;
+  gap: 0.08rem;
+  color: var(--text-main);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+.auctionBrowseAuctionButton:hover {
+  transform: translateY(-2px);
+  border-color: rgba(223, 191, 120, 0.5);
+}
+
+.auctionBrowseAuctionButtonActive {
+  border-color: rgba(231, 198, 118, 0.72);
+  background:
+    linear-gradient(180deg, rgba(72, 50, 23, 0.94), rgba(30, 19, 10, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 242, 213, 0.14),
+    0 18px 32px rgba(0, 0, 0, 0.34),
+    0 0 22px rgba(219, 174, 66, 0.18);
+}
+
+.auctionBrowseAuctionButtonLabel {
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-soft) 80%, #f0d39a 20%);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.auctionBrowseAuctionButtonTime {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  line-height: 0.9;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #f7edd1;
+  text-shadow:
+    0 3px 9px rgba(0, 0, 0, 0.86),
+    0 0 18px rgba(214, 175, 76, 0.18);
+}
+
+@keyframes auctionLeadingCardFloat {
+  0%,
+  100% {
+    transform: translateY(-8px) scale(1.035);
+  }
+
+  50% {
+    transform: translateY(-14px) scale(1.055);
+  }
+}
+
+
+@keyframes auctionLeadingAuraPulse {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 0.96;
+    transform: scale(1.05);
+  }
+}
+
 @media (max-width: 1280px) {
   .auctionBrowseGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: min(calc(100% - 2rem), 980px);
+    gap: clamp(1.2rem, 2vw, 2rem);
   }
 }
 
 @media (max-width: 860px) {
+  .auctionBrowseSection {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    height: auto;
+    max-height: none;
+    padding-top: 3.5rem;
+    padding-bottom: 2rem;
+  }
+
   .auctionBrowseGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    width: 100%;
+    margin-top: 2.5rem;
+  }
+
+  .auctionBrowseBottomControls {
+    width: 100%;
+    padding-bottom: 0;
+  }
+
+  .auctionBrowseTimeBanner {
+    margin-top: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .auctionBrowseAuctionSwitcher {
+    position: static;
+    flex-wrap: wrap;
+  }
+
+  .auctionBrowseAuctionButton {
+    min-width: min(100%, 144px);
   }
 }
 .auctionItemCard {

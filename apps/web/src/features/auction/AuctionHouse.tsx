@@ -220,9 +220,9 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
   const [loading, setLoading] = useState(false);
   const [rerollingAuctions, setRerollingAuctions] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [bidAmount, setBidAmount] = useState<Record<string, string>>({});
   const [submittingBid, setSubmittingBid] = useState<string | null>(null);
+  const [recentlyUpdatedBidItemId, setRecentlyUpdatedBidItemId] = useState<string | null>(null);
   const [submissionData, setSubmissionData] = useState({ itemId: "", minimumBid: "" });
   const [submitting, setSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -300,10 +300,12 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     setDisplayDucats(currentDucats);
   }, [currentDucats]);
 
-  const loadActiveAuctions = async () => {
+  const loadActiveAuctions = async (options?: { silent?: boolean }) => {
     if (!token) return;
-    
-    setLoading(true);
+
+    if (!options?.silent) {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -332,7 +334,9 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToLoad"));
     } finally {
-      setLoading(false);
+      if (!options?.silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -448,11 +452,8 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       return item.minimumNextBid;
     }
 
-    if (item.currentBid <= 0) {
-      return item.startingBid;
-    }
-
-    return Math.max(Math.ceil(item.currentBid * 1.1), item.currentBid + 11);
+    const visibleBase = item.currentBid > 0 ? item.currentBid : item.startingBid;
+    return visibleBase + 10;
   };
 
   const getPlayerReservedBidAmount = (itemId: string): number => {
@@ -506,12 +507,11 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         setDisplayDucats(data.remainingDucats);
         onDucatsChange?.(data.remainingDucats);
       }
-      setSuccessMessage(t("auction.bidPlacedSuccess", { amount }));
-      
-      // Auto-dismiss success message after 3 seconds
-      setTimeout(() => setSuccessMessage(null), 3000);
-      
-      await Promise.all([loadActiveAuctions(), loadMyBids()]);
+      setRecentlyUpdatedBidItemId(item.id);
+      await Promise.all([loadActiveAuctions({ silent: true }), loadMyBids()]);
+      setTimeout(() => {
+        setRecentlyUpdatedBidItemId((current) => (current === item.id ? null : current));
+      }, 450);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToBid"));
     } finally {
@@ -601,12 +601,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         loadInventory()
       ]);
       
-      // Show success message and switch to My Submissions view
-      setSuccessMessage(t("auction.submitSuccess"));
       setActiveView("mySubmissions");
-      
-      // Auto-dismiss success message after 5 seconds
-      setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToSubmit"));
     } finally {
@@ -669,11 +664,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         setDisplayDucats(data.remainingDucats);
         onDucatsChange?.(data.remainingDucats);
       }
-      setSuccessMessage(t("auction.autoBid.success", { amount: maxBid }));
-      
-      setTimeout(() => setSuccessMessage(null), 3000);
-      
-      await Promise.all([loadActiveAuctions(), loadMyBids()]);
+      await Promise.all([loadActiveAuctions({ silent: true }), loadMyBids()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.autoBidEnableFailed"));
     } finally {
@@ -710,17 +701,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         setDisplayDucats(data.remainingDucats);
         onDucatsChange?.(data.remainingDucats);
       }
-      
-      const refunded = data.refundedDucats || 0;
-      if (refunded > 0) {
-        setSuccessMessage(t("auction.autoBid.disabled", { amount: refunded }));
-      } else {
-        setSuccessMessage(t("auction.autoBid.disabledNoRefund"));
-      }
-      
-      setTimeout(() => setSuccessMessage(null), 3000);
-      
-      await Promise.all([loadActiveAuctions(), loadMyBids()]);
+      await Promise.all([loadActiveAuctions({ silent: true }), loadMyBids()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.autoBidDisableFailed"));
     } finally {
@@ -1334,17 +1315,21 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
     return (
       <div key={item.id} className="auctionBrowseCardSlot">
-        <article className={`auctionBrowseCard rarity-${itemData.rarity}${isLeadingBid ? " isLeadingBid" : ""}`}>
+        <article
+          className={`auctionBrowseCard rarity-${itemData.rarity}${isLeadingBid ? " isLeadingBid" : ""}${
+            recentlyUpdatedBidItemId === item.id ? " isBidRefreshing" : ""
+          }`}
+        >
           <div className="auctionBrowseItemHeader">
             <button
               type="button"
-              className={`auctionBrowseIconButton inventoryItemCard rarity-${itemData.rarity}`}
+              className={`auctionBrowseIconButton inventoryItemCard rarity-${itemData.rarity}${isLeadingBid ? " isLeadingBid" : ""}`}
               onMouseEnter={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
               onMouseLeave={() => handleAuctionItemMouseLeave(item.id)}
               onFocus={(event) => handleAuctionItemMouseEnter(item, event.currentTarget)}
               onBlur={() => handleAuctionItemMouseLeave(item.id)}
             >
-              <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}`}>
+              <div className={`inventoryCompactVisual auctionBrowseItemVisual${canUseItem ? "" : " isRestricted"}${isLeadingBid ? " isLeadingBid" : ""}`}>
                 {renderItemIcon({
                   majorCategory: getItemMajorCategory(itemData),
                   category: itemData.category,
@@ -1359,8 +1344,8 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                 <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
                   Lv. {itemData.levelRequirement}
                 </span>
-                {reservedAmount > 0 ? (
-                  <span className="auctionBrowseReservedBadge" aria-hidden="true">
+                {reservedAmount > 0 && isLeadingBid ? (
+                  <span className="auctionBrowseReservedBadge auctionBrowseReservedBadgeOverlay" aria-hidden="true">
                     <span className="auctionBrowseReservedBadgeLabel">Reserved</span>
                     <span className="auctionBrowseReservedBadgeValue">
                       {renderDucatAmount(reservedAmount, "auctionDucatAmount")}
@@ -1482,17 +1467,19 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       <>
         {selectedAuction && selectedAuction.items && selectedAuction.items.length > 0 && (
           <article
-            className="contentCard auctionBrowseSection indoorSceneShell auctionBrowseSceneCard"
+            className="auctionBrowseSection indoorSceneShell auctionBrowseSceneCard"
             style={auctionHouseShellStyle}
           >
             <div className="auctionBrowseGrid">
               {selectedAuction.items.map((item) => renderAuctionItem(item))}
             </div>
-            <div className="auctionBrowseTimeBanner">
-              <span className="auctionBrowseTimeLabel">{t("auction.timeRemaining")}</span>
-              <strong className="auctionBrowseTimeValue">{formatTimeRemaining(selectedAuction.endTime)}</strong>
+            <div className="auctionBrowseBottomControls">
+              <div className="auctionBrowseTimeBanner">
+                <span className="auctionBrowseTimeLabel">{t("auction.timeRemaining")}</span>
+                <strong className="auctionBrowseTimeValue">{formatTimeRemaining(selectedAuction.endTime)}</strong>
+              </div>
+              {renderBrowseAuctionSwitcher()}
             </div>
-            {renderBrowseAuctionSwitcher()}
             {renderAuctionHoverOverlay()}
           </article>
         )}
@@ -2203,77 +2190,6 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
               {renderBrowseToolbarControls()}
             </div>
           </article>
-
-        {successMessage && (
-          <div 
-            className="imperialShopModalOverlay" 
-            onClick={() => setSuccessMessage(null)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.75)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10000
-            }}
-          >
-            <div 
-              className="imperialShopStatusModal" 
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: "var(--bg-dark)",
-                border: "2px solid var(--accent-success)",
-                borderRadius: "var(--soft-radius)",
-                padding: "2rem",
-                minWidth: "400px",
-                maxWidth: "90vw",
-                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.5)"
-              }}
-            >
-              <h2 style={{ 
-                fontSize: "1.4rem", 
-                marginBottom: "1rem",
-                color: "var(--accent-success)",
-                textAlign: "center"
-              }}>
-                Success
-              </h2>
-              <p style={{ 
-                margin: "0 0 2rem 0", 
-                color: "var(--text-main)", 
-                fontSize: "1rem", 
-                lineHeight: "1.6",
-                textAlign: "center"
-              }}>
-                {successMessage}
-              </p>
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <button
-                  onClick={() => setSuccessMessage(null)}
-                  style={{
-                    padding: "0.875rem 2rem",
-                    background: "var(--accent-success)",
-                    border: "2px solid var(--accent-success)",
-                    borderRadius: "var(--soft-radius)",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "1rem",
-                    fontWeight: "bold",
-                    transition: "all 0.2s ease"
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.opacity = "0.9"}
-                  onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {error && (
           <div 
