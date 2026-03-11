@@ -45,7 +45,6 @@ export type InventoryManagementPanelProps = {
   activeCharacterVisualPath: string | null;
   activeCharacterVisualName: string | null;
   canCycleCharacterVisuals: boolean;
-  imperialsIconPath: string;
   equipmentLeftSlots: EquipmentSlotId[];
   equipmentRightSlots: EquipmentSlotId[];
   equipmentVestigeSlots: EquipmentSlotId[];
@@ -71,7 +70,8 @@ const MAIN_STAT_COLUMNS: MainStatColumn[] = [
   {
     key: "strength",
     label: "STR",
-    iconPath: "M6.2 17c-1.2 0-2.2-1-2.2-2.2V10h1.9V7.8a1 1 0 112 0V10h.8V7.2a1 1 0 112 0V10h.8V7.5a1 1 0 112 0V10h.7a2 2 0 012 2v2.8c0 1.2-1 2.2-2.2 2.2H6.2z"
+    iconPath:
+      "M10 2l5 2v4.6c0 3.3-2 6.3-5 7.4-3-1.1-5-4.1-5-7.4V4l5-2zm0 2.2L7 5.3v3.3c0 2.2 1.2 4.3 3 5.3 1.8-1 3-3.1 3-5.3V5.3l-3-1.1zm-.8 2.3h1.6v1.8h1.8v1.6h-1.8v1.8H9.2V9.9H7.4V8.3h1.8V6.5z"
   },
   { key: "intelligence", label: "INT", iconPath: "M4 4h5a3 3 0 013 3v9a3 3 0 00-3-3H4V4zm12 0h-5a3 3 0 00-3 3v9a3 3 0 013-3h5V4z" },
   { key: "dexterity", label: "DEX", iconPath: "M4 5h5l1 4h4l2 3H4V5zm0 8h13v2H4v-2z" },
@@ -190,44 +190,6 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
             </div>
           </div>
 
-          <div className="equipmentEconomyBar">
-            <div className="economyItem">
-              <span className="currencyIcon ducatIcon" aria-hidden="true">
-                <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
-              </span>
-              <span>{i18n.t("currencies.ducats")}</span>
-              <strong className="ducatsAmount">{effectiveCurrencies.ducats}</strong>
-            </div>
-            <div className="economyItem">
-              <span className="currencyIcon imperialIcon" aria-hidden="true">
-                <img className="currencyIconImage" src={props.imperialsIconPath} alt="" />
-              </span>
-              <span>{i18n.t("currencies.imperials")}</span>
-              <strong>{effectiveCurrencies.imperials}</strong>
-            </div>
-            <div
-              className={`economyItem${
-                props.inventoryStatFlashes.gearScore
-                  ? ` inventoryStatFlash inventoryStatFlash-${props.inventoryStatFlashes.gearScore.direction}`
-                  : ""
-              }`}
-            >
-              <span className="currencyIcon gearScoreIcon" aria-hidden="true">
-                {"\u26E8"}
-              </span>
-              <span>{i18n.t("currencies.gearScore")}</span>
-              <strong
-                className={`economyValue${
-                  props.inventoryStatFlashes.gearScore
-                    ? ` inventoryStatFlashValue inventoryStatFlashValue-${props.inventoryStatFlashes.gearScore.direction}`
-                    : ""
-                }`}
-              >
-                {playerState.gearScore}
-              </strong>
-            </div>
-          </div>
-
           <div className="mainStatsTraining">
             <div className="statTrainingColumns">
               {MAIN_STAT_COLUMNS.map((statColumn, statIndex) => {
@@ -294,12 +256,6 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                       <span className="itemBonusValue">(+{itemBonus})</span>
                     </span>
                     <div className="statTrainingAction">
-                      <span className="statTrainingCost">
-                        <span className="ducatsAmount">{trainingCost}</span>
-                        <span className="currencyIcon ducatIcon" aria-hidden="true">
-                          <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
-                        </span>
-                      </span>
                       <button
                         className="statTrainButton"
                         onClick={() => props.onStartStatTraining(statColumn.key)}
@@ -311,6 +267,12 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                             ? i18n.t("training.busy")
                             : i18n.t("training.train")}
                       </button>
+                      <span className="statTrainingCost">
+                        <span className="ducatsAmount">{trainingCost}</span>
+                        <span className="currencyIcon ducatIcon" aria-hidden="true">
+                          <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
+                        </span>
+                      </span>
                       {isTrainingThisStat ? (
                         <>
                           <div

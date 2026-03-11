@@ -3559,7 +3559,6 @@ export function AppShell() {
         activeCharacterVisualPath={activeCharacterVisualPath}
         activeCharacterVisualName={activeCharacterVisualName}
         canCycleCharacterVisuals={canCycleCharacterVisuals}
-        imperialsIconPath={IMPERIALS_ICON_PATH}
         equipmentLeftSlots={EQUIPMENT_LEFT_SLOTS}
         equipmentRightSlots={EQUIPMENT_RIGHT_SLOTS}
         equipmentVestigeSlots={EQUIPMENT_VESTIGE_SLOTS}
