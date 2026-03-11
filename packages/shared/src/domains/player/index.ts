@@ -1,0 +1,42 @@
+import { z } from "zod";
+
+import {
+  currencyBalanceSchema,
+  playerClassSchema,
+  playerStatSnapshotSchema,
+  statBlockSchema,
+  supportedLocaleSchema
+} from "../../core/index.js";
+import { equipmentStateSchema, inventoryItemSchema } from "../inventory/index.js";
+
+export const playerStateSchema = z.object({
+  playerId: z.string(),
+  accountId: z.string(),
+  class: playerClassSchema,
+  preferredLocale: supportedLocaleSchema.default("en"),
+  level: z.number().int().min(1),
+  gearScore: z.number().int().min(0),
+  stats: statBlockSchema,
+  statSnapshot: playerStatSnapshotSchema,
+  inventory: z.array(z.lazy(() => inventoryItemSchema)),
+  equipment: z.lazy(() => equipmentStateSchema),
+  currency: currencyBalanceSchema
+});
+export type PlayerState = z.infer<typeof playerStateSchema>;
+
+export const devGuestLoginResponseSchema = z.object({
+  accessToken: z.string(),
+  playerId: z.string(),
+  accountId: z.string()
+});
+export type DevGuestLoginResponse = z.infer<typeof devGuestLoginResponseSchema>;
+
+export const playerPreferencesSchema = z.object({
+  preferredLocale: supportedLocaleSchema
+});
+export type PlayerPreferences = z.infer<typeof playerPreferencesSchema>;
+
+export const updatePlayerPreferencesBodySchema = z.object({
+  preferredLocale: supportedLocaleSchema
+});
+export type UpdatePlayerPreferencesBody = z.infer<typeof updatePlayerPreferencesBodySchema>;

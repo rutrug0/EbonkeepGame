@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  leaderboardTypeSchema as compatibilityLeaderboardTypeSchema,
   getAllowedClassesForArchetype,
   isItemUsableByClass,
   validateVestigeLoadout
 } from "../src/index.js";
+import { leaderboardTypeSchema } from "../src/domains/leaderboard/index.js";
+import { supportedLocaleSchema } from "../src/core/index.js";
 
 describe("shared contracts", () => {
   it("maps archetypes to allowed classes", () => {
@@ -29,5 +32,14 @@ describe("shared contracts", () => {
       valid: false,
       reason: "max_vestiges_exceeded"
     });
+  });
+
+  it("exposes domain entrypoints directly", () => {
+    expect(supportedLocaleSchema.options).toContain("en");
+    expect(leaderboardTypeSchema.options).toEqual(["power", "level"]);
+  });
+
+  it("keeps the root barrel as a compatibility re-export", () => {
+    expect(compatibilityLeaderboardTypeSchema).toBe(leaderboardTypeSchema);
   });
 });

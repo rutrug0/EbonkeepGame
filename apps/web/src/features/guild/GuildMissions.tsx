@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
-import { CombatActorFrame } from "./CombatActorFrame";
-import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
+import { CombatActorFrame } from "../combat";
+import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -1317,7 +1317,6 @@ export function GuildMissions({ playerName, playerClass, playerPower, playerLeve
     const isActive = activeMission !== null &&
       (activeMission.phase === "travel" || activeMission.phase === "combat");
     onActiveMissionChange?.(isActive);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMission?.phase]);
 
   // ── Auto-join simulation ─────────────────────────────────────────────────

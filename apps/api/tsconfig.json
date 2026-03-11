@@ -9,6 +9,7 @@
     ],
     "paths": {
       "@ebonkeep/shared": ["../../packages/shared/src/index.ts"],
+      "@ebonkeep/shared/*": ["../../packages/shared/src/*"],
       "@ebonkeep/transactions/*": ["../../transactions/*"]
     }
   },

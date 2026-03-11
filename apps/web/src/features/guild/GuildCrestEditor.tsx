@@ -2,7 +2,7 @@ import {
   DEFAULT_GUILD_CREST_ID,
   GUILD_CREST_CATALOG,
   type GuildCrestId
-} from "@ebonkeep/shared";
+} from "@ebonkeep/shared/guild";
 import { GuildCrestDisplay } from "./GuildList";
 
 export interface GuildCrestEditorProps {

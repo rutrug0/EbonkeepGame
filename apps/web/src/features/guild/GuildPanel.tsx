@@ -21,8 +21,8 @@ import type {
   Guild,
   GuildMember,
   GuildRole
-} from "@ebonkeep/shared";
-import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared";
+} from "@ebonkeep/shared/guild";
+import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared/guild";
 import {
   createGuild,
   getMyGuild,
@@ -39,8 +39,8 @@ import {
   kickMember,
   updateMemberRole,
   transferLeadership,
-  sendGuildInvite,
-} from "../api";
+  sendGuildInvite
+} from "./api";
 import { GuildCrestEditor } from "./GuildCrestEditor";
 import { GuildCrestDisplay } from "./GuildList";
 
@@ -371,7 +371,6 @@ function MyGuildView({
               {guildData.guild.description ? (
                 <div
                   className="guildHeroDesc"
-                  // eslint-disable-next-line react/no-danger
                   dangerouslySetInnerHTML={{ __html: safeHtml(guildData.guild.description) }}
                 />
               ) : (

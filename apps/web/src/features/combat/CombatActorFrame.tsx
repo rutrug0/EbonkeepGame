@@ -1,4 +1,4 @@
-import type { CombatPlaybackActor } from "@ebonkeep/shared";
+import type { CombatPlaybackActor } from "@ebonkeep/shared/combat";
 
 type CombatActorFrameProps = {
   actor: CombatPlaybackActor;

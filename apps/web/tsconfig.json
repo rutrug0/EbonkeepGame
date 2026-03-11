@@ -9,7 +9,11 @@
     "types": [
       "vite/client"
     ],
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@ebonkeep/shared": ["../../packages/shared/src/index.ts"],
+      "@ebonkeep/shared/*": ["../../packages/shared/src/*"]
+    }
   },
   "include": [
     "src/**/*.ts",
