@@ -2,6 +2,24 @@ import type { PrismaClient } from "@prisma/client";
 import type { Redis } from "ioredis";
 import { AuctionConfigService } from "./config.service.js";
 
+type ActiveAuctionBidRecord = {
+  id: string;
+  itemId: string;
+  playerId: string;
+  bidAmount: number;
+  status: string;
+  isAutoBid: boolean;
+  maxAutoBid: number | null;
+  createdAt: Date;
+};
+
+type BidCandidate = {
+  id: string | null;
+  playerId: string;
+  reserveAmount: number;
+  createdAt: Date;
+};
+
 export class AuctionBidService {
   private configService = AuctionConfigService.getInstance();
   private config = this.configService.getConfig();
@@ -12,19 +30,17 @@ export class AuctionBidService {
   ) {}
 
   /**
-   * Place a bid on an auction item.
-   * Returns the created bid and the player's remaining available ducats.
-   * Triggers auto-bids after successful placement.
+   * Place or raise a proxy bid on an auction item.
+   * The submitted amount becomes the bidder's reserved maximum.
    */
   async placeBid(
     playerId: string,
     itemId: string,
     bidAmount: number,
-    skipAutoBidTrigger: boolean = false
+    _skipAutoBidTrigger: boolean = false
   ) {
-    const result = await this.prisma.$transaction(
+    return this.prisma.$transaction(
       async (tx: any) => {
-        // 1. Check rate limit (from config)
         const rateLimitKey = `bid:rate:${playerId}`;
         const bidCount = await this.redis.incr(rateLimitKey);
         await this.redis.expire(rateLimitKey, 60);
@@ -32,7 +48,6 @@ export class AuctionBidService {
           throw new Error(`Rate limit exceeded: max ${this.config.bidding.maxBidsPerMinute} bids per minute`);
         }
 
-        // 2. Load player currency
         const currency = await tx.currencyBalance.findUnique({
           where: { playerId },
           select: { ducats: true }
@@ -42,7 +57,6 @@ export class AuctionBidService {
           throw new Error("Insufficient ducats");
         }
 
-        // 3. Load item with auction
         const item = await tx.auctionItem.findUnique({
           where: { id: itemId },
           include: { auctionInstance: true }
@@ -56,87 +70,215 @@ export class AuctionBidService {
           throw new Error("Auction is not active");
         }
 
-        // 4. Verify bid reaches the actual floor for this item.
-        const minBid = this.calculateMinBid(item.currentBid, item.startingBid);
-        if (bidAmount < minBid) {
-          throw new Error(`Bid must be at least ${minBid} ducats`);
+        const minimumAcceptedBid = this.calculateSubmittedBidFloor(item.currentBid, item.startingBid);
+        if (bidAmount < minimumAcceptedBid) {
+          throw new Error(`Bid must be at least ${minimumAcceptedBid} ducats`);
         }
 
-        // 5. If the same player is raising their own leading bid, reserve only the difference.
-        const existingPlayerBid = await tx.auctionBid.findFirst({
+        const activeBids = (await tx.auctionBid.findMany({
           where: {
             itemId,
-            playerId,
             status: "active"
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
           select: {
             id: true,
+            itemId: true,
+            playerId: true,
             bidAmount: true,
+            status: true,
             isAutoBid: true,
-            maxAutoBid: true
+            maxAutoBid: true,
+            createdAt: true
           }
+        })) as ActiveAuctionBidRecord[];
+
+        const activeBidByPlayer = new Map<string, ActiveAuctionBidRecord>();
+        for (const bid of activeBids) {
+          activeBidByPlayer.set(bid.playerId, bid);
+        }
+
+        const previousReservedByPlayer = new Map<string, number>();
+        for (const bid of activeBids) {
+          previousReservedByPlayer.set(
+            bid.playerId,
+            (previousReservedByPlayer.get(bid.playerId) ?? 0) + this.getReservedAmount(bid)
+          );
+        }
+
+        const existingBid = activeBidByPlayer.get(playerId) ?? null;
+        const submittedCandidate: BidCandidate = {
+          id: existingBid?.id ?? null,
+          playerId,
+          reserveAmount: bidAmount,
+          createdAt: existingBid?.createdAt ?? new Date()
+        };
+
+        const candidates: BidCandidate[] = [
+          ...Array.from(activeBidByPlayer.values())
+            .filter((bid) => bid.playerId !== playerId)
+            .map((bid) => ({
+              id: bid.id,
+              playerId: bid.playerId,
+              reserveAmount: this.getReservedAmount(bid),
+              createdAt: bid.createdAt
+            })),
+          submittedCandidate
+        ].sort((left, right) => this.compareBidCandidates(left, right));
+
+        const newLeader = candidates[0];
+        if (!newLeader) {
+          throw new Error("Failed to resolve bid winner");
+        }
+
+        const runnerUp = candidates[1] ?? null;
+        const previousLeader =
+          (item.currentWinnerId ? activeBidByPlayer.get(item.currentWinnerId) ?? null : null) ??
+          Array.from(activeBidByPlayer.values())
+            .sort((left, right) =>
+              this.compareBidCandidates(
+                {
+                  id: left.id,
+                  playerId: left.playerId,
+                  reserveAmount: this.getReservedAmount(left),
+                  createdAt: left.createdAt
+                },
+                {
+                  id: right.id,
+                  playerId: right.playerId,
+                  reserveAmount: this.getReservedAmount(right),
+                  createdAt: right.createdAt
+                }
+              )
+            )[0] ??
+          null;
+
+        const nextCurrentBid = this.determineNextCurrentBid({
+          currentBid: item.currentBid,
+          startingBid: item.startingBid,
+          newLeader,
+          runnerUp,
+          previousLeader,
+          submittedPlayerId: playerId,
+          submittedReserve: bidAmount
         });
 
-        const currentlyReserved =
-          existingPlayerBid?.isAutoBid && typeof existingPlayerBid.maxAutoBid === "number"
-            ? existingPlayerBid.maxAutoBid
-            : (existingPlayerBid?.bidAmount ?? 0);
-        const additionalReserve = Math.max(0, bidAmount - currentlyReserved);
+        const nextReservedByPlayer = new Map<string, number>([[newLeader.playerId, newLeader.reserveAmount]]);
+        const bidderReserveDelta =
+          (nextReservedByPlayer.get(playerId) ?? 0) - (previousReservedByPlayer.get(playerId) ?? 0);
 
-        if (currency.ducats < additionalReserve) {
+        if (bidderReserveDelta > currency.ducats) {
           throw new Error("Insufficient ducats");
         }
 
-        if (additionalReserve > 0) {
+        const affectedPlayers = new Set([
+          ...previousReservedByPlayer.keys(),
+          ...nextReservedByPlayer.keys()
+        ]);
+
+        for (const affectedPlayerId of affectedPlayers) {
+          const previousReserved = previousReservedByPlayer.get(affectedPlayerId) ?? 0;
+          const nextReserved = nextReservedByPlayer.get(affectedPlayerId) ?? 0;
+          const balanceDelta = previousReserved - nextReserved;
+
+          if (balanceDelta === 0) {
+            continue;
+          }
+
           await tx.currencyBalance.update({
-            where: { playerId },
-            data: { ducats: { decrement: additionalReserve } }
+            where: { playerId: affectedPlayerId },
+            data: {
+              ducats:
+                balanceDelta > 0
+                  ? { increment: balanceDelta }
+                  : { decrement: Math.abs(balanceDelta) }
+            }
           });
         }
 
-        if (existingPlayerBid) {
+        const losingActiveBidIds = activeBids
+          .filter((bid) => bid.playerId !== newLeader.playerId)
+          .map((bid) => bid.id);
+
+        if (losingActiveBidIds.length > 0) {
+          await tx.auctionBid.updateMany({
+            where: { id: { in: losingActiveBidIds } },
+            data: { status: "outbid" }
+          });
+        }
+
+        if (newLeader.playerId === playerId) {
+          if (existingBid) {
+            await tx.auctionBid.update({
+              where: { id: existingBid.id },
+              data: {
+                bidAmount: nextCurrentBid,
+                status: "active",
+                isAutoBid: true,
+                maxAutoBid: bidAmount
+              }
+            });
+          } else {
+            await tx.auctionBid.create({
+              data: {
+                itemId,
+                playerId,
+                bidAmount: nextCurrentBid,
+                status: "active",
+                isAutoBid: true,
+                maxAutoBid: bidAmount
+              }
+            });
+          }
+        } else if (existingBid) {
           await tx.auctionBid.update({
-            where: { id: existingPlayerBid.id },
-            data: { 
+            where: { id: existingBid.id },
+            data: {
               bidAmount,
-              status: "active",
-              // Keep auto-bid settings if they exist
-              isAutoBid: existingPlayerBid.maxAutoBid ? true : false,
-              maxAutoBid: existingPlayerBid.maxAutoBid
+              status: "outbid",
+              isAutoBid: true,
+              maxAutoBid: bidAmount
             }
           });
         } else {
-          // 6. Create bid record
           await tx.auctionBid.create({
             data: {
               itemId,
               playerId,
               bidAmount,
-              status: "active"
+              status: "outbid",
+              isAutoBid: true,
+              maxAutoBid: bidAmount
             }
           });
         }
 
-        // 7. Store previous winner for refund
-        const previousWinnerId = item.currentWinnerId;
+        if (newLeader.playerId !== playerId) {
+          const leaderBid = activeBidByPlayer.get(newLeader.playerId);
+          if (!leaderBid) {
+            throw new Error("Failed to resolve current leader bid");
+          }
 
-        // 8. Update item current bid and winner
+          await tx.auctionBid.update({
+            where: { id: leaderBid.id },
+            data: {
+              bidAmount: nextCurrentBid,
+              status: "active",
+              isAutoBid: true,
+              maxAutoBid: newLeader.reserveAmount
+            }
+          });
+        }
+
         await tx.auctionItem.update({
           where: { id: itemId },
           data: {
-            currentBid: bidAmount,
-            currentWinnerId: playerId,
+            currentBid: nextCurrentBid,
+            currentWinnerId: newLeader.playerId,
             bidCount: { increment: 1 }
           }
         });
 
-        // 9. Refund previous winner when another player takes the lead.
-        if (previousWinnerId && previousWinnerId !== playerId) {
-          await this.refundPreviousBidder(tx, previousWinnerId, itemId);
-        }
-
-        // 10. Check for snipe protection (auction extension)
         if (this.config.snipeProtection.enabled) {
           const triggerWindowMs = this.config.snipeProtection.triggerWindowMinutes * 60 * 1000;
           const extensionMs = this.config.snipeProtection.extensionDurationMinutes * 60 * 1000;
@@ -156,142 +298,13 @@ export class AuctionBidService {
           }
         }
 
-        return {
-          remainingDucats: currency.ducats - additionalReserve
-        };
-      },
-      {
-        isolationLevel: "Serializable" // Prevent race conditions
-      }
-    );
-
-    // 11. Trigger auto-bids AFTER transaction completes (if not skipped)
-    if (!skipAutoBidTrigger) {
-      // Run in background to avoid blocking the response
-      setImmediate(() => {
-        this.triggerAutoBids(itemId, playerId).catch(error => {
-          console.error(`Auto-bid trigger failed for item ${itemId}:`, error);
-        });
-      });
-    }
-
-    return result;
-  }
-
-  /**
-   * Enable auto-bidding for an item with a maximum bid amount.
-   * Reserves the full maxBid amount immediately.
-   */
-  async enableAutoBid(
-    playerId: string,
-    itemId: string,
-    maxBid: number
-  ) {
-    return await this.prisma.$transaction(
-      async (tx: any) => {
-        // 1. Load item with auction
-        const item = await tx.auctionItem.findUnique({
-          where: { id: itemId },
-          include: { auctionInstance: true }
-        });
-
-        if (!item) {
-          throw new Error("Item not found");
-        }
-
-        if (item.auctionInstance.status !== "active") {
-          throw new Error("Auction is not active");
-        }
-
-        // 2. Validate maxBid is >= minimum required bid
-        const minBid = this.calculateMinBid(item.currentBid, item.startingBid);
-        if (maxBid < minBid) {
-          throw new Error(`Maximum bid must be at least ${minBid} ducats`);
-        }
-
-        // 3. Load player currency
-        const currency = await tx.currencyBalance.findUnique({
+        const updatedBalance = await tx.currencyBalance.findUnique({
           where: { playerId },
           select: { ducats: true }
         });
 
-        if (!currency) {
-          throw new Error("Insufficient ducats");
-        }
-
-        // 4. Check for existing active bid
-        const existingBid = await tx.auctionBid.findFirst({
-          where: {
-            itemId,
-            playerId,
-            status: "active"
-          },
-          orderBy: { createdAt: "desc" }
-        });
-
-        const currentlyReserved = existingBid?.bidAmount ?? 0;
-        const additionalReserve = Math.max(0, maxBid - currentlyReserved);
-
-        if (currency.ducats < additionalReserve) {
-          throw new Error("Insufficient ducats for maximum bid");
-        }
-
-        // 5. Reserve the full max bid amount
-        if (additionalReserve > 0) {
-          await tx.currencyBalance.update({
-            where: { playerId },
-            data: { ducats: { decrement: additionalReserve } }
-          });
-        }
-
-        // 6. Update or create bid with auto-bid enabled
-        if (existingBid) {
-          await tx.auctionBid.update({
-            where: { id: existingBid.id },
-            data: {
-              isAutoBid: true,
-              maxAutoBid: maxBid
-            }
-          });
-        } else {
-          // Place initial bid at minimum if not currently winning
-          const initialBidAmount = item.currentWinnerId === playerId ? item.currentBid : minBid;
-          
-          await tx.auctionBid.create({
-            data: {
-              itemId,
-              playerId,
-              bidAmount: initialBidAmount,
-              status: "active",
-              isAutoBid: true,
-              maxAutoBid: maxBid
-            }
-          });
-
-          // Update item if this is a new bid
-          if (item.currentWinnerId !== playerId) {
-            const previousWinnerId = item.currentWinnerId;
-
-            await tx.auctionItem.update({
-              where: { id: itemId },
-              data: {
-                currentBid: initialBidAmount,
-                currentWinnerId: playerId,
-                bidCount: { increment: 1 }
-              }
-            });
-
-            // Refund previous winner
-            if (previousWinnerId) {
-              await this.refundPreviousBidder(tx, previousWinnerId, itemId);
-            }
-          }
-        }
-
         return {
-          success: true,
-          remainingDucats: currency.ducats - additionalReserve,
-          maxBid
+          remainingDucats: updatedBalance?.ducats ?? 0
         };
       },
       {
@@ -301,42 +314,54 @@ export class AuctionBidService {
   }
 
   /**
-   * Disable auto-bidding for an item.
-   * Refunds the difference between current bid and max bid.
+   * Enable proxy bidding with a reserved maximum amount.
+   */
+  async enableAutoBid(
+    playerId: string,
+    itemId: string,
+    maxBid: number
+  ) {
+    const result = await this.placeBid(playerId, itemId, maxBid, true);
+    return {
+      success: true,
+      remainingDucats: result.remainingDucats,
+      maxBid
+    };
+  }
+
+  /**
+   * Disable proxy bidding and keep only the visible committed amount reserved.
    */
   async disableAutoBid(
     playerId: string,
     itemId: string
   ) {
-    return await this.prisma.$transaction(
+    return this.prisma.$transaction(
       async (tx: any) => {
-        // Find active auto-bid
-        const autoBid = await tx.auctionBid.findFirst({
+        const activeBid = await tx.auctionBid.findFirst({
           where: {
             itemId,
             playerId,
-            status: "active",
-            isAutoBid: true
+            status: "active"
           },
           orderBy: { createdAt: "desc" }
         });
 
-        if (!autoBid) {
+        if (!activeBid) {
           throw new Error("No active auto-bid found");
         }
 
-        const refundAmount = (autoBid.maxAutoBid ?? autoBid.bidAmount) - autoBid.bidAmount;
+        const reservedAmount = this.getReservedAmount(activeBid);
+        const refundAmount = Math.max(0, reservedAmount - activeBid.bidAmount);
 
-        // Update bid to disable auto-bid
         await tx.auctionBid.update({
-          where: { id: autoBid.id },
+          where: { id: activeBid.id },
           data: {
             isAutoBid: false,
             maxAutoBid: null
           }
         });
 
-        // Refund excess reserved ducats
         if (refundAmount > 0) {
           await tx.currencyBalance.update({
             where: { playerId },
@@ -344,7 +369,6 @@ export class AuctionBidService {
           });
         }
 
-        // Get updated balance
         const updatedBalance = await tx.currencyBalance.findUnique({
           where: { playerId },
           select: { ducats: true }
@@ -363,120 +387,24 @@ export class AuctionBidService {
   }
 
   /**
-   * Trigger auto-bids after a manual bid is placed.
-   * Checks if any players with auto-bid enabled should counter-bid.
+   * Proxy bidding is resolved inline in placeBid, so there is nothing left to trigger.
    */
-  async triggerAutoBids(itemId: string, newBidderId: string) {
-    // Find all active auto-bids for this item (excluding the player who just bid)
-    const autoBids = await this.prisma.auctionBid.findMany({
-      where: {
-        itemId,
-        status: "active",
-        isAutoBid: true,
-        playerId: { not: newBidderId }
-      },
-      orderBy: { maxAutoBid: "desc" } // Process highest max bid first
-    });
-
-    if (autoBids.length === 0) {
-      return; // No auto-bids to trigger
-    }
-
-    // Get current item state
-    const item = await this.prisma.auctionItem.findUnique({
-      where: { id: itemId },
-      include: { auctionInstance: true }
-    });
-
-    if (!item || item.auctionInstance.status !== "active") {
-      return;
-    }
-
-    // Process auto-bids
-    for (const autoBid of autoBids) {
-      if (!autoBid.maxAutoBid) continue;
-
-      // Calculate next required bid
-      const minBid = this.calculateMinBid(item.currentBid, item.startingBid);
-
-      // Check if auto-bid can afford the next bid
-      if (autoBid.maxAutoBid >= minBid && item.currentWinnerId !== autoBid.playerId) {
-        try {
-          // Place auto-bid at minimum required amount (not exceeding max)
-          const autoBidAmount = Math.min(minBid, autoBid.maxAutoBid);
-          
-          // Skip auto-bid trigger to prevent infinite loop
-          await this.placeBid(autoBid.playerId, itemId, autoBidAmount, true);
-          
-          // Only one auto-bid should trigger per manual bid
-          break;
-        } catch (error) {
-          // If auto-bid fails, continue to next one
-          console.error(`Auto-bid failed for player ${autoBid.playerId}:`, error);
-          continue;
-        }
-      }
-    }
+  async triggerAutoBids(_itemId: string, _newBidderId: string) {
+    return;
   }
 
   /**
-   * Calculate minimum bid based on current bid and the item's configured starting bid.
+   * Calculate minimum visible bid based on current bid and the item's configured starting bid.
    */
   calculateMinBid(currentBid: number, startingBid: number): number {
     return this.configService.calculateMinBid(currentBid, startingBid);
   }
 
   /**
-   * Refund previous bidder when outbid
-   */
-  private async refundPreviousBidder(
-    tx: any,
-    playerId: string,
-    itemId: string
-  ): Promise<void> {
-    // Find previous active bid
-    const previousBid = await tx.auctionBid.findFirst({
-      where: {
-        playerId,
-        itemId,
-        status: "active"
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        bidAmount: true,
-        isAutoBid: true,
-        maxAutoBid: true
-      }
-    });
-
-    if (!previousBid) {
-      return; // No active bid found
-    }
-
-    // Keep auto-bids active and preserve their reservation so they can counter-bid.
-    if (previousBid.isAutoBid && typeof previousBid.maxAutoBid === "number") {
-      return;
-    }
-
-    // Mark bid as outbid
-    await tx.auctionBid.update({
-      where: { id: previousBid.id },
-      data: { status: "outbid" }
-    });
-
-    // Refund ducats
-    await tx.currencyBalance.update({
-      where: { playerId },
-      data: { ducats: { increment: previousBid.bidAmount } }
-    });
-  }
-
-  /**
    * Get bid history for an item (last N bids)
    */
   async getBidHistory(itemId: string, limit: number = 5) {
-    return await this.prisma.auctionBid.findMany({
+    return this.prisma.auctionBid.findMany({
       where: { itemId },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -484,7 +412,6 @@ export class AuctionBidService {
         id: true,
         bidAmount: true,
         createdAt: true
-        // Note: playerId intentionally excluded for anonymity
       }
     });
   }
@@ -504,7 +431,7 @@ export class AuctionBidService {
    * Get player's active bids across all auctions
    */
   async getPlayerActiveBids(playerId: string) {
-    return await this.prisma.auctionBid.findMany({
+    return this.prisma.auctionBid.findMany({
       where: {
         playerId,
         status: "active"
@@ -517,5 +444,77 @@ export class AuctionBidService {
         }
       }
     });
+  }
+
+  private getReservedAmount(bid: { bidAmount: number; maxAutoBid?: number | null }): number {
+    return bid.maxAutoBid ?? bid.bidAmount;
+  }
+
+  private calculateSubmittedBidFloor(currentBid: number, startingBid: number): number {
+    const visibleBase = currentBid > 0 ? currentBid : startingBid;
+    return Math.max(this.calculateMinBid(currentBid, startingBid), visibleBase + 11);
+  }
+
+  private compareBidCandidates(left: BidCandidate, right: BidCandidate): number {
+    if (left.reserveAmount !== right.reserveAmount) {
+      return right.reserveAmount - left.reserveAmount;
+    }
+
+    if (left.createdAt.getTime() !== right.createdAt.getTime()) {
+      return left.createdAt.getTime() - right.createdAt.getTime();
+    }
+
+    return (left.id ?? "").localeCompare(right.id ?? "");
+  }
+
+  private determineNextCurrentBid(args: {
+    currentBid: number;
+    startingBid: number;
+    newLeader: BidCandidate;
+    runnerUp: BidCandidate | null;
+    previousLeader: ActiveAuctionBidRecord | null;
+    submittedPlayerId: string;
+    submittedReserve: number;
+  }): number {
+    const {
+      currentBid,
+      startingBid,
+      newLeader,
+      runnerUp,
+      previousLeader,
+      submittedPlayerId,
+      submittedReserve
+    } = args;
+
+    if (newLeader.playerId !== submittedPlayerId) {
+      return Math.min(newLeader.reserveAmount, this.calculateMinBid(submittedReserve, startingBid));
+    }
+
+    if (previousLeader?.playerId === submittedPlayerId) {
+      if (runnerUp) {
+        return Math.min(newLeader.reserveAmount, this.calculateMinBid(runnerUp.reserveAmount, startingBid));
+      }
+
+      return currentBid > 0 ? currentBid : startingBid;
+    }
+
+    if (!previousLeader) {
+      if (runnerUp) {
+        return Math.min(newLeader.reserveAmount, this.calculateMinBid(runnerUp.reserveAmount, startingBid));
+      }
+
+      if (currentBid > 0) {
+        return Math.min(newLeader.reserveAmount, this.calculateMinBid(currentBid, startingBid));
+      }
+
+      return startingBid;
+    }
+
+    const previousLeaderReserve = this.getReservedAmount(previousLeader);
+    if (previousLeaderReserve > currentBid) {
+      return submittedReserve;
+    }
+
+    return Math.min(newLeader.reserveAmount, this.calculateMinBid(currentBid, startingBid));
   }
 }

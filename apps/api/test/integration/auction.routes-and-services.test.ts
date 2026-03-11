@@ -49,7 +49,7 @@ describe("auction routes and services", () => {
       headers: authHeaders(bidder.body.accessToken),
       payload: {
         itemId: item.id,
-        bidAmount: 100
+        bidAmount: 111
       }
     });
     expect(bidResponse.statusCode).toBe(200);
@@ -93,14 +93,14 @@ describe("auction routes and services", () => {
     expect(enableResponse.statusCode).toBe(200);
 
     const bidService = new AuctionBidService(context.prisma, context.redis);
-    await bidService.placeBid(secondBidder.body.playerId, item.id, 110, true);
+    await bidService.placeBid(secondBidder.body.playerId, item.id, 111, true);
     await bidService.triggerAutoBids(item.id, secondBidder.body.playerId);
 
     const refreshedItem = await context.prisma.auctionItem.findUniqueOrThrow({
       where: { id: item.id }
     });
     expect(refreshedItem.currentWinnerId).toBe(firstBidder.body.playerId);
-    expect(refreshedItem.currentBid).toBe(120);
+    expect(refreshedItem.currentBid).toBe(121);
 
     const secondBidderBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: secondBidder.body.playerId }
@@ -111,6 +111,110 @@ describe("auction routes and services", () => {
     await context.redis.set(`bid:rate:${firstBidder.body.playerId}`, String(maxBidsPerMinute), "EX", 60);
 
     await expect(bidService.placeBid(firstBidder.body.playerId, item.id, 130)).rejects.toThrow(/Rate limit exceeded/);
+  });
+
+  it("treats standard bids as reserved proxy bids and refunds the losing reserve", async () => {
+    const incumbent = await loginAsGuest(context.app, { guestId: "proxy-incumbent" });
+    const proxyBidder = await loginAsGuest(context.app, { guestId: "proxy-bidder" });
+    const challenger = await loginAsGuest(context.app, { guestId: "proxy-challenger" });
+    const overbidder = await loginAsGuest(context.app, { guestId: "proxy-overbidder" });
+
+    const { item } = await createActiveAuction(context.prisma, {
+      itemCode: JSON.stringify({ itemName: "Proxy Crown" }),
+      startingBid: 20,
+      currentBid: 30,
+      currentWinnerId: incumbent.body.playerId
+    });
+
+    await context.prisma.auctionBid.create({
+      data: {
+        itemId: item.id,
+        playerId: incumbent.body.playerId,
+        bidAmount: 30,
+        status: "active",
+        isAutoBid: false,
+        maxAutoBid: null
+      }
+    });
+
+    await setPlayerDucats(context.prisma, incumbent.body.playerId, 9_970);
+    await setPlayerDucats(context.prisma, proxyBidder.body.playerId, 10_000);
+    await setPlayerDucats(context.prisma, challenger.body.playerId, 10_000);
+    await setPlayerDucats(context.prisma, overbidder.body.playerId, 10_000);
+
+    const bidService = new AuctionBidService(context.prisma, context.redis);
+
+    const firstBid = await bidService.placeBid(proxyBidder.body.playerId, item.id, 300);
+    expect(firstBid.remainingDucats).toBe(9_700);
+
+    const afterFirstBid = await context.prisma.auctionItem.findUniqueOrThrow({
+      where: { id: item.id }
+    });
+    expect(afterFirstBid.currentWinnerId).toBe(proxyBidder.body.playerId);
+    expect(afterFirstBid.currentBid).toBe(40);
+
+    const proxyBidRecord = await context.prisma.auctionBid.findFirstOrThrow({
+      where: {
+        itemId: item.id,
+        playerId: proxyBidder.body.playerId,
+        status: "active"
+      }
+    });
+    expect(proxyBidRecord.bidAmount).toBe(40);
+    expect(proxyBidRecord.maxAutoBid).toBe(300);
+
+    const incumbentBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
+      where: { playerId: incumbent.body.playerId }
+    });
+    expect(incumbentBalance.ducats).toBe(10_000);
+
+    const secondBid = await bidService.placeBid(challenger.body.playerId, item.id, 100);
+    expect(secondBid.remainingDucats).toBe(10_000);
+
+    const afterSecondBid = await context.prisma.auctionItem.findUniqueOrThrow({
+      where: { id: item.id }
+    });
+    expect(afterSecondBid.currentWinnerId).toBe(proxyBidder.body.playerId);
+    expect(afterSecondBid.currentBid).toBe(110);
+
+    const challengerBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
+      where: { playerId: challenger.body.playerId }
+    });
+    expect(challengerBalance.ducats).toBe(10_000);
+
+    const challengerBidRecord = await context.prisma.auctionBid.findFirstOrThrow({
+      where: {
+        itemId: item.id,
+        playerId: challenger.body.playerId
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    expect(challengerBidRecord.status).toBe("outbid");
+    expect(challengerBidRecord.maxAutoBid).toBe(100);
+
+    const finalBid = await bidService.placeBid(overbidder.body.playerId, item.id, 350);
+    expect(finalBid.remainingDucats).toBe(9_650);
+
+    const afterFinalBid = await context.prisma.auctionItem.findUniqueOrThrow({
+      where: { id: item.id }
+    });
+    expect(afterFinalBid.currentWinnerId).toBe(overbidder.body.playerId);
+    expect(afterFinalBid.currentBid).toBe(350);
+
+    const proxyBidderBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
+      where: { playerId: proxyBidder.body.playerId }
+    });
+    expect(proxyBidderBalance.ducats).toBe(10_000);
+
+    const overbidderBidRecord = await context.prisma.auctionBid.findFirstOrThrow({
+      where: {
+        itemId: item.id,
+        playerId: overbidder.body.playerId,
+        status: "active"
+      }
+    });
+    expect(overbidderBidRecord.bidAmount).toBe(350);
+    expect(overbidderBidRecord.maxAutoBid).toBe(350);
   });
 
   it("settles auctions idempotently and lets winners claim pending rewards", async () => {

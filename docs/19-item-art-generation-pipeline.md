@@ -14,6 +14,7 @@ The generator sends **one item per request** to the OpenAI Images API.
 - Script: `tools/generate_item_art.py`
 - Manifest/metadata builder: `tools/build_item_art_manifest.py`
 - Prompt/source config: `tools/item_art_prompts.yaml`
+- Manual indoor scene registry: `docs/data/indoor_scene_assets_v1.csv`
 - Run state cache: `tools/.cache/item_art_state.json`
 - Last run report: `tools/.cache/item_art_last_run.json`
 - Default output folder: `apps/web/public/assets/items/generated/`
@@ -34,6 +35,7 @@ Current sources include:
 - `docs/data/monster_family_members_v1.csv` joined with `docs/data/monster_families_v1.csv` (monsters)
 - `docs/data/monster_families_v1.csv` rows with `prompt_combat_stage` (monster combat stages)
 - `docs/data/travel_stage_scenes_v1.csv` (monster-family travel stages)
+- `docs/data/indoor_scene_assets_v1.csv` (manual indoor UI scene registry for manifest-backed tab backgrounds)
 
 Rows missing `prompt_item_description` are skipped by design.
 Current curated item sources include handcrafted `prompt_item_description` values on every row, so the full item set is eligible.
@@ -176,6 +178,11 @@ Travel stage naming convention:
 - Travel stage filenames are family-scoped.
 - Pattern: `travel_stage/<family_id>/travel_stage_<scene_name>.png`
 - Example: `travel_stage/snagtooth_hollow_00/travel_stage_default.png`
+
+Indoor scene naming convention:
+- Indoor scene filenames are scene-scoped under `indoors/<scene_id>/`.
+- Registry rows map each scene to a manifest key: `indoors:<scene_id>`.
+- Example asset path: `indoors/auction_house/auction_house.png`
 
 Examples:
 - `.../weapon/melee/sword/warrior_melee_iron_shortsword.png`
