@@ -3101,6 +3101,10 @@ button:focus-visible {
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
+.uiHoverTooltipTrigger {
+  position: relative;
+}
+
 .uiHoverTooltipBottom {
   top: calc(100% + 8px);
   bottom: auto;
@@ -3144,18 +3148,29 @@ button:focus-visible {
   display: inline-flex;
 }
 
-.inventoryControlWithTooltip:hover .uiHoverTooltip {
+.inventoryControlWithTooltip:hover .uiHoverTooltip,
+.inventoryControlWithTooltip:focus-within .uiHoverTooltip,
+.uiHoverTooltipTrigger:hover .uiHoverTooltip,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltip {
   opacity: 1;
   transform: translate(-50%, 0);
 }
 
-.inventoryControlWithTooltip:hover .uiHoverTooltipBottom {
+.inventoryControlWithTooltip:hover .uiHoverTooltipBottom,
+.inventoryControlWithTooltip:focus-within .uiHoverTooltipBottom,
+.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom {
   transform: translate(-50%, 0);
 }
 
 .inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
+.inventoryControlWithTooltip:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
 .inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
-.inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
+.inventoryControlWithTooltip:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
+.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
+.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
   transform: translateY(0);
 }
 

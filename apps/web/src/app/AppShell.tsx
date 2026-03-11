@@ -7,6 +7,7 @@
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactElement,
+  type ReactNode,
   type WheelEvent as ReactWheelEvent
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -4285,13 +4286,14 @@ export function AppShell() {
                 </div>
 
                 <div className="playerCardScoreRow" aria-label="Player combat scores">
-                  <div
+                  <HoverTooltip
+                    tooltipId="menu-gear-score-tooltip"
+                    title={i18n.t("currencies.gearScore")}
                     className={`playerCardScoreItem playerCardScoreItem-gear${
                       inventoryStatFlashes.gearScore
                         ? ` inventoryStatFlash inventoryStatFlash-${inventoryStatFlashes.gearScore.direction}`
                         : ""
                     }`}
-                    title={i18n.t("currencies.gearScore")}
                   >
                     <span className="playerCardScoreIcon playerCardScoreIcon-gear" aria-hidden="true">
                       {renderPlayerCardScoreIcon("gear")}
@@ -4305,52 +4307,74 @@ export function AppShell() {
                     >
                       {playerCardScoreSummary.gear}
                     </strong>
-                  </div>
-                  <div className="playerCardScoreItem playerCardScoreItem-offense" title={i18n.t("profile.offensive")}>
+                  </HoverTooltip>
+                  <HoverTooltip
+                    tooltipId="menu-offensive-score-tooltip"
+                    title="Offensive Score"
+                    className="playerCardScoreItem playerCardScoreItem-offense"
+                  >
                     <span className="playerCardScoreIcon playerCardScoreIcon-offense" aria-hidden="true">
                       {renderPlayerCardScoreIcon("offense")}
                     </span>
                     <strong className="playerCardScoreValue">{playerCardScoreSummary.offense}</strong>
-                  </div>
-                  <div className="playerCardScoreItem playerCardScoreItem-defense" title={i18n.t("profile.defensive")}>
+                  </HoverTooltip>
+                  <HoverTooltip
+                    tooltipId="menu-defensive-score-tooltip"
+                    title="Defensive Score"
+                    className="playerCardScoreItem playerCardScoreItem-defense"
+                  >
                     <span className="playerCardScoreIcon playerCardScoreIcon-defense" aria-hidden="true">
                       {renderPlayerCardScoreIcon("defense")}
                     </span>
                     <strong className="playerCardScoreValue">{playerCardScoreSummary.defense}</strong>
-                  </div>
+                  </HoverTooltip>
                 </div>
 
                 <div className="barBlock">
-                  <div className="barShell" aria-label={i18n.t("bars.health")} title={i18n.t("bars.health")}>
-                    <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
-                  </div>
+                  <HoverTooltip tooltipId="menu-health-bar-tooltip" title={i18n.t("bars.health")} className="barShellTooltipTrigger">
+                    <div className="barShell" aria-label={i18n.t("bars.health")}>
+                      <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
+                    </div>
+                  </HoverTooltip>
                 </div>
 
                 <div className="barBlock">
-                  <div className="barShell" aria-label={i18n.t("bars.experience")} title={i18n.t("bars.experience")}>
-                    <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
-                  </div>
+                  <HoverTooltip tooltipId="menu-experience-bar-tooltip" title={i18n.t("bars.experience")} className="barShellTooltipTrigger">
+                    <div className="barShell" aria-label={i18n.t("bars.experience")}>
+                      <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
+                    </div>
+                  </HoverTooltip>
                 </div>
 
                 <div className="barBlock">
-                  <div className="barShell" aria-label={i18n.t("bars.stamina")} title={i18n.t("bars.stamina")}>
-                    <div className="barFill staminaFill" style={{ width: `${staminaPercent}%` }} />
-                  </div>
+                  <HoverTooltip tooltipId="menu-stamina-bar-tooltip" title={i18n.t("bars.stamina")} className="barShellTooltipTrigger">
+                    <div className="barShell" aria-label={i18n.t("bars.stamina")}>
+                      <div className="barFill staminaFill" style={{ width: `${staminaPercent}%` }} />
+                    </div>
+                  </HoverTooltip>
                 </div>
 
                 <div className="playerCardCurrencyRow" aria-label="Player currencies">
-                  <span className="playerCardCurrencyPair">
+                  <HoverTooltip
+                    tooltipId="menu-ducats-tooltip"
+                    title={i18n.t("currencies.ducats")}
+                    className="playerCardCurrencyPair"
+                  >
                     <strong className="playerCardCurrencyValue ducats">{playerCardCurrencies.ducats.toLocaleString()}</strong>
                     <span className="currencyIcon ducatIcon playerCardCurrencyIcon" aria-hidden="true">
                       <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
                     </span>
-                  </span>
-                  <span className="playerCardCurrencyPair">
+                  </HoverTooltip>
+                  <HoverTooltip
+                    tooltipId="menu-imperials-tooltip"
+                    title={i18n.t("currencies.imperials")}
+                    className="playerCardCurrencyPair"
+                  >
                     <strong className="playerCardCurrencyValue imperials">{playerCardCurrencies.imperials.toLocaleString()}</strong>
                     <span className="currencyIcon imperialIcon playerCardCurrencyIcon" aria-hidden="true">
                       <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
                     </span>
-                  </span>
+                  </HoverTooltip>
                 </div>
               </section>
 
@@ -4567,6 +4591,24 @@ export function AppShell() {
         </div>
       </div>
     </main>
+  );
+}
+
+type HoverTooltipProps = {
+  tooltipId: string;
+  title: string;
+  className?: string;
+  children: ReactNode;
+};
+
+function HoverTooltip({ tooltipId, title, className, children }: HoverTooltipProps): ReactElement {
+  return (
+    <div className={`uiHoverTooltipTrigger${className ? ` ${className}` : ""}`} aria-describedby={tooltipId}>
+      {children}
+      <div id={tooltipId} className="uiHoverTooltip" role="tooltip">
+        <p className="uiHoverTooltipTitle">{title}</p>
+      </div>
+    </div>
   );
 }
 
