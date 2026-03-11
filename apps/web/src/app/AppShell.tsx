@@ -1680,6 +1680,12 @@ export function AppShell() {
 
   function getPreferredEquipSlot(item: InventoryItem): EquipmentSlotId | null {
     const allowedSlotIds = getAllowedSlotIdsForItem(item);
+    const currentlyEquippedSlotId = allowedSlotIds.find(
+      (slotId) => equippedItems[slotId]?.id === item.id
+    );
+    if (currentlyEquippedSlotId) {
+      return currentlyEquippedSlotId;
+    }
     const emptySlotId = allowedSlotIds.find((slotId) => equippedItems[slotId] === null);
     return emptySlotId ?? allowedSlotIds[0] ?? null;
   }
@@ -3120,9 +3126,12 @@ export function AppShell() {
     const gapPx = 12;
     const panelWidth = Math.min(360, Math.max(260, window.innerWidth - viewportPadding * 2));
     const maxHeight = Math.max(220, window.innerHeight - viewportPadding * 2);
-    const comparisonItem = item.equipable ? equippedItems[item.equipSlotId] : null;
-    const comparisonSlotId = comparisonItem && comparisonItem.id !== item.id ? item.equipSlotId : null;
-    const estimatedPanelHeight = Math.min(maxHeight, comparisonSlotId ? 640 : 360);
+    const comparisonSlotId = item.equipable ? getPreferredEquipSlot(item) : null;
+    const comparisonItem = comparisonSlotId ? equippedItems[comparisonSlotId] : null;
+    const estimatedPanelHeight = Math.min(
+      maxHeight,
+      comparisonItem && comparisonItem.id !== item.id ? 640 : 360
+    );
     const rightSpace = window.innerWidth - rect.right - viewportPadding;
     const leftSpace = rect.left - viewportPadding;
     const canPlaceRight = rightSpace >= panelWidth;
@@ -3182,7 +3191,10 @@ export function AppShell() {
     const resolvedComparisonItem = comparisonItem && comparisonItem.id !== sourceItem.id ? comparisonItem : null;
     const canUseSourceItem = canPlayerUseItem(sourceItem, playerState);
     const canUseComparisonItem = resolvedComparisonItem ? canPlayerUseItem(resolvedComparisonItem, playerState) : false;
-    const sourcePowerDelta = resolvedComparisonItem ? sourceItem.power - resolvedComparisonItem.power : 0;
+    const sourcePowerDelta =
+      inventoryComparisonHover.comparisonSlotId && comparisonItem?.id !== sourceItem.id
+        ? sourceItem.power - (comparisonItem?.power ?? 0)
+        : 0;
 
     return (
       <div
