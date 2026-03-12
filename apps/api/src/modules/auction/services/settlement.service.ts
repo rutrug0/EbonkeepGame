@@ -110,7 +110,7 @@ export class AuctionSettlementService {
 
         await tx.auctionInstance.update({
           where: { id: auction.id },
-          data: { status: "completed" }
+          data: { status: "settled" }
         });
 
         return { feesCollected, settledItems };
