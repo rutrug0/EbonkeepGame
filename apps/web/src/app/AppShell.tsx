@@ -252,6 +252,30 @@ type StatContributionLine = {
   ratioLabel: string;
   valueLabel: string;
 };
+type PlayerCardScoreBreakdown = {
+  gear: number;
+  offense: number;
+  defense: number;
+  offenseParts: {
+    weaponAverage: number;
+    flatDamage: number;
+    mainStatBonus: number;
+    critFactor: number;
+    extraAttackFactor: number;
+    accuracyFactor: number;
+    baseOffense: number;
+  };
+  defenseParts: {
+    maxHitpoints: number;
+    meleeMitigation: number;
+    rangedMitigation: number;
+    magicMitigation: number;
+    averageMitigation: number;
+    hitpointContribution: number;
+    mitigationContribution: number;
+    dodgeFactor: number;
+  };
+};
 type DevWeaponInventorySeed = DevWeapon;
 
 const INVENTORY_ITEM_LIMIT = 20;
@@ -528,6 +552,8 @@ function formatModifierStatLabel(stat: string): string {
     armor: i18n.t("profile.armor"),
     spellShield: i18n.t("profile.spellShield"),
     missileResistance: i18n.t("profile.missileResistance"),
+    physicalDefense: i18n.t("profile.physicalDefense"),
+    magicDefense: i18n.t("profile.magicDefense"),
     maxHitpoints: i18n.t("profile.maxHitpoints"),
     dodgeChance: "Dodge Chance",
     damage: i18n.t("profile.mainDamage"),
@@ -603,6 +629,10 @@ function localizeKnownLabel(label: string): string {
     "Armor": "profile.armor",
     "Spell Shield": "profile.spellShield",
     "Missile Resistance": "profile.missileResistance",
+    "Physical Defense": "profile.physicalDefense",
+    "P.Def": "profile.physicalDefense",
+    "Magic Defense": "profile.magicDefense",
+    "M.Def": "profile.magicDefense",
     "Max Hitpoints": "profile.maxHitpoints",
   };
   const key = keyByLabel[label];
@@ -1049,6 +1079,24 @@ function getWeaponDamageSummary(item: InventoryItem): { damageLine: string; roll
   };
 }
 
+function getDefenseSummary(item: InventoryItem): { primaryLine: string; secondaryLine?: string } | null {
+  const physicalDefense = item.statBonuses?.physicalDefense;
+  if (typeof physicalDefense === "number" && physicalDefense > 0) {
+    return {
+      primaryLine: `${i18n.t("profile.physicalDefense")}: ${physicalDefense}`
+    };
+  }
+
+  const magicDefense = item.statBonuses?.magicDefense;
+  if (typeof magicDefense === "number" && magicDefense > 0) {
+    return {
+      primaryLine: `${i18n.t("profile.magicDefense")}: ${magicDefense}`
+    };
+  }
+
+  return null;
+}
+
 function canPlayerUseItem(item: InventoryItem, playerState: PlayerState | null): boolean {
   if (!item.equipable || !item.archetype || !playerState) {
     return true;
@@ -1094,6 +1142,7 @@ function renderInventoryItemDetailCardBody(
   const subtypeLabel = getItemSubtypeLabel(item);
   const modifierLines = getItemModifierStatLines(item);
   const weaponDamageSummary = getWeaponDamageSummary(item);
+  const defenseSummary = getDefenseSummary(item);
   const displayItemName = getDisplayItemName(item);
   const useImageOnlyIcon = Boolean(item.iconAssetPath);
 
@@ -1125,6 +1174,14 @@ function renderInventoryItemDetailCardBody(
           <div className="inventoryCardDamageBlock">
             <p className="inventoryCardDamagePrimary">{weaponDamageSummary.damageLine}</p>
             <p className="inventoryCardDamageRollMeta">{weaponDamageSummary.rollLine}</p>
+          </div>
+        ) : null}
+        {defenseSummary ? (
+          <div className="inventoryCardDamageBlock">
+            <p className="inventoryCardDamagePrimary">{defenseSummary.primaryLine}</p>
+            {defenseSummary.secondaryLine ? (
+              <p className="inventoryCardDamageRollMeta">{defenseSummary.secondaryLine}</p>
+            ) : null}
           </div>
         ) : null}
         {modifierLines.length > 0 ? (
@@ -1264,6 +1321,10 @@ function formatDerivedPercent(value: number): string {
 
 function formatBasisPoints(value: number): string {
   return `${formatOneDecimal(value / 100)}%`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
@@ -1772,27 +1833,79 @@ export function AppShell() {
     : 0;
   const playerCardScoreSummary = useMemo(() => {
     if (!playerState) {
-      return { gear: 0, offense: 0, defense: 0 };
+      return {
+        gear: 0,
+        offense: 0,
+        defense: 0,
+        offenseParts: {
+          weaponAverage: 0,
+          flatDamage: 0,
+          mainStatBonus: 0,
+          critFactor: 1,
+          extraAttackFactor: 1,
+          accuracyFactor: 0.75,
+          baseOffense: 0
+        },
+        defenseParts: {
+          maxHitpoints: 0,
+          meleeMitigation: 0,
+          rangedMitigation: 0,
+          magicMitigation: 0,
+          averageMitigation: 0,
+          hitpointContribution: 0,
+          mitigationContribution: 0,
+          dodgeFactor: 1
+        }
+      } satisfies PlayerCardScoreBreakdown;
     }
+
     const totalStats = playerState.statSnapshot.total;
-    const offense = Math.round(
-      totalStats.damage +
-        totalStats.accuracy * 0.45 +
-        totalStats.critChance / 40 +
-        totalStats.critMultiplier / 80 +
-        totalStats.extraAttackChance / 40
-    );
-    const defense = Math.round(
-      totalStats.armor +
-        totalStats.spellShield +
-        totalStats.missileResistance +
-        totalStats.maxHitpoints / 10 +
-        totalStats.dodgeChance / 35
-    );
+    const mainStatKey = getMainOffenseStatKey(playerState.class);
+    const mainStatBonus = totalStats[mainStatKey] * 0.1;
+    const weaponAverage = playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0;
+    const flatDamage = totalStats.damage;
+    const baseOffense = weaponAverage + flatDamage + mainStatBonus;
+    const critChanceDecimal = totalStats.critChance / 10_000;
+    const critMultiplierDecimal = totalStats.critMultiplier / 10_000;
+    const extraAttackDecimal = totalStats.extraAttackChance / 10_000;
+    const accuracyFactor = clamp(totalStats.accuracy / 100, 0.75, 1);
+    const critFactor = 1 + critChanceDecimal * critMultiplierDecimal;
+    const extraAttackFactor = 1 + extraAttackDecimal;
+    const offense = Math.round(baseOffense * critFactor * extraAttackFactor * accuracyFactor);
+
+    const meleeMitigation = totalStats.armor + totalStats.physicalDefense;
+    const rangedMitigation = totalStats.missileResistance + totalStats.physicalDefense;
+    const magicMitigation = totalStats.spellShield + totalStats.magicDefense;
+    const averageMitigation = (meleeMitigation + rangedMitigation + magicMitigation) / 3;
+    const hitpointContribution = totalStats.maxHitpoints / 5;
+    const mitigationContribution = averageMitigation * 2;
+    const dodgeChanceDecimal = clamp(totalStats.dodgeChance / 10_000, 0, 0.95);
+    const dodgeFactor = 1 / (1 - dodgeChanceDecimal);
+    const defense = Math.round(((hitpointContribution + mitigationContribution) * dodgeFactor) / 2);
+
     return {
       gear: playerState.gearScore,
       offense,
-      defense
+      defense,
+      offenseParts: {
+        weaponAverage,
+        flatDamage,
+        mainStatBonus,
+        critFactor,
+        extraAttackFactor,
+        accuracyFactor,
+        baseOffense
+      },
+      defenseParts: {
+        maxHitpoints: totalStats.maxHitpoints,
+        meleeMitigation,
+        rangedMitigation,
+        magicMitigation,
+        averageMitigation,
+        hitpointContribution,
+        mitigationContribution,
+        dodgeFactor
+      }
     };
   }, [playerState]);
   const playerCardCurrencies = currencies ?? {
@@ -3263,6 +3376,7 @@ export function AppShell() {
         playerName: profileName,
         playerClass: playerState.class,
         playerPower: playerState.gearScore,
+        playerStats: playerState.statSnapshot.total,
         playerAvatarPath: activeCharacterVisualPath,
         nowMs: Date.now()
       })
@@ -3960,6 +4074,8 @@ export function AppShell() {
           { label: i18n.t("profile.armor"), value: totalStats.armor },
           { label: i18n.t("profile.spellShield"), value: totalStats.spellShield },
           { label: i18n.t("profile.missileResistance"), value: totalStats.missileResistance },
+          { label: i18n.t("profile.physicalDefense"), value: totalStats.physicalDefense },
+          { label: i18n.t("profile.magicDefense"), value: totalStats.magicDefense },
           { label: i18n.t("profile.maxHitpoints"), value: totalStats.maxHitpoints },
           { label: "Dodge Chance", value: formatBasisPoints(totalStats.dodgeChance) }
         ]
@@ -4349,6 +4465,35 @@ export function AppShell() {
                     tooltipId="menu-offensive-score-tooltip"
                     title="Offensive Score"
                     className="playerCardScoreItem playerCardScoreItem-offense"
+                    tooltipClassName="uiHoverTooltipBottom"
+                    body={
+                      <>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Weapon Avg:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.weaponAverage)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Flat Damage:</strong> {playerCardScoreSummary.offenseParts.flatDamage}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Main Stat Bonus:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.mainStatBonus)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Base Offense:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.baseOffense)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Crit Factor:</strong> x{formatOneDecimal(playerCardScoreSummary.offenseParts.critFactor)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Extra Attack:</strong> x{formatOneDecimal(playerCardScoreSummary.offenseParts.extraAttackFactor)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Accuracy:</strong> x{formatOneDecimal(playerCardScoreSummary.offenseParts.accuracyFactor)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Final Score:</strong> {playerCardScoreSummary.offense}
+                        </p>
+                      </>
+                    }
                   >
                     <span className="playerCardScoreIcon playerCardScoreIcon-offense" aria-hidden="true">
                       {renderPlayerCardScoreIcon("offense")}
@@ -4359,6 +4504,38 @@ export function AppShell() {
                     tooltipId="menu-defensive-score-tooltip"
                     title="Defensive Score"
                     className="playerCardScoreItem playerCardScoreItem-defense"
+                    tooltipClassName="uiHoverTooltipBottom"
+                    body={
+                      <>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Max HP:</strong> {playerCardScoreSummary.defenseParts.maxHitpoints}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Melee Mit:</strong> {formatOneDecimal(playerCardScoreSummary.defenseParts.meleeMitigation)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Ranged Mit:</strong> {formatOneDecimal(playerCardScoreSummary.defenseParts.rangedMitigation)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Magic Mit:</strong> {formatOneDecimal(playerCardScoreSummary.defenseParts.magicMitigation)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Avg Mitigation:</strong> {formatOneDecimal(playerCardScoreSummary.defenseParts.averageMitigation)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>HP Contribution:</strong> {formatOneDecimal(playerCardScoreSummary.defenseParts.hitpointContribution)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Mitigation Contribution:</strong> {formatOneDecimal(playerCardScoreSummary.defenseParts.mitigationContribution)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Dodge Factor:</strong> x{formatOneDecimal(playerCardScoreSummary.defenseParts.dodgeFactor)}
+                        </p>
+                        <p className="uiHoverTooltipLine">
+                          <strong>Final Score:</strong> {playerCardScoreSummary.defense}
+                        </p>
+                      </>
+                    }
                   >
                     <span className="playerCardScoreIcon playerCardScoreIcon-defense" aria-hidden="true">
                       {renderPlayerCardScoreIcon("defense")}
@@ -4635,15 +4812,18 @@ type HoverTooltipProps = {
   tooltipId: string;
   title: string;
   className?: string;
+  tooltipClassName?: string;
+  body?: ReactNode;
   children: ReactNode;
 };
 
-function HoverTooltip({ tooltipId, title, className, children }: HoverTooltipProps): ReactElement {
+function HoverTooltip({ tooltipId, title, className, tooltipClassName, body, children }: HoverTooltipProps): ReactElement {
   return (
     <div className={`uiHoverTooltipTrigger${className ? ` ${className}` : ""}`} aria-describedby={tooltipId}>
       {children}
-      <div id={tooltipId} className="uiHoverTooltip" role="tooltip">
+      <div id={tooltipId} className={`uiHoverTooltip${tooltipClassName ? ` ${tooltipClassName}` : ""}`} role="tooltip">
         <p className="uiHoverTooltipTitle">{title}</p>
+        {body}
       </div>
     </div>
   );

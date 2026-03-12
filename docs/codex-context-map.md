@@ -49,6 +49,8 @@ Quick reference for where to work and what to run.
   - `powershell -ExecutionPolicy Bypass -File .\\tools\\generate_training_and_reward_tables.ps1`
 - Weapon tables regenerate:
   - `powershell -ExecutionPolicy Bypass -File .\\tools\\generate_warrior_weapon_tables.ps1`
+- Defense tables regenerate:
+  - `powershell -ExecutionPolicy Bypass -File .\\tools\\generate_defense_scaling_tables.ps1`
 - Armor/jewelry validation:
   - `powershell -ExecutionPolicy Bypass -File .\\tools\\generate_armor_jewelry_name_tables.ps1`
 

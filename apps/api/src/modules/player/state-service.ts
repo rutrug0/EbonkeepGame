@@ -4,25 +4,29 @@ import {
   allEquipmentSlotIds,
   classToWeaponStat,
   equipmentSlotIdSchema,
-  equipmentStateSchema,
-  getAllowedClassesForArchetype,
-  mainStatToFlatDamageRatio,
-  playerStateSchema,
-  publicPlayerProfileSchema,
   type CoreStatKey,
-  type EquipmentState,
   type PlayerClass,
-  type PlayerState,
-  type PublicPlayerProfile,
   type PlayerStatBlock,
   type PlayerStatBonuses,
   type PlayerStatSnapshot,
   type StatBlock
-} from "@ebonkeep/shared";
+} from "@ebonkeep/shared/core";
+import {
+  playerStateSchema,
+  publicPlayerProfileSchema,
+  type PlayerState,
+  type PublicPlayerProfile
+} from "@ebonkeep/shared/player";
+import {
+  equipmentStateSchema,
+  getAllowedClassesForArchetype,
+  type EquipmentState as InventoryEquipmentState
+} from "@ebonkeep/shared/inventory";
 import { parseStoredInventoryItem } from "../inventory/item-service.js";
 
 const BASE_CRIT_MULTIPLIER = 15000;
 const HP_PER_VITALITY = 10;
+const mainStatToFlatDamageRatio = 0.1;
 const CHANCE_PER_STAT = 10;
 const CRIT_CHANCE_CAP = 6000;
 const CRIT_MULTIPLIER_CAP = 45000;
@@ -64,6 +68,8 @@ export function createEmptyResolvedStatBlock(): PlayerStatBlock {
     armor: 0,
     spellShield: 0,
     missileResistance: 0,
+    physicalDefense: 0,
+    magicDefense: 0,
     maxHitpoints: 0,
     dodgeChance: 0,
     damage: 0,
@@ -74,7 +80,7 @@ export function createEmptyResolvedStatBlock(): PlayerStatBlock {
   };
 }
 
-export function createEmptyEquipmentState(): EquipmentState {
+export function createEmptyEquipmentState(): InventoryEquipmentState {
   return equipmentStateSchema.parse({
     helmet: null,
     necklace: null,
@@ -108,7 +114,7 @@ function addCoreStatBonuses(baseStats: StatBlock, bonuses: PlayerStatBonuses): S
   return total;
 }
 
-function sumEquipmentBonuses(equipment: EquipmentState): PlayerStatBonuses {
+function sumEquipmentBonuses(equipment: InventoryEquipmentState): PlayerStatBonuses {
   const totals: PlayerStatBonuses = {};
 
   for (const slotId of allEquipmentSlotIds) {
@@ -143,6 +149,8 @@ function resolveStatBlock(playerClass: PlayerClass, coreStats: StatBlock, bonuse
     armor: coreStats.strength + (bonuses.armor ?? 0),
     spellShield: coreStats.intelligence + (bonuses.spellShield ?? 0),
     missileResistance: coreStats.dexterity + (bonuses.missileResistance ?? 0),
+    physicalDefense: Math.max(0, bonuses.physicalDefense ?? 0),
+    magicDefense: Math.max(0, bonuses.magicDefense ?? 0),
     maxHitpoints: Math.max(0, coreStats.vitality * HP_PER_VITALITY + (bonuses.maxHitpoints ?? 0)),
     dodgeChance: clampInt(coreStats.dexterity * CHANCE_PER_STAT + (bonuses.dodgeChance ?? 0), DODGE_CHANCE_CAP),
     damage: Math.max(0, Math.floor(mainOffenseStat * mainStatToFlatDamageRatio) + (bonuses.damage ?? 0)),
@@ -170,6 +178,8 @@ function diffResolvedStats(total: PlayerStatBlock, base: PlayerStatBlock): Playe
     armor: total.armor - base.armor,
     spellShield: total.spellShield - base.spellShield,
     missileResistance: total.missileResistance - base.missileResistance,
+    physicalDefense: total.physicalDefense - base.physicalDefense,
+    magicDefense: total.magicDefense - base.magicDefense,
     maxHitpoints: total.maxHitpoints - base.maxHitpoints,
     dodgeChance: total.dodgeChance - base.dodgeChance,
     damage: total.damage - base.damage,
@@ -183,7 +193,7 @@ function diffResolvedStats(total: PlayerStatBlock, base: PlayerStatBlock): Playe
 export function buildPlayerStatSnapshot(args: {
   playerClass: PlayerClass;
   baseStats: StatBlock;
-  equipment: EquipmentState;
+  equipment: InventoryEquipmentState;
 }): PlayerStatSnapshot {
   const equipmentBonuses = sumEquipmentBonuses(args.equipment);
   const totalCoreStats = addCoreStatBonuses(args.baseStats, equipmentBonuses);
@@ -197,7 +207,7 @@ export function buildPlayerStatSnapshot(args: {
   };
 }
 
-export function buildEquipmentState(equipmentSlots: readonly EquipmentSlotWithItem[]): EquipmentState {
+export function buildEquipmentState(equipmentSlots: readonly EquipmentSlotWithItem[]): InventoryEquipmentState {
   const equipment = createEmptyEquipmentState();
 
   for (const slot of equipmentSlots) {
@@ -216,7 +226,7 @@ export function buildEquipmentState(equipmentSlots: readonly EquipmentSlotWithIt
   return equipmentStateSchema.parse(equipment);
 }
 
-export function computeGearScore(equipment: EquipmentState): number {
+export function computeGearScore(equipment: InventoryEquipmentState): number {
   return allEquipmentSlotIds.reduce((sum, slotId) => sum + (equipment[slotId]?.power ?? 0), 0);
 }
 
@@ -241,7 +251,10 @@ export async function ensurePlayerEquipmentSlots(prisma: PrismaClient, playerId:
   });
 }
 
-export function canEquipItemForPlayerClass(playerClass: PlayerClass, item: NonNullable<EquipmentState[keyof EquipmentState]>): boolean {
+export function canEquipItemForPlayerClass(
+  playerClass: PlayerClass,
+  item: NonNullable<InventoryEquipmentState[keyof InventoryEquipmentState]>
+): boolean {
   const archetypeKey = item.archetype.majorCategory === "armor"
     ? item.archetype.armorArchetype
     : item.archetype.majorCategory === "weapon"

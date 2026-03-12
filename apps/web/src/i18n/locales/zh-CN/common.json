@@ -299,7 +299,9 @@
     "showPreviousPortrait": "显示上一个角色肖像",
     "showNextPortrait": "显示下一个角色肖像",
     "showPreviousBackground": "显示上一个背景",
-    "showNextBackground": "显示下一个背景"
+    "showNextBackground": "显示下一个背景",
+    "physicalDefense": "物理防御",
+    "magicDefense": "魔法防御"
   },
   "player": {
     "classUnknown": "未知职业",

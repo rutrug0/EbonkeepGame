@@ -298,7 +298,9 @@
     "showPreviousPortrait": "Предыдущий портрет",
     "showNextPortrait": "Следующий портрет",
     "showPreviousBackground": "Предыдущий фон",
-    "showNextBackground": "Следующий фон"
+    "showNextBackground": "Следующий фон",
+    "physicalDefense": "Физическая защита",
+    "magicDefense": "Магическая защита"
   },
   "player": {
     "classUnknown": "Класс неизвестен",

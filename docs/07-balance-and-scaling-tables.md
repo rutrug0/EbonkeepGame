@@ -143,6 +143,43 @@ Contracts board defaults:
 - runtime roll influence:
   - same base-level multiplier model as melee (weight `0.25`, no clamp)
 
+## Armor Physical Defense Tables
+- heavy table: `docs/data/heavy_armor_physical_defense_ilvl_scaling_v1.csv`
+- light table: `docs/data/light_armor_physical_defense_ilvl_scaling_v1.csv`
+- robe table: `docs/data/robe_armor_physical_defense_ilvl_scaling_v1.csv`
+- source anchor:
+  - heavy uses warrior melee average actual attack roll
+  - light uses ranger ranged average actual attack roll
+  - robe uses mage arcane average actual attack roll
+- target set totals:
+  - heavy `30%`
+  - light `20%`
+  - robe `10%`
+- precision:
+  - defense target totals and per-slot values are rounded to whole numbers
+- slot weights:
+  - helmet `15`
+  - upper armor `20`
+  - pauldrons `15`
+  - gloves `10`
+  - belt `10`
+  - lower armor `20`
+  - boots `10`
+
+## Jewelry Magic Defense Table
+- table: `docs/data/jewelry_magic_defense_ilvl_scaling_v1.csv`
+- source anchor:
+  - mage arcane average actual attack roll
+- target total:
+  - jewelry set `20%`
+- precision:
+  - defense target total and slot values are rounded to whole numbers
+- slot weights:
+  - necklace `50`
+  - ring total `50` (`25` per equipped ring)
+- regenerate:
+  - `powershell -ExecutionPolicy Bypass -File .\tools\generate_defense_scaling_tables.ps1`
+
 ## Armor Name-Range Tables
 - heavy table: `docs/data/heavy_armor_name_ranges_v1.csv`
 - light table: `docs/data/light_armor_name_ranges_v1.csv`

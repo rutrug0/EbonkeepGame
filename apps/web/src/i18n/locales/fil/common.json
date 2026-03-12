@@ -167,7 +167,9 @@
     "showPreviousPortrait": "Ipakita ang nakaraang larawan",
     "showNextPortrait": "Ipakita ang susunod na larawan",
     "showPreviousBackground": "Ipakita ang nakaraang background",
-    "showNextBackground": "Ipakita ang susunod na background"
+    "showNextBackground": "Ipakita ang susunod na background",
+    "physicalDefense": "Pisikal na Depensa",
+    "magicDefense": "Mahikang Depensa"
   },
   "player": {
     "classUnknown": "Hindi kilalang klase",

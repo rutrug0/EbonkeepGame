@@ -130,7 +130,9 @@ export class AuctionItemGeneratorService {
   }
 
   private pickTemplateForClass<T extends { allowedClass: string }>(templates: readonly T[], playerClass: string): T | null {
-    const classTemplates = templates.filter((template) => template.allowedClass === playerClass);
+    const classTemplates = templates.filter(
+      (template) => template.allowedClass === playerClass || template.allowedClass === "all"
+    );
     if (classTemplates.length === 0) {
       return null;
     }

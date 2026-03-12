@@ -3216,6 +3216,30 @@ button:focus-visible {
   display: inline-flex;
 }
 
+.uiHoverTooltipTrigger {
+  position: relative;
+  display: inline-flex;
+}
+
+.barShellTooltipTrigger {
+  display: block;
+  width: 100%;
+}
+
+.uiHoverTooltipTrigger:hover .uiHoverTooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom {
+  transform: translate(-50%, 0);
+}
+
+.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
+.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
+  transform: translateY(0);
+}
+
 .inventoryControlWithTooltip:hover .uiHoverTooltip {
   opacity: 1;
   transform: translate(-50%, 0);

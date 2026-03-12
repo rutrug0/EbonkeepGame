@@ -109,34 +109,34 @@ function getGeneratedWeaponIconPath(itemName: string): string | undefined {
 }
 export const MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL: Record<number, Record<Rarity, MeleeDamageRollWindow>> = {
   18: {
-    common: { minLow: 41, minHigh: 48, maxLow: 50, maxHigh: 59 },
-    uncommon: { minLow: 43, minHigh: 51, maxLow: 53, maxHigh: 62 },
-    rare: { minLow: 45, minHigh: 53, maxLow: 55, maxHigh: 65 },
-    epic: { minLow: 47, minHigh: 56, maxLow: 58, maxHigh: 68 }
+    common: { minLow: 123, minHigh: 144, maxLow: 150, maxHigh: 177 },
+    uncommon: { minLow: 129, minHigh: 153, maxLow: 159, maxHigh: 186 },
+    rare: { minLow: 135, minHigh: 159, maxLow: 165, maxHigh: 195 },
+    epic: { minLow: 141, minHigh: 168, maxLow: 174, maxHigh: 204 }
   },
   19: {
-    common: { minLow: 43, minHigh: 50, maxLow: 53, maxHigh: 62 },
-    uncommon: { minLow: 45, minHigh: 53, maxLow: 55, maxHigh: 65 },
-    rare: { minLow: 47, minHigh: 55, maxLow: 58, maxHigh: 68 },
-    epic: { minLow: 49, minHigh: 58, maxLow: 60, maxHigh: 71 }
+    common: { minLow: 129, minHigh: 150, maxLow: 159, maxHigh: 186 },
+    uncommon: { minLow: 135, minHigh: 159, maxLow: 165, maxHigh: 195 },
+    rare: { minLow: 141, minHigh: 165, maxLow: 174, maxHigh: 204 },
+    epic: { minLow: 147, minHigh: 174, maxLow: 180, maxHigh: 213 }
   },
   20: {
-    common: { minLow: 45, minHigh: 52, maxLow: 55, maxHigh: 64 },
-    uncommon: { minLow: 47, minHigh: 55, maxLow: 57, maxHigh: 67 },
-    rare: { minLow: 49, minHigh: 58, maxLow: 60, maxHigh: 71 },
-    epic: { minLow: 51, minHigh: 60, maxLow: 63, maxHigh: 74 }
+    common: { minLow: 135, minHigh: 156, maxLow: 165, maxHigh: 192 },
+    uncommon: { minLow: 141, minHigh: 165, maxLow: 171, maxHigh: 201 },
+    rare: { minLow: 147, minHigh: 174, maxLow: 180, maxHigh: 213 },
+    epic: { minLow: 153, minHigh: 180, maxLow: 189, maxHigh: 222 }
   },
   21: {
-    common: { minLow: 46, minHigh: 55, maxLow: 57, maxHigh: 67 },
-    uncommon: { minLow: 49, minHigh: 57, maxLow: 60, maxHigh: 70 },
-    rare: { minLow: 51, minHigh: 60, maxLow: 62, maxHigh: 73 },
-    epic: { minLow: 53, minHigh: 63, maxLow: 65, maxHigh: 77 }
+    common: { minLow: 138, minHigh: 165, maxLow: 171, maxHigh: 201 },
+    uncommon: { minLow: 147, minHigh: 171, maxLow: 180, maxHigh: 210 },
+    rare: { minLow: 153, minHigh: 180, maxLow: 186, maxHigh: 219 },
+    epic: { minLow: 159, minHigh: 189, maxLow: 195, maxHigh: 231 }
   },
   22: {
-    common: { minLow: 48, minHigh: 57, maxLow: 59, maxHigh: 69 },
-    uncommon: { minLow: 51, minHigh: 59, maxLow: 62, maxHigh: 73 },
-    rare: { minLow: 53, minHigh: 62, maxLow: 65, maxHigh: 76 },
-    epic: { minLow: 55, minHigh: 65, maxLow: 68, maxHigh: 80 }
+    common: { minLow: 144, minHigh: 171, maxLow: 177, maxHigh: 207 },
+    uncommon: { minLow: 153, minHigh: 177, maxLow: 186, maxHigh: 219 },
+    rare: { minLow: 159, minHigh: 186, maxLow: 195, maxHigh: 228 },
+    epic: { minLow: 165, minHigh: 195, maxLow: 204, maxHigh: 240 }
   }
 };
 export const MOCK_MELEE_WEAPON_TEMPLATES: Array<{
@@ -245,7 +245,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "helmet",
     levelRequirement: 18,
-    statBonuses: { strength: 3, vitality: 4 },
+    statBonuses: { strength: 3, vitality: 4, physicalDefense: 3 },
     description: "Reinforced steel with a practical fit for regular frontline duty."
   },
   {
@@ -260,7 +260,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "upperArmor",
     levelRequirement: 20,
-    statBonuses: { strength: 4, vitality: 5 },
+    statBonuses: { strength: 4, vitality: 5, physicalDefense: 3 },
     description: "Dense field-forged armor built to absorb repeated close impacts."
   },
   {
@@ -275,7 +275,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "belt",
     levelRequirement: 19,
-    statBonuses: { vitality: 3, initiative: 2 },
+    statBonuses: { vitality: 3, initiative: 2, physicalDefense: 2 },
     description: "A stabilized belt that keeps heavy kit settled through long fights."
   },
   {
@@ -290,7 +290,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "lowerArmor",
     levelRequirement: 21,
-    statBonuses: { strength: 3, vitality: 4 },
+    statBonuses: { strength: 3, vitality: 4, physicalDefense: 4 },
     description: "Weighted leg armor tuned for steady pressure over quick pivots."
   },
   {
@@ -305,7 +305,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "gloves",
     levelRequirement: 20,
-    statBonuses: { dexterity: 4, initiative: 2 },
+    statBonuses: { dexterity: 4, initiative: 2, physicalDefense: 1 },
     description: "Light reinforced gloves that keep grip control stable under motion."
   },
   {
@@ -320,7 +320,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "upperArmor",
     levelRequirement: 22,
-    statBonuses: { intelligence: 5, vitality: 2, initiative: 2 },
+    statBonuses: { intelligence: 5, vitality: 2, initiative: 2, physicalDefense: 1 },
     description: "Arcane-thread cloth layered with stable ward marks for hard casting."
   },
   {
@@ -334,7 +334,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "ringLeft",
     levelRequirement: 19,
-    statBonuses: { luck: 3, initiative: 2 },
+    statBonuses: { luck: 3, initiative: 2, magicDefense: 6 },
     description: "A field-forged ring favored by officers trusted with rapid response."
   },
   {
@@ -348,7 +348,7 @@ export const MOCK_BASE_ARMOR_AND_JEWELRY_ITEMS: MockInventoryItemSeed[] = [
     },
     equipSlotId: "necklace",
     levelRequirement: 20,
-    statBonuses: { vitality: 3, luck: 2 },
+    statBonuses: { vitality: 3, luck: 2, magicDefense: 6 },
     description: "A simple steel charm that helps keep focus when fights turn chaotic."
   }
 ];
