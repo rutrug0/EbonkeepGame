@@ -52,14 +52,14 @@ describe("leaderboard, readiness, and combat routes", () => {
     await seedLeaderboardPlayers(context.prisma, [
       {
         name: "Stronger Ranger",
-        class: "ranger",
+        class: "arbalist",
         level: 20,
         gearScore: 250,
         updatedAt: new Date("2026-03-08T08:00:00.000Z")
       },
       {
         name: "Equal Ranger",
-        class: "warrior",
+        class: "juggernaut",
         level: 15,
         gearScore: 120,
         updatedAt: new Date("2026-03-10T08:00:00.000Z")
@@ -77,11 +77,11 @@ describe("leaderboard, readiness, and combat routes", () => {
 
     const filteredResponse = await context.app.inject({
       method: "GET",
-      url: "/v1/leaderboard/public?type=power&classFilter=ranger"
+      url: "/v1/leaderboard/public?type=power&classFilter=dexterity"
     });
     expect(filteredResponse.statusCode).toBe(200);
     expect(filteredResponse.json().entries).toHaveLength(1);
-    expect(filteredResponse.json().entries[0].class).toBe("ranger");
+    expect(filteredResponse.json().entries[0].class).toBe("arbalist");
   });
 
   it("creates combat sessions and accepts combat actions", async () => {

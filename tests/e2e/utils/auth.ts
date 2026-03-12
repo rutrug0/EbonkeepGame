@@ -1,10 +1,16 @@
 import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
+type PlaywrightGuestClass = "juggernaut" | "sentinel" | "reaver" | "shade" | "arbalist" | "disciple" | "runecaster" | "chronomancer" | "arcanist";
+
 const apiBaseUrl =
   process.env.PLAYWRIGHT_API_URL ??
   `http://127.0.0.1:${process.env.TEST_API_PORT ?? "4010"}`;
 
-export async function loginGuestViaApi(request: APIRequestContext, guestId: string, playerClass: "warrior" | "mage" | "ranger" = "warrior") {
+export async function loginGuestViaApi(
+  request: APIRequestContext,
+  guestId: string,
+  playerClass: PlaywrightGuestClass = "juggernaut"
+) {
   const response = await request.post(`${apiBaseUrl}/v1/dev/guest-login`, {
     data: {
       guestId,
@@ -19,7 +25,7 @@ export async function loginGuestIntoPage(
   page: Page,
   request: APIRequestContext,
   guestId: string,
-  playerClass: "warrior" | "mage" | "ranger" = "warrior"
+  playerClass: PlaywrightGuestClass = "juggernaut"
 ) {
   const login = await loginGuestViaApi(request, guestId, playerClass);
   await page.goto("/");

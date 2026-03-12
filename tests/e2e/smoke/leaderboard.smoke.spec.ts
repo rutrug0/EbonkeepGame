@@ -5,6 +5,6 @@ test("leaderboard page loads and filters @smoke", async ({ page }) => {
   await page.getByTestId("menu-leaderboards").click();
 
   await expect(page.getByRole("heading", { name: /leaderboard/i })).toBeVisible();
-  await page.getByRole("button", { name: /Ranger/i }).click();
+  await page.getByRole("button", { name: /Dexterity/i }).click();
   await expect(page.getByText(/viewing top/i)).toBeVisible();
 });

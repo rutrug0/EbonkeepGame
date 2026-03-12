@@ -6,6 +6,8 @@ import type { FastifyInstance } from "fastify";
 import { ensureStarterInventoryItems } from "../../src/modules/inventory/starter-items.js";
 import { inventoryItemSchema, type InventoryItem, type PlayerClass } from "@ebonkeep/shared";
 
+const DEFAULT_TEST_CLASS: PlayerClass = "juggernaut";
+
 export async function loginAsGuest(
   app: FastifyInstance,
   options?: { guestId?: string; playerClass?: PlayerClass }
@@ -15,7 +17,7 @@ export async function loginAsGuest(
     url: "/v1/dev/guest-login",
     payload: {
       guestId: options?.guestId ?? `guest-${randomUUID()}`,
-      class: options?.playerClass ?? "warrior"
+      class: options?.playerClass ?? DEFAULT_TEST_CLASS
     }
   });
 
@@ -39,7 +41,9 @@ export async function registerUser(
     username: overrides?.username ?? `warden_${id}`,
     email: overrides?.email ?? `warden_${id}@example.com`,
     password: overrides?.password ?? "password123",
-    class: overrides?.class ?? "warrior"
+    class: overrides?.class ?? DEFAULT_TEST_CLASS,
+    portraitId: "str_01",
+    backgroundId: "bg_01"
   };
 
   const response = await app.inject({

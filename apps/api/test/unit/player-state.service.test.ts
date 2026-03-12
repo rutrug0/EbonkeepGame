@@ -33,7 +33,7 @@ describe("player state service", () => {
     };
 
     const snapshot = buildPlayerStatSnapshot({
-      playerClass: "warrior",
+      playerClass: "juggernaut",
       baseStats: {
         strength: 10,
         intelligence: 8,

@@ -48,7 +48,7 @@ describe("player, inventory, and merchant routes", () => {
   });
 
   it("equips, swaps back, and blocks invalid inventory moves", async () => {
-    const guest = await loginAsGuest(context.app, { playerClass: "warrior" });
+    const guest = await loginAsGuest(context.app, { playerClass: "juggernaut" });
     const stateResponse = await context.app.inject({
       method: "GET",
       url: "/v1/player/state",
