@@ -22,7 +22,7 @@ import { generateToken, getExpiryDate } from "./utils/tokens.js";
 
 const devGuestBodySchema = z.object({
   guestId: z.string().min(1).optional(),
-  class: z.enum(["warrior", "mage", "ranger"]).default("warrior")
+  class: z.enum(["juggernaut", "sentinel", "reaver", "shade", "arbalist", "disciple", "runecaster", "chronomancer", "arcanist"]).default("juggernaut")
 });
 
 const verifyEmailBodySchema = z.object({
@@ -41,6 +41,27 @@ const resetPasswordBodySchema = z.object({
 const TEST_STARTING_DUCATS = 100_000;
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
+  // Check email/username availability (used in registration step 1)
+  fastify.get("/v1/auth/check-availability", async (request, reply) => {
+    const query = request.query as { email?: string; username?: string };
+
+    if (query.email) {
+      const existing = await fastify.prisma.account.findUnique({ where: { email: query.email } });
+      if (existing) {
+        return reply.code(409).send({ error: "Email already registered" });
+      }
+    }
+
+    if (query.username) {
+      const existing = await fastify.prisma.account.findUnique({ where: { username: query.username } });
+      if (existing) {
+        return reply.code(409).send({ error: "Username already taken" });
+      }
+    }
+
+    return reply.code(200).send({ available: true });
+  });
+
   // Register endpoint
   fastify.post("/v1/auth/register", async (request, reply) => {
     const body = registerBodySchema.parse(request.body ?? {});
@@ -90,6 +111,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         id: `player_${randomUUID().replaceAll("-", "")}`,
         accountId: account.id,
         class: body.class,
+        portraitId: body.portraitId,
+        backgroundId: body.backgroundId,
         level: 1,
         gearScore: 0
       }
@@ -227,6 +250,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           id: `player_${randomUUID().replaceAll("-", "")}`,
           accountId: account.id,
           class: body.class,
+          portraitId: "str_01",
+          backgroundId: "bg_01",
           level: 1,
           gearScore: 0
         }
@@ -312,6 +337,8 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
           ? {
               playerId: profile.id,
               class: profile.class,
+              portraitId: profile.portraitId ?? "str_01",
+              backgroundId: profile.backgroundId ?? "bg_01",
               level: profile.level,
               gearScore: profile.gearScore
             }

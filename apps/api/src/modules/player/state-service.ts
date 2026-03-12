@@ -2,6 +2,7 @@ import type { InventoryItem, PrismaClient } from "@prisma/client";
 import {
   allCoreStatKeys,
   allEquipmentSlotIds,
+  classToWeaponStat,
   equipmentSlotIdSchema,
   equipmentStateSchema,
   getAllowedClassesForArchetype,
@@ -93,12 +94,9 @@ export function createEmptyEquipmentState(): EquipmentState {
 }
 
 function getMainOffenseStatKey(playerClass: PlayerClass): CoreStatKey {
-  if (playerClass === "mage") {
-    return "intelligence";
-  }
-  if (playerClass === "ranger") {
-    return "dexterity";
-  }
+  const tree = classToWeaponStat(playerClass);
+  if (tree === "intelligence") return "intelligence";
+  if (tree === "dexterity") return "dexterity";
   return "strength";
 }
 
@@ -344,6 +342,8 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     playerId: profile.id,
     accountId: profile.accountId,
     class: profile.class,
+    portraitId: profile.portraitId ?? "str_01",
+    backgroundId: profile.backgroundId ?? "bg_01",
     preferredLocale: profile.preferredLocale ?? "en",
     level: profile.level,
     gearScore: computeGearScore(equipment),

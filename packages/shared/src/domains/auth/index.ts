@@ -10,7 +10,9 @@ export const registerBodySchema = z.object({
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   email: z.string().email().min(3).max(255),
   password: z.string().min(8).max(100),
-  class: playerClassSchema
+  class: playerClassSchema,
+  portraitId: z.string(),
+  backgroundId: z.string()
 });
 export type RegisterBody = z.infer<typeof registerBodySchema>;
 
@@ -45,6 +47,8 @@ export const accountOverviewResponseSchema = z.object({
     .object({
       playerId: z.string(),
       class: playerClassSchema,
+      portraitId: z.string(),
+      backgroundId: z.string(),
       level: z.number().int().min(1),
       gearScore: z.number().int().min(0)
     })

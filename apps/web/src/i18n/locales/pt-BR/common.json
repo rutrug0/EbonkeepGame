@@ -1,16 +1,108 @@
-﻿{  "loading": "Carregando...",
+{
+  "loading": "Carregando...",
   "cancel": "Cancelar",
   "ok": "OK",
   "save": "Salvar",
   "yes": "Sim",
   "no": "Não",
-  "you": "Você",  "auth": {"subtitle": "Faça login para abrir sua página principal.", "loginGuest": "Entrar como convidado", "verifyEmailBanner": "Por favor, verifique seu endereço de e-mail. Confira sua caixa de entrada para o link de verificação.", "dismiss": "Fechar", "resendSuccess": "E-mail de verificação enviado!", "resendFailed": "Falha ao reenviar e-mail de verificação"},
-  "menu": {
-    "title": "Menu", "inventory": "Inventário", "encyclopedia": "Enciclopédia", "contracts": "Contratos", "missions": "Missões", "arena": "Arena", "guild": "Guilda", "castles": "Castelos", "auctionHouse": "Casa de Leilões", "merchant": "Mercador", "shop": "Loja Imperial", "leaderboards": "Rankings", "settings": "Configurações", "logout": "Sair"
+  "you": "Você",
+  "auth": {
+    "subtitle": "Faça login para abrir sua página principal.",
+    "loginGuest": "Entrar como convidado",
+    "verifyEmailBanner": "Por favor, verifique seu endereço de e-mail. Confira sua caixa de entrada para o link de verificação.",
+    "dismiss": "Fechar",
+    "resendSuccess": "E-mail de verificação enviado!",
+    "resendFailed": "Falha ao reenviar e-mail de verificação",
+    "login": "Entrar",
+    "register": "Registrar",
+    "forgotPassword": "Esqueceu a senha?",
+    "resetPassword": "Redefinir senha",
+    "resetYourPassword": "Redefina sua senha",
+    "resetPasswordHint": "Digite seu email e enviaremos um link de redefinição.",
+    "sendResetLink": "Enviar link"
   },
-  "bars": {"health": "Vida", "experience": "Experiência"},
-  "chat": {"world": "Mundo", "guild": "Guilda", "send": "Enviar", "empty": "Sem mensagens ainda."},
-  "contracts": {"table": {"contract": "Contrato", "difficulty": "Dificuldade", "action": "Ação"}, "abandon": "Abandonar", "replenishing": "Repondo"},
+  "register": {
+    "stepOf": "Passo {{step}} de {{total}}",
+    "stepAccount": "Dados da conta",
+    "stepStatTree": "Escolha seu caminho",
+    "stepClass": "Escolha sua classe",
+    "stepPortrait": "Escolha seu retrato",
+    "username": "Nome de usuário",
+    "usernamePlaceholder": "Digite o nome de usuário",
+    "usernameHint": "Somente letras, números e sublinhados",
+    "email": "E-mail",
+    "emailPlaceholder": "Digite seu e-mail",
+    "password": "Senha",
+    "passwordPlaceholder": "Mín. 8 caracteres",
+    "repeatPassword": "Repetir senha",
+    "repeatPasswordPlaceholder": "Repita sua senha",
+    "newPassword": "Nova senha",
+    "confirmNewPassword": "Confirmar nova senha",
+    "next": "Continuar",
+    "back": "Voltar",
+    "createAccount": "Criar conta",
+    "pickTreeHint": "Escolha seu atributo principal. Ele define seu papel no campo de batalha.",
+    "pickClassHint": "Escolha sua especialização dentro deste caminho.",
+    "pickPortraitHint": "Escolha o rosto que irá representá-lo na batalha.",
+    "chooseBackground": "Escolher Fundo",
+    "choosePortrait": "Escolher Retrato",
+    "treeStrength": "Força",
+    "treeStrengthDesc": "Armadura pesada, força corpo a corpo, domínio físico.",
+    "treeDexterity": "Destreza",
+    "treeDexterityDesc": "Armadura leve, velocidade, precisão e evasão.",
+    "treeIntelligence": "Inteligência",
+    "treeIntelligenceDesc": "Mantos, poder arcano, runas e magia temporal.",
+    "counters": "Neutraliza",
+    "countersStr": "FOR",
+    "countersDex": "DES",
+    "countersInt": "INT",
+    "weaponMaul": "Marte",
+    "weaponSpear": "Lança",
+    "weaponCleaver": "Cutelo",
+    "weaponTwinDaggers": "Adagas gêmeas",
+    "weaponCrossbow": "Besta",
+    "weaponChakrams": "Chakrams",
+    "weaponRuneStone": "Pedra rúnica",
+    "weaponOrb": "Orbe",
+    "weaponGrimoire": "Grimório",
+
+    "yourClass": "Sua classe"
+  },
+  "menu": {
+    "title": "Menu",
+    "inventory": "Inventário",
+    "encyclopedia": "Enciclopédia",
+    "contracts": "Contratos",
+    "missions": "Missões",
+    "arena": "Arena",
+    "guild": "Guilda",
+    "castles": "Castelos",
+    "auctionHouse": "Casa de Leilões",
+    "merchant": "Mercador",
+    "shop": "Loja Imperial",
+    "leaderboards": "Rankings",
+    "settings": "Configurações",
+    "logout": "Sair"
+  },
+  "bars": {
+    "health": "Vida",
+    "experience": "Experiência"
+  },
+  "chat": {
+    "world": "Mundo",
+    "guild": "Guilda",
+    "send": "Enviar",
+    "empty": "Sem mensagens ainda."
+  },
+  "contracts": {
+    "table": {
+      "contract": "Contrato",
+      "difficulty": "Dificuldade",
+      "action": "Ação"
+    },
+    "abandon": "Abandonar",
+    "replenishing": "Repondo"
+  },
   "currencies": {
     "ducats": "Ducados",
     "imperials": "Imperiais",
@@ -91,7 +183,8 @@
     "myBidsTitle": "Meus Lances Ativos",
     "myBidsDesc": "Acompanhe seus lances atuais em todos os leilões",
     "noBidsPlaced": "Você ainda não fez nenhum lance",
-    "yourBid": "Seu Lance",    "autoBid": {
+    "yourBid": "Seu Lance",
+    "autoBid": {
       "enable": "Lance automático",
       "disable": "Desativar lance automático",
       "maxBidLabel": "Lance máximo",
@@ -107,7 +200,8 @@
       "keepAutoBid": "Manter Lance Automático",
       "confirmDisable": "Desativar Lance Automático"
     },
-    "processing": "Processando...",    "status": "Status",
+    "processing": "Processando...",
+    "status": "Status",
     "placedAt": "Realizado",
     "rewardsTitle": "Recompensas Pendentes",
     "rewardsDesc": "Reivindique seus itens ganhos dentro de 7 dias",
@@ -151,7 +245,8 @@
     "bidBelowStarting": "O lance não pode estar abaixo do lance inicial de {{starting}} ducados",
     "insufficientDucats": "Ducados insuficientes",
     "keepSubmission": "Manter Submissão",
-    "confirmCancelButton": "Sim, Cancelar",    "errors": {
+    "confirmCancelButton": "Sim, Cancelar",
+    "errors": {
       "invalidBid": "Valor de lance inválido",
       "bidBelowMinimum": "O lance deve ser pelo menos {{amount}} ducados",
       "insufficientDucats": "Ducados insuficientes",
@@ -189,19 +284,39 @@
     "selectItemPlaceholder": "← Selecione um item da esquerda",
     "enterBidPlaceholder": "Insira o valor do lance inicial..."
   },
-  "inventory": {"consumables": "Consumíveis", "noItems": "Nenhum item disponível."},
-  "profile": {"inventoryTab": "Inventário", "consumablesTab": "Consumíveis", "statsTab": "Atributos", "class": "Classe", "level": "Nível", "unknown": "Desconhecido"},
-  "player": {"classUnknown": "Classe desconhecida", "level": "Nível {{value}}"},
+  "inventory": {
+    "consumables": "Consumíveis",
+    "noItems": "Nenhum item disponível."
+  },
+  "profile": {
+    "inventoryTab": "Inventário",
+    "consumablesTab": "Consumíveis",
+    "statsTab": "Atributos",
+    "class": "Classe",
+    "level": "Nível",
+    "unknown": "Desconhecido",
+    "portraitSuffix": "retrato",
+    "showPreviousPortrait": "Mostrar retrato anterior",
+    "showNextPortrait": "Mostrar próximo retrato",
+    "showPreviousBackground": "Mostrar fundo anterior",
+    "showNextBackground": "Mostrar próximo fundo"
+  },
+  "player": {
+    "classUnknown": "Classe desconhecida",
+    "level": "Nível {{value}}"
+  },
   "leaderboards": {
-    "title": "Classificações",    "players": "Jogadores",
-    "guilds": "Guildas",    "loading": "Carregando classificação...",
+    "title": "Classificações",
+    "players": "Jogadores",
+    "guilds": "Guildas",
+    "loading": "Carregando classificação...",
     "error": "Falha ao carregar classificação",
     "typePower": "Poder",
     "typeLevel": "Nível",
     "filterAll": "Todas as Classes",
-    "filterWarrior": "Guerreiros",
-    "filterMage": "Magos",
-    "filterRanger": "Caçadores",
+    "filterStrength": "Força",
+    "filterDexterity": "Destreza",
+    "filterIntelligence": "Inteligência",
     "rank": "Posição",
     "player": "Jogador",
     "class": "Classe",
@@ -224,10 +339,12 @@
     "inviteConfirmMessage": "Enviar um convite de guilda para {{playerName}}?",
     "inviteConfirm": "Sim, convidar"
   },
-  "guild": {    "notifications": {
+  "guild": {
+    "notifications": {
       "success": "Sucesso",
       "error": "Erro"
-    },    "title": "Guildas",
+    },
+    "title": "Guildas",
     "create": "Criar Guilda",
     "search": "Buscar Guildas",
     "searchPlaceholder": "Pesquisar por nome ou tag da guilda...",
@@ -287,17 +404,17 @@
       "title": "Brasão da Guilda"
     },
     "activity": {
-      "created": "criou a guilda",
-      "joined": "entrou na guilda",
-      "left": "saiu da guilda",
-      "kicked": "expulsou",
-      "promoted": "promoveu",
-      "demoted": "rebaixou",
-      "transferred_leadership": "transferiu a liderança para",
-      "invited": "convidou",
-      "disbanded": "dissolveu a guilda",
-      "description_changed": "atualizou a descrição da guilda",
-      "crest_changed": "atualizou o brasão da guilda"
+      "created": "{{actor}} criou a guilda",
+      "joined": "{{actor}} entrou na guilda",
+      "left": "{{actor}} saiu da guilda",
+      "kicked": "{{actor}} expulsou {{target}}",
+      "promoted": "{{actor}} promoveu {{target}}",
+      "demoted": "{{actor}} rebaixou {{target}}",
+      "transferred_leadership": "{{actor}} transferiu a liderança para {{target}}",
+      "invited": "{{actor}} convidou {{target}}",
+      "disbanded": "{{actor}} dissolveu a guilda",
+      "description_changed": "{{actor}} atualizou a descrição da guilda",
+      "crest_changed": "{{actor}} atualizou o brasão da guilda"
     },
     "errors": {
       "alreadyInGuild": "Você já está em uma guilda",
@@ -434,5 +551,19 @@
       "party": "Grupo",
       "enemies": "Inimigos"
     }
+  },
+  "class": {
+    "warrior": "Guerreiro",
+    "mage": "Mago",
+    "ranger": "Arqueiro",
+    "juggernaut": "Juggernaut",
+    "sentinel": "Sentinela",
+    "reaver": "Saqueador",
+    "shade": "Sombra",
+    "arbalist": "Arbalista",
+    "disciple": "Discípulo",
+    "runecaster": "Runista",
+    "chronomancer": "Cronomante",
+    "arcanist": "Arcanista"
   }
 }

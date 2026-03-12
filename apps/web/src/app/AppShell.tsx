@@ -31,14 +31,16 @@ import {
   type ProfileSideTab
 } from "./navigation";
 import {
+  classToStatTree,
   mainStatToFlatDamageRatio,
   type ArmorArchetype,
+  type EquipmentGroup,
   type EquipmentSlotId as SharedEquipmentSlotId,
   type ItemMajorCategory,
   type PlayerClass,
   type SupportedLocale,
   type WeaponArchetype,
-  type WeaponFamily
+  type WeaponFamily,
 } from "@ebonkeep/shared/core";
 import { type AccountOverviewResponse } from "@ebonkeep/shared/auth";
 import {
@@ -65,13 +67,14 @@ import { type PlayerState } from "@ebonkeep/shared/player";
 import {
   forgotPassword,
   getAccountOverview,
+  checkAvailability,
   login,
   register,
   resendVerificationEmail,
   resetPassword,
   verifyEmail
 } from "../features/auth";
-import { devGuestLogin, fetchPlayerState, moveInventoryItem, updatePlayerPreferences } from "../features/player";
+import { devGuestLogin, fetchPlayerState, moveInventoryItem, updatePlayerPreferences, updatePortrait } from "../features/player";
 import { buyMerchantOffer, fetchMerchantState, restockMerchant, sellMerchantItem } from "../features/economy";
 import {
   AuctionHouse
@@ -139,6 +142,7 @@ import {
   type RenownViewState
 } from "../features/profile";
 import { DUCATS_ICON_PATH, IMPERIALS_ICON_PATH } from "../constants/uiAssets";
+import { DEFAULT_PORTRAIT_ID, PORTRAIT_POOL, PORTRAIT_POOL_BY_TREE, getPortraitPath, getDefaultPortraitId, BACKGROUND_POOL, getBackgroundPath, DEFAULT_BACKGROUND_ID } from "../constants/portraits";
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
 import { GENERATED_ITEM_ENCYCLOPEDIA_DATA, type GeneratedEncyclopediaItem } from "../generated/itemEncyclopediaData";
 import i18n, { setLocale } from "../i18n";
@@ -268,17 +272,6 @@ const DEFAULT_INVENTORY_FILTER_STATE: InventoryFilterState = {
   showOnlyWearable: false,
   powerSortDirection: "asc"
 };
-const GENERATED_CHARACTER_VISUALS: Array<{ key: string; assetName: string; path: string }> = Object.entries(
-  GENERATED_ITEM_ICON_PATHS
-)
-  .filter(([key, assetPath]) => key.startsWith("character:") && assetPath.startsWith("/assets/items/generated/character/"))
-  .map(([key, path]) => ({
-    key,
-    assetName: key.split(":")[2] ?? "",
-    path
-  }))
-  .sort((left, right) => left.key.localeCompare(right.key, undefined, { numeric: true }));
-
 const EQUIPMENT_LEFT_SLOTS: EquipmentSlotId[] = [
   "helmet",
   "necklace",
@@ -1274,12 +1267,9 @@ function formatBasisPoints(value: number): string {
 }
 
 function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
-  if (playerClass === "mage") {
-    return "intelligence";
-  }
-  if (playerClass === "ranger") {
-    return "dexterity";
-  }
+  const tree = classToStatTree(playerClass);
+  if (tree === "intelligence") return "intelligence";
+  if (tree === "dexterity") return "dexterity";
   return "strength";
 }
 
@@ -1427,7 +1417,9 @@ export function AppShell() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authRepeatPassword, setAuthRepeatPassword] = useState("");
-  const [authClass, setAuthClass] = useState<PlayerClass>("warrior");
+  const [authClass, setAuthClass] = useState<PlayerClass>("juggernaut");
+  const [authPortraitId, setAuthPortraitId] = useState<string>(DEFAULT_PORTRAIT_ID);
+  const [authBackgroundId, setAuthBackgroundId] = useState<string>(DEFAULT_BACKGROUND_ID);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
@@ -1487,13 +1479,30 @@ export function AppShell() {
   const [inventoryStatFlashes, setInventoryStatFlashes] = useState<Partial<Record<InventoryStatFlashKey, InventoryStatFlash>>>({});
   const inventoryStatFlashTimeoutsRef = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
   const inventoryStatFlashFrameRefs = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
-  const [activeCharacterVisualIndex, setActiveCharacterVisualIndex] = useState<number>(() => {
-    const total = GENERATED_CHARACTER_VISUALS.length;
-    if (total === 0) {
-      return -1;
+
+  // Portrait system — driven by playerState.portraitId (persisted in DB)
+  const [activePortraitId, setActivePortraitId] = useState<string>(DEFAULT_PORTRAIT_ID);
+  const [activeBackgroundId, setActiveBackgroundId] = useState<string>(DEFAULT_BACKGROUND_ID);
+
+  // Sync portrait from loaded playerState
+  useEffect(() => {
+    if (playerState?.portraitId) {
+      setActivePortraitId(playerState.portraitId);
     }
-    return Math.floor(Math.random() * total);
-  });
+  }, [playerState?.portraitId]);
+
+  // Sync background from loaded playerState
+  useEffect(() => {
+    if (playerState?.backgroundId) {
+      setActiveBackgroundId(playerState.backgroundId);
+    }
+  }, [playerState?.backgroundId]);
+
+  const activeCharacterVisualPath = getPortraitPath(activePortraitId);
+  const activeBackgroundPath = getBackgroundPath(activeBackgroundId);
+  const activeCharacterVisualName = activePortraitId;
+  const canCycleCharacterVisuals = PORTRAIT_POOL.length > 1;
+
   const [isSavingLocale, setIsSavingLocale] = useState(false);
   const [localeStatusMessage, setLocaleStatusMessage] = useState<string | null>(null);
 
@@ -1562,12 +1571,6 @@ export function AppShell() {
   }, [inventoryItems, powerSortDirection, showOnlyArmor, showOnlyJewelry, showOnlyWeapons, showOnlyWearable]);
   const activeChatMessages = chatMessagesByChannel[activeChatChannel];
   const isInventoryChatVisible = canDockInventoryChat ? isInventoryChatDockedVisible : isInventoryChatOverlayOpen;
-  const activeCharacterVisual =
-    activeCharacterVisualIndex >= 0 ? GENERATED_CHARACTER_VISUALS[activeCharacterVisualIndex] ?? null : null;
-  const activeCharacterVisualPath =
-    activeCharacterVisual?.path ?? null;
-  const activeCharacterVisualName = activeCharacterVisual?.assetName ?? null;
-  const canCycleCharacterVisuals = GENERATED_CHARACTER_VISUALS.length > 1;
 
   function clearInventoryStatFlash(key: InventoryStatFlashKey) {
     const timeoutId = inventoryStatFlashTimeoutsRef.current[key];
@@ -2670,6 +2673,17 @@ export function AppShell() {
     }
   }
 
+  async function handleCheckCredentials(): Promise<boolean> {
+    try {
+      setError(null);
+      await checkAvailability(authEmail, authUsername);
+      return true;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : i18n.t("errors.registrationFailed"));
+      return false;
+    }
+  }
+
   async function handleRegister(e: FormEvent) {
     e.preventDefault();
     try {
@@ -2685,7 +2699,9 @@ export function AppShell() {
         username: authUsername,
         email: authEmail,
         password: authPassword,
-        class: authClass
+        class: authClass,
+        portraitId: authPortraitId,
+        backgroundId: authBackgroundId
       });
       window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
       setActiveTab("inventory");
@@ -3566,24 +3582,39 @@ export function AppShell() {
         renderCharacterHubTabs={renderCharacterHubTabs}
         renderEquipmentSlotCell={renderEquipmentSlotCell}
         onShowPreviousPortrait={() => {
-          setActiveCharacterVisualIndex((currentIndex) => {
-            const total = GENERATED_CHARACTER_VISUALS.length;
-            if (total === 0) {
-              return -1;
-            }
-            const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-            return (safeIndex - 1 + total) % total;
-          });
+          const tree = playerState ? classToStatTree(playerState.class) : "strength";
+          const pool = PORTRAIT_POOL_BY_TREE[tree];
+          if (pool.length === 0) return;
+          const currentIndex = pool.findIndex((p) => p.id === activePortraitId);
+          const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+          const newPortrait = pool[(safeIndex - 1 + pool.length) % pool.length]!;
+          setActivePortraitId(newPortrait.id);
+          if (token) void updatePortrait(token, { portraitId: newPortrait.id }).catch(() => {});
         }}
         onShowNextPortrait={() => {
-          setActiveCharacterVisualIndex((currentIndex) => {
-            const total = GENERATED_CHARACTER_VISUALS.length;
-            if (total === 0) {
-              return -1;
-            }
-            const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-            return (safeIndex + 1) % total;
-          });
+          const tree = playerState ? classToStatTree(playerState.class) : "strength";
+          const pool = PORTRAIT_POOL_BY_TREE[tree];
+          if (pool.length === 0) return;
+          const currentIndex = pool.findIndex((p) => p.id === activePortraitId);
+          const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+          const newPortrait = pool[(safeIndex + 1) % pool.length]!;
+          setActivePortraitId(newPortrait.id);
+          if (token) void updatePortrait(token, { portraitId: newPortrait.id }).catch(() => {});
+        }}
+        activeBackgroundPath={activeBackgroundPath}
+        onShowPreviousBackground={() => {
+          const idx = BACKGROUND_POOL.findIndex((b) => b.id === activeBackgroundId);
+          const safeIdx = idx >= 0 ? idx : 0;
+          const newBg = BACKGROUND_POOL[(safeIdx - 1 + BACKGROUND_POOL.length) % BACKGROUND_POOL.length]!;
+          setActiveBackgroundId(newBg.id);
+          if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
+        }}
+        onShowNextBackground={() => {
+          const idx = BACKGROUND_POOL.findIndex((b) => b.id === activeBackgroundId);
+          const safeIdx = idx >= 0 ? idx : 0;
+          const newBg = BACKGROUND_POOL[(safeIdx + 1) % BACKGROUND_POOL.length]!;
+          setActiveBackgroundId(newBg.id);
+          if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
         }}
         onStartStatTraining={startStatTraining}
         getTrainingCost={getTrainingCost}
@@ -3904,16 +3935,17 @@ export function AppShell() {
     }
 
     const totalStats = playerState.statSnapshot.total;
+    const playerStatTree = classToStatTree(playerState.class);
     const mainOffenseStat =
-      playerState.class === "mage"
+      playerStatTree === "intelligence"
         ? playerState.stats.intelligence
-        : playerState.class === "ranger"
+        : playerStatTree === "dexterity"
           ? playerState.stats.dexterity
           : playerState.stats.strength;
     const mainOffenseTypeLabel =
-      playerState.class === "mage"
+      playerStatTree === "intelligence"
         ? i18n.t("profile.spellDamage")
-        : playerState.class === "ranger"
+        : playerStatTree === "dexterity"
           ? i18n.t("profile.rangedAttackDamage")
           : i18n.t("profile.meleeDamage");
     const flatBonusDamage = (mainOffenseStat * 0.1).toFixed(1);
@@ -4094,7 +4126,7 @@ export function AppShell() {
         return (
           <GuildMissions
             playerName={profileName}
-            playerClass={playerState?.class ?? "warrior"}
+            playerClass={playerState?.class ?? "juggernaut"}
             playerPower={playerState?.gearScore ?? 80}
             playerLevel={playerState?.level ?? 1}
           />
@@ -4136,6 +4168,8 @@ export function AppShell() {
         showPassword={showPassword}
         showRepeatPassword={showRepeatPassword}
         authClass={authClass}
+        authPortraitId={authPortraitId}
+        authBackgroundId={authBackgroundId}
         showForgotPassword={showForgotPassword}
         forgotPasswordEmail={forgotPasswordEmail}
         forgotPasswordMessage={forgotPasswordMessage}
@@ -4146,8 +4180,8 @@ export function AppShell() {
         onAuthModeChange={setAuthMode}
         onLoginSubmit={handleLogin}
         onRegisterSubmit={handleRegister}
-        onAuthUsernameChange={setAuthUsername}
-        onAuthEmailChange={setAuthEmail}
+        onAuthUsernameChange={(v) => { setAuthUsername(v); if (error) setError(null); }}
+        onAuthEmailChange={(v) => { setAuthEmail(v); if (error) setError(null); }}
         onAuthPasswordChange={setAuthPassword}
         onAuthRepeatPasswordChange={setAuthRepeatPassword}
         onToggleShowPassword={() => setShowPassword((previous) => !previous)}
@@ -4159,9 +4193,12 @@ export function AppShell() {
           setForgotPasswordEmail("");
         }}
         onAuthClassChange={setAuthClass}
+        onAuthPortraitChange={setAuthPortraitId}
+        onAuthBackgroundChange={setAuthBackgroundId}
         onGuestLogin={handleGuestLogin}
         onForgotPasswordSubmit={handleForgotPassword}
         onForgotPasswordEmailChange={setForgotPasswordEmail}
+        onCheckCredentials={handleCheckCredentials}
       />
     );
   }

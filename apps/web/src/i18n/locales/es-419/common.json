@@ -1,4 +1,4 @@
-﻿{
+{
   "loading": "Cargando...",
   "cancel": "Cancelar",
   "ok": "Aceptar",
@@ -6,13 +6,103 @@
   "yes": "Sí",
   "no": "No",
   "you": "Tú",
-  "auth": {"subtitle": "Inicia sesión para abrir tu página principal.", "loginGuest": "Entrar como invitado", "verifyEmailBanner": "Por favor, verifica tu dirección de correo electrónico. Revisa tu bandeja de entrada para el enlace de verificación.", "dismiss": "Descartar", "resendSuccess": "¡Correo de verificación enviado!", "resendFailed": "Error al reenviar el correo de verificación"},
-  "menu": {
-    "title": "Menú", "inventory": "Inventario", "encyclopedia": "Enciclopedia", "contracts": "Contratos", "missions": "Misiones", "arena": "Arena", "guild": "Gremio", "castles": "Castillos", "auctionHouse": "Casa de Subastas", "merchant": "Mercader", "shop": "Tienda Imperial", "leaderboards": "Clasificaciones", "settings": "Ajustes", "logout": "Cerrar sesión"
+  "auth": {
+    "subtitle": "Inicia sesión para abrir tu página principal.",
+    "loginGuest": "Entrar como invitado",
+    "verifyEmailBanner": "Por favor, verifica tu dirección de correo electrónico. Revisa tu bandeja de entrada para el enlace de verificación.",
+    "dismiss": "Descartar",
+    "resendSuccess": "¡Correo de verificación enviado!",
+    "resendFailed": "Error al reenviar el correo de verificación",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "resetPassword": "Restablecer contraseña",
+    "resetYourPassword": "Restablece tu contraseña",
+    "resetPasswordHint": "Ingresa tu correo y te enviaremos un enlace de restablecimiento.",
+    "sendResetLink": "Enviar enlace"
   },
-  "bars": {"health": "Salud", "experience": "Experiencia"},
-  "chat": {"world": "Mundo", "guild": "Gremio", "send": "Enviar", "empty": "Aún no hay mensajes."},
-  "contracts": {"table": {"contract": "Contrato", "difficulty": "Dificultad", "action": "Acción"}, "abandon": "Abandonar", "replenishing": "Reponiendo"},
+  "register": {
+    "stepOf": "Paso {{step}} de {{total}}",
+    "stepAccount": "Datos de la cuenta",
+    "stepStatTree": "Elige tu camino",
+    "stepClass": "Elige tu clase",
+    "stepPortrait": "Elige tu retrato",
+    "username": "Usuario",
+    "usernamePlaceholder": "Ingresa tu usuario",
+    "usernameHint": "Solo letras, números y guiones bajos",
+    "email": "Correo electrónico",
+    "emailPlaceholder": "Ingresa tu correo",
+    "password": "Contraseña",
+    "passwordPlaceholder": "Mín. 8 caracteres",
+    "repeatPassword": "Repetir contraseña",
+    "repeatPasswordPlaceholder": "Repite tu contraseña",
+    "newPassword": "Nueva contraseña",
+    "confirmNewPassword": "Confirmar nueva contraseña",
+    "next": "Continuar",
+    "back": "Atrás",
+    "createAccount": "Crear cuenta",
+    "pickTreeHint": "Elige tu atributo principal. Define tu rol en el campo de batalla.",
+    "pickClassHint": "Elige tu especialización dentro de este camino.",
+    "pickPortraitHint": "Elige el rostro que te representará en batalla.",
+    "chooseBackground": "Elegir Fondo",
+    "choosePortrait": "Elegir Retrato",
+    "treeStrength": "Fuerza",
+    "treeStrengthDesc": "Armadura pesada, poder cuerpo a cuerpo, dominio físico.",
+    "treeDexterity": "Destreza",
+    "treeDexterityDesc": "Armadura ligera, velocidad, precisión y evasión.",
+    "treeIntelligence": "Inteligencia",
+    "treeIntelligenceDesc": "Túnicas, poder arcano, runas y magia temporal.",
+    "counters": "Contrarresta",
+    "countersStr": "FUE",
+    "countersDex": "DES",
+    "countersInt": "INT",
+    "weaponMaul": "Mazo",
+    "weaponSpear": "Lanza",
+    "weaponCleaver": "Cuchilla",
+    "weaponTwinDaggers": "Dagas gemelas",
+    "weaponCrossbow": "Ballesta",
+    "weaponChakrams": "Chakrams",
+    "weaponRuneStone": "Piedra rúnica",
+    "weaponOrb": "Orbe",
+    "weaponGrimoire": "Grimorio",
+
+    "yourClass": "Tu clase"
+  },
+  "menu": {
+    "title": "Menú",
+    "inventory": "Inventario",
+    "encyclopedia": "Enciclopedia",
+    "contracts": "Contratos",
+    "missions": "Misiones",
+    "arena": "Arena",
+    "guild": "Gremio",
+    "castles": "Castillos",
+    "auctionHouse": "Casa de Subastas",
+    "merchant": "Mercader",
+    "shop": "Tienda Imperial",
+    "leaderboards": "Clasificaciones",
+    "settings": "Ajustes",
+    "logout": "Cerrar sesión"
+  },
+  "bars": {
+    "health": "Salud",
+    "experience": "Experiencia"
+  },
+  "chat": {
+    "world": "Mundo",
+    "guild": "Gremio",
+    "send": "Enviar",
+    "empty": "Aún no hay mensajes."
+  },
+  "contracts": {
+    "table": {
+      "contract": "Contrato",
+      "difficulty": "Dificultad",
+      "action": "Acción"
+    },
+    "abandon": "Abandonar",
+    "replenishing": "Reponiendo"
+  },
   "currencies": {
     "ducats": "Ducados",
     "imperials": "Imperiales",
@@ -125,7 +215,8 @@
     "minimumBid": "Puja Inicial Mínima",
     "enterAmount": "Ingresa cantidad en ducados",
     "auctionHouseFee": "Comisión de la casa de subastas",
-    "ofFinalSale": "de la venta final",    "ofStartingBid": "de la oferta inicial",
+    "ofFinalSale": "de la venta final",
+    "ofStartingBid": "de la oferta inicial",
     "listingFeeWarning": "Tarifa de Listado (Pagado Ahora)",
     "listingFeeAmount": "Tarifa",
     "listingFeeNote": "Esta tarifa se reembolsará si cancelas antes de que comience la subasta.",
@@ -193,19 +284,39 @@
     "selectItemPlaceholder": "← Selecciona un objeto de la izquierda",
     "enterBidPlaceholder": "Ingresa el monto de la puja inicial..."
   },
-  "inventory": {"consumables": "Consumibles", "noItems": "No hay objetos disponibles."},
-  "profile": {"inventoryTab": "Inventario", "consumablesTab": "Consumibles", "statsTab": "Estadísticas", "class": "Clase", "level": "Nivel", "unknown": "Desconocido"},
-  "player": {"classUnknown": "Clase desconocida", "level": "Nivel {{value}}"},
+  "inventory": {
+    "consumables": "Consumibles",
+    "noItems": "No hay objetos disponibles."
+  },
+  "profile": {
+    "inventoryTab": "Inventario",
+    "consumablesTab": "Consumibles",
+    "statsTab": "Estadísticas",
+    "class": "Clase",
+    "level": "Nivel",
+    "unknown": "Desconocido",
+    "portraitSuffix": "retrato",
+    "showPreviousPortrait": "Mostrar retrato anterior",
+    "showNextPortrait": "Mostrar siguiente retrato",
+    "showPreviousBackground": "Mostrar fondo anterior",
+    "showNextBackground": "Mostrar siguiente fondo"
+  },
+  "player": {
+    "classUnknown": "Clase desconocida",
+    "level": "Nivel {{value}}"
+  },
   "leaderboards": {
-    "title": "Clasificaciones",    "players": "Jugadores",
-    "guilds": "Gremios",    "loading": "Cargando clasificación...",
+    "title": "Clasificaciones",
+    "players": "Jugadores",
+    "guilds": "Gremios",
+    "loading": "Cargando clasificación...",
     "error": "Error al cargar clasificación",
     "typePower": "Poder",
     "typeLevel": "Nivel",
     "filterAll": "Todas las Clases",
-    "filterWarrior": "Guerreros",
-    "filterMage": "Magos",
-    "filterRanger": "Exploradores",
+    "filterStrength": "Fuerza",
+    "filterDexterity": "Destreza",
+    "filterIntelligence": "Inteligencia",
     "rank": "Rango",
     "player": "Jugador",
     "class": "Clase",
@@ -293,17 +404,17 @@
       "title": "Escudo del Gremio"
     },
     "activity": {
-      "created": "creó el gremio",
-      "joined": "se unió al gremio",
-      "left": "abandonó el gremio",
-      "kicked": "expulsó a",
-      "promoted": "promovió a",
-      "demoted": "degradó a",
-      "transferred_leadership": "transfirió el liderazgo a",
-      "invited": "invitó a",
-      "disbanded": "disolvió el gremio",
-      "description_changed": "actualizó la descripción del gremio",
-      "crest_changed": "actualizó el escudo del gremio"
+      "created": "{{actor}} creó el gremio",
+      "joined": "{{actor}} se unió al gremio",
+      "left": "{{actor}} abandonó el gremio",
+      "kicked": "{{actor}} expulsó a {{target}}",
+      "promoted": "{{actor}} promovió a {{target}}",
+      "demoted": "{{actor}} degradó a {{target}}",
+      "transferred_leadership": "{{actor}} transfirió el liderazgo a {{target}}",
+      "invited": "{{actor}} invitó a {{target}}",
+      "disbanded": "{{actor}} disolvió el gremio",
+      "description_changed": "{{actor}} actualizó la descripción del gremio",
+      "crest_changed": "{{actor}} actualizó el escudo del gremio"
     },
     "errors": {
       "alreadyInGuild": "Ya estás en un gremio",
@@ -440,5 +551,19 @@
       "party": "Grupo",
       "enemies": "Enemigos"
     }
+  },
+  "class": {
+    "warrior": "Guerrero",
+    "mage": "Mago",
+    "ranger": "Explorador",
+    "juggernaut": "Juggernauta",
+    "sentinel": "Centinela",
+    "reaver": "Saqueador",
+    "shade": "Sombra",
+    "arbalist": "Arbalista",
+    "disciple": "Discípulo",
+    "runecaster": "Rúnico",
+    "chronomancer": "Cronomante",
+    "arcanist": "Arcanista"
   }
 }

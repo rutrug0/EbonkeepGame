@@ -1,7 +1,8 @@
 import {
   playerPreferencesSchema,
   publicPlayerProfileSchema,
-  updatePlayerPreferencesBodySchema
+  updatePlayerPreferencesBodySchema,
+  updatePortraitBodySchema
 } from "@ebonkeep/shared";
 
 import type { FastifyPluginAsync } from "fastify";
@@ -61,6 +62,26 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send(payload);
+    }
+  );
+
+  fastify.patch(
+    "/v1/player/portrait",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      const playerId = request.user.playerId;
+      const body = updatePortraitBodySchema.parse(request.body ?? {});
+
+      const updateData: { portraitId?: string; backgroundId?: string; updatedAt: Date } = { updatedAt: new Date() };
+      if (body.portraitId !== undefined) updateData.portraitId = body.portraitId;
+      if (body.backgroundId !== undefined) updateData.backgroundId = body.backgroundId;
+
+      await fastify.prisma.playerProfile.update({
+        where: { id: playerId },
+        data: updateData
+      });
+
+      return reply.send({ portraitId: body.portraitId, backgroundId: body.backgroundId });
     }
   );
 

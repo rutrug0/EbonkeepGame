@@ -13,6 +13,8 @@ export const playerStateSchema = z.object({
   playerId: z.string(),
   accountId: z.string(),
   class: playerClassSchema,
+  portraitId: z.string(),
+  backgroundId: z.string(),
   preferredLocale: supportedLocaleSchema.default("en"),
   level: z.number().int().min(1),
   gearScore: z.number().int().min(0),
@@ -40,6 +42,12 @@ export const updatePlayerPreferencesBodySchema = z.object({
   preferredLocale: supportedLocaleSchema
 });
 export type UpdatePlayerPreferencesBody = z.infer<typeof updatePlayerPreferencesBodySchema>;
+
+export const updatePortraitBodySchema = z.object({
+  portraitId: z.string().min(1).optional(),
+  backgroundId: z.string().min(1).optional()
+});
+export type UpdatePortraitBody = z.infer<typeof updatePortraitBodySchema>;
 
 export const publicPlayerProfileSchema = z.object({
   playerId: z.string(),

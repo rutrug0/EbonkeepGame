@@ -4,7 +4,8 @@ import type {
   DevGuestLoginResponse,
   PlayerPreferences,
   PlayerState,
-  UpdatePlayerPreferencesBody
+  UpdatePlayerPreferencesBody,
+  UpdatePortraitBody
 } from "@ebonkeep/shared/player";
 import {
   devGuestLoginResponseSchema,
@@ -87,4 +88,24 @@ export async function moveInventoryItem(
   }
 
   return inventoryMoveResponseSchema.parse(await response.json());
+}
+
+export async function updatePortrait(
+  token: string,
+  body: UpdatePortraitBody
+): Promise<{ portraitId?: string; backgroundId?: string }> {
+  const response = await fetch(`${API_URL}/v1/player/portrait`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Update portrait failed (${response.status})`);
+  }
+
+  return response.json() as Promise<{ portraitId?: string; backgroundId?: string }>;
 }

@@ -127,3 +127,11 @@ export async function resendVerificationEmail(token: string): Promise<{ success:
 
   return await response.json();
 }
+
+export async function checkAvailability(email: string, username: string): Promise<void> {
+  const params = new URLSearchParams({ email, username });
+  const response = await fetch(`${API_URL}/v1/auth/check-availability?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Availability check failed"));
+  }
+}

@@ -43,6 +43,7 @@ import {
 } from "./api";
 import { GuildCrestEditor } from "./GuildCrestEditor";
 import { GuildCrestDisplay } from "./GuildList";
+import type { PlayerClass } from "@ebonkeep/shared/core";
 
 const GUILD_MIN_LEVEL = 10;
 
@@ -51,7 +52,7 @@ export interface GuildPanelProps {
   currentPlayerId?: string | null;
   playerLevel?: number | null;
   playerName?: string | null;
-  playerClass?: "warrior" | "mage" | "ranger" | null;
+  playerClass?: PlayerClass | null;
   playerPower?: number | null;
   onActiveMissionChange?: (active: boolean) => void;
 }
@@ -229,7 +230,7 @@ function MyGuildView({
   currentPlayerId?: string | null;
   playerLevel?: number | null;
   playerName?: string | null;
-  playerClass?: "warrior" | "mage" | "ranger" | null;
+  playerClass?: PlayerClass | null;
   playerPower?: number | null;
   isActiveMission?: boolean;
   onActiveMissionChange?: (active: boolean) => void;
@@ -462,7 +463,7 @@ function MyGuildView({
       {(activeTab === "missions" || isActiveMission) && (
         <GuildMissions
           playerName={playerName ?? "Warden"}
-          playerClass={playerClass ?? "warrior"}
+          playerClass={playerClass ?? "juggernaut"}
           playerPower={playerPower ?? 80}
           playerLevel={playerLevel ?? 1}
           onActiveMissionChange={onActiveMissionChange}

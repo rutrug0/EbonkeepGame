@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
-import type { PlayerClass } from "@ebonkeep/shared/core";
+import type { PlayerClass, PlayerStatTree } from "@ebonkeep/shared/core";
 import type {
   GuildLeaderboardResponse,
   LeaderboardEntry,
@@ -294,7 +294,7 @@ function InviteConfirmModal({ playerName, onConfirm, onCancel }: InviteConfirmMo
   );
 }
 
-type ClassFilter = PlayerClass | "all";
+type ClassFilter = PlayerStatTree | "all";
 type LeaderboardCategory = "players" | "guilds";
 type GuildLeaderboardType = "totalPower" | "level" | "memberCount";
 
@@ -520,24 +520,24 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
                 </button>
                 <button
                   type="button"
-                  className={`profileSwitchButton${classFilter === "warrior" ? " active" : ""}`}
-                  onClick={() => setClassFilter("warrior")}
+                  className={`profileSwitchButton${classFilter === "strength" ? " active" : ""}`}
+                  onClick={() => setClassFilter("strength")}
                 >
-                  {t("leaderboards.filterWarrior")}
+                  {t("leaderboards.filterStrength")}
                 </button>
                 <button
                   type="button"
-                  className={`profileSwitchButton${classFilter === "mage" ? " active" : ""}`}
-                  onClick={() => setClassFilter("mage")}
+                  className={`profileSwitchButton${classFilter === "dexterity" ? " active" : ""}`}
+                  onClick={() => setClassFilter("dexterity")}
                 >
-                  {t("leaderboards.filterMage")}
+                  {t("leaderboards.filterDexterity")}
                 </button>
                 <button
                   type="button"
-                  className={`profileSwitchButton${classFilter === "ranger" ? " active" : ""}`}
-                  onClick={() => setClassFilter("ranger")}
+                  className={`profileSwitchButton${classFilter === "intelligence" ? " active" : ""}`}
+                  onClick={() => setClassFilter("intelligence")}
                 >
-                  {t("leaderboards.filterRanger")}
+                  {t("leaderboards.filterIntelligence")}
                 </button>
               </div>
             </div>

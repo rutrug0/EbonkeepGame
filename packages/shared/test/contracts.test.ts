@@ -11,15 +11,20 @@ import { supportedLocaleSchema } from "../src/core/index.js";
 
 describe("shared contracts", () => {
   it("maps archetypes to allowed classes", () => {
-    expect(getAllowedClassesForArchetype("armor", "heavy")).toEqual(["warrior"]);
-    expect(getAllowedClassesForArchetype("weapon", "arcane")).toEqual(["mage"]);
-    expect(getAllowedClassesForArchetype("jewelry")).toEqual(["warrior", "mage", "ranger"]);
+    // armor archetypes grouped by equipment group (weapon stat)
+    expect(getAllowedClassesForArchetype("armor", "heavy")).toEqual(["juggernaut", "arbalist", "runecaster"]);
+    expect(getAllowedClassesForArchetype("weapon", "arcane")).toEqual(["runecaster", "chronomancer", "arcanist"]);
+    expect(getAllowedClassesForArchetype("jewelry")).toEqual([
+      "juggernaut", "sentinel", "reaver",
+      "shade", "arbalist", "disciple",
+      "runecaster", "chronomancer", "arcanist"
+    ]);
   });
 
   it("checks whether an item is usable by a class", () => {
-    expect(isItemUsableByClass("warrior", "weapon", "melee")).toBe(true);
-    expect(isItemUsableByClass("warrior", "weapon", "arcane")).toBe(false);
-    expect(isItemUsableByClass("mage", "jewelry")).toBe(true);
+    expect(isItemUsableByClass("juggernaut", "weapon", "melee")).toBe(true);
+    expect(isItemUsableByClass("juggernaut", "weapon", "arcane")).toBe(false);
+    expect(isItemUsableByClass("arcanist", "jewelry")).toBe(true);
   });
 
   it("validates vestige loadout size and duplicates", () => {

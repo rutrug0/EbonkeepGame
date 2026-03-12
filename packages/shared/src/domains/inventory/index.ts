@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   allPlayerClasses,
   armorArchetypeSchema,
+  equipmentGroupSchema,
   equipmentSlotIdSchema,
   itemMajorCategorySchema,
   playerClassSchema,
@@ -61,15 +62,16 @@ export const VESTIGE_CATALOG: readonly VestigeCatalogEntry[] = [
 export const MAX_EQUIPPED_VESTIGES = 3;
 
 export const armorArchetypeAllowedClasses: Record<ArmorArchetype, readonly PlayerClass[]> = {
-  heavy: ["warrior"],
-  light: ["ranger"],
-  robe: ["mage"]
+  // grouped by equipment group (weapon stat), not primary archetype
+  heavy: ["juggernaut", "arbalist", "runecaster"],   // warrior equipment (STR weapon)
+  light: ["sentinel", "disciple", "chronomancer"],   // ranger equipment (DEX weapon)
+  robe:  ["reaver", "shade", "arcanist"]             // mage equipment (INT weapon)
 };
 
 export const weaponArchetypeAllowedClasses: Record<WeaponArchetype, readonly PlayerClass[]> = {
-  melee: ["warrior"],
-  arcane: ["mage"],
-  ranged: ["ranger"]
+  melee: ["juggernaut", "sentinel", "reaver", "shade", "disciple"],
+  arcane: ["runecaster", "chronomancer", "arcanist"],
+  ranged: ["arbalist"]
 };
 
 export function getAllowedClassesForArchetype(
@@ -212,7 +214,7 @@ export const devWeaponSchema = z.object({
   level: z.number().int().min(1).max(100),
   baseLevel: z.number().int().min(0).max(100),
   weaponFamily: weaponArchetypeSchema,
-  allowedClass: playerClassSchema,
+  allowedClass: equipmentGroupSchema,
   minRollLow: z.number().int().min(0),
   minRollHigh: z.number().int().min(0),
   maxRollLow: z.number().int().min(0),

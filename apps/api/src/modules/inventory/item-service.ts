@@ -6,12 +6,15 @@ import { z } from "zod";
 
 import {
   armorArchetypeSchema,
+  classToEquipmentGroup,
+  equipmentGroupSchema,
   equipmentSlotIdSchema,
   inventoryItemSchema,
   itemModifierSchema,
   playerClassSchema,
   weaponFamilySchema,
   type ArmorArchetype,
+  type EquipmentGroup,
   type EquipmentSlotId,
   type InventoryItem,
   type ItemModifier,
@@ -66,7 +69,7 @@ type ItemTemplate = {
   baseLevel: number;
   dropMinLevel: number;
   dropMaxLevel: number;
-  allowedClass: PlayerClass;
+  allowedClass: EquipmentGroup;
   sequence: number;
   allowedSlotIds: readonly EquipmentSlotId[];
   archetype: InventoryItem["archetype"];
@@ -106,7 +109,7 @@ type ArmorCsvRow = {
   itemType: string;
   archetype: ArmorArchetype;
   slotFamily: string;
-  allowedClass: PlayerClass;
+  allowedClass: EquipmentGroup;
   flavorText: string;
   baseLevel: number;
   dropMinLevel: number;
@@ -118,7 +121,7 @@ type WeaponCsvRow = {
   weaponName: string;
   weaponType: string;
   weaponFamily: WeaponFamily;
-  allowedClass: PlayerClass;
+  allowedClass: EquipmentGroup;
   flavorText: string;
   baseLevel: number;
   dropMinLevel: number;
@@ -627,6 +630,10 @@ function addStatBonus(totals: PlayerStatBonuses, statKey: PlayerStatKey, value: 
   totals[statKey] = (totals[statKey] ?? 0) + value;
 }
 
+function isEquipmentGroup(value: string): value is EquipmentGroup {
+  return equipmentGroupSchema.safeParse(value).success;
+}
+
 function isPlayerClass(value: string): value is PlayerClass {
   return playerClassSchema.safeParse(value).success;
 }
@@ -646,7 +653,7 @@ function mapSlotFamilyToSlotId(slotFamily: string): EquipmentSlotId | null {
 function buildArmorRows(fileName: string): ArmorCsvRow[] {
   return parseCsv(fileName)
     .map((row) => {
-      if (!isArmorArchetype(row.archetype) || !isPlayerClass(row.allowed_class)) {
+      if (!isArmorArchetype(row.archetype) || !isEquipmentGroup(row.allowed_class)) {
         return null;
       }
 
@@ -670,7 +677,7 @@ function buildWeaponRows(fileName: string): WeaponCsvRow[] {
   return parseCsv(fileName)
     .map((row) => {
       const normalizedWeaponType = normalizeIdentifier(row.weapon_type);
-      if (!isWeaponFamily(normalizedWeaponType) || !isPlayerClass(row.allowed_class)) {
+      if (!isWeaponFamily(normalizedWeaponType) || !isEquipmentGroup(row.allowed_class)) {
         return null;
       }
 
@@ -793,9 +800,11 @@ const ITEM_TEMPLATES: readonly ItemTemplate[] = buildItemTemplates();
 const ITEM_TEMPLATE_BY_ID = new Map(ITEM_TEMPLATES.map((template) => [template.id, template] as const));
 
 function pickStarterTemplateId(playerClass: PlayerClass, predicate: (template: ItemTemplate) => boolean): string {
-  const template = ITEM_TEMPLATES.find((itemTemplate) => itemTemplate.allowedClass === playerClass && predicate(itemTemplate));
+  // Item templates still use the legacy equipment-group keys ("warrior"|"mage"|"ranger").
+  const group = classToEquipmentGroup(playerClass);
+  const template = ITEM_TEMPLATES.find((itemTemplate) => itemTemplate.allowedClass === group && predicate(itemTemplate));
   if (!template) {
-    throw new Error(`Missing starter template for '${playerClass}'.`);
+    throw new Error(`Missing starter template for '${playerClass}' (group '${group}').`);
   }
   return template.id;
 }

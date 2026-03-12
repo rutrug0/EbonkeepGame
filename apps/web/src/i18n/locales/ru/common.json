@@ -1,4 +1,4 @@
-﻿{
+{
   "loading": "Загрузка...",
   "cancel": "Отмена",
   "ok": "ОК",
@@ -6,13 +6,102 @@
   "yes": "Да",
   "no": "Нет",
   "you": "Вы",
-  "auth": {"subtitle": "Войдите, чтобы открыть главную страницу.", "loginGuest": "Войти как гость", "verifyEmailBanner": "Пожалуйста, подтвердите адрес электронной почты. Проверьте почтовый ящик на наличие ссылки для подтверждения.", "dismiss": "Закрыть", "resendSuccess": "Письмо с подтверждением отправлено!", "resendFailed": "Не удалось повторно отправить письмо с подтверждением"},
-  "menu": {
-    "title": "Меню", "inventory": "Инвентарь", "encyclopedia": "Энциклопедия", "contracts": "Контракты", "missions": "Миссии", "arena": "Арена", "guild": "Гильдия", "castles": "Замки", "auctionHouse": "Аукцион", "merchant": "Торговец", "shop": "Имперский магазин", "leaderboards": "Рейтинги", "settings": "Настройки", "logout": "Выйти"
+  "auth": {
+    "subtitle": "Войдите, чтобы открыть главную страницу.",
+    "loginGuest": "Войти как гость",
+    "verifyEmailBanner": "Пожалуйста, подтвердите адрес электронной почты. Проверьте почтовый ящик на наличие ссылки для подтверждения.",
+    "dismiss": "Закрыть",
+    "resendSuccess": "Письмо с подтверждением отправлено!",
+    "resendFailed": "Не удалось повторно отправить письмо с подтверждением",
+    "login": "Войти",
+    "register": "Регистрация",
+    "forgotPassword": "Забыли пароль?",
+    "resetPassword": "Сбросить пароль",
+    "resetYourPassword": "Сбросьте свой пароль",
+    "resetPasswordHint": "Введите email — вышлем ссылку для сброса.",
+    "sendResetLink": "Отправить ссылку"
   },
-  "bars": {"health": "Здоровье", "experience": "Опыт"},
-  "chat": {"world": "Мир", "guild": "Гильдия", "send": "Отправить", "empty": "Сообщений пока нет."},
-  "contracts": {"table": {"contract": "Контракт", "difficulty": "Сложность", "action": "Действие"}, "abandon": "Отменить", "replenishing": "Обновляется"},
+  "register": {
+    "stepOf": "Шаг {{step}} из {{total}}",
+    "stepAccount": "Данные аккаунта",
+    "stepStatTree": "Выберите путь",
+    "stepClass": "Выберите класс",
+    "stepPortrait": "Выберите портрет",
+    "username": "Имя пользователя",
+    "usernamePlaceholder": "Введите имя",
+    "usernameHint": "Только буквы, цифры и подчёркивания",
+    "email": "Эл. почта",
+    "emailPlaceholder": "Введите email",
+    "password": "Пароль",
+    "passwordPlaceholder": "Мин. 8 символов",
+    "repeatPassword": "Повторите пароль",
+    "repeatPasswordPlaceholder": "Повторите пароль",
+    "newPassword": "Новый пароль",
+    "confirmNewPassword": "Подтвердите пароль",
+    "next": "Продолжить",
+    "back": "Назад",
+    "createAccount": "Создать аккаунт",
+    "pickTreeHint": "Выберите основной атрибут. Он определяет вашу роль на поле боя.",
+    "pickClassHint": "Выберите специализацию на этом пути.",
+    "pickPortraitHint": "Выберите лицо, которое будет представлять вас в битве.",
+    "chooseBackground": "Выберите фон",
+    "choosePortrait": "Выберите портрет",
+    "treeStrength": "Сила",
+    "treeStrengthDesc": "Тяжёлый доспех, мощь ближнего боя, физическое господство.",
+    "treeDexterity": "Ловкость",
+    "treeDexterityDesc": "Лёгкий доспех, скорость, точность и уклонение.",
+    "treeIntelligence": "Интеллект",
+    "treeIntelligenceDesc": "Мантии, магическая сила, руны и магия времени.",
+    "counters": "Счётчик",
+    "countersStr": "СЛ",
+    "countersDex": "ЛВ",
+    "countersInt": "ИН",
+    "weaponMaul": "Боевой молот",
+    "weaponSpear": "Копьё",
+    "weaponCleaver": "Тесак",
+    "weaponTwinDaggers": "Парные кинжалы",
+    "weaponCrossbow": "Арбалет",
+    "weaponChakrams": "Чакрамы",
+    "weaponRuneStone": "Рунный камень",
+    "weaponOrb": "Сфера",
+    "weaponGrimoire": "Гримуар",
+    "yourClass": "Ваш класс"
+  },
+  "menu": {
+    "title": "Меню",
+    "inventory": "Инвентарь",
+    "encyclopedia": "Энциклопедия",
+    "contracts": "Контракты",
+    "missions": "Миссии",
+    "arena": "Арена",
+    "guild": "Гильдия",
+    "castles": "Замки",
+    "auctionHouse": "Аукцион",
+    "merchant": "Торговец",
+    "shop": "Имперский магазин",
+    "leaderboards": "Рейтинги",
+    "settings": "Настройки",
+    "logout": "Выйти"
+  },
+  "bars": {
+    "health": "Здоровье",
+    "experience": "Опыт"
+  },
+  "chat": {
+    "world": "Мир",
+    "guild": "Гильдия",
+    "send": "Отправить",
+    "empty": "Сообщений пока нет."
+  },
+  "contracts": {
+    "table": {
+      "contract": "Контракт",
+      "difficulty": "Сложность",
+      "action": "Действие"
+    },
+    "abandon": "Отменить",
+    "replenishing": "Обновляется"
+  },
   "currencies": {
     "ducats": "Дукаты",
     "imperials": "Империалы",
@@ -68,7 +157,9 @@
     "tabs": {
       "browse": "Просмотр аукционов",
       "myBids": "Мои ставки",
-      "submit": "Выставить предмет",      "mySubmissions": "Мои заявки",      "rewards": "Награды"
+      "submit": "Выставить предмет",
+      "mySubmissions": "Мои заявки",
+      "rewards": "Награды"
     },
     "yourDucats": "Ваши дукаты",
     "noActiveAuctions": "Нет активных аукционов",
@@ -128,8 +219,10 @@
     "ofStartingBid": "от начальной ставки",
     "listingFeeWarning": "Плата за размещение (оплачивается сейчас)",
     "listingFeeAmount": "Плата",
-    "listingFeeNote": "Эта плата будет возвращена, если вы отмените до начала аукциона.",    "listingFeeNonRefundable": "Это невозвратный сервисный сбор.",
-    "activeSubmissions": "Активные заявки",    "submitForReview": "Отправить на аукцион",
+    "listingFeeNote": "Эта плата будет возвращена, если вы отмените до начала аукциона.",
+    "listingFeeNonRefundable": "Это невозвратный сервисный сбор.",
+    "activeSubmissions": "Активные заявки",
+    "submitForReview": "Отправить на аукцион",
     "submitting": "Отправка...",
     "mySubmissions": "Мои заявки",
     "noSubmissions": "Вы ещё не отправили ни одного предмета",
@@ -144,11 +237,13 @@
     "cancelSubmission": "Отменить",
     "confirmCancel": "Вы уверены, что хотите отменить эту заявку? Предметы в ожидании будут возвращены, но за одобренные предметы комиссия не будет возвращена.",
     "cancelling": "Отмена...",
-    "submitSuccess": "Предмет успешно отправлен! Он будет выставлен на следующем аукционе.",    "bidPlacedSuccess": "Ставка успешно размещена: {{amount}} дукатов",
+    "submitSuccess": "Предмет успешно отправлен! Он будет выставлен на следующем аукционе.",
+    "bidPlacedSuccess": "Ставка успешно размещена: {{amount}} дукатов",
     "enterValidBid": "Пожалуйста, введите корректную сумму ставки",
     "bidTooLow": "Ставка должна быть не менее {{minimum}} дукатов",
     "bidBelowStarting": "Ставка не может быть ниже начальной цены {{starting}} дукатов",
-    "insufficientDucats": "Недостаточно дукатов",    "keepSubmission": "Оставить заявку",
+    "insufficientDucats": "Недостаточно дукатов",
+    "keepSubmission": "Оставить заявку",
     "confirmCancelButton": "Да, отменить",
     "errors": {
       "invalidBid": "Неверная сумма ставки",
@@ -188,19 +283,39 @@
     "selectItemPlaceholder": "← Выберите предмет слева",
     "enterBidPlaceholder": "Введите начальную сумму ставки..."
   },
-  "inventory": {"consumables": "Расходники", "noItems": "Предметы отсутствуют."},
-  "profile": {"inventoryTab": "Инвентарь", "consumablesTab": "Расходники", "statsTab": "Характеристики", "class": "Класс", "level": "Уровень", "unknown": "Неизвестно"},
-  "player": {"classUnknown": "Класс неизвестен", "level": "Уровень {{value}}"},
+  "inventory": {
+    "consumables": "Расходники",
+    "noItems": "Предметы отсутствуют."
+  },
+  "profile": {
+    "inventoryTab": "Инвентарь",
+    "consumablesTab": "Расходники",
+    "statsTab": "Характеристики",
+    "class": "Класс",
+    "level": "Уровень",
+    "unknown": "Неизвестно",
+    "portraitSuffix": "портрет",
+    "showPreviousPortrait": "Предыдущий портрет",
+    "showNextPortrait": "Следующий портрет",
+    "showPreviousBackground": "Предыдущий фон",
+    "showNextBackground": "Следующий фон"
+  },
+  "player": {
+    "classUnknown": "Класс неизвестен",
+    "level": "Уровень {{value}}"
+  },
   "leaderboards": {
-    "title": "Рейтинги",    "players": "Игроки",
-    "guilds": "Гильдии",    "loading": "Загрузка рейтинга...",
+    "title": "Рейтинги",
+    "players": "Игроки",
+    "guilds": "Гильдии",
+    "loading": "Загрузка рейтинга...",
     "error": "Ошибка загрузки рейтинга",
     "typePower": "Сила",
     "typeLevel": "Уровень",
     "filterAll": "Все Классы",
-    "filterWarrior": "Воины",
-    "filterMage": "Маги",
-    "filterRanger": "Рейнджеры",
+    "filterStrength": "Сила",
+    "filterDexterity": "Ловкость",
+    "filterIntelligence": "Интеллект",
     "rank": "Место",
     "player": "Игрок",
     "class": "Класс",
@@ -223,10 +338,12 @@
     "inviteConfirmMessage": "Отправить приглашение в гильдию игроку {{playerName}}?",
     "inviteConfirm": "Да, пригласить"
   },
-  "guild": {    "notifications": {
+  "guild": {
+    "notifications": {
       "success": "Успех",
       "error": "Ошибка"
-    },    "title": "Гильдии",
+    },
+    "title": "Гильдии",
     "create": "Создать Гильдию",
     "search": "Поиск Гильдий",
     "searchPlaceholder": "Поиск по названию или тегу гильдии...",
@@ -286,17 +403,17 @@
       "title": "Герб Гильдии"
     },
     "activity": {
-      "created": "создал гильдию",
-      "joined": "вступил в гильдию",
-      "left": "покинул гильдию",
-      "kicked": "исключил",
-      "promoted": "повысил",
-      "demoted": "понизил",
-      "transferred_leadership": "передал лидерство",
-      "invited": "пригласил",
-      "disbanded": "распустил гильдию",
-      "description_changed": "обновил описание гильдии",
-      "crest_changed": "обновил герб гильдии"
+      "created": "{{actor}} создал гильдию",
+      "joined": "{{actor}} вступил в гильдию",
+      "left": "{{actor}} покинул гильдию",
+      "kicked": "{{actor}} исключил {{target}}",
+      "promoted": "{{actor}} повысил {{target}}",
+      "demoted": "{{actor}} понизил {{target}}",
+      "transferred_leadership": "{{actor}} передал лидерство {{target}}",
+      "invited": "{{actor}} пригласил {{target}}",
+      "disbanded": "{{actor}} распустил гильдию",
+      "description_changed": "{{actor}} обновил описание гильдии",
+      "crest_changed": "{{actor}} обновил герб гильдии"
     },
     "errors": {
       "alreadyInGuild": "Вы уже в гильдии",
@@ -433,5 +550,19 @@
       "party": "Отряд",
       "enemies": "Враги"
     }
+  },
+  "class": {
+    "warrior": "Воин",
+    "mage": "Маг",
+    "ranger": "Рейнджер",
+    "juggernaut": "Джаггернаут",
+    "sentinel": "Страж",
+    "reaver": "Мародёр",
+    "shade": "Тень",
+    "arbalist": "Арбалетчик",
+    "disciple": "Ученик",
+    "runecaster": "Рунник",
+    "chronomancer": "Хрономаг",
+    "arcanist": "Арканист"
   }
 }

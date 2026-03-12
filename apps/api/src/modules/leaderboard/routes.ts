@@ -1,4 +1,5 @@
 import { leaderboardResponseSchema, leaderboardTypeSchema } from "@ebonkeep/shared";
+import type { PlayerStatTree } from "@ebonkeep/shared/core";
 import { z } from "zod";
 
 import type { FastifyPluginAsync } from "fastify";
@@ -7,7 +8,7 @@ import { getLeaderboard } from "./service.js";
 const leaderboardQuerySchema = z.object({
   type: leaderboardTypeSchema.default("power"),
   limit: z.coerce.number().int().min(1).max(100).default(50),
-  classFilter: z.enum(["warrior", "mage", "ranger", "all"]).default("all")
+  classFilter: z.enum(["strength", "dexterity", "intelligence", "all"]).default("all")
 });
 
 export const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
@@ -24,7 +25,7 @@ export const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
           fastify.prisma,
           query.type,
           query.limit,
-          query.classFilter === "all" ? undefined : query.classFilter,
+          query.classFilter === "all" ? undefined : query.classFilter as PlayerStatTree,
           currentPlayerId
         );
 
@@ -48,7 +49,7 @@ export const leaderboardRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.prisma,
         query.type,
         query.limit,
-        query.classFilter === "all" ? undefined : query.classFilter
+        query.classFilter === "all" ? undefined : query.classFilter as PlayerStatTree
       );
 
       return reply.send(leaderboardResponseSchema.parse(result));

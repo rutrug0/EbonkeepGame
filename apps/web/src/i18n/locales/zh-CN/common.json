@@ -1,4 +1,4 @@
-﻿{
+{
   "loading": "加载中...",
   "cancel": "取消",
   "ok": "确定",
@@ -6,13 +6,102 @@
   "yes": "是",
   "no": "否",
   "you": "你",
-  "auth": {"subtitle": "登录后进入主界面。", "loginGuest": "游客登录", "verifyEmailBanner": "请验证您的电子邮件地址。请查收邮件中的验证链接。", "dismiss": "关闭", "resendSuccess": "验证邮件已发送！", "resendFailed": "重新发送验证邮件失败"},
-  "menu": {
-    "title": "菜单", "inventory": "背包", "encyclopedia": "图鉴", "contracts": "契约", "missions": "任务", "arena": "竞技场", "guild": "公会", "castles": "城堡", "auctionHouse": "拍卖行", "merchant": "商人", "shop": "帝国商店", "leaderboards": "排行榜", "settings": "设置", "logout": "退出登录"
+  "auth": {
+    "subtitle": "登录后进入主界面。",
+    "loginGuest": "游客登录",
+    "verifyEmailBanner": "请验证您的电子邮件地址。请查收邮件中的验证链接。",
+    "dismiss": "关闭",
+    "resendSuccess": "验证邮件已发送！",
+    "resendFailed": "重新发送验证邮件失败",
+    "login": "登录",
+    "register": "注册",
+    "forgotPassword": "忘记密码？",
+    "resetPassword": "重置密码",
+    "resetYourPassword": "重置您的密码",
+    "resetPasswordHint": "输入您的邮箱，我们将发送重置链接。",
+    "sendResetLink": "发送重置链接"
   },
-  "bars": {"health": "生命", "experience": "经验"},
-  "chat": {"world": "世界", "guild": "公会", "send": "发送", "empty": "暂无消息。"},
-  "contracts": {"table": {"contract": "契约", "difficulty": "难度", "action": "操作"}, "abandon": "放弃", "replenishing": "补充中"},
+  "register": {
+    "stepOf": "第{{step}}步，共{{total}}步",
+    "stepAccount": "账户信息",
+    "stepStatTree": "选择您的路径",
+    "stepClass": "选择您的职业",
+    "stepPortrait": "选择头像",
+    "username": "用户名",
+    "usernamePlaceholder": "输入用户名",
+    "usernameHint": "只能使用字母、数字和下划线",
+    "email": "邮箱",
+    "emailPlaceholder": "输入您的邮箱",
+    "password": "密码",
+    "passwordPlaceholder": "至少8个字符",
+    "repeatPassword": "重复密码",
+    "repeatPasswordPlaceholder": "再次输入您的密码",
+    "newPassword": "新密码",
+    "confirmNewPassword": "确认新密码",
+    "next": "继续",
+    "back": "返回",
+    "createAccount": "创建账户",
+    "pickTreeHint": "选择您的主要属性，这将决定您在战场上的角色。",
+    "pickClassHint": "在此路径中选择您的专精职业。",
+    "pickPortraitHint": "选择代表您在战坚上的面孔。",
+    "chooseBackground": "选择背景",
+    "choosePortrait": "选择头像",
+    "treeStrength": "力量",
+    "treeStrengthDesc": "重甲，近战力量，物理主导。",
+    "treeDexterity": "敏捷",
+    "treeDexterityDesc": "轻甲，速度，精准和闪避。",
+    "treeIntelligence": "智力",
+    "treeIntelligenceDesc": "长袍，奥术力量，符文和时间魔法。",
+    "counters": "克制",
+    "countersStr": "力量",
+    "countersDex": "敏捷",
+    "countersInt": "智力",
+    "weaponMaul": "战锤",
+    "weaponSpear": "长矛",
+    "weaponCleaver": "劈刀",
+    "weaponTwinDaggers": "双匕首",
+    "weaponCrossbow": "弩",
+    "weaponChakrams": "轮刃",
+    "weaponRuneStone": "符文石",
+    "weaponOrb": "法球",
+    "weaponGrimoire": "魔法书",
+    "yourClass": "您的职业"
+  },
+  "menu": {
+    "title": "菜单",
+    "inventory": "背包",
+    "encyclopedia": "图鉴",
+    "contracts": "契约",
+    "missions": "任务",
+    "arena": "竞技场",
+    "guild": "公会",
+    "castles": "城堡",
+    "auctionHouse": "拍卖行",
+    "merchant": "商人",
+    "shop": "帝国商店",
+    "leaderboards": "排行榜",
+    "settings": "设置",
+    "logout": "退出登录"
+  },
+  "bars": {
+    "health": "生命",
+    "experience": "经验"
+  },
+  "chat": {
+    "world": "世界",
+    "guild": "公会",
+    "send": "发送",
+    "empty": "暂无消息。"
+  },
+  "contracts": {
+    "table": {
+      "contract": "契约",
+      "difficulty": "难度",
+      "action": "操作"
+    },
+    "abandon": "放弃",
+    "replenishing": "补充中"
+  },
   "currencies": {
     "ducats": "杜卡特",
     "imperials": "帝国币",
@@ -126,7 +215,8 @@
     "minimumBid": "最低起始价格",
     "enterAmount": "输入杜卡特金额",
     "auctionHouseFee": "拍卖行手续费",
-    "ofFinalSale": "最终价格的",    "ofStartingBid": "起始价的",
+    "ofFinalSale": "最终价格的",
+    "ofStartingBid": "起始价的",
     "listingFeeWarning": "上架费（现在支付）",
     "listingFeeAmount": "费用",
     "listingFeeNote": "如果在拍卖开始前取消，此费用将退还。",
@@ -155,7 +245,8 @@
     "bidBelowStarting": "出价不能低于起拍价 {{starting}} 杜卡特",
     "insufficientDucats": "杜卡特不足",
     "keepSubmission": "保留提交",
-    "confirmCancelButton": "是的，取消",    "errors": {
+    "confirmCancelButton": "是的，取消",
+    "errors": {
       "invalidBid": "无效的出价金额",
       "bidBelowMinimum": "出价必须至少 {{amount}} 杜卡特",
       "insufficientDucats": "杜卡特不足",
@@ -193,9 +284,27 @@
     "selectItemPlaceholder": "← 从左侧选择一件物品",
     "enterBidPlaceholder": "输入起始出价金额..."
   },
-  "inventory": {"consumables": "消耗品", "noItems": "暂无物品。"},
-  "profile": {"inventoryTab": "背包", "consumablesTab": "消耗品", "statsTab": "属性", "class": "职业", "level": "等级", "unknown": "未知"},
-  "player": {"classUnknown": "未知职业", "level": "等级 {{value}}"},
+  "inventory": {
+    "consumables": "消耗品",
+    "noItems": "暂无物品。"
+  },
+  "profile": {
+    "inventoryTab": "背包",
+    "consumablesTab": "消耗品",
+    "statsTab": "属性",
+    "class": "职业",
+    "level": "等级",
+    "unknown": "未知",
+    "portraitSuffix": "头像",
+    "showPreviousPortrait": "显示上一个角色肖像",
+    "showNextPortrait": "显示下一个角色肖像",
+    "showPreviousBackground": "显示上一个背景",
+    "showNextBackground": "显示下一个背景"
+  },
+  "player": {
+    "classUnknown": "未知职业",
+    "level": "等级 {{value}}"
+  },
   "leaderboards": {
     "title": "排行榜",
     "players": "玩家",
@@ -205,9 +314,9 @@
     "typePower": "战力",
     "typeLevel": "等级",
     "filterAll": "所有职业",
-    "filterWarrior": "战士",
-    "filterMage": "法师",
-    "filterRanger": "游侠",
+    "filterStrength": "力量",
+    "filterDexterity": "敏捷",
+    "filterIntelligence": "智力",
     "rank": "排名",
     "player": "玩家",
     "class": "职业",
@@ -292,17 +401,17 @@
       "save": "保存更改"
     },
     "activity": {
-      "created": "创建了公会",
-      "joined": "加入了公会",
-      "left": "离开了公会",
-      "kicked": "踢出了成员",
-      "promoted": "晋升了成员",
-      "demoted": "降职了成员",
-      "transferred_leadership": "转让会长给",
-      "invited": "邀请了",
-      "disbanded": "解散了公会",
-      "description_changed": "更新了公会描述",
-      "crest_changed": "更新了公会会徽"
+      "created": "{{actor}} 创建了公会",
+      "joined": "{{actor}} 加入了公会",
+      "left": "{{actor}} 离开了公会",
+      "kicked": "{{actor}} 踢出了 {{target}}",
+      "promoted": "{{actor}} 晋升了 {{target}}",
+      "demoted": "{{actor}} 降职了 {{target}}",
+      "transferred_leadership": "{{actor}} 转让会长给 {{target}}",
+      "invited": "{{actor}} 邀请了 {{target}}",
+      "disbanded": "{{actor}} 解散了公会",
+      "description_changed": "{{actor}} 更新了公会描述",
+      "crest_changed": "{{actor}} 更新了公会会徽"
     },
     "errors": {
       "alreadyInGuild": "已经在公会中",
@@ -439,5 +548,19 @@
       "party": "队伍",
       "enemies": "敌人"
     }
+  },
+  "class": {
+    "warrior": "战士",
+    "mage": "法师",
+    "ranger": "游侠",
+    "juggernaut": "钢铁巨人",
+    "sentinel": "哨兵",
+    "reaver": "掠夺者",
+    "shade": "暗影",
+    "arbalist": "弩手",
+    "disciple": "门徒",
+    "runecaster": "符文师",
+    "chronomancer": "时间法师",
+    "arcanist": "奥法师"
   }
 }

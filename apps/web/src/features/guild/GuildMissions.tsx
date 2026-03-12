@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import type { PlayerClass } from "@ebonkeep/shared/core";
 
 import { CombatActorFrame } from "../combat";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
@@ -12,7 +13,7 @@ type MissionDifficulty = "easy" | "medium" | "hard";
 type MissionPhase = "lobby" | "travel" | "combat";
 type MissionResolutionState = "playing" | "summarizing" | "awaiting_return";
 type MissionView = "board" | "active" | "history";
-type MemberClass = "warrior" | "mage" | "ranger";
+type MemberClass = PlayerClass;
 
 type MissionBattleActor = {
   id: string;
@@ -162,15 +163,28 @@ const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
 const COMBAT_FAST_FORWARD_RATE = 8;
 
 const CLASS_BASE_HP: Record<MemberClass, number> = {
-  warrior: 95,
-  ranger: 85,
-  mage: 78,
+  juggernaut: 97,
+  sentinel: 92,
+  reaver: 90,
+  shade: 83,
+  arbalist: 82,
+  disciple: 80,
+  runecaster: 78,
+  chronomancer: 75,
+  arcanist: 73,
 };
 
 const CLASS_COMBAT_STAT: Record<MemberClass, "strength" | "dexterity" | "intelligence"> = {
-  warrior: "strength",
-  ranger: "dexterity",
-  mage: "intelligence",
+  // Weapon stat drives combat damage (secondary stat, not primary archetype)
+  juggernaut:   "strength",     // Maul → STR
+  arbalist:     "strength",     // Crossbow → STR
+  runecaster:   "strength",     // Rune Stone → STR
+  sentinel:     "dexterity",    // Spear → DEX
+  disciple:     "dexterity",    // Chakrams → DEX
+  chronomancer: "dexterity",    // Orb → DEX
+  reaver:       "intelligence", // Cleaver → INT
+  shade:        "intelligence", // Twin Daggers → INT
+  arcanist:     "intelligence", // Grimoire → INT
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -284,10 +298,10 @@ const MISSION_TEMPLATES: MissionTemplate[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MOCK_GUILD_POOL: { name: string; playerClass: MemberClass; power: number; level: number }[] = [
-  { name: "Alaric Voss",  playerClass: "warrior", power: 104, level: 18 },
-  { name: "Syrveth",      playerClass: "mage",    power: 89,  level: 15 },
-  { name: "Tornas Iron",  playerClass: "warrior", power: 107, level: 20 },
-  { name: "Ellara Swift", playerClass: "ranger",  power: 93,  level: 17 },
+  { name: "Alaric Voss",  playerClass: "juggernaut", power: 104, level: 18 },
+  { name: "Syrveth",      playerClass: "arcanist",   power: 89,  level: 15 },
+  { name: "Tornas Iron",  playerClass: "sentinel",   power: 107, level: 20 },
+  { name: "Ellara Swift", playerClass: "shade",      power: 93,  level: 17 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -478,11 +492,18 @@ function formatTimestamp(ms: number): string {
 }
 
 function classLabel(cls: MemberClass): string {
-  switch (cls) {
-    case "warrior": return "Warrior";
-    case "mage":    return "Mage";
-    case "ranger":  return "Ranger";
-  }
+  const labels: Record<MemberClass, string> = {
+    juggernaut: "Juggernaut",
+    sentinel: "Sentinel",
+    reaver: "Reaver",
+    shade: "Shade",
+    arbalist: "Arbalist",
+    disciple: "Disciple",
+    runecaster: "Runecaster",
+    chronomancer: "Chronomancer",
+    arcanist: "Arcanist",
+  };
+  return labels[cls];
 }
 
 function difficultyLabel(d: MissionDifficulty): string {

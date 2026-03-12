@@ -8,7 +8,7 @@ import {
   guildLeaderboardResponseSchema,
   leaderboardResponseSchema
 } from "@ebonkeep/shared/leaderboard";
-import type { PlayerClass } from "@ebonkeep/shared/core";
+import type { EquipmentGroup, PlayerStatTree } from "@ebonkeep/shared/core";
 import type { PublicPlayerProfile } from "@ebonkeep/shared/player";
 import { publicPlayerProfileSchema } from "@ebonkeep/shared/player";
 
@@ -17,7 +17,7 @@ import { API_URL, authHeaders, readErrorMessage } from "../../lib/api/http";
 export async function fetchLeaderboard(
   token: string,
   leaderboardType: LeaderboardType,
-  classFilter: PlayerClass | "all" = "all",
+  classFilter: PlayerStatTree | "all" = "all",
   limit = 50
 ): Promise<LeaderboardResponse> {
   const params = new URLSearchParams({

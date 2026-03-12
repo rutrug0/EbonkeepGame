@@ -36,6 +36,8 @@ model PlayerProfile {
   id               String            @id @default(cuid())
   accountId        String
   class            String
+  portraitId       String            @default("portrait_01")
+  backgroundId     String            @default("bg_01")
   preferredLocale  String            @default("en")
   level            Int               @default(1)
   gearScore        Int               @default(0)

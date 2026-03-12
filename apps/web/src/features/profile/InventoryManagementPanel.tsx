@@ -56,6 +56,9 @@ export type InventoryManagementPanelProps = {
   ) => ReactElement;
   onShowPreviousPortrait: () => void;
   onShowNextPortrait: () => void;
+  activeBackgroundPath: string | null;
+  onShowPreviousBackground: () => void;
+  onShowNextBackground: () => void;
   onStartStatTraining: (stat: TrainableStatKey) => void;
   getTrainingCost: (baseValue: number) => number;
   getStatContributionLines: (
@@ -146,6 +149,15 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
             <div className="equipmentCenterColumn">
               <div className="characterVisual">
                 <div className="characterVisualFrame">
+                  {props.activeBackgroundPath ? (
+                    <img
+                      src={props.activeBackgroundPath}
+                      alt=""
+                      aria-hidden="true"
+                      className="characterVisualBackground"
+                      draggable={false}
+                    />
+                  ) : null}
                   {props.activeCharacterVisualPath ? (
                     <img
                       src={props.activeCharacterVisualPath}
@@ -171,6 +183,22 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                         className="characterCycleButton characterCycleButtonNext"
                         onClick={props.onShowNextPortrait}
                         aria-label={i18n.t("profile.showNextPortrait")}
+                      >
+                        <span aria-hidden="true">{">"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="characterBgCycleButton characterBgCycleButtonPrev"
+                        onClick={props.onShowPreviousBackground}
+                        aria-label={i18n.t("profile.showPreviousBackground")}
+                      >
+                        <span aria-hidden="true">{"<"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="characterBgCycleButton characterBgCycleButtonNext"
+                        onClick={props.onShowNextBackground}
+                        aria-label={i18n.t("profile.showNextBackground")}
                       >
                         <span aria-hidden="true">{">"}</span>
                       </button>

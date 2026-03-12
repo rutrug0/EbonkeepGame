@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import type { PlayerClass } from "@ebonkeep/shared/core";
 import { ensureStarterInventoryItems } from "../src/modules/inventory/starter-items.js";
 
 const prisma = new PrismaClient();
@@ -39,11 +40,13 @@ async function main(): Promise<void> {
     where: {
       id: "player_local_default"
     },
-    update: {},
+    update: { class: "juggernaut", portraitId: "str_01", backgroundId: "bg_01" },
     create: {
       id: "player_local_default",
       accountId: account.id,
-      class: "warrior",
+      class: "juggernaut",
+      portraitId: "str_01",
+      backgroundId: "bg_01",
       level: 1,
       gearScore: 0
     }
@@ -92,7 +95,7 @@ async function main(): Promise<void> {
     });
   }
 
-  await ensureStarterInventoryItems(prisma, profile.id, profile.class as "warrior" | "mage" | "ranger");
+  await ensureStarterInventoryItems(prisma, profile.id, profile.class as PlayerClass);
 
   console.log("Seed complete for local default guest player.");
 }

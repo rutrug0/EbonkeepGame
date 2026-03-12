@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { PlayerClass } from "@ebonkeep/shared";
+import type { EquipmentGroup } from "@ebonkeep/shared/core";
 
 type WeaponRarity = "common" | "uncommon" | "rare" | "epic";
 type AffixTier = "T1" | "T2" | "T3";
@@ -30,7 +30,7 @@ export type DevWeapon = {
   level: number;
   baseLevel: number;
   weaponFamily: WeaponFamilyKey;
-  allowedClass: PlayerClass;
+  allowedClass: EquipmentGroup;
   minRollLow: number;
   minRollHigh: number;
   maxRollLow: number;
@@ -47,7 +47,7 @@ type NameRow = {
   weaponName: string;
   weaponType: string;
   weaponFamily: WeaponFamilyKey;
-  allowedClass: PlayerClass;
+  allowedClass: EquipmentGroup;
   damageCategory: DamageCategory;
   flavorText: string;
   baseLevel: number;
@@ -93,7 +93,7 @@ type AffixFamily = {
 
 type WeaponDataset = {
   weaponFamily: WeaponFamilyKey;
-  allowedClass: PlayerClass;
+  allowedClass: EquipmentGroup;
   damageCategory: DamageCategory;
   namesFile: string;
   damageFile: string;
@@ -101,7 +101,7 @@ type WeaponDataset = {
 
 const MAX_LEVEL = 100;
 const WEAPON_FAMILIES: readonly WeaponFamilyKey[] = ["melee", "ranged", "arcane"];
-const PLAYER_CLASSES: readonly PlayerClass[] = ["warrior", "ranger", "mage"];
+const EQUIPMENT_GROUPS: readonly EquipmentGroup[] = ["warrior", "ranger", "mage"];
 const DAMAGE_CATEGORIES: readonly DamageCategory[] = ["strength", "agility", "intelligence"];
 const WEAPON_RARITIES: readonly WeaponRarity[] = ["common", "uncommon", "rare", "epic"];
 const DAMAGE_COEFFICIENTS_FILE = "warrior_weapon_damage_coefficients_v2.csv";
@@ -358,8 +358,8 @@ function isWeaponFamily(value: string): value is WeaponFamilyKey {
   return WEAPON_FAMILIES.includes(value as WeaponFamilyKey);
 }
 
-function isPlayerClass(value: string): value is PlayerClass {
-  return PLAYER_CLASSES.includes(value as PlayerClass);
+function isEquipmentGroup(value: string): value is EquipmentGroup {
+  return EQUIPMENT_GROUPS.includes(value as EquipmentGroup);
 }
 
 function isDamageCategory(value: string): value is DamageCategory {
@@ -465,7 +465,7 @@ function buildNameRows(): NameRow[] {
     const sourceRows = parseCsv(dataset.namesFile);
     for (const row of sourceRows) {
       const weaponFamily = isWeaponFamily(row.weapon_family) ? row.weapon_family : dataset.weaponFamily;
-      const allowedClass = isPlayerClass(row.allowed_class) ? row.allowed_class : dataset.allowedClass;
+      const allowedClass = isEquipmentGroup(row.allowed_class) ? row.allowed_class : dataset.allowedClass;
       const damageCategory = isDamageCategory(row.damage_category)
         ? row.damage_category
         : dataset.damageCategory;

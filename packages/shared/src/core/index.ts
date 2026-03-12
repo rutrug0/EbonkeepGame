@@ -1,8 +1,96 @@
 import { z } from "zod";
 
-export const playerClassSchema = z.enum(["warrior", "mage", "ranger"]);
+// Equipment group: used internally by item templates and the starter-item system.
+// Maps to armor/weapon archetypes: warrior→heavy/melee, ranger→light/ranged, mage→robe/arcane.
+export const equipmentGroupSchema = z.enum(["warrior", "mage", "ranger"]);
+export type EquipmentGroup = z.infer<typeof equipmentGroupSchema>;
+
+// Nine specialised player classes across three stat trees.
+export const playerClassSchema = z.enum([
+  // STR tree
+  "juggernaut",
+  "sentinel",
+  "reaver",
+  // DEX tree
+  "shade",
+  "arbalist",
+  "disciple",
+  // INT tree
+  "runecaster",
+  "chronomancer",
+  "arcanist"
+]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
 export const allPlayerClasses: readonly PlayerClass[] = playerClassSchema.options;
+
+export const playerStatTreeSchema = z.enum(["strength", "dexterity", "intelligence"]);
+export type PlayerStatTree = z.infer<typeof playerStatTreeSchema>;
+
+
+
+/** Returns the primary stat tree for a player class. */
+export function classToStatTree(playerClass: PlayerClass): PlayerStatTree {
+  if (playerClass === "juggernaut" || playerClass === "sentinel" || playerClass === "reaver") {
+    return "strength";
+  }
+  if (playerClass === "shade" || playerClass === "arbalist" || playerClass === "disciple") {
+    return "dexterity";
+  }
+  return "intelligence";
+}
+
+/**
+ * Returns the weapon/secondary stat for a player class.
+ * This determines which item templates they can equip (equipment group)
+ * and what stat powers their weapon damage.
+ *   STR weapons (warrior group) → Juggernaut, Arbalist, Runecaster
+ *   DEX weapons (ranger group)  → Sentinel, Disciple, Chronomancer
+ *   INT weapons (mage group)    → Reaver, Shade, Arcanist
+ */
+export function classToWeaponStat(playerClass: PlayerClass): PlayerStatTree {
+  switch (playerClass) {
+    case "juggernaut":
+    case "arbalist":
+    case "runecaster":
+      return "strength";
+    case "sentinel":
+    case "disciple":
+    case "chronomancer":
+      return "dexterity";
+    case "reaver":
+    case "shade":
+    case "arcanist":
+      return "intelligence";
+  }
+}
+
+/**
+ * Maps a player class to the legacy equipment group used by item templates.
+ * Derived from the weapon stat (secondary stat), not the primary archetype.
+ *   STR weapon → "warrior" (heavy armour / melee)
+ *   DEX weapon → "ranger"  (light armour / ranged)
+ *   INT weapon → "mage"    (robe armour / arcane)
+ */
+export function classToEquipmentGroup(playerClass: PlayerClass): EquipmentGroup {
+  const weaponStat = classToWeaponStat(playerClass);
+  if (weaponStat === "strength") return "warrior";
+  if (weaponStat === "dexterity") return "ranger";
+  return "mage";
+}
+
+/** All classes that belong to the given stat tree (primary archetype). */
+export const classesByStatTree: Record<PlayerStatTree, readonly PlayerClass[]> = {
+  strength: ["juggernaut", "sentinel", "reaver"],
+  dexterity: ["shade", "arbalist", "disciple"],
+  intelligence: ["runecaster", "chronomancer", "arcanist"]
+};
+
+/** All classes that use the given equipment group (by weapon/secondary stat). */
+export const classesByEquipmentGroup: Record<EquipmentGroup, readonly PlayerClass[]> = {
+  warrior: ["juggernaut", "arbalist", "runecaster"],
+  ranger:  ["sentinel", "disciple", "chronomancer"],
+  mage:    ["reaver", "shade", "arcanist"]
+};
 
 export const itemMajorCategorySchema = z.enum(["armor", "weapon", "jewelry", "vestige"]);
 export type ItemMajorCategory = z.infer<typeof itemMajorCategorySchema>;

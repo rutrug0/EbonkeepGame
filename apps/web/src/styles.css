@@ -282,6 +282,63 @@ button:focus-visible {
   animation: riseIn 260ms ease-out;
 }
 
+/* Auth form utility classes */
+.authLabel {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.authInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius);
+  color: var(--text-main);
+  transition: border-color 160ms ease;
+}
+
+.authInput:focus {
+  outline: none;
+  border-color: var(--accent-focus);
+}
+
+.authInput::placeholder {
+  color: var(--text-muted);
+}
+
+.authSubmit {
+  width: 100%;
+}
+
+.authBack {
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.authError {
+  padding: 9px 12px;
+  border-radius: var(--soft-radius);
+  background: rgba(151, 80, 74, 0.2);
+  border: 1px solid rgba(151, 80, 74, 0.4);
+  color: #e8a8a3;
+  font-size: 13px;
+}
+
+.authSuccess {
+  padding: 9px 12px;
+  border-radius: var(--soft-radius);
+  background: rgba(111, 141, 95, 0.2);
+  border: 1px solid rgba(111, 141, 95, 0.4);
+  color: #aad498;
+  font-size: 13px;
+}
+
 .landingPage {
   width: 100%;
   min-height: 100%;
@@ -427,18 +484,14 @@ button:focus-visible {
 }
 
 .playerCardCurrencyRow {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: repeat(4, auto);
   justify-content: center;
   align-items: center;
-  gap: 0.95rem;
+  justify-items: center;
+  gap: 0.76rem;
   width: 100%;
   padding: 0;
-}
-
-.playerCardCurrencyPair {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.22rem;
 }
 
 .playerCardCurrencyValue {
@@ -450,13 +503,12 @@ button:focus-visible {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
 }
 
-.ducatsAmount,
 .playerCardCurrencyValue.ducats {
-  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
+  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
 }
 
 .playerCardCurrencyValue.imperials {
-  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .playerCardCurrencyIcon {
@@ -466,7 +518,6 @@ button:focus-visible {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
 }
 
-.playerCardCurrencyIcon.ducatIcon,
 .playerCardCurrencyIcon.imperialIcon {
   width: 30px;
   height: 30px;
@@ -2182,6 +2233,13 @@ button:focus-visible {
   justify-self: center;
 }
 
+.equipmentEconomyBar {
+  margin-top: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
 .economyItem {
   border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
@@ -2217,18 +2275,6 @@ button:focus-visible {
   height: 100%;
   object-fit: contain;
   filter: drop-shadow(0 0 4px rgba(232, 199, 144, 0.16));
-}
-
-.ducatInlineAmount {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.22rem;
-  white-space: nowrap;
-}
-
-.ducatInlineIcon {
-  width: 1em;
-  height: 1em;
 }
 
 .ducatIcon {
@@ -2871,10 +2917,10 @@ button:focus-visible {
   border: 1px solid var(--border-soft);
   border-radius: var(--soft-radius);
   background: rgba(24, 31, 39, 0.72);
-  padding: 10px 10px 12px;
+  padding: 8px;
   display: grid;
   grid-template-rows: auto auto auto 1fr;
-  gap: 8px;
+  gap: 6px;
   align-content: start;
 }
 
@@ -2885,22 +2931,22 @@ button:focus-visible {
 }
 
 .statTrainingSymbol svg {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.1rem;
+  height: 1.1rem;
   fill: color-mix(in srgb, var(--accent-warn) 62%, var(--text-main) 38%);
 }
 
 .statTrainingLabel {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.88rem;
+  font-weight: 600;
   color: color-mix(in srgb, var(--text-main) 88%, var(--accent-warn) 12%);
   text-align: center;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
 .statTrainingValue {
-  font-size: 1.08rem;
+  font-size: 0.94rem;
   font-weight: 700;
   color: var(--text-main);
   text-align: center;
@@ -2908,7 +2954,7 @@ button:focus-visible {
 
 .itemBonusValue {
   margin-left: 4px;
-  font-size: 0.94rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: color-mix(in srgb, var(--accent-success) 75%, var(--text-main) 25%);
 }
@@ -2926,17 +2972,17 @@ button:focus-visible {
   justify-content: center;
   align-items: center;
   gap: 4px;
-  font-size: 0.96rem;
-  font-weight: 700;
+  font-size: 0.88rem;
+  font-weight: 600;
   color: color-mix(in srgb, var(--accent-warn) 74%, var(--text-main) 26%);
 }
 
 .statTrainButton {
-  width: 86px;
+  width: 72px;
   justify-self: center;
-  min-height: 40px;
-  padding: 6px 12px;
-  font-size: 0.9rem;
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 0.81rem;
   line-height: 1.1;
 }
 
@@ -2974,7 +3020,7 @@ button:focus-visible {
 }
 
 .statTrainingTimer {
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   color: var(--text-soft);
   text-align: center;
 }
@@ -3101,10 +3147,6 @@ button:focus-visible {
   transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.uiHoverTooltipTrigger {
-  position: relative;
-}
-
 .uiHoverTooltipBottom {
   top: calc(100% + 8px);
   bottom: auto;
@@ -3148,29 +3190,18 @@ button:focus-visible {
   display: inline-flex;
 }
 
-.inventoryControlWithTooltip:hover .uiHoverTooltip,
-.inventoryControlWithTooltip:focus-within .uiHoverTooltip,
-.uiHoverTooltipTrigger:hover .uiHoverTooltip,
-.uiHoverTooltipTrigger:focus-within .uiHoverTooltip {
+.inventoryControlWithTooltip:hover .uiHoverTooltip {
   opacity: 1;
   transform: translate(-50%, 0);
 }
 
-.inventoryControlWithTooltip:hover .uiHoverTooltipBottom,
-.inventoryControlWithTooltip:focus-within .uiHoverTooltipBottom,
-.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom,
-.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom {
+.inventoryControlWithTooltip:hover .uiHoverTooltipBottom {
   transform: translate(-50%, 0);
 }
 
 .inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
-.inventoryControlWithTooltip:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
 .inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
-.inventoryControlWithTooltip:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
-.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
-.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
-.uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
-.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
+.inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
   transform: translateY(0);
 }
 
@@ -3377,7 +3408,17 @@ button:focus-visible {
   place-items: center;
   align-content: center;
   gap: 0;
-  overflow: visible;
+  overflow: hidden;
+}
+
+.characterVisualBackground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .characterVisualImage {
@@ -3386,6 +3427,7 @@ button:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
   z-index: 1;
 }
 
@@ -3402,7 +3444,7 @@ button:focus-visible {
 
 .characterCycleButton {
   position: absolute;
-  top: 50%;
+  top: 33%;
   width: 30px;
   height: 30px;
   border: 1px solid color-mix(in srgb, var(--border-soft) 82%, transparent);
@@ -3413,12 +3455,45 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   transform: translateY(-50%);
-  z-index: 5;
+  z-index: 6;
   cursor: pointer;
   transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
+.characterBgCycleButton {
+  position: absolute;
+  top: 67%;
+  width: 26px;
+  height: 26px;
+  border: 1px solid color-mix(in srgb, var(--border-soft) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-solid) 80%, transparent);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  z-index: 6;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.characterBgCycleButton:hover {
+  transform: translateY(-50%);
+  border-color: color-mix(in srgb, var(--accent-focus) 60%, transparent);
+  color: var(--text-soft);
+}
+
+.characterBgCycleButtonPrev {
+  left: var(--space-2);
+}
+
+.characterBgCycleButtonNext {
+  right: var(--space-2);
+}
+
 .characterCycleButton:hover {
+  transform: translateY(-50%);
   border-color: color-mix(in srgb, var(--accent-focus) 72%, transparent);
   color: var(--text-high);
 }
@@ -3779,7 +3854,7 @@ button:focus-visible {
   font-size: 1.17rem;
   font-weight: 800;
   line-height: 1;
-  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
+  color: #f7e0a4;
   text-shadow:
     0 3px 6px rgba(2, 4, 8, 0.78),
     0 0 14px rgba(2, 4, 8, 0.4),
@@ -4008,7 +4083,7 @@ button:focus-visible {
   font-size: 1.26rem;
   font-weight: 800;
   line-height: 1;
-  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
+  color: #d9bb72;
 }
 
 .inventoryCardTopAsideNote {
@@ -4205,7 +4280,7 @@ button:focus-visible {
 .merchantTradePrice {
   font-size: 0.96rem;
   font-weight: 700;
-  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
+  color: #d9bb72;
 }
 
 .merchantTradePriceLarge {
@@ -4370,6 +4445,11 @@ button:focus-visible {
   --inventory-compact-card-width: 92px;
   --inventory-compact-card-height: 92px;
   grid-template-columns: repeat(auto-fit, var(--inventory-compact-card-width));
+}
+
+.appRoot.layout-compact .equipmentEconomyBar,
+.appRoot.layout-standard .equipmentEconomyBar {
+  grid-template-columns: 1fr;
 }
 
 .appRoot.layout-compact .statTrainingColumns {

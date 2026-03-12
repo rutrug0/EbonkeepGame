@@ -6,6 +6,7 @@ import {
   type CombatPlaybackEvent
 } from "@ebonkeep/shared/combat";
 import type { PlayerClass } from "@ebonkeep/shared/core";
+import { classToStatTree } from "@ebonkeep/shared/core";
 
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 
@@ -288,8 +289,7 @@ export function buildMockCombatEncounterState(args: {
   const { offer, slotIndex, playerName, playerClass, playerPower, playerAvatarPath, nowMs } = args;
   const preset = getEncounterPreset(offer.template.difficulty);
   const playerMaxHp = 100;
-  const playerCombatStat: "strength" | "dexterity" | "intelligence" =
-    playerClass === "mage" ? "intelligence" : playerClass === "ranger" ? "dexterity" : "strength";
+  const playerCombatStat: "strength" | "dexterity" | "intelligence" = classToStatTree(playerClass);
   const playerActor = {
     id: "player-warden",
     side: "player" as const,
