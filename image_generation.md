@@ -53,7 +53,7 @@ gaze slightly above camera line, not direct eye contact
 Male or female, disciplined sentinel archetype; upright posture implied through chest armor cut; medium plate gorget and shoulder guards over dark layered cloth; practical but polished appearance; calm, steady gaze; neat tied-back hair; subtle reach-forward stance energy in the shoulder line; restrained steel-blue accents; no weapons; waist-up portrait.
 
 Pose and Gaze Variation:
-three-quarter head angle (10-20 degrees) toward viewer left
+three-quarter head angle (5 degrees) toward viewer left
 eyes looking slightly off-camera left
 
 - Reaver
@@ -67,7 +67,7 @@ eyes looking past camera toward viewer right
 Male or female, shadow operative shade; dark fitted leather collar with layered neck wrap; hood pushed back revealing sharp observant face; subtle arcane-etched patterns along collar edge; cool analytical expression; dark hair partially obscuring one eye; asymmetric layered garment at the shoulders suggesting concealed complexity; restrained copper accents; no weapons; waist-up portrait.
 
 Pose and Gaze Variation:
-three-quarter head angle (10-20 degrees) toward viewer right
+three-quarter head angle (5 degrees) toward viewer right
 eyes looking slightly off-camera right
 
 - Arbalist
