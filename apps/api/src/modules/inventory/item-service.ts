@@ -1237,7 +1237,11 @@ function buildStatBonuses(
   const totals = scaleBaseStatBonuses(template, itemLevel);
   if (template.fixedDefenseProfile) {
     const row = FIXED_DEFENSE_LOOKUPS[template.fixedDefenseProfile.tableId].get(`${itemLevel}:${rarity}`);
-    const value = row?.[template.fixedDefenseProfile.rowSlot] ?? 0;
+    const rawValue = row?.[template.fixedDefenseProfile.rowSlot] ?? 0;
+    const value =
+      template.fixedDefenseProfile.tableId === "jewelry" && template.fixedDefenseProfile.rowSlot === "ring"
+        ? Math.floor(rawValue / 2)
+        : rawValue;
     addStatBonus(totals, template.fixedDefenseProfile.statKey, value);
   }
   if (prefix) {

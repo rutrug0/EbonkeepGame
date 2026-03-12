@@ -42,7 +42,8 @@ export class AuctionItemGeneratorService {
         itemLevel
       });
 
-      classCounts.set(template.allowedClass, (classCounts.get(template.allowedClass) ?? 0) + 1);
+      const classCountKey = template.allowedClass === "all" ? preferredClass : template.allowedClass;
+      classCounts.set(classCountKey, (classCounts.get(classCountKey) ?? 0) + 1);
       items.push({
         itemLevel: itemData.levelRequirement,
         itemRarity: itemData.rarity,
