@@ -93,6 +93,7 @@ type MissionCombatEndedEvent = {
 };
 
 type MissionCombatEvent = MissionCombatStartedEvent | MissionActionEvent | MissionCombatEndedEvent;
+type MissionAttackType = "melee" | "ranged" | "magic";
 
 // ── Active mission state ─────────────────────────────────────────────────────
 
@@ -186,6 +187,62 @@ const CLASS_COMBAT_STAT: Record<MemberClass, "strength" | "dexterity" | "intelli
   shade:        "intelligence", // Twin Daggers → INT
   arcanist:     "intelligence", // Grimoire → INT
 };
+
+function getMissionAttackType(combatStat: MissionBattleActor["combatStat"]): MissionAttackType {
+  if (combatStat === "dexterity") {
+    return "ranged";
+  }
+  if (combatStat === "intelligence") {
+    return "magic";
+  }
+  return "melee";
+}
+
+function getMissionDefenseProfile(target: MissionBattleActor): {
+  armor: number;
+  missileResistance: number;
+  spellShield: number;
+  physicalDefense: number;
+  magicDefense: number;
+} {
+  if (target.combatStat === "dexterity") {
+    return {
+      armor: 0,
+      missileResistance: Math.round(target.power * 0.05),
+      spellShield: 0,
+      physicalDefense: Math.round(target.power * 0.025),
+      magicDefense: 0
+    };
+  }
+  if (target.combatStat === "intelligence") {
+    return {
+      armor: 0,
+      missileResistance: 0,
+      spellShield: Math.round(target.power * 0.05),
+      physicalDefense: 0,
+      magicDefense: Math.round(target.power * 0.025)
+    };
+  }
+  return {
+    armor: Math.round(target.power * 0.05),
+    missileResistance: 0,
+    spellShield: 0,
+    physicalDefense: Math.round(target.power * 0.03),
+    magicDefense: 0
+  };
+}
+
+function mitigateMissionDamage(rawDamage: number, attackType: MissionAttackType, target: MissionBattleActor): number {
+  const defenses = getMissionDefenseProfile(target);
+  const reduction =
+    attackType === "melee"
+      ? defenses.armor + defenses.physicalDefense
+      : attackType === "ranged"
+        ? defenses.missileResistance + defenses.physicalDefense
+        : defenses.spellShield + defenses.magicDefense;
+
+  return Math.max(0, rawDamage - reduction);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mission templates  (2 easy · 2 medium · 2 hard)
@@ -417,12 +474,13 @@ function generateMissionTimeline(
         direction = "right-to-left";
       }
 
-      const dmg = Math.max(1, Math.round(actor.power * (0.10 + rng() * 0.08)));
+      const targetActor = actorMap.get(targetId)!;
+      const rawDamage = Math.max(1, Math.round(actor.power * (0.10 + rng() * 0.08)));
+      const dmg = mitigateMissionDamage(rawDamage, getMissionAttackType(actor.combatStat), targetActor);
       const prevHp = hp[targetId];
       hp[targetId] = Math.max(0, prevHp - dmg);
       globalTurn++;
 
-      const targetActor = actorMap.get(targetId)!;
       const killed = prevHp > 0 && hp[targetId] === 0;
       const logLine = killed
         ? pickKillLine(rng, actor.name, targetActor.name)

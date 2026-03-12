@@ -13,6 +13,7 @@ These instructions apply to `tools/**`.
 - XP requirements: `tools/generate_experience_requirements_table.ps1`
 - Training + ducat rewards: `tools/generate_training_and_reward_tables.ps1`
 - Weapon tables: `tools/generate_warrior_weapon_tables.ps1`
+- Defense tables: `tools/generate_defense_scaling_tables.ps1`
 - Armor/jewelry validation: `tools/generate_armor_jewelry_name_tables.ps1`
 - Art generation: `tools/generate_item_art.py`
 - Art manifest only: `tools/build_item_art_manifest.py`

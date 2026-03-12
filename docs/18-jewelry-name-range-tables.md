@@ -7,7 +7,9 @@ This phase includes:
 - ring name/range table
 - necklace name/range table
 
-This phase does not include jewelry stat scaling values.
+Jewelry stat scaling now lives in:
+- `docs/data/jewelry_magic_defense_ilvl_scaling_v1.csv`
+- generator: `tools/generate_defense_scaling_tables.ps1`
 
 ## Source Files
 - Curated ring table: `docs/data/jewelry_ring_name_ranges_v1.csv`
@@ -88,6 +90,6 @@ Example progression:
 - Validate:
   - `powershell -ExecutionPolicy Bypass -File .\tools\generate_armor_jewelry_name_tables.ps1`
 
-## Deferred
-- Jewelry primary/derived stat scaling values are intentionally deferred.
-- Jewelry ilvl/stat roll scaling tables will be defined in a later phase.
+## Defense Scaling Link
+- These tables define jewelry identity, naming, flavor text, and drop windows.
+- Fixed `magicDefense` by item level and rarity is defined separately in the jewelry defense ilvl table.

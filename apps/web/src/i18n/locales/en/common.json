@@ -204,6 +204,8 @@
     "armor": "Armor",
     "spellShield": "Spell Shield",
     "missileResistance": "Missile Resistance",
+    "physicalDefense": "P.Def",
+    "magicDefense": "M.Def",
     "maxHitpoints": "Max Hitpoints",
     "critChance": "Crit Chance",
     "critDamage": "Crit Damage",

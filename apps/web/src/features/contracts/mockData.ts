@@ -5,7 +5,7 @@ import {
   type CombatPlaybackEncounter,
   type CombatPlaybackEvent
 } from "@ebonkeep/shared/combat";
-import type { PlayerClass } from "@ebonkeep/shared/core";
+import type { PlayerClass, PlayerStatBlock } from "@ebonkeep/shared/core";
 import { classToStatTree } from "@ebonkeep/shared/core";
 
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
@@ -83,6 +83,33 @@ export const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 760;
 export const COMBAT_PLAYBACK_BEAT_MS = 1470;
 export const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
 export const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
+
+type MockAttackType = "melee" | "ranged" | "magic";
+
+function attackTypeFromCombatStat(combatStat: "strength" | "dexterity" | "intelligence"): MockAttackType {
+  if (combatStat === "dexterity") {
+    return "ranged";
+  }
+  if (combatStat === "intelligence") {
+    return "magic";
+  }
+  return "melee";
+}
+
+function mitigateIncomingDamage(
+  rawDamage: number,
+  attackType: MockAttackType,
+  targetStats: Pick<PlayerStatBlock, "armor" | "missileResistance" | "spellShield" | "physicalDefense" | "magicDefense">
+): number {
+  const reduction =
+    attackType === "melee"
+      ? targetStats.armor + targetStats.physicalDefense
+      : attackType === "ranged"
+        ? targetStats.missileResistance + targetStats.physicalDefense
+        : targetStats.spellShield + targetStats.magicDefense;
+
+  return Math.max(0, rawDamage - reduction);
+}
 
 const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
@@ -283,10 +310,11 @@ export function buildMockCombatEncounterState(args: {
   playerName: string;
   playerClass: PlayerClass;
   playerPower: number;
+  playerStats: PlayerStatBlock;
   playerAvatarPath?: string | null;
   nowMs: number;
 }): ActiveContractEncounterState {
-  const { offer, slotIndex, playerName, playerClass, playerPower, playerAvatarPath, nowMs } = args;
+  const { offer, slotIndex, playerName, playerClass, playerPower, playerStats, playerAvatarPath, nowMs } = args;
   const preset = getEncounterPreset(offer.template.difficulty);
   const playerMaxHp = 100;
   const playerCombatStat: "strength" | "dexterity" | "intelligence" = classToStatTree(playerClass);
@@ -348,10 +376,26 @@ export function buildMockCombatEncounterState(args: {
       actorId: enemyActor.id,
       targetId: playerActor.id,
       actionType: "basic_attack",
-      damage: 9,
-      targetHpAfter: Math.max(0, playerActor.maxHp - 9),
+      damage: mitigateIncomingDamage(
+        Math.max(10, Math.round(enemyActor.power * 0.12)),
+        attackTypeFromCombatStat(enemyActor.combatStat),
+        playerStats
+      ),
+      targetHpAfter: Math.max(
+        0,
+        playerActor.maxHp -
+          mitigateIncomingDamage(
+            Math.max(10, Math.round(enemyActor.power * 0.12)),
+            attackTypeFromCombatStat(enemyActor.combatStat),
+            playerStats
+          )
+      ),
       attackerLungeDirection: "right-to-left",
-      logLine: `${enemyActor.name} clips ${playerActor.name} for 9 damage.`
+      logLine: `${enemyActor.name} clips ${playerActor.name} for ${mitigateIncomingDamage(
+        Math.max(10, Math.round(enemyActor.power * 0.12)),
+        attackTypeFromCombatStat(enemyActor.combatStat),
+        playerStats
+      )} damage.`
     },
     {
       type: "CombatPlaybackActionResolved",
@@ -374,10 +418,31 @@ export function buildMockCombatEncounterState(args: {
       actorId: enemyActor.id,
       targetId: playerActor.id,
       actionType: "basic_attack",
-      damage: 8,
-      targetHpAfter: Math.max(0, playerActor.maxHp - 17),
+      damage: mitigateIncomingDamage(
+        Math.max(9, Math.round(enemyActor.power * 0.1)),
+        attackTypeFromCombatStat(enemyActor.combatStat),
+        playerStats
+      ),
+      targetHpAfter: Math.max(
+        0,
+        playerActor.maxHp -
+          mitigateIncomingDamage(
+            Math.max(10, Math.round(enemyActor.power * 0.12)),
+            attackTypeFromCombatStat(enemyActor.combatStat),
+            playerStats
+          ) -
+          mitigateIncomingDamage(
+            Math.max(9, Math.round(enemyActor.power * 0.1)),
+            attackTypeFromCombatStat(enemyActor.combatStat),
+            playerStats
+          )
+      ),
       attackerLungeDirection: "right-to-left",
-      logLine: `${enemyActor.name} catches ${playerActor.name} for 8 damage.`
+      logLine: `${enemyActor.name} catches ${playerActor.name} for ${mitigateIncomingDamage(
+        Math.max(9, Math.round(enemyActor.power * 0.1)),
+        attackTypeFromCombatStat(enemyActor.combatStat),
+        playerStats
+      )} damage.`
     },
     {
       type: "CombatPlaybackActionResolved",

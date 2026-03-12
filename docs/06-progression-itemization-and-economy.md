@@ -81,9 +81,18 @@ Guardrails:
 * chance to extra attack
 - From vitality:
 * Max hitpoints
+- Equipment-only defensive stats:
+* Physical defense
+* Magic defense
 - Global uncapped main-stat damage rule:
 * flat bonus damage = main offensive stat * 0.10
 * strength for melee, intelligence for spell, dexterity for ranged
+
+Combat mitigation model:
+- melee received damage = `melee damage - armor - physicalDefense`
+- ranged received damage = `ranged damage - missileResistance - physicalDefense`
+- magic received damage = `magic damage - spellShield - magicDefense`
+- final dealt damage is clamped to `0`
 
 
 ## Inventory and Equipment
@@ -101,6 +110,12 @@ Guardrails:
     - ranged: sling, bow
   - Jewelry
   - Vestiges
+- Defense contribution rules:
+  - armor contributes only `physicalDefense`
+  - jewelry contributes only `magicDefense`
+  - these values are fixed by item level and rarity from dedicated ilvl scaling tables
+  - these values are rounded to whole numbers
+  - they do not roll a min/max range per item
 - Item fields:
   - item type
   - level requirement (will be same as item level)
@@ -118,6 +133,30 @@ Guardrails:
 - Suffix pool rolls are uniform: each eligible suffix has equal chance.
 - Affix scaling key tables (level 1-100) are defined in [11-item-affix-scaling-table.md](./11-item-affix-scaling-table.md).
 - Backend-ready generated table lives at `docs/data/affix_scaling_level_1_100.csv`.
+- Defense ilvl tables:
+  - `docs/data/heavy_armor_physical_defense_ilvl_scaling_v1.csv`
+  - `docs/data/light_armor_physical_defense_ilvl_scaling_v1.csv`
+  - `docs/data/robe_armor_physical_defense_ilvl_scaling_v1.csv`
+  - `docs/data/jewelry_magic_defense_ilvl_scaling_v1.csv`
+
+Defense scaling targets:
+- heavy armor full set total: `30%` of same-ilvl average actual attack roll
+- light armor full set total: `20%`
+- robe full set total: `10%`
+- jewelry full set total: `20%` of same-ilvl average actual magic attack roll
+
+Armor slot weights:
+- chest `20`
+- legs `20`
+- helmet `15`
+- shoulders `15`
+- gloves `10`
+- belt `10`
+- boots `10`
+
+Jewelry slot weights:
+- necklace `50`
+- each ring `25`
 
 ### Item Power Score Formula (Level 1-100)
 - Goal: a single quick-glance number should track real weapon strength from item level, base-level range identity, rarity, and affix/suffix quality.

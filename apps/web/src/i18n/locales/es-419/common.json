@@ -299,7 +299,9 @@
     "showPreviousPortrait": "Mostrar retrato anterior",
     "showNextPortrait": "Mostrar siguiente retrato",
     "showPreviousBackground": "Mostrar fondo anterior",
-    "showNextBackground": "Mostrar siguiente fondo"
+    "showNextBackground": "Mostrar siguiente fondo",
+    "physicalDefense": "Defensa Física",
+    "magicDefense": "Defensa Mágica"
   },
   "player": {
     "classUnknown": "Clase desconocida",

@@ -8,7 +8,11 @@ This phase includes:
 - light armor name/range table
 - robe armor name/range table
 
-This phase does not include armor stat scaling values.
+Armor stat scaling now lives in:
+- `docs/data/heavy_armor_physical_defense_ilvl_scaling_v1.csv`
+- `docs/data/light_armor_physical_defense_ilvl_scaling_v1.csv`
+- `docs/data/robe_armor_physical_defense_ilvl_scaling_v1.csv`
+- generator: `tools/generate_defense_scaling_tables.ps1`
 
 ## Source Files
 - Curated heavy table: `docs/data/heavy_armor_name_ranges_v1.csv`
@@ -114,6 +118,6 @@ Example progression for one slot family (e.g. `belt`):
 - Validation command:
   - `powershell -ExecutionPolicy Bypass -File .\tools\generate_armor_jewelry_name_tables.ps1`
 
-## Deferred
-- Armor primary/derived stat scaling values are intentionally deferred.
-- Armor ilvl/stat roll scaling tables will be defined in a later phase.
+## Defense Scaling Link
+- These tables define identity, naming, flavor text, and drop windows.
+- Fixed `physicalDefense` by item level and rarity is defined separately in the dedicated armor defense ilvl tables.

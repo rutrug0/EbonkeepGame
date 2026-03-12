@@ -9,22 +9,24 @@ import {
   classToEquipmentGroup,
   equipmentGroupSchema,
   equipmentSlotIdSchema,
-  inventoryItemSchema,
-  itemModifierSchema,
   playerClassSchema,
   weaponFamilySchema,
   type ArmorArchetype,
   type EquipmentGroup,
   type EquipmentSlotId,
-  type InventoryItem,
-  type ItemModifier,
-  type ItemRarity,
   type PlayerClass,
   type PlayerStatBonuses,
   type PlayerStatKey,
-  type WeaponDamageRoll,
   type WeaponFamily
-} from "@ebonkeep/shared";
+} from "@ebonkeep/shared/core";
+import {
+  inventoryItemSchema,
+  itemModifierSchema,
+  type InventoryItem,
+  type ItemModifier,
+  type ItemRarity,
+  type WeaponDamageRoll
+} from "@ebonkeep/shared/inventory";
 
 const legacyStoredItemSchema = z.object({
   id: z.string().optional(),
@@ -69,7 +71,7 @@ type ItemTemplate = {
   baseLevel: number;
   dropMinLevel: number;
   dropMaxLevel: number;
-  allowedClass: EquipmentGroup;
+  allowedClass: EquipmentGroup | "all";
   sequence: number;
   allowedSlotIds: readonly EquipmentSlotId[];
   archetype: InventoryItem["archetype"];
@@ -77,11 +79,17 @@ type ItemTemplate = {
   statGrowthPerLevel?: Partial<Record<PlayerStatKey, number>>;
   basePower: number;
   powerPerLevel?: number;
+  weaponDamageTableId?: "meleeWeapon" | "rangedWeapon" | "arcaneWeapon";
   weaponDamageProfile?: {
     minRollRange: readonly [number, number];
     maxRollRange: readonly [number, number];
     minGrowthPerLevel?: number;
     maxGrowthPerLevel?: number;
+  };
+  fixedDefenseProfile?: {
+    tableId: "heavyArmor" | "lightArmor" | "robeArmor" | "jewelry";
+    rowSlot: "helmet" | "upperArmor" | "belt" | "pauldrons" | "gloves" | "lowerArmor" | "boots" | "necklace" | "ring";
+    statKey: "physicalDefense" | "magicDefense";
   };
   eligibleAffixKeys: readonly PlayerStatKey[];
 };
@@ -103,6 +111,14 @@ type WeaponProfile = ArmorProfile & {
   weaponDamageProfile: NonNullable<ItemTemplate["weaponDamageProfile"]>;
 };
 
+type JewelryProfile = Pick<
+  ItemTemplate,
+  "baseStatBonuses" | "statGrowthPerLevel" | "basePower" | "powerPerLevel" | "eligibleAffixKeys"
+> & {
+  allowedSlotIds: readonly EquipmentSlotId[];
+  category: string;
+};
+
 type ArmorCsvRow = {
   sequence: number;
   itemName: string;
@@ -122,6 +138,17 @@ type WeaponCsvRow = {
   weaponType: string;
   weaponFamily: WeaponFamily;
   allowedClass: EquipmentGroup;
+  flavorText: string;
+  baseLevel: number;
+  dropMinLevel: number;
+  dropMaxLevel: number;
+};
+
+type JewelryCsvRow = {
+  sequence: number;
+  itemName: string;
+  itemType: string;
+  slotFamily: "ring" | "necklace";
   flavorText: string;
   baseLevel: number;
   dropMinLevel: number;
@@ -151,9 +178,18 @@ const DATA_FILES = {
   heavyArmor: "heavy_armor_name_ranges_v1.csv",
   lightArmor: "light_armor_name_ranges_v1.csv",
   robeArmor: "robe_armor_name_ranges_v1.csv",
+  ringJewelry: "jewelry_ring_name_ranges_v1.csv",
+  necklaceJewelry: "jewelry_necklace_name_ranges_v1.csv",
   meleeWeapons: "warrior_melee_weapon_name_ranges_v4.csv",
   rangedWeapons: "ranger_ranged_weapon_name_ranges_v3.csv",
-  arcaneWeapons: "mage_arcane_weapon_name_ranges_v3.csv"
+  arcaneWeapons: "mage_arcane_weapon_name_ranges_v3.csv",
+  meleeWeaponScaling: "warrior_melee_weapon_ilvl_scaling_v2.csv",
+  rangedWeaponScaling: "ranger_ranged_weapon_ilvl_scaling_v1.csv",
+  arcaneWeaponScaling: "mage_arcane_weapon_ilvl_scaling_v1.csv",
+  heavyArmorDefense: "heavy_armor_physical_defense_ilvl_scaling_v1.csv",
+  lightArmorDefense: "light_armor_physical_defense_ilvl_scaling_v1.csv",
+  robeArmorDefense: "robe_armor_physical_defense_ilvl_scaling_v1.csv",
+  jewelryDefense: "jewelry_magic_defense_ilvl_scaling_v1.csv"
 } as const;
 
 const TIER_ORDER = ["T1", "T2", "T3"] as const;
@@ -185,7 +221,7 @@ function basisPointsTierValues(base: number, perLevel: number, itemLevel: number
   return [scaledBase, scaledBase + 20, scaledBase + 50];
 }
 
-const ITEM_AFFIX_DEFINITIONS: Record<PlayerStatKey, ItemAffixDefinition> = {
+const ITEM_AFFIX_DEFINITIONS: Partial<Record<PlayerStatKey, ItemAffixDefinition>> = {
   strength: {
     statKey: "strength",
     unit: "flat",
@@ -456,6 +492,25 @@ const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, Arm
   }
 };
 
+const JEWELRY_PROFILES: Record<JewelryCsvRow["slotFamily"], JewelryProfile> = {
+  necklace: {
+    allowedSlotIds: ["necklace"],
+    category: "Necklace",
+    baseStatBonuses: {},
+    basePower: 5,
+    powerPerLevel: 2,
+    eligibleAffixKeys: ["vitality", "luck", "maxHitpoints", "critChance"]
+  },
+  ring: {
+    allowedSlotIds: ["ringLeft", "ringRight"],
+    category: "Ring",
+    baseStatBonuses: {},
+    basePower: 4,
+    powerPerLevel: 2,
+    eligibleAffixKeys: ["initiative", "luck", "critChance", "critMultiplier"]
+  }
+};
+
 const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
   sword: {
     baseStatBonuses: { strength: 2, damage: 1, accuracy: 1 },
@@ -673,6 +728,27 @@ function buildArmorRows(fileName: string): ArmorCsvRow[] {
     .filter((row): row is ArmorCsvRow => row !== null);
 }
 
+function buildJewelryRows(fileName: string): JewelryCsvRow[] {
+  return parseCsv(fileName)
+    .map((row) => {
+      if (row.slot_family !== "ring" && row.slot_family !== "necklace") {
+        return null;
+      }
+
+      return {
+        sequence: toInt(row.sequence),
+        itemName: row.item_name,
+        itemType: row.item_type,
+        slotFamily: row.slot_family,
+        flavorText: row.flavor_text,
+        baseLevel: toInt(row.base_level),
+        dropMinLevel: toInt(row.drop_min_level),
+        dropMaxLevel: toInt(row.drop_max_level_capped)
+      } satisfies JewelryCsvRow;
+    })
+    .filter((row): row is JewelryCsvRow => row !== null);
+}
+
 function buildWeaponRows(fileName: string): WeaponCsvRow[] {
   return parseCsv(fileName)
     .map((row) => {
@@ -730,6 +806,59 @@ function buildArmorTemplate(row: ArmorCsvRow): ItemTemplate | null {
     statGrowthPerLevel: profile.statGrowthPerLevel,
     basePower: profile.basePower,
     powerPerLevel: profile.powerPerLevel,
+    fixedDefenseProfile: {
+      tableId:
+        row.archetype === "heavy"
+          ? "heavyArmor"
+          : row.archetype === "light"
+            ? "lightArmor"
+            : "robeArmor",
+      rowSlot:
+        slotId === "upperArmor" ||
+        slotId === "lowerArmor" ||
+        slotId === "helmet" ||
+        slotId === "pauldrons" ||
+        slotId === "gloves" ||
+        slotId === "belt" ||
+        slotId === "boots"
+          ? slotId
+          : "helmet",
+      statKey: "physicalDefense"
+    },
+    eligibleAffixKeys: profile.eligibleAffixKeys
+  };
+}
+
+function buildJewelryTemplate(row: JewelryCsvRow): ItemTemplate {
+  const profile = JEWELRY_PROFILES[row.slotFamily];
+  const slug = normalizeIdentifier(row.itemName);
+
+  return {
+    id: `all_${slug}`,
+    itemCode: `all_${slug}`,
+    itemName: row.itemName,
+    category: profile.category,
+    description: row.flavorText,
+    rarity: "common",
+    levelRequirement: Math.max(1, row.baseLevel),
+    baseLevel: row.baseLevel,
+    dropMinLevel: row.dropMinLevel,
+    dropMaxLevel: row.dropMaxLevel,
+    allowedClass: "all",
+    sequence: row.sequence,
+    allowedSlotIds: profile.allowedSlotIds,
+    archetype: {
+      majorCategory: "jewelry"
+    },
+    baseStatBonuses: profile.baseStatBonuses,
+    statGrowthPerLevel: profile.statGrowthPerLevel,
+    basePower: profile.basePower,
+    powerPerLevel: profile.powerPerLevel,
+    fixedDefenseProfile: {
+      tableId: "jewelry",
+      rowSlot: row.slotFamily,
+      statKey: "magicDefense"
+    },
     eligibleAffixKeys: profile.eligibleAffixKeys
   };
 }
@@ -759,6 +888,12 @@ function buildWeaponTemplate(row: WeaponCsvRow): ItemTemplate {
     statGrowthPerLevel: profile.statGrowthPerLevel,
     basePower: profile.basePower,
     powerPerLevel: profile.powerPerLevel,
+    weaponDamageTableId:
+      row.weaponFamily === "sword" || row.weaponFamily === "axe"
+        ? "meleeWeapon"
+        : row.weaponFamily === "sling" || row.weaponFamily === "bow"
+          ? "rangedWeapon"
+          : "arcaneWeapon",
     weaponDamageProfile: profile.weaponDamageProfile,
     eligibleAffixKeys: profile.eligibleAffixKeys
   };
@@ -770,6 +905,10 @@ function buildItemTemplates(): ItemTemplate[] {
     ...buildArmorRows(DATA_FILES.lightArmor),
     ...buildArmorRows(DATA_FILES.robeArmor)
   ];
+  const jewelryRows = [
+    ...buildJewelryRows(DATA_FILES.ringJewelry),
+    ...buildJewelryRows(DATA_FILES.necklaceJewelry)
+  ];
   const weaponRows = [
     ...buildWeaponRows(DATA_FILES.meleeWeapons),
     ...buildWeaponRows(DATA_FILES.rangedWeapons),
@@ -778,6 +917,7 @@ function buildItemTemplates(): ItemTemplate[] {
 
   return [
     ...armorRows.map((row) => buildArmorTemplate(row)).filter((template): template is ItemTemplate => template !== null),
+    ...jewelryRows.map((row) => buildJewelryTemplate(row)),
     ...weaponRows.map((row) => buildWeaponTemplate(row))
   ].sort((left, right) => {
     if (left.allowedClass !== right.allowedClass) {
@@ -798,6 +938,79 @@ function buildItemTemplates(): ItemTemplate[] {
 
 const ITEM_TEMPLATES: readonly ItemTemplate[] = buildItemTemplates();
 const ITEM_TEMPLATE_BY_ID = new Map(ITEM_TEMPLATES.map((template) => [template.id, template] as const));
+
+type FixedDefenseRow = Partial<Record<NonNullable<ItemTemplate["fixedDefenseProfile"]>["rowSlot"], number>>;
+type WeaponDamageLookupRow = {
+  minRollRange: [number, number];
+  maxRollRange: [number, number];
+};
+
+function buildFixedDefenseLookup(
+  fileName: string,
+  slots: readonly NonNullable<ItemTemplate["fixedDefenseProfile"]>["rowSlot"][]
+): Map<string, FixedDefenseRow> {
+  const lookup = new Map<string, FixedDefenseRow>();
+  for (const row of parseCsv(fileName)) {
+    const rarity = row.rarity as ItemRarity;
+    const values: FixedDefenseRow = {};
+    for (const slot of slots) {
+      values[slot] = toInt(row[slot]);
+    }
+    lookup.set(`${toInt(row.ilvl)}:${rarity}`, values);
+  }
+  return lookup;
+}
+
+function buildWeaponDamageLookup(fileName: string): Map<string, WeaponDamageLookupRow> {
+  const lookup = new Map<string, WeaponDamageLookupRow>();
+
+  for (const row of parseCsv(fileName)) {
+    const rarity = row.rarity as ItemRarity;
+    lookup.set(`${toInt(row.ilvl)}:${rarity}`, {
+      minRollRange: [toInt(row.item_roll_min_low), toInt(row.item_roll_min_high)],
+      maxRollRange: [toInt(row.item_roll_max_low), toInt(row.item_roll_max_high)]
+    });
+  }
+
+  return lookup;
+}
+
+const FIXED_DEFENSE_LOOKUPS = {
+  heavyArmor: buildFixedDefenseLookup(DATA_FILES.heavyArmorDefense, [
+    "helmet",
+    "upperArmor",
+    "belt",
+    "pauldrons",
+    "gloves",
+    "lowerArmor",
+    "boots"
+  ]),
+  lightArmor: buildFixedDefenseLookup(DATA_FILES.lightArmorDefense, [
+    "helmet",
+    "upperArmor",
+    "belt",
+    "pauldrons",
+    "gloves",
+    "lowerArmor",
+    "boots"
+  ]),
+  robeArmor: buildFixedDefenseLookup(DATA_FILES.robeArmorDefense, [
+    "helmet",
+    "upperArmor",
+    "belt",
+    "pauldrons",
+    "gloves",
+    "lowerArmor",
+    "boots"
+  ]),
+  jewelry: buildFixedDefenseLookup(DATA_FILES.jewelryDefense, ["necklace", "ring"])
+} as const;
+
+const WEAPON_DAMAGE_LOOKUPS = {
+  meleeWeapon: buildWeaponDamageLookup(DATA_FILES.meleeWeaponScaling),
+  rangedWeapon: buildWeaponDamageLookup(DATA_FILES.rangedWeaponScaling),
+  arcaneWeapon: buildWeaponDamageLookup(DATA_FILES.arcaneWeaponScaling)
+} as const;
 
 function pickStarterTemplateId(playerClass: PlayerClass, predicate: (template: ItemTemplate) => boolean): string {
   // Item templates still use the legacy equipment-group keys ("warrior"|"mage"|"ranger").
@@ -892,6 +1105,25 @@ function rollWeaponDamage(
   deterministic: boolean,
   itemLevel: number
 ): WeaponDamageRoll | undefined {
+  const lookupRow = template.weaponDamageTableId
+    ? WEAPON_DAMAGE_LOOKUPS[template.weaponDamageTableId].get(`${itemLevel}:${rarity}`)
+    : undefined;
+
+  if (lookupRow) {
+    const [minLow, minHigh] = lookupRow.minRollRange;
+    const [maxLow, maxHigh] = lookupRow.maxRollRange;
+    const rolledMin = deterministic ? minLow : randomInt(minLow, minHigh);
+    const rolledMax = deterministic ? maxLow : randomInt(Math.max(maxLow, rolledMin), maxHigh);
+
+    return {
+      minRollRange: [minLow, minHigh],
+      rolledMin,
+      rolledMax,
+      maxRollRange: [maxLow, maxHigh],
+      averageDamage: (rolledMin + rolledMax) / 2
+    };
+  }
+
   if (!template.weaponDamageProfile) {
     return undefined;
   }
@@ -998,10 +1230,20 @@ function buildPower(
 function buildStatBonuses(
   template: ItemTemplate,
   itemLevel: number,
+  rarity: ItemRarity,
   prefix?: ItemModifier,
   affix?: ItemModifier
 ): PlayerStatBonuses {
   const totals = scaleBaseStatBonuses(template, itemLevel);
+  if (template.fixedDefenseProfile) {
+    const row = FIXED_DEFENSE_LOOKUPS[template.fixedDefenseProfile.tableId].get(`${itemLevel}:${rarity}`);
+    const rawValue = row?.[template.fixedDefenseProfile.rowSlot] ?? 0;
+    const value =
+      template.fixedDefenseProfile.tableId === "jewelry" && template.fixedDefenseProfile.rowSlot === "ring"
+        ? Math.floor(rawValue / 2)
+        : rawValue;
+    addStatBonus(totals, template.fixedDefenseProfile.statKey, value);
+  }
   if (prefix) {
     addStatBonus(totals, prefix.statKey, prefix.value);
   }
@@ -1071,7 +1313,7 @@ export function rollInventoryItem(args: {
     baseLevel: itemLevel,
     power: buildPower(template, rarity, itemLevel, modifiers.prefix, modifiers.affix),
     archetype: template.archetype,
-    statBonuses: buildStatBonuses(template, itemLevel, modifiers.prefix, modifiers.affix),
+    statBonuses: buildStatBonuses(template, itemLevel, rarity, modifiers.prefix, modifiers.affix),
     damageRoll: rollWeaponDamage(template, rarity, deterministic, itemLevel),
     prefix: modifiers.prefix,
     affix: modifiers.affix,

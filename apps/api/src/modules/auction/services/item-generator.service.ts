@@ -42,7 +42,8 @@ export class AuctionItemGeneratorService {
         itemLevel
       });
 
-      classCounts.set(template.allowedClass, (classCounts.get(template.allowedClass) ?? 0) + 1);
+      const classCountKey = template.allowedClass === "all" ? preferredClass : template.allowedClass;
+      classCounts.set(classCountKey, (classCounts.get(classCountKey) ?? 0) + 1);
       items.push({
         itemLevel: itemData.levelRequirement,
         itemRarity: itemData.rarity,
@@ -130,7 +131,9 @@ export class AuctionItemGeneratorService {
   }
 
   private pickTemplateForClass<T extends { allowedClass: string }>(templates: readonly T[], playerClass: string): T | null {
-    const classTemplates = templates.filter((template) => template.allowedClass === playerClass);
+    const classTemplates = templates.filter(
+      (template) => template.allowedClass === playerClass || template.allowedClass === "all"
+    );
     if (classTemplates.length === 0) {
       return null;
     }

@@ -166,7 +166,9 @@
     "showPreviousPortrait": "이전 캐릭터 초상화 보기",
     "showNextPortrait": "다음 캐릭터 초상화 보기",
     "showPreviousBackground": "이전 배경 보기",
-    "showNextBackground": "다음 배경 보기"
+    "showNextBackground": "다음 배경 보기",
+    "physicalDefense": "물리 방어",
+    "magicDefense": "마법 방어"
   },
   "player": {
     "classUnknown": "알 수 없는 직업",
