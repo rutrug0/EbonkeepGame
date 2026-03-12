@@ -484,17 +484,26 @@ button:focus-visible {
 }
 
 .playerCardCurrencyRow {
-  display: inline-grid;
-  grid-template-columns: repeat(4, auto);
+  display: inline-flex;
   justify-content: center;
   align-items: center;
-  justify-items: center;
-  gap: 0.76rem;
+  gap: 1.2rem;
+  flex-wrap: wrap;
   width: 100%;
   padding: 0;
 }
 
+.playerCardCurrencyPair {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+}
+
 .playerCardCurrencyValue {
+  display: inline-flex;
+  align-items: center;
   font-size: 1.24rem;
   font-weight: 800;
   line-height: 1;
@@ -504,23 +513,23 @@ button:focus-visible {
 }
 
 .playerCardCurrencyValue.ducats {
-  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .playerCardCurrencyValue.imperials {
+  color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
+}
+
+.ducatsAmount {
+  font-size: 1.24rem;
+  font-weight: 800;
+  line-height: 1;
   color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .playerCardCurrencyIcon {
-  width: 28px;
-  height: 28px;
   font-size: 1.42rem;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
-}
-
-.playerCardCurrencyIcon.imperialIcon {
-  width: 30px;
-  height: 30px;
 }
 
 .barBlock {
@@ -2277,6 +2286,23 @@ button:focus-visible {
   filter: drop-shadow(0 0 4px rgba(232, 199, 144, 0.16));
 }
 
+.ducatCurrencyIcon.currencyIcon,
+.imperialCurrencyIcon.currencyIcon {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  overflow: visible;
+  line-height: 0;
+}
+
+.ducatCurrencyIcon.currencyIcon .currencyIconImage,
+.imperialCurrencyIcon.currencyIcon .currencyIconImage {
+  width: 132%;
+  height: 132%;
+  max-width: none;
+  max-height: none;
+}
+
 .ducatIcon {
   color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-main) 28%);
 }
@@ -2931,13 +2957,13 @@ button:focus-visible {
 }
 
 .statTrainingSymbol svg {
-  width: 1.1rem;
-  height: 1.1rem;
+  width: 1.24rem;
+  height: 1.24rem;
   fill: color-mix(in srgb, var(--accent-warn) 62%, var(--text-main) 38%);
 }
 
 .statTrainingLabel {
-  font-size: 0.88rem;
+  font-size: 1.24rem;
   font-weight: 600;
   color: color-mix(in srgb, var(--text-main) 88%, var(--accent-warn) 12%);
   text-align: center;
@@ -2946,7 +2972,7 @@ button:focus-visible {
 }
 
 .statTrainingValue {
-  font-size: 0.94rem;
+  font-size: 1.24rem;
   font-weight: 700;
   color: var(--text-main);
   text-align: center;
@@ -2954,7 +2980,7 @@ button:focus-visible {
 
 .itemBonusValue {
   margin-left: 4px;
-  font-size: 0.88rem;
+  font-size: 1.24rem;
   font-weight: 700;
   color: color-mix(in srgb, var(--accent-success) 75%, var(--text-main) 25%);
 }
@@ -2972,7 +2998,7 @@ button:focus-visible {
   justify-content: center;
   align-items: center;
   gap: 4px;
-  font-size: 0.88rem;
+  font-size: 1.24rem;
   font-weight: 600;
   color: color-mix(in srgb, var(--accent-warn) 74%, var(--text-main) 26%);
 }
@@ -3020,7 +3046,7 @@ button:focus-visible {
 }
 
 .statTrainingTimer {
-  font-size: 0.75rem;
+  font-size: 1.24rem;
   color: var(--text-soft);
   text-align: center;
 }
@@ -3851,10 +3877,10 @@ button:focus-visible {
   right: 8px;
   z-index: 2;
   padding: 0;
-  font-size: 1.17rem;
+  font-size: 1.24rem;
   font-weight: 800;
   line-height: 1;
-  color: #f7e0a4;
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
   text-shadow:
     0 3px 6px rgba(2, 4, 8, 0.78),
     0 0 14px rgba(2, 4, 8, 0.4),
@@ -4083,7 +4109,7 @@ button:focus-visible {
   font-size: 1.26rem;
   font-weight: 800;
   line-height: 1;
-  color: #d9bb72;
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .inventoryCardTopAsideNote {
@@ -4280,7 +4306,7 @@ button:focus-visible {
 .merchantTradePrice {
   font-size: 0.96rem;
   font-weight: 700;
-  color: #d9bb72;
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .merchantTradePriceLarge {

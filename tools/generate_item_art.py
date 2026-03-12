@@ -34,6 +34,7 @@ from item_art_catalog import (
     write_encyclopedia_outputs,
     write_item_manifest_outputs,
 )
+from item_art_processing import build_processed_asset_plan, process_asset_plan
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "tools" / "item_art_prompts.yaml"
@@ -987,6 +988,9 @@ def main() -> int:
             )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(image_bytes)
+            processed_plan = build_processed_asset_plan(output_dir, output_path)
+            if processed_plan is not None:
+                process_asset_plan(processed_plan)
 
             if action == "generate":
                 counts["generated"] += 1

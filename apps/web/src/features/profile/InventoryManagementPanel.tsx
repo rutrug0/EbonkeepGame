@@ -297,7 +297,7 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                       </button>
                       <span className="statTrainingCost">
                         <span className="ducatsAmount">{trainingCost}</span>
-                        <span className="currencyIcon ducatIcon" aria-hidden="true">
+                        <span className="currencyIcon ducatIcon ducatCurrencyIcon" aria-hidden="true">
                           <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
                         </span>
                       </span>

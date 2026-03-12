@@ -217,7 +217,12 @@
 }
 
 .auctionDucatAmount {
+  display: inline-flex;
+  align-items: center;
   gap: 0.18rem;
+  line-height: 1;
+  vertical-align: middle;
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .auctionDucatAmount .ducatInlineIcon {
@@ -298,14 +303,16 @@
 }
 
 .auctionBrowseReservedBadgeValue {
-  color: color-mix(in srgb, #f7fbff 78%, var(--accent-info) 22%);
+  display: inline-flex;
+  align-items: center;
+  color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
   text-shadow:
     0 2px 6px rgba(2, 4, 8, 0.72),
     0 0 14px rgba(2, 4, 8, 0.4);
 }
 
 .auctionBrowseReservedBadgeValue .ducatInlineAmount {
-  font-size: 0.9rem;
+  font-size: 1.18rem;
   font-weight: 800;
 }
 

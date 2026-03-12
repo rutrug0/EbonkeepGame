@@ -8,6 +8,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+from item_art_processing import (
+    build_processed_asset_plan,
+    is_processed_asset_path,
+)
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = REPO_ROOT / "tools" / "item_art_prompts.yaml"
@@ -187,7 +192,13 @@ def build_registered_indoor_scene_manifest(asset_root: Path, registry_path: Path
         if not asset_path.exists():
             continue
 
-        manifest[f"indoors:{scene_id}"] = f"/assets/items/generated/{rel.as_posix()}"
+        manifest_path = f"/assets/items/generated/{rel.as_posix()}"
+        processed_plan = build_processed_asset_plan(asset_root, asset_path)
+        if processed_plan and processed_plan.output_path.exists():
+            processed_rel = processed_plan.output_path.relative_to(asset_root)
+            manifest_path = f"/assets/items/generated/{processed_rel.as_posix()}"
+
+        manifest[f"indoors:{scene_id}"] = manifest_path
 
     return manifest
 
@@ -199,11 +210,17 @@ def build_generated_asset_manifest(
 ) -> dict[str, str]:
     manifest: dict[str, str] = {}
     for png in sorted(asset_root.rglob("*.png")):
+        if is_processed_asset_path(png):
+            continue
         rel = png.relative_to(asset_root)
         parsed = key_for_generated_asset(rel)
         if not parsed:
             continue
         key, path = parsed
+        processed_plan = build_processed_asset_plan(asset_root, png)
+        if processed_plan and processed_plan.output_path.exists():
+            rel = processed_plan.output_path.relative_to(asset_root)
+            path = f"/assets/items/generated/{rel.as_posix()}"
         manifest[key] = path
 
     registry_path = indoor_scene_registry_path or DEFAULT_INDOOR_SCENE_REGISTRY_PATH
