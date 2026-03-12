@@ -241,7 +241,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
   const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
   const renderDucatIcon = (extraClassName?: string) => (
-    <span className={`currencyIcon ducatIcon${extraClassName ? ` ${extraClassName}` : ""}`} aria-hidden="true">
+    <span className={`currencyIcon ducatIcon ducatCurrencyIcon${extraClassName ? ` ${extraClassName}` : ""}`} aria-hidden="true">
       <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
     </span>
   );

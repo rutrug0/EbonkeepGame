@@ -4398,7 +4398,7 @@ export function AppShell() {
                     className="playerCardCurrencyPair"
                   >
                     <strong className="playerCardCurrencyValue ducats">{playerCardCurrencies.ducats.toLocaleString()}</strong>
-                    <span className="currencyIcon ducatIcon playerCardCurrencyIcon" aria-hidden="true">
+                    <span className="currencyIcon ducatIcon ducatCurrencyIcon playerCardCurrencyIcon" aria-hidden="true">
                       <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
                     </span>
                   </HoverTooltip>
@@ -4408,7 +4408,7 @@ export function AppShell() {
                     className="playerCardCurrencyPair"
                   >
                     <strong className="playerCardCurrencyValue imperials">{playerCardCurrencies.imperials.toLocaleString()}</strong>
-                    <span className="currencyIcon imperialIcon playerCardCurrencyIcon" aria-hidden="true">
+                    <span className="currencyIcon imperialIcon imperialCurrencyIcon playerCardCurrencyIcon" aria-hidden="true">
                       <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
                     </span>
                   </HoverTooltip>

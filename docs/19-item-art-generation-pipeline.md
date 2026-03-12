@@ -12,12 +12,14 @@ The generator sends **one item per request** to the OpenAI Images API.
 
 ## Files
 - Script: `tools/generate_item_art.py`
+- Processed runtime variants: `tools/process_generated_item_art.py`
 - Manifest/metadata builder: `tools/build_item_art_manifest.py`
 - Prompt/source config: `tools/item_art_prompts.yaml`
 - Manual indoor scene registry: `docs/data/indoor_scene_assets_v1.csv`
 - Run state cache: `tools/.cache/item_art_state.json`
 - Last run report: `tools/.cache/item_art_last_run.json`
 - Default output folder: `apps/web/public/assets/items/generated/`
+- Processed runtime output pattern: sibling runtime asset with `_p` suffix
 
 ## Data Sources
 Configured in `tools/item_art_prompts.yaml` under `sources`.
@@ -119,6 +121,8 @@ python tools/generate_item_art.py --force
 python tools/generate_item_art.py --regenerate-changed
 python tools/generate_item_art.py --ca-bundle C:\\path\\to\\cacert.pem
 python tools/generate_item_art.py --insecure
+python tools/process_generated_item_art.py
+python tools/process_generated_item_art.py --force
 ```
 
 Arguments:
@@ -136,6 +140,13 @@ Arguments:
 - `--config <path>`
 - `--ca-bundle <path>`
 - `--insecure`
+
+Processed runtime variant arguments:
+- `--asset-root <path>`
+- `--force`
+- `--dry-run`
+- `--limit <n>`
+- `--verbose`
 
 ## Rerun Behavior
 Default mode only fills missing assets.
@@ -158,6 +169,20 @@ Generated app metadata files:
 - `apps/web/public/assets/items/generated/item_art_manifest.json`
 - `apps/web/src/generated/itemEncyclopediaData.ts` (catalog entries with base levels/families/icons)
 - `apps/web/public/assets/items/generated/item_encyclopedia_data.json`
+
+Processed runtime asset rules:
+- weapons, armor, and jewelry generate a sibling `*_p.png` at `150x150`
+- those processed PNGs use explicit Pillow PNG compression with `optimize=True` and `compress_level=9`
+- monsters generate a sibling `*_p.jpg` at `300x300`
+- those processed monster JPGs use explicit Pillow JPEG settings with `quality=82`, `optimize=True`, `progressive=True`, and `4:2:0` chroma subsampling
+- travel-stage and combat-stage images generate sibling `*_p.jpg` assets without changing source resolution
+- indoor generated scene plates under `items/generated/indoors` generate sibling `*_p.jpg` assets without changing source resolution
+- `assets/ui/currency/*.png` generate sibling `*_p.png` assets at `128x128`
+- `assets/ui/shop-offers/*.png` generate sibling `*_p.png` assets at `192x192`
+- `assets/portraits/{strength,dexterity,intelligence}/*.png` generate sibling `*_p.png` assets at `512x768`
+- `assets/portraits/backgrounds/*.jpg` generate sibling `*_p.jpg` assets at `768x1152`
+- the manifest prefers the processed sibling automatically when it exists, so in-game icon lookups use the lighter runtime asset without changing manifest keys
+- generated character catalog art under `items/generated/character` still keeps its original PNG path unless later added to the processed rules
 
 Character naming convention:
 - Character portrait filenames are sequence IDs by stat family, not character names.
@@ -197,6 +222,7 @@ Examples:
 - Retry with exponential backoff for transient failures (`429`, `5xx`, network).
 - Script writes a machine-readable run report after each run.
 - Manifest + encyclopedia metadata are refreshed from current generated assets and `docs/data` tables.
+- `tools/generate_item_art.py` also writes the processed runtime sibling immediately for newly generated weapons, armor, jewelry, and monster renders.
 - Generated assets may be checked into git as part of the repo output contract; cache files remain ephemeral.
 - TLS behavior:
   - default: verified TLS with system CA / `certifi` bundle (if installed)

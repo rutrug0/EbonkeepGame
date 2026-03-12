@@ -59,5 +59,7 @@ Quick reference for where to work and what to run.
   - `python tools/generate_item_art.py --sources all`
 - Force regenerate:
   - `python tools/generate_item_art.py --force`
+- Build processed runtime PNGs:
+  - `python tools/process_generated_item_art.py`
 - Rebuild manifest only:
   - `python tools/build_item_art_manifest.py`

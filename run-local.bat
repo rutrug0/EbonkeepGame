@@ -137,7 +137,8 @@ if errorlevel 1 (
 )
 
 echo [7/8] Launching API and Web dev servers...
-start "Ebonkeep Dev" cmd /k "cd /d %ROOT% && npm.cmd run dev"
+start "Ebonkeep API" cmd /k "cd /d %ROOT% && npm.cmd run dev:api"
+start "Ebonkeep Web" cmd /k "cd /d %ROOT% && npm.cmd run dev:web"
 
 echo [8/8] Waiting for web client...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-port.ps1" -HostName "localhost" -Port 5173 -TimeoutSeconds 120

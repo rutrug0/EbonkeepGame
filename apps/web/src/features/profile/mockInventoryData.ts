@@ -7,6 +7,8 @@ import type {
 } from "@ebonkeep/shared/core";
 import type { ModifierTier, VestigeId, WeaponDamageRoll } from "@ebonkeep/shared/inventory";
 
+import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
+
 type Rarity = "common" | "uncommon" | "rare" | "epic";
 
 export type MeleeDamageRollWindow = {
@@ -54,39 +56,57 @@ export const MODIFIER_TIER_POWER_PER_LEVEL: Record<ModifierTier, number> = {
   T3: 0.75
 };
 export const MOCK_MELEE_RARITY_POOL: Rarity[] = ["uncommon", "rare", "epic"];
-export const GENERATED_WEAPON_ICON_PATHS_BY_NAME: Record<string, string> = {
-  "ashbound rod": "/assets/items/generated/weapon/arcane/staff/mage_arcane_ashbound_rod.png",
-  "aetherwake staff": "/assets/items/generated/weapon/arcane/staff/mage_arcane_aetherwake_staff.png",
-  "cathedral spire": "/assets/items/generated/weapon/arcane/staff/mage_arcane_cathedral_spire.png",
-  "seraphim ashrod": "/assets/items/generated/weapon/arcane/staff/mage_arcane_seraphim_ashrod.png",
-  "oracle s eclipse": "/assets/items/generated/weapon/arcane/staff/mage_arcane_oracle_s_eclipse.png",
-  "dominion arcanum": "/assets/items/generated/weapon/arcane/staff/mage_arcane_dominion_arcanum.png",
-  "dormant hazel wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_dormant_hazel_wand.png",
-  "cinderprick wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_cinderprick_wand.png",
-  "mothglass wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_mothglass_wand.png",
-  "starveil wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_starveil_wand.png",
-  "eclipsed scepter": "/assets/items/generated/weapon/arcane/wand/mage_arcane_eclipsed_scepter.png",
-  "abyssal choir wand": "/assets/items/generated/weapon/arcane/wand/mage_arcane_abyssal_choir_wand.png",
-  "woodcutter s axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_woodcutter_s_axe.png",
-  "bearded war axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_bearded_war_axe.png",
-  valenmark: "/assets/items/generated/weapon/melee/axe/warrior_melee_valenmark.png",
-  "durnholde axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_durnholde_axe.png",
-  harthorn: "/assets/items/generated/weapon/melee/axe/warrior_melee_harthorn.png",
-  "stormvale axe": "/assets/items/generated/weapon/melee/axe/warrior_melee_stormvale_axe.png",
-  "plainsteel longsword": "/assets/items/generated/weapon/melee/sword/warrior_melee_plainsteel_longsword.png",
-  valdaryn: "/assets/items/generated/weapon/melee/sword/warrior_melee_valdaryn.png",
-  "redmark sabre": "/assets/items/generated/weapon/melee/sword/warrior_melee_redmark_sabre.png",
-  "tempered longblade": "/assets/items/generated/weapon/melee/sword/warrior_melee_tempered_longblade.png",
-  "gilded bastard sword": "/assets/items/generated/weapon/melee/sword/warrior_melee_gilded_bastard_sword.png",
-  "highguard claymore": "/assets/items/generated/weapon/melee/sword/warrior_melee_highguard_claymore.png",
-  "longreach recurve": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_longreach_recurve.png",
-  "skylash longbow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_skylash_longbow.png",
-  "dreadfletch bow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_dreadfletch_bow.png",
-  "black meridian bow": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_black_meridian_bow.png",
-  "eclipsed huntmaster": "/assets/items/generated/weapon/ranged/bow/ranger_ranged_eclipsed_huntmaster.png",
-  "hollowsnap sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_hollowsnap_sling.png",
-  "shardwhistle sling": "/assets/items/generated/weapon/ranged/sling/ranger_ranged_shardwhistle_sling.png"
+const GENERATED_WEAPON_ICON_KEYS_BY_NAME: Record<string, string> = {
+  "ashbound rod": "weapon:arcane:ashbound rod",
+  "aetherwake staff": "weapon:arcane:aetherwake staff",
+  "cathedral spire": "weapon:arcane:cathedral spire",
+  "seraphim ashrod": "weapon:arcane:seraphim ashrod",
+  "oracle s eclipse": "weapon:arcane:oracle s eclipse",
+  "dominion arcanum": "weapon:arcane:dominion arcanum",
+  "dormant hazel wand": "weapon:arcane:dormant hazel wand",
+  "cinderprick wand": "weapon:arcane:cinderprick wand",
+  "mothglass wand": "weapon:arcane:mothglass wand",
+  "starveil wand": "weapon:arcane:starveil wand",
+  "eclipsed scepter": "weapon:arcane:eclipsed scepter",
+  "abyssal choir wand": "weapon:arcane:abyssal choir wand",
+  "woodcutter s axe": "weapon:melee:woodcutter s axe",
+  "bearded war axe": "weapon:melee:bearded war axe",
+  valenmark: "weapon:melee:valenmark",
+  "durnholde axe": "weapon:melee:durnholde axe",
+  harthorn: "weapon:melee:harthorn",
+  "stormvale axe": "weapon:melee:stormvale axe",
+  "plainsteel longsword": "weapon:melee:plainsteel longsword",
+  valdaryn: "weapon:melee:valdaryn",
+  "redmark sabre": "weapon:melee:redmark sabre",
+  "tempered longblade": "weapon:melee:tempered longblade",
+  "gilded bastard sword": "weapon:melee:gilded bastard sword",
+  "highguard claymore": "weapon:melee:highguard claymore",
+  "longreach recurve": "weapon:ranged:longreach recurve",
+  "skylash longbow": "weapon:ranged:skylash longbow",
+  "dreadfletch bow": "weapon:ranged:dreadfletch bow",
+  "black meridian bow": "weapon:ranged:black meridian bow",
+  "eclipsed huntmaster": "weapon:ranged:eclipsed huntmaster",
+  "hollowsnap sling": "weapon:ranged:hollowsnap sling",
+  "shardwhistle sling": "weapon:ranged:shardwhistle sling"
 };
+export const GENERATED_WEAPON_ICON_PATHS_BY_NAME: Record<string, string> = {};
+for (const [itemName, key] of Object.entries(GENERATED_WEAPON_ICON_KEYS_BY_NAME)) {
+  const iconPath = GENERATED_ITEM_ICON_PATHS[key];
+  if (iconPath) {
+    GENERATED_WEAPON_ICON_PATHS_BY_NAME[itemName] = iconPath;
+  }
+}
+
+function normalizeItemNameForGeneratedIconLookup(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function getGeneratedWeaponIconPath(itemName: string): string | undefined {
+  return GENERATED_WEAPON_ICON_PATHS_BY_NAME[normalizeItemNameForGeneratedIconLookup(itemName)];
+}
 export const MOCK_MELEE_DAMAGE_ROLL_WINDOW_BY_LEVEL: Record<number, Record<Rarity, MeleeDamageRollWindow>> = {
   18: {
     common: { minLow: 41, minHigh: 48, maxLow: 50, maxHigh: 59 },
@@ -124,91 +144,91 @@ export const MOCK_MELEE_WEAPON_TEMPLATES: Array<{
   levelRequirement: number;
   weaponFamily: WeaponFamily;
   description: string;
-  iconAssetPath: string;
+  iconAssetPath?: string;
 }> = [
   {
     itemName: "Plainsteel Longsword",
     levelRequirement: 18,
     weaponFamily: "sword",
     description: "Balanced steel with practical wear from constant drill work.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_plainsteel_longsword.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Plainsteel Longsword")
   },
   {
     itemName: "Woodcutter's Axe",
     levelRequirement: 18,
     weaponFamily: "axe",
     description: "Repurposed work axe hardened by militia duty.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_woodcutter_s_axe.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Woodcutter's Axe")
   },
   {
     itemName: "Valdaryn",
     levelRequirement: 19,
     weaponFamily: "sword",
     description: "Slim blade profile made for fast pressure and quick recovery.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_valdaryn.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Valdaryn")
   },
   {
     itemName: "Bearded War Axe",
     levelRequirement: 19,
     weaponFamily: "axe",
     description: "Broad-bearded head built to hook and break defensive lines.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_bearded_war_axe.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Bearded War Axe")
   },
   {
     itemName: "Redmark Sabre",
     levelRequirement: 20,
     weaponFamily: "sword",
     description: "Curved sabre favored by riders who strike on the pass.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_redmark_sabre.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Redmark Sabre")
   },
   {
     itemName: "Tempered Longblade",
     levelRequirement: 20,
     weaponFamily: "sword",
     description: "Heat-treated steel that keeps edge alignment under stress.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_tempered_longblade.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Tempered Longblade")
   },
   {
     itemName: "Valenmark",
     levelRequirement: 21,
     weaponFamily: "axe",
     description: "A grim standard among wardens of besieged keeps.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_valenmark.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Valenmark")
   },
   {
     itemName: "Durnholde Axe",
     levelRequirement: 21,
     weaponFamily: "axe",
     description: "Each notch in its head marks a broken line of men.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_durnholde_axe.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Durnholde Axe")
   },
   {
     itemName: "Gilded Bastard Sword",
     levelRequirement: 22,
     weaponFamily: "sword",
     description: "Court-finished steel tuned for battlefield authority.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_gilded_bastard_sword.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Gilded Bastard Sword")
   },
   {
     itemName: "Harthorn",
     levelRequirement: 22,
     weaponFamily: "axe",
     description: "Its crescent edge howls through plate at full swing.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_harthorn.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Harthorn")
   },
   {
     itemName: "Highguard Claymore",
     levelRequirement: 22,
     weaponFamily: "sword",
     description: "Long two-hander built for line-breaking overhead cuts.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/sword/warrior_melee_highguard_claymore.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Highguard Claymore")
   },
   {
     itemName: "Stormvale Axe",
     levelRequirement: 22,
     weaponFamily: "axe",
     description: "Storm-battered steel that lands like a falling gate.",
-    iconAssetPath: "/assets/items/generated/weapon/melee/axe/warrior_melee_stormvale_axe.png"
+    iconAssetPath: getGeneratedWeaponIconPath("Stormvale Axe")
   }
 ];
 
