@@ -24,15 +24,28 @@ export async function seedPendingAuctionReward(playerId: string, itemCode: strin
 }
 
 export async function seedPlayableAuction(playerId: string) {
-  const auction = await prisma.auctionInstance.create({
-    data: {
-      levelBracketMin: 1,
-      levelBracketMax: 10,
-      startTime: new Date(Date.now() - 60_000),
-      endTime: new Date(Date.now() + 60 * 60 * 1000),
-      status: "active"
-    }
-  });
+  const now = new Date();
+  const auction =
+    (await prisma.auctionInstance.findFirst({
+      where: {
+        levelBracketMin: 1,
+        levelBracketMax: 10,
+        status: "active",
+        endTime: {
+          gt: now
+        }
+      },
+      orderBy: [{ startTime: "desc" }, { createdAt: "desc" }]
+    })) ??
+    (await prisma.auctionInstance.create({
+      data: {
+        levelBracketMin: 1,
+        levelBracketMax: 10,
+        startTime: new Date(now.getTime() - 60_000),
+        endTime: new Date(now.getTime() + 60 * 60 * 1000),
+        status: "active"
+      }
+    }));
 
   const itemPayload = {
     id: `auction_item_${Date.now()}`,
@@ -72,10 +85,15 @@ export async function seedPlayableAuction(playerId: string) {
     }
   });
 
-  await prisma.currencyBalance.update({
+  await prisma.currencyBalance.upsert({
     where: { playerId },
-    data: {
+    update: {
       ducats: 10_000
+    },
+    create: {
+      playerId,
+      ducats: 10_000,
+      imperials: 0
     }
   });
 
