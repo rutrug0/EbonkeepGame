@@ -4,9 +4,11 @@ import {
   updatePlayerPreferencesBodySchema,
   updatePortraitBodySchema
 } from "@ebonkeep/shared";
+import { playerRestResponseSchema } from "@ebonkeep/shared/player";
 
 import type { FastifyPluginAsync } from "fastify";
 import { loadPlayerState, getPublicPlayerProfile } from "./state-service.js";
+import { restPlayerResources } from "./progression-service.js";
 
 export const playerRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
@@ -62,6 +64,45 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       return reply.send(payload);
+    }
+  );
+
+  fastify.post(
+    "/v1/player/rest",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const playerId = request.user.playerId;
+        const currentState = await loadPlayerState(fastify.prisma, playerId);
+        if (!currentState) {
+          return reply.code(404).send({ error: "Player state not found." });
+        }
+
+        const now = new Date();
+        const result = await fastify.prisma.$transaction(async (tx) => {
+          const restOutcome = await restPlayerResources({
+            tx,
+            playerId,
+            maxHealth: currentState.health.max,
+            now
+          });
+          const playerState = await loadPlayerState(tx, playerId);
+          if (!playerState) {
+            throw new Error("Player state not found.");
+          }
+          return {
+            playerState,
+            costDucats: restOutcome.costDucats
+          };
+        });
+
+        return reply.send(playerRestResponseSchema.parse(result));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to rest.";
+        const statusCode = message.includes("ducats") ? 400 : message.includes("not found") ? 404 : 500;
+        fastify.log.error({ err: error }, "Error in POST /v1/player/rest");
+        return reply.code(statusCode).send({ error: message });
+      }
     }
   );
 

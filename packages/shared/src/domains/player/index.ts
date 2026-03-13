@@ -21,6 +21,10 @@ export const playerStateSchema = z.object({
   experienceIntoLevel: z.number().int().min(0),
   experienceToNextLevel: z.number().int().min(1),
   gearScore: z.number().int().min(0),
+  health: z.object({
+    current: z.number().int().min(0),
+    max: z.number().int().min(1)
+  }),
   stamina: z.object({
     current: z.number().int().min(0),
     max: z.number().int().min(0),
@@ -33,6 +37,12 @@ export const playerStateSchema = z.object({
   currency: currencyBalanceSchema
 });
 export type PlayerState = z.infer<typeof playerStateSchema>;
+
+export const playerRestResponseSchema = z.object({
+  playerState: playerStateSchema,
+  costDucats: z.number().int().min(0)
+});
+export type PlayerRestResponse = z.infer<typeof playerRestResponseSchema>;
 
 export const devGuestLoginResponseSchema = z.object({
   accessToken: z.string(),

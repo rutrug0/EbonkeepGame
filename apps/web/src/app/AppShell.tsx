@@ -70,7 +70,7 @@ import {
   resetPassword,
   verifyEmail
 } from "../features/auth";
-import { devGuestLogin, fetchPlayerState, moveInventoryItem, updatePlayerPreferences, updatePortrait } from "../features/player";
+import { devGuestLogin, fetchPlayerState, moveInventoryItem, restPlayer, updatePlayerPreferences, updatePortrait } from "../features/player";
 import { buyMerchantOffer, fetchMerchantState, restockMerchant, sellMerchantItem } from "../features/economy";
 import {
   AuctionHouse
@@ -276,6 +276,22 @@ type PlayerCardScoreBreakdown = {
   };
 };
 type DevWeaponInventorySeed = DevWeapon;
+type PendingContractResultPlayerState = {
+  level: number;
+  experience: number;
+  experienceIntoLevel: number;
+  experienceToNextLevel: number;
+  health: {
+    current: number;
+    max: number;
+  };
+  stamina: {
+    current: number;
+    max: number;
+    nextPointAt: string | null;
+  };
+  ducats: number;
+};
 
 const INVENTORY_ITEM_LIMIT = 20;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
@@ -288,6 +304,7 @@ const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
 const CHAT_DOCK_TOLERANCE_PX = 1;
+const CONTRACT_COMBAT_RETURN_DELAY_MS = 5_000;
 const DEFAULT_INVENTORY_FILTER_STATE: InventoryFilterState = {
   showOnlyWeapons: false,
   showOnlyArmor: false,
@@ -1444,6 +1461,8 @@ export function AppShell() {
   const panelViewportGroupRef = useRef<HTMLDivElement | null>(null);
   const panelViewportMainRef = useRef<HTMLDivElement | null>(null);
   const panelViewportSideRef = useRef<HTMLDivElement | null>(null);
+  const contractAutoReturnTimeoutRef = useRef<number | null>(null);
+  const pendingContractResultPlayerStateRef = useRef<PendingContractResultPlayerState | null>(null);
   const renownViewportRef = useRef<HTMLDivElement | null>(null);
   const renownDragStateRef = useRef<{
     pointerX: number;
@@ -1504,6 +1523,8 @@ export function AppShell() {
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>([]);
   const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
   const [activeContractRunId, setActiveContractRunId] = useState<string | null>(null);
+  const [pendingContractResultPlayerState, setPendingContractResultPlayerState] =
+    useState<PendingContractResultPlayerState | null>(null);
   const [isGuildMissionActive, setIsGuildMissionActive] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
@@ -1532,6 +1553,7 @@ export function AppShell() {
   const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
+  const [isResting, setIsResting] = useState(false);
   const [activeStatTraining, setActiveStatTraining] = useState<{
     stat: TrainableStatKey;
     completesAt: number;
@@ -1727,6 +1749,7 @@ export function AppShell() {
       inventoryStatFlashTimeoutsRef.current = {};
       inventoryStatFlashFrameRefs.current = {};
       setInventoryStatFlashes({});
+      setPendingContractResultPlayerState(null);
     }
     setPlayerState(nextState ? applyMockPlayerStateOverrides(nextState) : null);
     setInventoryItems(nextState ? nextState.inventory.map((item) => toLocalInventoryItem(item)) : []);
@@ -1823,8 +1846,21 @@ export function AppShell() {
     }
   }
 
-  const healthPercent = playerState
-    ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
+  const displayedPlayerHealth = activeContractEncounter?.phase === "combat"
+    ? {
+        current: Math.max(
+          0,
+          Math.min(
+            activeContractEncounter.encounter.player.maxHp,
+            activeContractEncounter.hpByActorId[activeContractEncounter.encounter.player.id] ??
+              activeContractEncounter.encounter.player.maxHp
+          )
+        ),
+        max: activeContractEncounter.encounter.player.maxHp
+      }
+    : playerState?.health ?? null;
+  const healthPercent = displayedPlayerHealth
+    ? Math.max(0, Math.min(100, Math.round((displayedPlayerHealth.current / Math.max(1, displayedPlayerHealth.max)) * 100)))
     : 0;
   const xpPercent = playerState
     ? Math.max(
@@ -2379,6 +2415,10 @@ export function AppShell() {
   }, [authMode]);
 
   useEffect(() => {
+    pendingContractResultPlayerStateRef.current = pendingContractResultPlayerState;
+  }, [pendingContractResultPlayerState]);
+
+  useEffect(() => {
     if (!playerState) {
       setBaseStats(null);
       setCurrencies(null);
@@ -2485,9 +2525,7 @@ export function AppShell() {
           return;
         }
 
-        if (result.playerState) {
-          applyContractResultPlayerState(result.playerState);
-        }
+        setPendingContractResultPlayerState(result.playerState ?? null);
 
         setActiveContractRunId(null);
         setActiveContractEncounter(
@@ -2533,9 +2571,7 @@ export function AppShell() {
           return;
         }
 
-        if (result.playerState) {
-          applyContractResultPlayerState(result.playerState);
-        }
+        setPendingContractResultPlayerState(result.playerState ?? null);
 
         setActiveContractRunId(null);
         setActiveContractEncounter(
@@ -2852,6 +2888,47 @@ export function AppShell() {
     activeContractEncounter?.resolutionState,
     activeContractEncounter?.typedSummaryLine
   ]);
+
+  useEffect(() => {
+    if (contractAutoReturnTimeoutRef.current !== null) {
+      window.clearTimeout(contractAutoReturnTimeoutRef.current);
+      contractAutoReturnTimeoutRef.current = null;
+    }
+
+    if (
+      !activeContractEncounter ||
+      activeContractEncounter.phase !== "combat" ||
+      activeContractEncounter.resolutionState !== "awaiting_return"
+    ) {
+      return;
+    }
+
+    contractAutoReturnTimeoutRef.current = window.setTimeout(() => {
+      contractAutoReturnTimeoutRef.current = null;
+      void returnToContractsBoard();
+    }, CONTRACT_COMBAT_RETURN_DELAY_MS);
+
+    return () => {
+      if (contractAutoReturnTimeoutRef.current !== null) {
+        window.clearTimeout(contractAutoReturnTimeoutRef.current);
+        contractAutoReturnTimeoutRef.current = null;
+      }
+    };
+  }, [activeContractEncounter?.phase, activeContractEncounter?.resolutionState]);
+
+  useEffect(() => {
+    if (
+      !pendingContractResultPlayerState ||
+      !activeContractEncounter ||
+      activeContractEncounter.phase !== "combat" ||
+      activeContractEncounter.resolutionState !== "awaiting_return"
+    ) {
+      return;
+    }
+
+    applyContractResultPlayerState(pendingContractResultPlayerState);
+    setPendingContractResultPlayerState(null);
+  }, [activeContractEncounter?.phase, activeContractEncounter?.resolutionState, pendingContractResultPlayerState]);
 
   useEffect(() => {
     if (!activeStatTraining) {
@@ -3464,18 +3541,7 @@ export function AppShell() {
     return i18n.t(`contracts.roll${roll.charAt(0).toUpperCase()}${roll.slice(1)}`);
   }
 
-  function applyContractResultPlayerState(resultPlayerState: {
-    level: number;
-    experience: number;
-    experienceIntoLevel: number;
-    experienceToNextLevel: number;
-    stamina: {
-      current: number;
-      max: number;
-      nextPointAt: string | null;
-    };
-    ducats: number;
-  }) {
+  function applyContractResultPlayerState(resultPlayerState: PendingContractResultPlayerState) {
     setPlayerState((previousState) => {
       if (!previousState) {
         return previousState;
@@ -3486,6 +3552,7 @@ export function AppShell() {
         experience: resultPlayerState.experience,
         experienceIntoLevel: resultPlayerState.experienceIntoLevel,
         experienceToNextLevel: resultPlayerState.experienceToNextLevel,
+        health: resultPlayerState.health,
         stamina: resultPlayerState.stamina,
         currency: {
           ...previousState.currency,
@@ -3493,6 +3560,24 @@ export function AppShell() {
         }
       };
     });
+  }
+
+  async function handleRestPlayer() {
+    if (!token || !playerState || isResting) {
+      return;
+    }
+
+    setIsResting(true);
+    setError(null);
+    try {
+      const result = await restPlayer(token);
+      setPendingContractResultPlayerState(null);
+      applyAuthoritativePlayerState(result.playerState);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Rest failed");
+    } finally {
+      setIsResting(false);
+    }
   }
 
   async function startContractEncounter(slotIndex: number, offer: ContractOffer) {
@@ -3526,6 +3611,10 @@ export function AppShell() {
   }
 
   async function returnToContractsBoard() {
+    if (pendingContractResultPlayerStateRef.current) {
+      applyContractResultPlayerState(pendingContractResultPlayerStateRef.current);
+      setPendingContractResultPlayerState(null);
+    }
     setHoveredCombatActorId(null);
     setActiveContractEncounter(null);
     setActiveContractRunId(null);
@@ -4714,6 +4803,17 @@ export function AppShell() {
                       <div className="barFill staminaFill" style={{ width: `${staminaPercent}%` }} />
                     </div>
                   </HoverTooltip>
+                </div>
+
+                <div className="playerCardActionRow">
+                  <button
+                    type="button"
+                    className="playerCardActionButton"
+                    onClick={handleRestPlayer}
+                    disabled={!playerState || isResting}
+                  >
+                    {isResting ? i18n.t("player.resting") : i18n.t("player.rest")}
+                  </button>
                 </div>
 
                 <div className="playerCardCurrencyRow" aria-label="Player currencies">

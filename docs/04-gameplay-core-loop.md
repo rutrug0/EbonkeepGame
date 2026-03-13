@@ -2,7 +2,7 @@
 
 ## Primary Loop
 1. Claim completed timers (contracts board/shop refreshes/rewards).
-2. Prepare loadout (gear, consumables, inventory moves).
+2. Prepare loadout (gear, consumables, inventory moves, rest if health or stamina are low).
 3. Spend stamina on PvE encounters.
 4. Resolve combat, receive loot/currency/XP.
 5. Evaluate upgrades and sell/salvage extras.

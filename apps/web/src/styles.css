@@ -667,6 +667,23 @@ button:focus-visible {
   padding: 0;
 }
 
+.playerCardActionRow {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.playerCardActionButton {
+  min-width: 100%;
+  border: 1px solid color-mix(in srgb, var(--accent-info) 58%, transparent);
+  background: linear-gradient(180deg, rgba(67, 90, 108, 0.92), rgba(42, 56, 69, 0.96));
+}
+
+.playerCardActionButton:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
 .playerCardCurrencyPair {
   display: inline-flex;
   align-items: center;

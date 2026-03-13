@@ -32,6 +32,7 @@ export const contractRoutes: FastifyPluginAsync = async (fastify) => {
       const message = error instanceof Error ? error.message : "Failed to start contract.";
       const statusCode =
         message.includes("stamina") ? 400 :
+        message.includes("rest") ? 400 :
         message.includes("active") ? 409 :
         message.includes("available") || message.includes("expired") ? 400 :
         500;

@@ -2,6 +2,7 @@ import type { InventoryMoveResponse } from "@ebonkeep/shared/inventory";
 import { inventoryMoveResponseSchema } from "@ebonkeep/shared/inventory";
 import type {
   DevGuestLoginResponse,
+  PlayerRestResponse,
   PlayerPreferences,
   PlayerState,
   UpdatePlayerPreferencesBody,
@@ -9,6 +10,7 @@ import type {
 } from "@ebonkeep/shared/player";
 import {
   devGuestLoginResponseSchema,
+  playerRestResponseSchema,
   playerPreferencesSchema,
   playerStateSchema
 } from "@ebonkeep/shared/player";
@@ -108,4 +110,21 @@ export async function updatePortrait(
   }
 
   return response.json() as Promise<{ portraitId?: string; backgroundId?: string }>;
+}
+
+export async function restPlayer(token: string): Promise<PlayerRestResponse> {
+  const response = await fetch(`${API_URL}/v1/player/rest`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Rest failed"));
+  }
+
+  return playerRestResponseSchema.parse(await response.json());
 }
