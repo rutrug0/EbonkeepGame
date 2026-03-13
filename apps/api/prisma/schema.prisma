@@ -40,7 +40,11 @@ model PlayerProfile {
   backgroundId     String            @default("bg_01")
   preferredLocale  String            @default("en")
   level            Int               @default(1)
+  experience       Int               @default(0)
   gearScore        Int               @default(0)
+  staminaCurrent   Int               @default(120)
+  staminaMax       Int               @default(120)
+  staminaUpdatedAt DateTime          @default(now())
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   account          Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
@@ -53,6 +57,8 @@ model PlayerProfile {
   jobRuns              JobRun[]
   combatSessions       CombatSession[]
   combatActions        CombatAction[]
+  contractBoardSlots   ContractBoardSlot[]
+  contractRuns         ContractRun[]
   eventProgress        EventProgress[]
   guildMembership      GuildMember?        @relation("GuildMembership")
   leadingGuild         Guild[]             @relation("GuildLeader")
@@ -231,6 +237,63 @@ model EventProgress {
 
   @@index([playerId])
   @@map("event_progress")
+}
+
+model ContractBoardSlot {
+  id             String        @id @default(cuid())
+  playerId       String
+  slotIndex      Int
+  state          String
+  contractName   String?
+  difficulty     String?
+  familyId       String?
+  familyName     String?
+  locationName   String?
+  encounterLevel Int?
+  enemyCount     Int?
+  expiresAt      DateTime?
+  replenishAt    DateTime?
+  activeRunId    String?
+  rewardsPreview Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  player         PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, slotIndex])
+  @@index([playerId, state])
+  @@index([playerId, expiresAt])
+  @@index([playerId, replenishAt])
+  @@map("contract_board_slots")
+}
+
+model ContractRun {
+  id                   String        @id @default(cuid())
+  playerId             String
+  slotIndex            Int
+  state                String
+  contractName         String
+  difficulty           String
+  familyId             String
+  familyName           String
+  locationName         String
+  encounterLevel       Int
+  travelEndsAt         DateTime
+  claimedAt            DateTime?
+  winnerSide           String
+  combatBackgroundPath String?
+  travelImagePath      String?
+  playerSnapshot       Json
+  enemySnapshots       Json
+  events               Json
+  rewards              Json
+  rewardsGranted       Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  player               PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, state])
+  @@index([playerId, createdAt(sort: Desc)])
+  @@map("contract_runs")
 }
 
 // =====================================================

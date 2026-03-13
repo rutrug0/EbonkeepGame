@@ -32,8 +32,9 @@ This document set defines the high-level, implementation-ready blueprint for Ebo
 18. [18-jewelry-name-range-tables.md](./18-jewelry-name-range-tables.md)
 19. [19-item-art-generation-pipeline.md](./19-item-art-generation-pipeline.md)
 20. [20-ledger-and-knowledge-progression.md](./20-ledger-and-knowledge-progression.md)
-21. [dev-setup.md](./dev-setup.md)
-22. [local-runtime.md](./local-runtime.md)
+21. [22-server-authoritative-contracts-combat.md](./22-server-authoritative-contracts-combat.md)
+22. [dev-setup.md](./dev-setup.md)
+23. [local-runtime.md](./local-runtime.md)
 
 ## Decision Log (Locked)
 Date: 2026-02-28

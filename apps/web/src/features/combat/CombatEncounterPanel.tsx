@@ -6,7 +6,7 @@ import type {
   CombatPlaybackActor,
   CombatPlaybackEncounter,
   CombatPlaybackEvent
-} from "@ebonkeep/shared/combat";
+} from "./playback";
 
 import { CombatActorFrame } from "./CombatActorFrame";
 
@@ -21,6 +21,7 @@ export type CombatEncounterPanelProps = {
   travelDescription: string;
   hpByActorId: Record<string, number>;
   combatLogEntries: string[];
+  combatLogEventIds: string[];
   currentAction: CombatPlaybackActionResolved | null;
   impactTargetId: string | null;
   resolutionState: "playing" | "summarizing" | "awaiting_return";
@@ -189,6 +190,7 @@ export function CombatEncounterLogPanel({
   timeline,
   currentEventIndex: _currentEventIndex,
   combatLogEntries,
+  combatLogEventIds,
   resolutionState,
   typedSummaryLine,
   onCloseLog,
@@ -200,6 +202,7 @@ export function CombatEncounterLogPanel({
   | "timeline"
   | "currentEventIndex"
   | "combatLogEntries"
+  | "combatLogEventIds"
   | "resolutionState"
   | "typedSummaryLine"
   | "onCloseLog"
@@ -255,7 +258,8 @@ export function CombatEncounterLogPanel({
             {combatLogEntries.length > 0 ? (
               <ol className="combatLogList">
                 {combatLogEntries.map((entry, index) => {
-                  const actionEvent = actionEvents[index] ?? null;
+                  const actionEvent =
+                    actionEvents.find((event) => event.eventId === combatLogEventIds[index]) ?? null;
                   const attacker = actionEvent ? actorById.get(actionEvent.actorId) ?? null : null;
                   const defender = actionEvent ? actorById.get(actionEvent.targetId) ?? null : null;
 

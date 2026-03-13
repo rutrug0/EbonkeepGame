@@ -76,6 +76,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
         travelDescription={props.activeContractEncounter.travelDescription}
         hpByActorId={props.activeContractEncounter.hpByActorId}
         combatLogEntries={props.activeContractEncounter.combatLogEntries}
+        combatLogEventIds={props.activeContractEncounter.combatLogEventIds}
         currentAction={props.activeContractEncounter.activeAction}
         impactTargetId={props.activeContractEncounter.impactTargetId}
         resolutionState={props.activeContractEncounter.resolutionState}

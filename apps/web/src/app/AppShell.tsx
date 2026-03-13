@@ -45,12 +45,8 @@ import {
 import { type AccountOverviewResponse } from "@ebonkeep/shared/auth";
 import {
   combatPlaybackActionResolvedSchema,
-  combatPlaybackEncounterSchema,
-  combatPlaybackEventSchema,
-  type CombatPlaybackActionResolved,
-  type CombatPlaybackEncounter,
-  type CombatPlaybackEvent
-} from "@ebonkeep/shared/combat";
+  type CombatPlaybackActionResolved
+} from "../features/combat/playback";
 import {
   isItemUsableByClass,
   type DevWeapon,
@@ -91,18 +87,21 @@ import {
   COMBAT_PLAYBACK_IMPACT_DELAY_MS,
   COMBAT_PLAYBACK_START_DELAY_MS,
   COMBAT_SUMMARY_TYPE_DELAY_MS,
-  CONTRACT_REPLENISH_MAX_MS,
-  CONTRACT_REPLENISH_MIN_MS,
   ContractsPanel,
-  buildMockCombatEncounterState,
-  createContractOffer,
-  createContractSlots,
+  abandonContractsSlot,
+  buildOfferFromRun,
+  buildResolvedEncounterState,
+  buildTravelEncounterState,
+  claimContractRun,
+  fetchContractRun,
+  fetchContractsBoard,
   getEncounterAnimationRate,
   getEncounterPlaybackProgress,
   getEncounterPlaybackThresholdMs,
-  getEncounterTravelDescription,
+  mapBoardSlotsToUi,
   resetCombatEncounterPlayback,
   snapshotEncounterPlayback,
+  startContractsRun,
   type ActiveContractEncounterState,
   type ContractDifficulty,
   type ContractOffer,
@@ -1438,7 +1437,6 @@ function formatDurationFromMs(value: number): string {
 
 export function AppShell() {
   useTranslation();
-  const initialContractSlots = useMemo(() => createContractSlots(Date.now()), []);
   const landingPageRef = useRef<HTMLDivElement | null>(null);
   const leftPanelRef = useRef<HTMLElement | null>(null);
   const sidePanelScrollRef = useRef<HTMLDivElement | null>(null);
@@ -1503,8 +1501,9 @@ export function AppShell() {
   const [draggingMerchantOfferId, setDraggingMerchantOfferId] = useState<string | null>(null);
   const [merchantOfferFilters, setMerchantOfferFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
   const [merchantPlayerFilters, setMerchantPlayerFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
-  const [contractSlots, setContractSlots] = useState<ContractSlotState[]>(() => initialContractSlots);
+  const [contractSlots, setContractSlots] = useState<ContractSlotState[]>([]);
   const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
+  const [activeContractRunId, setActiveContractRunId] = useState<string | null>(null);
   const [isGuildMissionActive, setIsGuildMissionActive] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
@@ -1827,9 +1826,21 @@ export function AppShell() {
   const healthPercent = playerState
     ? Math.max(10, Math.min(100, Math.round((playerState.stats.vitality / 20) * 100)))
     : 0;
-  const xpPercent = playerState ? Math.max(6, (playerState.level * 13) % 100) : 0;
+  const xpPercent = playerState
+    ? Math.max(
+        0,
+        Math.min(
+          100,
+          Math.round(
+            (playerState.experienceIntoLevel /
+              Math.max(1, playerState.experienceToNextLevel)) *
+              100
+          )
+        )
+      )
+    : 0;
   const staminaPercent = playerState
-    ? Math.max(12, Math.min(100, Math.round(((playerState.stats.dexterity + playerState.stats.initiative) / 40) * 100)))
+    ? Math.max(0, Math.min(100, Math.round((playerState.stamina.current / Math.max(1, playerState.stamina.max)) * 100)))
     : 0;
   const playerCardScoreSummary = useMemo(() => {
     if (!playerState) {
@@ -2395,6 +2406,7 @@ export function AppShell() {
     });
     setActiveStatTraining(null);
     setActiveContractEncounter(null);
+    setActiveContractRunId(null);
   }, [playerState?.playerId]);
 
   useEffect(() => {
@@ -2410,52 +2422,141 @@ export function AppShell() {
   }, [playerState?.currency.ducats, playerState?.currency.imperials]);
 
   useEffect(() => {
-    setContractSlots((previousSlots) => {
-      let hasChanges = false;
-      const nextSlots = previousSlots.map((slot) => {
-        if (slot.offer && nowMs >= slot.offer.expiresAt) {
-          hasChanges = true;
-          return {
-            ...slot,
-            offer: null,
-            replenishReadyAt: nowMs + randomInRange(CONTRACT_REPLENISH_MIN_MS, CONTRACT_REPLENISH_MAX_MS)
-          };
+    let active = true;
+
+    if (!token || !playerState) {
+      setContractSlots([]);
+      setActiveContractRunId(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    if (activeTab !== "contracts" && !activeContractRunId && activeContractEncounter?.phase !== "travel") {
+      return () => {
+        active = false;
+      };
+    }
+
+    void (async () => {
+      try {
+        const board = await fetchContractsBoard(token);
+        if (!active) {
+          return;
         }
-        if (!slot.offer && slot.replenishReadyAt !== null && nowMs >= slot.replenishReadyAt) {
-          hasChanges = true;
-          return {
-            ...slot,
-            offer: createContractOffer(nowMs),
-            replenishReadyAt: null
-          };
+
+        const nextSlots = mapBoardSlotsToUi(board.slots);
+        setContractSlots(nextSlots);
+
+        if (activeContractEncounter?.phase === "combat") {
+          return;
         }
-        return slot;
-      });
-      return hasChanges ? nextSlots : previousSlots;
-    });
-  }, [nowMs]);
+
+        const startedRunId = board.slots.find((slot) => slot.startedRunId)?.startedRunId ?? null;
+        setActiveContractRunId(startedRunId);
+
+        if (!startedRunId) {
+          setActiveContractEncounter((previousEncounter) =>
+            previousEncounter?.phase === "travel" ? null : previousEncounter
+          );
+          return;
+        }
+
+        const run = await fetchContractRun(token, startedRunId);
+        if (!active) {
+          return;
+        }
+
+        const offer = nextSlots.find((slot) => slot.slotIndex === run.slotId)?.offer ?? buildOfferFromRun(run);
+        if (run.state === "traveling") {
+          setActiveContractEncounter(
+            buildTravelEncounterState({
+              slotIndex: run.slotId,
+              offer,
+              run,
+              playerAvatarPath: activeCharacterVisualPath
+            })
+          );
+          return;
+        }
+
+        const result = await claimContractRun(token, startedRunId);
+        if (!active) {
+          return;
+        }
+
+        if (result.playerState) {
+          applyContractResultPlayerState(result.playerState);
+        }
+
+        setActiveContractRunId(null);
+        setActiveContractEncounter(
+          buildResolvedEncounterState({
+            slotIndex: result.run.slotId,
+            offer,
+            result,
+            playerAvatarPath: activeCharacterVisualPath
+          })
+        );
+      } catch (err: unknown) {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Contracts state failed");
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [activeTab, activeCharacterVisualPath, activeContractEncounter?.phase, activeContractRunId, playerState?.playerId, token]);
 
   useEffect(() => {
-    if (!activeContractEncounter || activeContractEncounter.phase !== "travel" || activeContractEncounter.travelEndsAt === null) {
-      return;
-    }
-    if (nowMs < activeContractEncounter.travelEndsAt) {
-      return;
-    }
-    setActiveContractEncounter((previousEncounter) => {
-      if (!previousEncounter || previousEncounter.phase !== "travel") {
-        return previousEncounter;
-      }
-      return {
-        ...previousEncounter,
-        phase: "combat",
-        travelEndsAt: null,
-        segmentPlaybackRate: previousEncounter.playbackRate,
-        playbackProgressMs: 0,
-        lastPlaybackTickAtMs: null
+    let active = true;
+
+    if (
+      !token ||
+      !activeContractRunId ||
+      !activeContractEncounter ||
+      activeContractEncounter.phase !== "travel" ||
+      activeContractEncounter.travelEndsAt === null ||
+      nowMs < activeContractEncounter.travelEndsAt
+    ) {
+      return () => {
+        active = false;
       };
-    });
-  }, [activeContractEncounter?.phase, activeContractEncounter?.travelEndsAt, nowMs]);
+    }
+
+    void (async () => {
+      try {
+        const result = await claimContractRun(token, activeContractRunId);
+        if (!active) {
+          return;
+        }
+
+        if (result.playerState) {
+          applyContractResultPlayerState(result.playerState);
+        }
+
+        setActiveContractRunId(null);
+        setActiveContractEncounter(
+          buildResolvedEncounterState({
+            slotIndex: activeContractEncounter.slotIndex,
+            offer: activeContractEncounter.offer,
+            result,
+            playerAvatarPath: activeCharacterVisualPath
+          })
+        );
+      } catch (err: unknown) {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Claim contract result failed");
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [activeCharacterVisualPath, activeContractEncounter, activeContractRunId, nowMs, token]);
 
   useEffect(() => {
     if (!activeContractEncounter || activeContractEncounter.phase !== "combat") {
@@ -2632,7 +2733,7 @@ export function AppShell() {
       const impactApplied =
         activeContractEncounter.impactTargetId === currentEvent.targetId &&
         activeContractEncounter.hpByActorId[currentEvent.targetId] === currentEvent.targetHpAfter &&
-        activeContractEncounter.combatLogEntries.includes(currentEvent.logLine);
+        activeContractEncounter.combatLogEventIds.includes(currentEvent.eventId);
 
       if (!impactApplied && effectiveProgressMs >= impactThresholdMs) {
         setActiveContractEncounter((previousEncounter) => {
@@ -2650,9 +2751,8 @@ export function AppShell() {
               ...snapshot.hpByActorId,
               [currentEvent.targetId]: currentEvent.targetHpAfter
             },
-            combatLogEntries: snapshot.combatLogEntries.includes(currentEvent.logLine)
-              ? snapshot.combatLogEntries
-              : [...snapshot.combatLogEntries, currentEvent.logLine],
+            combatLogEntries: [...snapshot.combatLogEntries, currentEvent.logLine],
+            combatLogEventIds: [...snapshot.combatLogEventIds, currentEvent.eventId],
             impactTargetId: currentEvent.targetId
           };
         });
@@ -2937,8 +3037,9 @@ export function AppShell() {
     setMerchantOfferFilters(DEFAULT_INVENTORY_FILTER_STATE);
     setMerchantPlayerFilters(DEFAULT_INVENTORY_FILTER_STATE);
     setActiveStatTraining(null);
-    setContractSlots(createContractSlots(Date.now()));
+    setContractSlots([]);
     setActiveContractEncounter(null);
+    setActiveContractRunId(null);
   }
 
   async function handleLocaleChange(nextLocale: SupportedLocale) {
@@ -3363,29 +3464,80 @@ export function AppShell() {
     return i18n.t(`contracts.roll${roll.charAt(0).toUpperCase()}${roll.slice(1)}`);
   }
 
-  function startContractEncounter(slotIndex: number, offer: ContractOffer) {
-    if (!playerState) {
-      return;
-    }
-    setIsCombatLogVisible(true);
-    setHoveredCombatActorId(null);
-    setActiveContractEncounter(
-      buildMockCombatEncounterState({
-        offer,
-        slotIndex,
-        playerName: profileName,
-        playerClass: playerState.class,
-        playerPower: playerState.gearScore,
-        playerStats: playerState.statSnapshot.total,
-        playerAvatarPath: activeCharacterVisualPath,
-        nowMs: Date.now()
-      })
-    );
+  function applyContractResultPlayerState(resultPlayerState: {
+    level: number;
+    experience: number;
+    experienceIntoLevel: number;
+    experienceToNextLevel: number;
+    stamina: {
+      current: number;
+      max: number;
+      nextPointAt: string | null;
+    };
+    ducats: number;
+  }) {
+    setPlayerState((previousState) => {
+      if (!previousState) {
+        return previousState;
+      }
+      return {
+        ...previousState,
+        level: resultPlayerState.level,
+        experience: resultPlayerState.experience,
+        experienceIntoLevel: resultPlayerState.experienceIntoLevel,
+        experienceToNextLevel: resultPlayerState.experienceToNextLevel,
+        stamina: resultPlayerState.stamina,
+        currency: {
+          ...previousState.currency,
+          ducats: resultPlayerState.ducats
+        }
+      };
+    });
   }
 
-  function returnToContractsBoard() {
+  async function startContractEncounter(slotIndex: number, offer: ContractOffer) {
+    if (!playerState || !token) {
+      return;
+    }
+    try {
+      setIsLoadingState(true);
+      setIsCombatLogVisible(true);
+      setHoveredCombatActorId(null);
+
+      const startedRun = await startContractsRun(token, slotIndex);
+      const run = await fetchContractRun(token, startedRun.runId);
+      const refreshedPlayerState = await fetchPlayerState(token);
+
+      setActiveContractRunId(startedRun.runId);
+      applyAuthoritativePlayerState(refreshedPlayerState);
+      setActiveContractEncounter(
+        buildTravelEncounterState({
+          slotIndex,
+          offer,
+          run,
+          playerAvatarPath: activeCharacterVisualPath
+        })
+      );
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Start contract failed");
+    } finally {
+      setIsLoadingState(false);
+    }
+  }
+
+  async function returnToContractsBoard() {
     setHoveredCombatActorId(null);
     setActiveContractEncounter(null);
+    setActiveContractRunId(null);
+    if (!token || !playerState) {
+      return;
+    }
+    try {
+      const board = await fetchContractsBoard(token);
+      setContractSlots(mapBoardSlotsToUi(board.slots));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Contracts board failed");
+    }
   }
 
   function replayContractEncounter() {
@@ -3412,20 +3564,16 @@ export function AppShell() {
     });
   }
 
-  function abandonContractSlot(slotIndex: number) {
-    const startedAt = Date.now();
-    setContractSlots((previousSlots) =>
-      previousSlots.map((slot) => {
-        if (slot.slotIndex !== slotIndex || !slot.offer) {
-          return slot;
-        }
-        return {
-          ...slot,
-          offer: null,
-          replenishReadyAt: startedAt + randomInRange(CONTRACT_REPLENISH_MIN_MS, CONTRACT_REPLENISH_MAX_MS)
-        };
-      })
-    );
+  async function abandonContractSlot(slotIndex: number) {
+    if (!token) {
+      return;
+    }
+    try {
+      const board = await abandonContractsSlot(token, slotIndex);
+      setContractSlots(mapBoardSlotsToUi(board.slots));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Abandon contract failed");
+    }
   }
 
   function handleContractRowKeyDown(
@@ -4711,6 +4859,7 @@ export function AppShell() {
                         timeline={activeContractEncounter.timeline}
                         currentEventIndex={activeContractEncounter.currentEventIndex}
                         combatLogEntries={activeContractEncounter.combatLogEntries}
+                        combatLogEventIds={activeContractEncounter.combatLogEventIds}
                         resolutionState={activeContractEncounter.resolutionState}
                         typedSummaryLine={activeContractEncounter.typedSummaryLine}
                         onCloseLog={closeCombatLog}
