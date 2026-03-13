@@ -589,6 +589,55 @@
       "enemies": "Mga Kaaway"
     }
   },
+  "academy": {
+    "title": "Akademya",
+    "loading": "Naglo-load ang Akademya...",
+    "totalDonated": "Kabuuang Donasyon",
+    "level": "Antas",
+    "toNextLevel": "Sa Susunod na Antas",
+    "nextLevel": "Pag-unlad sa Susunod na Antas",
+    "resetView": "I-reset",
+    "views": {
+      "tree": "Research Tree",
+      "history": "Kasaysayan ng Donasyon",
+      "contributions": "Mga Kontribusyon"
+    },
+    "status": {
+      "label": "Katayuan",
+      "locked": "Naka-lock",
+      "available": "Available",
+      "in_progress": "In Progress",
+      "completed": "Natapos",
+      "maxed": "Maximum"
+    },
+    "rewards": {
+      "title": "Mga Gantimpala",
+      "completion": "Pagkumpleto"
+    },
+    "donate": {
+      "button": "Mag-donate ng Ducats",
+      "title": "Mag-donate sa Research",
+      "yourDucats": "Iyong Ducats",
+      "amountPlaceholder": "Ilagay ang halaga...",
+      "max": "MAX",
+      "confirm": "I-donate",
+      "donating": "Nagdo-donate...",
+      "success": "Matagumpay na nai-donate ang {{amount}} Ducats!",
+      "levelsGained": "(+{{count}} antas)"
+    },
+    "history": {
+      "empty": "Wala pang naitalagang donasyon."
+    },
+    "contributions": {
+      "empty": "Wala pang kontribusyon."
+    },
+    "errors": {
+      "loadFailed": "Nabigo ang pag-load ng Akademya.",
+      "invalidAmount": "Mangyaring maglagay ng wastong halaga.",
+      "insufficientDucats": "Hindi sapat ang Ducats.",
+      "donateFailed": "Nabigo ang donasyon. Subukang muli."
+    }
+  },
   "class": {
     "warrior": "Mandirigma",
     "mage": "Manggagawa ng Mahika",

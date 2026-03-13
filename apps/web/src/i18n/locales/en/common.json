@@ -864,5 +864,54 @@
       "party": "Party",
       "enemies": "Enemies"
     }
+  },
+  "academy": {
+    "title": "Academy",
+    "loading": "Loading Academy...",
+    "totalDonated": "Total Donated",
+    "level": "Level",
+    "toNextLevel": "To Next Level",
+    "nextLevel": "Progress to Next Level",
+    "resetView": "Reset",
+    "views": {
+      "tree": "Research Tree",
+      "history": "Donation History",
+      "contributions": "Contributions"
+    },
+    "status": {
+      "label": "Status",
+      "locked": "Locked",
+      "available": "Available",
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "maxed": "Maxed"
+    },
+    "rewards": {
+      "title": "Rewards",
+      "completion": "Completion"
+    },
+    "donate": {
+      "button": "Donate Ducats",
+      "title": "Donate to Research",
+      "yourDucats": "Your Ducats",
+      "amountPlaceholder": "Enter amount...",
+      "max": "MAX",
+      "confirm": "Donate",
+      "donating": "Donating...",
+      "success": "Successfully donated {{amount}} Ducats!",
+      "levelsGained": "(+{{count}} level)"
+    },
+    "history": {
+      "empty": "No donations recorded yet."
+    },
+    "contributions": {
+      "empty": "No contributions yet."
+    },
+    "errors": {
+      "loadFailed": "Failed to load Academy.",
+      "invalidAmount": "Please enter a valid amount.",
+      "insufficientDucats": "Not enough Ducats.",
+      "donateFailed": "Donation failed. Please try again."
+    }
   }
 }

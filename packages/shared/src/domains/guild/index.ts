@@ -262,3 +262,136 @@ export const GUILD_CREST_COLORS = {
 } as const;
 
 export type GuildCrestColor = keyof typeof GUILD_CREST_COLORS;
+
+// ─── Academy / Guild Tech Tree ────────────────────────────────────────────────
+
+export const academyRewardTypeSchema = z.enum([
+  "guild_combat_power_pct",
+  "guild_max_members",
+  "guild_ducat_find_pct",
+  "member_xp_gain_pct",
+  "member_item_find_pct",
+  "guild_arcane_resistance_pct",
+  "unlock_branch"
+]);
+export type AcademyRewardType = z.infer<typeof academyRewardTypeSchema>;
+
+export const academyRewardSchema = z.object({
+  type: academyRewardTypeSchema,
+  value: z.number(),
+  description: z.string()
+});
+export type AcademyReward = z.infer<typeof academyRewardSchema>;
+
+export const academyNodePrerequisiteSchema = z.object({
+  nodeId: z.string(),
+  minLevel: z.number().int().min(1)
+});
+export type AcademyNodePrerequisite = z.infer<typeof academyNodePrerequisiteSchema>;
+
+export const academyNodeLevelConfigSchema = z.object({
+  level: z.number().int().min(1),
+  ducatCost: z.number().int().min(1),
+  rewards: z.array(academyRewardSchema)
+});
+export type AcademyNodeLevelConfig = z.infer<typeof academyNodeLevelConfigSchema>;
+
+export const academyNodeConfigSchema = z.object({
+  id: z.string(),
+  branchId: z.string(),
+  label: z.string(),
+  description: z.string(),
+  iconKey: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+  prerequisites: z.array(academyNodePrerequisiteSchema),
+  maxLevel: z.number().int().min(1),
+  levels: z.array(academyNodeLevelConfigSchema),
+  hiddenUntilUnlocked: z.boolean(),
+  completionReward: academyRewardSchema.optional()
+});
+export type AcademyNodeConfig = z.infer<typeof academyNodeConfigSchema>;
+
+export const academyBranchConfigSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  iconKey: z.string(),
+  color: z.string(),
+  completionReward: academyRewardSchema.optional()
+});
+export type AcademyBranchConfig = z.infer<typeof academyBranchConfigSchema>;
+
+export const academyTreeConfigSchema = z.object({
+  version: z.number().int(),
+  centerNodeId: z.string(),
+  branches: z.array(academyBranchConfigSchema),
+  nodes: z.array(academyNodeConfigSchema)
+});
+export type AcademyTreeConfig = z.infer<typeof academyTreeConfigSchema>;
+
+// ── Runtime state ──
+
+export const academyNodeStatusSchema = z.enum(["locked", "available", "in_progress", "completed", "maxed"]);
+export type AcademyNodeStatus = z.infer<typeof academyNodeStatusSchema>;
+
+export const academyNodeStateSchema = z.object({
+  nodeId: z.string(),
+  currentLevel: z.number().int(),
+  ducatsInvested: z.number().int(),
+  ducatsToNextLevel: z.number().int().nullable(),
+  status: academyNodeStatusSchema
+});
+export type AcademyNodeState = z.infer<typeof academyNodeStateSchema>;
+
+export const academyTreeStateSchema = z.object({
+  guildId: z.string(),
+  config: academyTreeConfigSchema,
+  nodes: z.record(z.string(), academyNodeStateSchema),
+  totalDonated: z.number().int()
+});
+export type AcademyTreeState = z.infer<typeof academyTreeStateSchema>;
+
+export const donateToNodeRequestSchema = z.object({
+  nodeId: z.string(),
+  amount: z.number().int().min(1).max(500000)
+});
+export type DonateToNodeRequest = z.infer<typeof donateToNodeRequestSchema>;
+
+export const donateToNodeResponseSchema = z.object({
+  nodeId: z.string(),
+  newLevel: z.number().int(),
+  ducatsInvested: z.number().int(),
+  ducatsToNextLevel: z.number().int().nullable(),
+  status: academyNodeStatusSchema,
+  levelsGained: z.number().int(),
+  remainingDucats: z.number().int()
+});
+export type DonateToNodeResponse = z.infer<typeof donateToNodeResponseSchema>;
+
+export const academyDonationEntrySchema = z.object({
+  id: z.string(),
+  playerId: z.string(),
+  playerName: z.string(),
+  nodeId: z.string(),
+  amount: z.number().int(),
+  donatedAt: z.string()
+});
+export type AcademyDonationEntry = z.infer<typeof academyDonationEntrySchema>;
+
+export const academyDonationHistoryResponseSchema = z.object({
+  donations: z.array(academyDonationEntrySchema),
+  total: z.number().int()
+});
+export type AcademyDonationHistoryResponse = z.infer<typeof academyDonationHistoryResponseSchema>;
+
+export const academyMemberContributionSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  totalDonated: z.number().int()
+});
+export type AcademyMemberContribution = z.infer<typeof academyMemberContributionSchema>;
+
+export const academyMemberContributionsResponseSchema = z.object({
+  contributions: z.array(academyMemberContributionSchema)
+});
+export type AcademyMemberContributionsResponse = z.infer<typeof academyMemberContributionsResponseSchema>;
