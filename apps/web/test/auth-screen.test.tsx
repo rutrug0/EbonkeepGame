@@ -89,8 +89,18 @@ describe("AuthScreen intro", () => {
   it("starts with the hourglass intro before revealing auth content", () => {
     render(<AuthScreen {...createProps()} />);
 
-    expect(screen.getByTestId("auth-intro-loader").getAttribute("data-state")).toBe("visible");
+    expect(screen.getByTestId("auth-intro-loader").getAttribute("data-state")).toBe("hidden");
     expect(screen.getByTestId("auth-content").getAttribute("data-state")).toBe("hidden");
+  });
+
+  it("reveals the hourglass only if video readiness takes longer than the delay", () => {
+    render(<AuthScreen {...createProps()} />);
+
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+
+    expect(screen.getByTestId("auth-intro-loader").getAttribute("data-state")).toBe("visible");
   });
 
   it("reveals the auth content after the video becomes ready", () => {
@@ -114,7 +124,7 @@ describe("AuthScreen intro", () => {
 
     render(<AuthScreen {...createProps()} />);
 
-    expect(screen.getByTestId("auth-intro-loader").getAttribute("data-state")).toBe("visible");
+    expect(screen.getByTestId("auth-intro-loader").getAttribute("data-state")).toBe("hidden");
     expect(screen.getByTestId("auth-content").getAttribute("data-state")).toBe("hidden");
 
     fireEvent.loadedData(screen.getByTestId("auth-intro-video"));

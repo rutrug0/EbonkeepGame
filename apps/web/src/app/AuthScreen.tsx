@@ -58,6 +58,7 @@ export type AuthScreenProps = {
 
 const AUTH_INTRO_SESSION_KEY = "ebonkeep.authIntroSeen";
 const AUTH_INTRO_VIDEO_PATH = "/assets/video/ebonkeep_video.mp4";
+const AUTH_LOADER_REVEAL_DELAY_MS = 140;
 const AUTH_INTRO_TIMEOUT_MS = 4500;
 const AUTH_REDUCED_MOTION_TIMEOUT_MS = 180;
 const AUTH_VIDEO_FADE_MS = 900;
@@ -710,6 +711,7 @@ export function AuthScreen(props: AuthScreenProps) {
   const [registerStep, setRegisterStep] = useState<number>(0);
   const [hasSeenIntroThisSession, setHasSeenIntroThisSession] = useState<boolean>(hasSeenAuthIntro);
   const [introPhase, setIntroPhase] = useState<AuthIntroPhase>("boot");
+  const [isLoaderVisible, setIsLoaderVisible] = useState(false);
   const [videoFailed, setVideoFailed] = useState(false);
   const introVideoRef = useRef<HTMLVideoElement | null>(null);
   const [selectedTree, setSelectedTree] = useState<PlayerStatTree>(() =>
@@ -781,6 +783,25 @@ export function AuthScreen(props: AuthScreenProps) {
 
   useEffect(() => {
     if (introPhase !== "boot") {
+      setIsLoaderVisible(false);
+      return;
+    }
+
+    setIsLoaderVisible(false);
+
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsLoaderVisible(true);
+    }, AUTH_LOADER_REVEAL_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [introPhase, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (introPhase !== "boot") {
       return;
     }
 
@@ -822,7 +843,7 @@ export function AuthScreen(props: AuthScreenProps) {
   }, [completeIntro, introPhase, prefersReducedMotion]);
 
   const shouldRenderVideo = !prefersReducedMotion && !videoFailed;
-  const introLoaderState = introPhase === "boot" ? "visible" : "hidden";
+  const introLoaderState = introPhase === "boot" && isLoaderVisible ? "visible" : "hidden";
   const introContentState = introPhase === "form-visible" ? "visible" : "hidden";
   const introVideoState = !shouldRenderVideo ? "hidden" : introPhase === "boot" ? "hidden" : "visible";
 
