@@ -1462,6 +1462,7 @@ export function AppShell() {
   const panelViewportMainRef = useRef<HTMLDivElement | null>(null);
   const panelViewportSideRef = useRef<HTMLDivElement | null>(null);
   const contractAutoReturnTimeoutRef = useRef<number | null>(null);
+  const pendingContractResultPlayerStateRef = useRef<PendingContractResultPlayerState | null>(null);
   const renownViewportRef = useRef<HTMLDivElement | null>(null);
   const renownDragStateRef = useRef<{
     pointerX: number;
@@ -2412,6 +2413,10 @@ export function AppShell() {
     setShowRepeatPassword(false);
     setError(null);
   }, [authMode]);
+
+  useEffect(() => {
+    pendingContractResultPlayerStateRef.current = pendingContractResultPlayerState;
+  }, [pendingContractResultPlayerState]);
 
   useEffect(() => {
     if (!playerState) {
@@ -3606,8 +3611,8 @@ export function AppShell() {
   }
 
   async function returnToContractsBoard() {
-    if (pendingContractResultPlayerState) {
-      applyContractResultPlayerState(pendingContractResultPlayerState);
+    if (pendingContractResultPlayerStateRef.current) {
+      applyContractResultPlayerState(pendingContractResultPlayerStateRef.current);
       setPendingContractResultPlayerState(null);
     }
     setHoveredCombatActorId(null);

@@ -78,6 +78,60 @@ describe("player, inventory, and merchant routes", () => {
     expect(body.playerState.currency.ducats).toBe(1_000 - body.costDucats);
   });
 
+  it("prevents concurrent rest requests from double-charging the player", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+    const initialStateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+
+    expect(initialStateResponse.statusCode).toBe(200);
+    const initialState = initialStateResponse.json();
+    const exactSingleRestCost =
+      Math.ceil(initialState.health.max / 10) + Math.max(0, initialState.stamina.max - 10);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsCurrent: 0,
+        staminaCurrent: 10,
+        staminaUpdatedAt: new Date()
+      }
+    });
+    await setPlayerDucats(context.prisma, guest.body.playerId, exactSingleRestCost);
+
+    const [firstResponse, secondResponse] = await Promise.all([
+      context.app.inject({
+        method: "POST",
+        url: "/v1/player/rest",
+        headers,
+        payload: {}
+      }),
+      context.app.inject({
+        method: "POST",
+        url: "/v1/player/rest",
+        headers,
+        payload: {}
+      })
+    ]);
+
+    const statusCodes = [firstResponse.statusCode, secondResponse.statusCode].sort((left, right) => left - right);
+    expect(statusCodes[1]).toBe(200);
+
+    const stateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+
+    expect(stateResponse.statusCode).toBe(200);
+    expect(stateResponse.json().health.current).toBe(stateResponse.json().health.max);
+    expect(stateResponse.json().stamina.current).toBe(stateResponse.json().stamina.max);
+    expect(stateResponse.json().currency.ducats).toBe(0);
+  });
+
   it("equips, swaps back, and blocks invalid inventory moves", async () => {
     const guest = await loginAsGuest(context.app, { playerClass: "juggernaut" });
     const stateResponse = await context.app.inject({

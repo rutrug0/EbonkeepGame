@@ -326,14 +326,6 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
 
-  const playerState = await loadPlayerState(prisma, playerId);
-  if (!playerState) {
-    throw new Error("Player state not found.");
-  }
-  if (playerState.health.current <= 0) {
-    throw new Error("You must rest before starting another contract.");
-  }
-
   const profile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
     select: {
@@ -349,6 +341,13 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
 
   await prisma.$transaction(async (tx) => {
     await lockPlayerContractState(tx, playerId);
+    const playerState = await loadPlayerState(tx, playerId);
+    if (!playerState) {
+      throw new Error("Player state not found.");
+    }
+    if (playerState.health.current <= 0) {
+      throw new Error("You must rest before starting another contract.");
+    }
 
     const activeRun = await tx.contractRun.findFirst({
       where: {

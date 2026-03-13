@@ -392,6 +392,7 @@ export async function restPlayerResources(args: {
   now?: Date;
 }): Promise<{ costDucats: number; stamina: StaminaState; currentHealth: number }> {
   const now = args.now ?? new Date();
+  await args.tx.$queryRaw`SELECT "id" FROM "player_profiles" WHERE "id" = ${args.playerId} FOR UPDATE`;
   const profile = await args.tx.playerProfile.findUnique({
     where: { id: args.playerId },
     select: {
@@ -422,20 +423,19 @@ export async function restPlayerResources(args: {
   });
 
   if (costDucats > 0) {
-    const currency = await args.tx.currencyBalance.findUnique({
-      where: { playerId: args.playerId },
-      select: { ducats: true }
+    const deduction = await args.tx.currencyBalance.updateMany({
+      where: {
+        playerId: args.playerId,
+        ducats: { gte: costDucats }
+      },
+      data: {
+        ducats: { decrement: costDucats }
+      }
     });
-    const currentDucats = currency?.ducats ?? 0;
-    if (currentDucats < costDucats) {
+
+    if (deduction.count !== 1) {
       throw new Error("Not enough ducats to rest.");
     }
-
-    await args.tx.currencyBalance.upsert({
-      where: { playerId: args.playerId },
-      update: { ducats: { decrement: costDucats } },
-      create: { playerId: args.playerId, ducats: 0, imperials: 0 }
-    });
   }
 
   await args.tx.playerProfile.update({
