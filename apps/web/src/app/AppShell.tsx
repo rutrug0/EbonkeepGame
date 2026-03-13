@@ -3566,6 +3566,7 @@ export function AppShell() {
     setError(null);
     try {
       const result = await restPlayer(token);
+      setPendingContractResultPlayerState(null);
       applyAuthoritativePlayerState(result.playerState);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Rest failed");
