@@ -59,6 +59,7 @@ export type AuthScreenProps = {
 const AUTH_INTRO_SESSION_KEY = "ebonkeep.authIntroSeen";
 const AUTH_INTRO_VIDEO_PATH = "/assets/video/ebonkeep_video.mp4";
 const AUTH_INTRO_TIMEOUT_MS = 4500;
+const AUTH_REDUCED_MOTION_TIMEOUT_MS = 180;
 const AUTH_VIDEO_FADE_MS = 900;
 
 type AuthIntroPhase = "boot" | "video-visible" | "form-visible";
@@ -786,13 +787,13 @@ export function AuthScreen(props: AuthScreenProps) {
     const timeoutId = window.setTimeout(() => {
       setVideoFailed(true);
       completeIntro();
-    }, prefersReducedMotion ? 1200 : AUTH_INTRO_TIMEOUT_MS);
+    }, prefersReducedMotion ? AUTH_REDUCED_MOTION_TIMEOUT_MS : AUTH_INTRO_TIMEOUT_MS);
 
     return () => window.clearTimeout(timeoutId);
   }, [completeIntro, introPhase, prefersReducedMotion]);
 
   useEffect(() => {
-    if (introPhase !== "boot" || videoFailed) {
+    if (prefersReducedMotion || introPhase !== "boot" || videoFailed) {
       return;
     }
 
@@ -820,9 +821,10 @@ export function AuthScreen(props: AuthScreenProps) {
     return () => window.clearTimeout(timeoutId);
   }, [completeIntro, introPhase, prefersReducedMotion]);
 
+  const shouldRenderVideo = !prefersReducedMotion && !videoFailed;
   const introLoaderState = introPhase === "boot" ? "visible" : "hidden";
   const introContentState = introPhase === "form-visible" ? "visible" : "hidden";
-  const introVideoState = videoFailed ? "failed" : introPhase === "boot" ? "hidden" : "visible";
+  const introVideoState = !shouldRenderVideo ? "hidden" : introPhase === "boot" ? "hidden" : "visible";
 
   return (
     <main className={`appRoot layout-${props.layoutMode}`}>
@@ -833,7 +835,7 @@ export function AuthScreen(props: AuthScreenProps) {
             data-state={introVideoState}
             aria-hidden="true"
           >
-            {!videoFailed ? (
+            {shouldRenderVideo ? (
               <video
                 ref={introVideoRef}
                 data-testid="auth-intro-video"

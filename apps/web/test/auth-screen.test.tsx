@@ -17,6 +17,19 @@ import { AuthScreen, type AuthScreenProps } from "../src/app/AuthScreen";
 
 const AUTH_INTRO_SESSION_KEY = "ebonkeep.authIntroSeen";
 
+function setReducedMotion(matches: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false
+  }));
+}
+
 function createProps(overrides: Partial<AuthScreenProps> = {}): AuthScreenProps {
   return {
     layoutMode: "standard",
@@ -65,6 +78,7 @@ function createProps(overrides: Partial<AuthScreenProps> = {}): AuthScreenProps 
 describe("AuthScreen intro", () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    setReducedMotion(false);
   });
 
   afterEach(() => {
@@ -114,6 +128,20 @@ describe("AuthScreen intro", () => {
 
     act(() => {
       vi.advanceTimersByTime(4600);
+    });
+
+    expect(screen.getByTestId("auth-content").getAttribute("data-state")).toBe("visible");
+  });
+
+  it("suppresses background video playback when reduced motion is preferred", () => {
+    setReducedMotion(true);
+
+    render(<AuthScreen {...createProps()} />);
+
+    expect(screen.queryByTestId("auth-intro-video")).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(200);
     });
 
     expect(screen.getByTestId("auth-content").getAttribute("data-state")).toBe("visible");
