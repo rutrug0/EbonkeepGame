@@ -24,6 +24,8 @@ import {
 } from "@ebonkeep/shared/inventory";
 import { parseStoredInventoryItem } from "../inventory/item-service.js";
 
+const BASE_ACCURACY = 75;
+const BASE_CRIT_CHANCE = 500;
 const BASE_CRIT_MULTIPLIER = 15000;
 const HP_PER_VITALITY = 10;
 const mainStatToFlatDamageRatio = 0.1;
@@ -135,9 +137,15 @@ function sumEquipmentBonuses(equipment: InventoryEquipmentState): PlayerStatBonu
   return totals;
 }
 
-function resolveStatBlock(playerClass: PlayerClass, coreStats: StatBlock, bonuses: PlayerStatBonuses): PlayerStatBlock {
+function resolveStatBlock(
+  playerClass: PlayerClass,
+  coreStats: StatBlock,
+  bonuses: PlayerStatBonuses,
+  equipment?: InventoryEquipmentState
+): PlayerStatBlock {
   const mainOffenseStatKey = getMainOffenseStatKey(playerClass);
   const mainOffenseStat = coreStats[mainOffenseStatKey];
+  const weaponAverageDamage = Math.round(equipment?.weapon?.damageRoll?.averageDamage ?? 0);
 
   return {
     strength: coreStats.strength,
@@ -153,13 +161,16 @@ function resolveStatBlock(playerClass: PlayerClass, coreStats: StatBlock, bonuse
     magicDefense: Math.max(0, bonuses.magicDefense ?? 0),
     maxHitpoints: Math.max(0, coreStats.vitality * HP_PER_VITALITY + (bonuses.maxHitpoints ?? 0)),
     dodgeChance: clampInt(coreStats.dexterity * CHANCE_PER_STAT + (bonuses.dodgeChance ?? 0), DODGE_CHANCE_CAP),
-    damage: Math.max(0, Math.floor(mainOffenseStat * mainStatToFlatDamageRatio) + (bonuses.damage ?? 0)),
-    critChance: clampInt(coreStats.luck * CHANCE_PER_STAT + (bonuses.critChance ?? 0), CRIT_CHANCE_CAP),
+    damage: Math.max(
+      0,
+      weaponAverageDamage + Math.floor(mainOffenseStat * mainStatToFlatDamageRatio) + (bonuses.damage ?? 0)
+    ),
+    critChance: clampInt(BASE_CRIT_CHANCE + coreStats.luck * CHANCE_PER_STAT + (bonuses.critChance ?? 0), CRIT_CHANCE_CAP),
     critMultiplier: clampInt(
       BASE_CRIT_MULTIPLIER + coreStats.luck * CHANCE_PER_STAT + (bonuses.critMultiplier ?? 0),
       CRIT_MULTIPLIER_CAP
     ),
-    accuracy: Math.max(0, mainOffenseStat + (bonuses.accuracy ?? 0)),
+    accuracy: Math.max(0, BASE_ACCURACY + (bonuses.accuracy ?? 0)),
     extraAttackChance: clampInt(
       coreStats.initiative * CHANCE_PER_STAT + (bonuses.extraAttackChance ?? 0),
       EXTRA_ATTACK_CHANCE_CAP
@@ -198,7 +209,7 @@ export function buildPlayerStatSnapshot(args: {
   const equipmentBonuses = sumEquipmentBonuses(args.equipment);
   const totalCoreStats = addCoreStatBonuses(args.baseStats, equipmentBonuses);
   const base = resolveStatBlock(args.playerClass, args.baseStats, {});
-  const total = resolveStatBlock(args.playerClass, totalCoreStats, equipmentBonuses);
+  const total = resolveStatBlock(args.playerClass, totalCoreStats, equipmentBonuses, args.equipment);
 
   return {
     base,

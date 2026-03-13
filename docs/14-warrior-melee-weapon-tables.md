@@ -79,8 +79,10 @@ Main stat contributes linearly to flat damage for all damage archetypes:
 
 Rule:
 - `flat_main_stat_bonus = main_stat * 0.10`
+- `total_damage = rounded_weapon_damage + flat_main_stat_bonus + item_damage_bonuses`
 
 Examples:
+- `40 weapon damage` + `100 strength` -> `50` total damage before item damage affixes
 - `100 strength` -> `+10` flat damage
 - `10,000 strength` -> `+1,000` flat damage
 
