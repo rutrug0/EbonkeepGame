@@ -60,6 +60,7 @@ model PlayerProfile {
   receivedInvites      GuildInvite[]       @relation("GuildInvitesReceived")
   guildActivityAsActor GuildActivity[]     @relation("GuildActivityActor")
   guildActivityAsTarget GuildActivity[]    @relation("GuildActivityTarget")
+  academyDonations     GuildAcademyDonation[] @relation("GuildAcademyDonations")
 
   @@index([accountId])
   @@map("player_profiles")
@@ -385,6 +386,8 @@ model Guild {
   members         GuildMember[]
   invites         GuildInvite[]
   activityLog     GuildActivity[]
+  academyNodes    GuildAcademyNode[]
+  academyDonations GuildAcademyDonation[]
   
   @@index([name])
   @@index([tag])
@@ -449,4 +452,40 @@ model GuildActivity {
   @@index([guildId, timestamp(sort: Desc)])
   @@index([actorId])
   @@map("guild_activity")
+}
+
+// ========================================
+// Guild Academy Models
+// ========================================
+
+model GuildAcademyNode {
+  id             String    @id @default(cuid())
+  guildId        String
+  nodeId         String
+  currentLevel   Int       @default(0)
+  ducatsInvested Int       @default(0)
+  completedAt    DateTime?
+  
+  guild          Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  @@unique([guildId, nodeId])
+  @@index([guildId])
+  @@map("guild_academy_nodes")
+}
+
+model GuildAcademyDonation {
+  id        String   @id @default(cuid())
+  guildId   String
+  playerId  String
+  nodeId    String
+  amount    Int
+  donatedAt DateTime @default(now())
+  
+  guild     Guild         @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  player    PlayerProfile @relation("GuildAcademyDonations", fields: [playerId], references: [id], onDelete: Cascade)
+  
+  @@index([guildId, nodeId])
+  @@index([guildId, playerId])
+  @@index([guildId, donatedAt(sort: Desc)])
+  @@map("guild_academy_donations")
 }

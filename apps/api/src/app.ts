@@ -10,6 +10,7 @@ import { initializeAuctionJobs } from "./modules/auction/background-jobs.js";
 import { auctionRoutes } from "./modules/auction/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { initEmailService } from "./modules/auth/services/email.js";
+import { academyRoutes } from "./modules/academy/routes.js";
 import { combatRoutes } from "./modules/combat/routes.js";
 import { economyRoutes } from "./modules/economy/routes.js";
 import { guildRoutes } from "./modules/guild/routes.js";
@@ -127,6 +128,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(auctionRoutes);
   await fastify.register(leaderboardRoutes);
   await fastify.register(guildRoutes);
+  await fastify.register(academyRoutes);
   await fastify.register(websocketRoutes);
 
   if (options.startBackgroundJobs ?? true) {

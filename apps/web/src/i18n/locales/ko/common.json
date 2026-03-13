@@ -589,6 +589,55 @@
       "enemies": "적"
     }
   },
+  "academy": {
+    "title": "아카데미",
+    "loading": "아카데미 로딩 중...",
+    "totalDonated": "총 기부금",
+    "level": "레벨",
+    "toNextLevel": "다음 레벨까지",
+    "nextLevel": "다음 레벨 진행도",
+    "resetView": "초기화",
+    "views": {
+      "tree": "연구 트리",
+      "history": "기부 내역",
+      "contributions": "기여도"
+    },
+    "status": {
+      "label": "상태",
+      "locked": "잠김",
+      "available": "사용 가능",
+      "in_progress": "진행 중",
+      "completed": "완료",
+      "maxed": "최대"
+    },
+    "rewards": {
+      "title": "보상",
+      "completion": "완료 보상"
+    },
+    "donate": {
+      "button": "두카트 기부",
+      "title": "연구에 기부",
+      "yourDucats": "보유 두카트",
+      "amountPlaceholder": "금액 입력...",
+      "max": "최대",
+      "confirm": "기부",
+      "donating": "기부 중...",
+      "success": "{{amount}} 두카트를 성공적으로 기부했습니다!",
+      "levelsGained": "(+{{count}} 레벨)"
+    },
+    "history": {
+      "empty": "기부 내역이 없습니다."
+    },
+    "contributions": {
+      "empty": "기여 내역이 없습니다."
+    },
+    "errors": {
+      "loadFailed": "아카데미를 불러오지 못했습니다.",
+      "invalidAmount": "유효한 금액을 입력하세요.",
+      "insufficientDucats": "두카트가 부족합니다.",
+      "donateFailed": "기부에 실패했습니다. 다시 시도해 주세요."
+    }
+  },
   "class": {
     "warrior": "전사",
     "mage": "마법사",

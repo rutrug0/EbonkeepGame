@@ -553,6 +553,55 @@
       "enemies": "Враги"
     }
   },
+  "academy": {
+    "title": "Академия",
+    "loading": "Загрузка Академии...",
+    "totalDonated": "Всего пожертвовано",
+    "level": "Уровень",
+    "toNextLevel": "До следующего уровня",
+    "nextLevel": "Прогресс",
+    "resetView": "Сброс",
+    "views": {
+      "tree": "Дерево исследований",
+      "history": "История пожертвований",
+      "contributions": "Вклад участников"
+    },
+    "status": {
+      "label": "Статус",
+      "locked": "Заблокировано",
+      "available": "Доступно",
+      "in_progress": "В процессе",
+      "completed": "Завершено",
+      "maxed": "Максимум"
+    },
+    "rewards": {
+      "title": "Награды",
+      "completion": "Завершение"
+    },
+    "donate": {
+      "button": "Пожертвовать дукаты",
+      "title": "Пожертвовать на исследование",
+      "yourDucats": "Ваши дукаты",
+      "amountPlaceholder": "Введите сумму...",
+      "max": "МАКС",
+      "confirm": "Пожертвовать",
+      "donating": "Обработка...",
+      "success": "Успешно пожертвовано {{amount}} дукатов!",
+      "levelsGained": "(+{{count}} ур.)"
+    },
+    "history": {
+      "empty": "Записи о пожертвованиях отсутствуют."
+    },
+    "contributions": {
+      "empty": "Нет вкладов."
+    },
+    "errors": {
+      "loadFailed": "Не удалось загрузить Академию.",
+      "invalidAmount": "Введите корректную сумму.",
+      "insufficientDucats": "Недостаточно дукатов.",
+      "donateFailed": "Ошибка пожертвования. Попробуйте снова."
+    }
+  },
   "class": {
     "warrior": "Воин",
     "mage": "Маг",

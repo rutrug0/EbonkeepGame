@@ -4250,7 +4250,7 @@ export function AppShell() {
       case "arena":
         return renderPlaceholderPanel(i18n.t("menu.arena"), i18n.t("placeholders.arena"));
       case "guild":
-        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} playerName={profileName} playerClass={playerState?.class ?? null} playerPower={playerState?.gearScore ?? null} onActiveMissionChange={setIsGuildMissionActive} />;
+        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} playerName={profileName} playerClass={playerState?.class ?? null} playerPower={playerState?.gearScore ?? null} playerDucats={currencies?.ducats ?? 0} onActiveMissionChange={setIsGuildMissionActive} onDucatsChanged={(n) => setCurrencies((c) => c ? { ...c, ducats: n } : null)} />;
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":

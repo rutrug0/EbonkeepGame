@@ -136,9 +136,11 @@ if errorlevel 1 (
   goto :fail
 )
 
+
 echo [7/8] Launching API and Web dev servers...
-start "Ebonkeep API" cmd /k "cd /d %ROOT% && npm.cmd run dev:api"
-start "Ebonkeep Web" cmd /k "cd /d %ROOT% && npm.cmd run dev:web"
+rem AI: always launch API and Web in a SINGLE window using "npm run dev" (concurrently).
+rem     Do NOT split this into separate start commands for each process.
+start "Ebonkeep Dev" cmd /k "cd /d %ROOT% && npm.cmd run dev"
 
 echo [8/8] Waiting for web client...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-port.ps1" -HostName "localhost" -Port 5173 -TimeoutSeconds 120

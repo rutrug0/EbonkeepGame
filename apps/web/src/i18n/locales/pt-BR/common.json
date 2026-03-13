@@ -554,6 +554,55 @@
       "enemies": "Inimigos"
     }
   },
+  "academy": {
+    "title": "Academia",
+    "loading": "Carregando Academia...",
+    "totalDonated": "Total Doado",
+    "level": "Nível",
+    "toNextLevel": "Para o próximo nível",
+    "nextLevel": "Progresso para o próximo nível",
+    "resetView": "Redefinir",
+    "views": {
+      "tree": "Árvore de pesquisa",
+      "history": "Histórico de doações",
+      "contributions": "Contribuições"
+    },
+    "status": {
+      "label": "Status",
+      "locked": "Bloqueado",
+      "available": "Disponível",
+      "in_progress": "Em andamento",
+      "completed": "Concluído",
+      "maxed": "Máximo"
+    },
+    "rewards": {
+      "title": "Recompensas",
+      "completion": "Conclusão"
+    },
+    "donate": {
+      "button": "Doar Ducados",
+      "title": "Doar para pesquisa",
+      "yourDucats": "Seus Ducados",
+      "amountPlaceholder": "Digite o valor...",
+      "max": "MÁX",
+      "confirm": "Doar",
+      "donating": "Doando...",
+      "success": "Doou {{amount}} Ducados com sucesso!",
+      "levelsGained": "(+{{count}} nível)"
+    },
+    "history": {
+      "empty": "Nenhuma doação registrada ainda."
+    },
+    "contributions": {
+      "empty": "Sem contribuições ainda."
+    },
+    "errors": {
+      "loadFailed": "Falha ao carregar a Academia.",
+      "invalidAmount": "Por favor, insira um valor válido.",
+      "insufficientDucats": "Ducados insuficientes.",
+      "donateFailed": "Doação falhou. Tente novamente."
+    }
+  },
   "class": {
     "warrior": "Guerreiro",
     "mage": "Mago",
