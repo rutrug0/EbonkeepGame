@@ -419,11 +419,13 @@ Sinks:
 - consumables
 - reroll/refresh options
 - stat training
+- rest / recovery
 - bag/inventory convenience expansion (imperials)
 
 ## Pacing Gates: Hybrid Timers + Stamina
 - Missions consume stamina.
 - Stamina regenerates over time.
+- Health persists between contract runs until the player pays to rest and recover.
 - Contracts board and shop stocks use independent timers.
 - Combined system controls burst and return cadence.
 

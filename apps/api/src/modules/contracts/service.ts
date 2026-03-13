@@ -21,7 +21,7 @@ import {
 import type { PlayerClass } from "@ebonkeep/shared/core";
 
 import { rollInventoryItem } from "../inventory/item-service.js";
-import { grantPlayerExperience, resolvePlayerProgressState, spendPlayerStamina } from "../player/progression-service.js";
+import { grantPlayerExperience, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
   CONTRACT_DIFFICULTY_WINDOWS,
@@ -268,6 +268,28 @@ async function loadRunSnapshotFromRecord(run: {
   });
 }
 
+function resolvePlayerCurrentHpFromEvents(run: {
+  playerSnapshot: Prisma.JsonValue;
+  events: Prisma.JsonValue;
+}): number {
+  const player = combatActorSnapshotSchema.parse(run.playerSnapshot);
+  const events = combatEventSchema.array().parse(run.events);
+  let currentHp = player.currentHp;
+
+  for (const event of events) {
+    if (event.type !== "CombatActionResolved") {
+      continue;
+    }
+    for (const strike of event.strikes) {
+      if (strike.targetId === player.id) {
+        currentHp = strike.targetHpAfter;
+      }
+    }
+  }
+
+  return Math.max(0, Math.min(player.maxHp, currentHp));
+}
+
 function coerceEncounterForRun(slot: BoardSlotRecord, playerLevel: number): EncounterDefinition {
   const rng = createSeededRng(`${slot.familyId}:${slot.slotIndex}:${slot.encounterLevel}`);
   return {
@@ -307,6 +329,9 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
   const playerState = await loadPlayerState(prisma, playerId);
   if (!playerState) {
     throw new Error("Player state not found.");
+  }
+  if (playerState.health.current <= 0) {
+    throw new Error("You must rest before starting another contract.");
   }
 
   const profile = await prisma.playerProfile.findUnique({
@@ -488,6 +513,10 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     events = combatEventSchema.array().parse(run.events);
     const rewards = parseStoredRewards(run.rewards);
     winnerSide = run.winnerSide === "player" ? "player" : "enemy";
+    const playerCurrentHp = resolvePlayerCurrentHpFromEvents({
+      playerSnapshot: run.playerSnapshot,
+      events: run.events
+    });
 
     if (winnerSide === "player" && !run.rewardsGranted) {
       await grantPlayerExperience(tx, playerId, rewards.experience);
@@ -559,32 +588,19 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         replenishAt: buildReplenishAt(slotRng, now)
       }
     });
+    await tx.playerProfile.update({
+      where: { id: playerId },
+      data: {
+        hitpointsCurrent: playerCurrentHp
+      }
+    });
 
     snapshot = await loadRunSnapshotFromRecord(run);
   });
-
-  const updatedProfile = await prisma.playerProfile.findUniqueOrThrow({
-    where: { id: playerId },
-    select: {
-      level: true,
-      experience: true,
-      staminaCurrent: true,
-      staminaMax: true,
-      staminaUpdatedAt: true
-    }
-  });
-  const progress = resolvePlayerProgressState({
-    level: updatedProfile.level,
-    experience: updatedProfile.experience,
-    staminaCurrent: updatedProfile.staminaCurrent,
-    staminaMax: updatedProfile.staminaMax,
-    staminaUpdatedAt: updatedProfile.staminaUpdatedAt,
-    now
-  });
-  const currency = await prisma.currencyBalance.findUnique({
-    where: { playerId },
-    select: { ducats: true }
-  });
+  const updatedPlayerState = await loadPlayerState(prisma, playerId);
+  if (!updatedPlayerState) {
+    throw new Error("Player state not found.");
+  }
   return contractRunResultSchema.parse({
     run: {
       ...(snapshot ?? (await getContractRun(prisma, playerId, runId))!),
@@ -594,16 +610,17 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     rewards: rewardOutcome,
     events,
     playerState: {
-      level: progress.experience.level,
-      experience: progress.experience.experience,
-      experienceIntoLevel: progress.experience.experienceIntoLevel,
-      experienceToNextLevel: progress.experience.experienceToNextLevel,
+      level: updatedPlayerState.level,
+      experience: updatedPlayerState.experience,
+      experienceIntoLevel: updatedPlayerState.experienceIntoLevel,
+      experienceToNextLevel: updatedPlayerState.experienceToNextLevel,
+      health: updatedPlayerState.health,
       stamina: {
-        current: progress.stamina.current,
-        max: progress.stamina.max,
-        nextPointAt: progress.stamina.nextPointAt
+        current: updatedPlayerState.stamina.current,
+        max: updatedPlayerState.stamina.max,
+        nextPointAt: updatedPlayerState.stamina.nextPointAt
       },
-      ducats: currency?.ducats ?? 0
+      ducats: updatedPlayerState.currency.ducats
     }
   });
 }

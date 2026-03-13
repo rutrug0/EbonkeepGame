@@ -83,6 +83,10 @@
     "settings": "设置",
     "logout": "退出登录"
   },
+  "player": {
+    "rest": "Rest at Camp",
+    "resting": "Resting..."
+  },
   "bars": {
     "health": "生命",
     "experience": "经验"

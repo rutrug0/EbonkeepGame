@@ -89,7 +89,9 @@
   },
   "player": {
     "classUnknown": "Class unknown",
-    "level": "Level {{value}}"
+    "level": "Level {{value}}",
+    "rest": "Rest at Camp",
+    "resting": "Resting..."
   },
   "bars": {
     "health": "Health",

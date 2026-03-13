@@ -83,6 +83,10 @@
     "settings": "Настройки",
     "logout": "Выйти"
   },
+  "player": {
+    "rest": "Rest at Camp",
+    "resting": "Resting..."
+  },
   "bars": {
     "health": "Здоровье",
     "experience": "Опыт"

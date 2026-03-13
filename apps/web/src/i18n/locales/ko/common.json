@@ -83,6 +83,10 @@
     "settings": "설정",
     "logout": "로그아웃"
   },
+  "player": {
+    "rest": "Rest at Camp",
+    "resting": "Resting..."
+  },
   "bars": {
     "health": "체력",
     "experience": "경험치"

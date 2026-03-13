@@ -5,6 +5,8 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 const MAX_LEVEL = 100;
 const STAMINA_REGEN_INTERVAL_MS = 5 * 60 * 1000;
+const REST_HEALTH_PER_DUCAT = 10;
+const REST_STAMINA_PER_DUCAT = 1;
 
 type ExperienceCurveRow = {
   level: number;
@@ -222,7 +224,7 @@ export function resolvePlayerProgressState(args: {
   };
 }
 
-export async function syncPlayerProgress(prisma: PrismaClient, playerId: string, now = new Date()): Promise<PlayerProgressState> {
+export async function syncPlayerProgress(prisma: PrismaClient | Prisma.TransactionClient, playerId: string, now = new Date()): Promise<PlayerProgressState> {
   const profile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
     select: {
@@ -357,5 +359,102 @@ export async function grantPlayerExperience(
 
 export const playerProgressionConfig = {
   maxLevel: MAX_LEVEL,
-  staminaRegenIntervalMs: STAMINA_REGEN_INTERVAL_MS
+  staminaRegenIntervalMs: STAMINA_REGEN_INTERVAL_MS,
+  restHealthPerDucat: REST_HEALTH_PER_DUCAT,
+  restStaminaPerDucat: REST_STAMINA_PER_DUCAT
 } as const;
+
+function resolveStoredCurrentHealth(storedCurrent: number, maxHealth: number): number {
+  const normalizedMax = Math.max(1, Math.floor(maxHealth));
+  if (storedCurrent < 0) {
+    return normalizedMax;
+  }
+  return Math.max(0, Math.min(normalizedMax, Math.floor(storedCurrent)));
+}
+
+export function calculateRestCost(args: {
+  currentHealth: number;
+  maxHealth: number;
+  currentStamina: number;
+  maxStamina: number;
+}): number {
+  const missingHealth = Math.max(0, Math.floor(args.maxHealth) - Math.max(0, Math.floor(args.currentHealth)));
+  const missingStamina = Math.max(0, Math.floor(args.maxStamina) - Math.max(0, Math.floor(args.currentStamina)));
+  const healthCost = Math.ceil(missingHealth / REST_HEALTH_PER_DUCAT);
+  const staminaCost = Math.ceil(missingStamina / REST_STAMINA_PER_DUCAT);
+  return Math.max(0, healthCost + staminaCost);
+}
+
+export async function restPlayerResources(args: {
+  tx: Prisma.TransactionClient;
+  playerId: string;
+  maxHealth: number;
+  now?: Date;
+}): Promise<{ costDucats: number; stamina: StaminaState; currentHealth: number }> {
+  const now = args.now ?? new Date();
+  const profile = await args.tx.playerProfile.findUnique({
+    where: { id: args.playerId },
+    select: {
+      hitpointsCurrent: true,
+      staminaCurrent: true,
+      staminaMax: true,
+      staminaUpdatedAt: true
+    }
+  });
+
+  if (!profile) {
+    throw new Error(`Player not found: ${args.playerId}`);
+  }
+
+  const maxHealth = Math.max(1, Math.floor(args.maxHealth));
+  const currentHealth = resolveStoredCurrentHealth(profile.hitpointsCurrent, maxHealth);
+  const stamina = resolveStaminaState({
+    current: profile.staminaCurrent,
+    max: profile.staminaMax,
+    updatedAt: profile.staminaUpdatedAt,
+    now
+  });
+  const costDucats = calculateRestCost({
+    currentHealth,
+    maxHealth,
+    currentStamina: stamina.current,
+    maxStamina: stamina.max
+  });
+
+  if (costDucats > 0) {
+    const currency = await args.tx.currencyBalance.findUnique({
+      where: { playerId: args.playerId },
+      select: { ducats: true }
+    });
+    const currentDucats = currency?.ducats ?? 0;
+    if (currentDucats < costDucats) {
+      throw new Error("Not enough ducats to rest.");
+    }
+
+    await args.tx.currencyBalance.upsert({
+      where: { playerId: args.playerId },
+      update: { ducats: { decrement: costDucats } },
+      create: { playerId: args.playerId, ducats: 0, imperials: 0 }
+    });
+  }
+
+  await args.tx.playerProfile.update({
+    where: { id: args.playerId },
+    data: {
+      hitpointsCurrent: maxHealth,
+      staminaCurrent: stamina.max,
+      staminaUpdatedAt: now
+    }
+  });
+
+  return {
+    costDucats,
+    currentHealth: maxHealth,
+    stamina: {
+      current: stamina.max,
+      max: stamina.max,
+      updatedAt: now,
+      nextPointAt: null
+    }
+  };
+}

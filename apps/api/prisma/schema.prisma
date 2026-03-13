@@ -42,6 +42,7 @@ model PlayerProfile {
   level            Int               @default(1)
   experience       Int               @default(0)
   gearScore        Int               @default(0)
+  hitpointsCurrent Int               @default(-1)
   staminaCurrent   Int               @default(120)
   staminaMax       Int               @default(120)
   staminaUpdatedAt DateTime          @default(now())

@@ -34,6 +34,8 @@ describe("player, inventory, and merchant routes", () => {
     });
     expect(stateResponse.statusCode).toBe(200);
     expect(stateResponse.json().currency.ducats).toBe(100_000);
+    expect(stateResponse.json().health.current).toBeGreaterThan(0);
+    expect(stateResponse.json().health.current).toBe(stateResponse.json().health.max);
 
     const preferenceResponse = await context.app.inject({
       method: "PATCH",
@@ -45,6 +47,35 @@ describe("player, inventory, and merchant routes", () => {
     });
     expect(preferenceResponse.statusCode).toBe(200);
     expect(preferenceResponse.json()).toEqual({ preferredLocale: "pt-BR" });
+  });
+
+  it("rests to fully restore health and stamina for ducats", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsCurrent: 0,
+        staminaCurrent: 10,
+        staminaUpdatedAt: new Date()
+      }
+    });
+    await setPlayerDucats(context.prisma, guest.body.playerId, 1_000);
+
+    const restResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/rest",
+      headers,
+      payload: {}
+    });
+
+    expect(restResponse.statusCode).toBe(200);
+    const body = restResponse.json();
+    expect(body.costDucats).toBeGreaterThan(0);
+    expect(body.playerState.health.current).toBe(body.playerState.health.max);
+    expect(body.playerState.stamina.current).toBe(body.playerState.stamina.max);
+    expect(body.playerState.currency.ducats).toBe(1_000 - body.costDucats);
   });
 
   it("equips, swaps back, and blocks invalid inventory moves", async () => {

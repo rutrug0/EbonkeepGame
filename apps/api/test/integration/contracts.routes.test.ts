@@ -88,6 +88,8 @@ describe("contracts routes", () => {
     const claimBody = claimResponse.json();
     expect(["player", "enemy"]).toContain(claimBody.winnerSide);
     expect(claimBody.events.length).toBeGreaterThan(0);
+    expect(claimBody.playerState.health.current).toBeGreaterThanOrEqual(0);
+    expect(claimBody.playerState.health.current).toBeLessThanOrEqual(claimBody.playerState.health.max);
     expect(claimBody.playerState.experienceIntoLevel).toBeGreaterThanOrEqual(0);
     expect(claimBody.playerState.experienceIntoLevel).toBeLessThan(claimBody.playerState.experienceToNextLevel);
 
@@ -119,6 +121,8 @@ describe("contracts routes", () => {
     const finalBody = finalPlayerStateResponse.json();
     expect(finalBody.currency.ducats).toBe(initialBody.currency.ducats + claimBody.rewards.ducats);
     expect(finalBody.experience).toBe(initialBody.experience + claimBody.rewards.experience);
+    expect(finalBody.health.current).toBe(claimBody.playerState.health.current);
+    expect(finalBody.health.max).toBe(claimBody.playerState.health.max);
     expect(finalBody.stamina.current).toBeLessThan(initialBody.stamina.current);
 
     const refreshedBoard = await context.app.inject({
@@ -267,6 +271,38 @@ describe("contracts routes", () => {
     });
     expect(runRecord.state).toBe("claimed");
     expect(runRecord.rewardsGranted).toBe(runRecord.winnerSide === "player");
+  });
+
+  it("blocks contract starts while the player is at zero health", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsCurrent: 0
+      }
+    });
+
+    const boardResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/contracts/board",
+      headers
+    });
+    expect(boardResponse.statusCode).toBe(200);
+
+    const availableSlot = boardResponse.json().slots.find((slot: { state: string }) => slot.state === "available");
+    expect(availableSlot).toBeTruthy();
+
+    const startResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/slots/${availableSlot.slotId}/start`,
+      headers,
+      payload: {}
+    });
+
+    expect(startResponse.statusCode).toBe(400);
+    expect(startResponse.json().error).toContain("rest");
   });
 
   it("abandons an available slot and schedules replenishment", async () => {

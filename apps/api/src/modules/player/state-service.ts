@@ -1,4 +1,4 @@
-import type { InventoryItem, PrismaClient } from "@prisma/client";
+import type { InventoryItem, Prisma, PrismaClient } from "@prisma/client";
 import {
   allCoreStatKeys,
   allEquipmentSlotIds,
@@ -47,6 +47,14 @@ type EquipmentSlotWithItem = {
 
 function clampInt(value: number, max: number): number {
   return Math.max(0, Math.min(max, Math.round(value)));
+}
+
+function resolveCurrentHealth(storedCurrent: number, maxHitpoints: number): number {
+  const normalizedMax = Math.max(1, Math.floor(maxHitpoints));
+  if (storedCurrent < 0) {
+    return normalizedMax;
+  }
+  return Math.max(0, Math.min(normalizedMax, Math.floor(storedCurrent)));
 }
 
 export function createEmptyCoreStatBlock(): StatBlock {
@@ -242,7 +250,7 @@ export function computeGearScore(equipment: InventoryEquipmentState): number {
   return allEquipmentSlotIds.reduce((sum, slotId) => sum + (equipment[slotId]?.power ?? 0), 0);
 }
 
-export async function ensurePlayerEquipmentSlots(prisma: PrismaClient, playerId: string): Promise<void> {
+export async function ensurePlayerEquipmentSlots(prisma: PrismaClient | Prisma.TransactionClient, playerId: string): Promise<void> {
   const existingSlots = await prisma.equipmentSlot.findMany({
     where: { playerId },
     select: { slotType: true }
@@ -263,6 +271,8 @@ export async function ensurePlayerEquipmentSlots(prisma: PrismaClient, playerId:
   });
 }
 
+type PlayerStateDbClient = PrismaClient | Prisma.TransactionClient;
+
 export function canEquipItemForPlayerClass(
   playerClass: PlayerClass,
   item: NonNullable<InventoryEquipmentState[keyof InventoryEquipmentState]>
@@ -276,7 +286,7 @@ export function canEquipItemForPlayerClass(
   return getAllowedClassesForArchetype(item.archetype.majorCategory, archetypeKey).includes(playerClass);
 }
 
-export async function loadPlayerState(prisma: PrismaClient, playerId: string): Promise<PlayerState | null> {
+export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: string): Promise<PlayerState | null> {
   await ensurePlayerEquipmentSlots(prisma, playerId);
 
   const profile = await prisma.playerProfile.findUnique({
@@ -364,6 +374,16 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     },
     equipment
   });
+  const resolvedCurrentHealth = resolveCurrentHealth(profile.hitpointsCurrent, statSnapshot.total.maxHitpoints);
+
+  if (profile.hitpointsCurrent !== resolvedCurrentHealth) {
+    await prisma.playerProfile.update({
+      where: { id: playerId },
+      data: {
+        hitpointsCurrent: resolvedCurrentHealth
+      }
+    });
+  }
 
   return playerStateSchema.parse({
     playerId: profile.id,
@@ -377,6 +397,10 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     experienceIntoLevel: progress.experience.experienceIntoLevel,
     experienceToNextLevel: progress.experience.experienceToNextLevel,
     gearScore: computeGearScore(equipment),
+    health: {
+      current: resolvedCurrentHealth,
+      max: statSnapshot.total.maxHitpoints
+    },
     stamina: {
       current: progress.stamina.current,
       max: progress.stamina.max,
@@ -401,7 +425,7 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
 }
 
 export async function getPublicPlayerProfile(
-  prisma: PrismaClient,
+  prisma: PlayerStateDbClient,
   playerId: string
 ): Promise<PublicPlayerProfile | null> {
   await ensurePlayerEquipmentSlots(prisma, playerId);
