@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getItemTemplate,
   getStarterTemplateIdsForClass,
   parseStoredInventoryItem,
   rollInventoryItem
@@ -130,5 +131,53 @@ describe("item service weapon bonuses", () => {
     expect(parsed?.statBonuses.maxHitpoints).toBeUndefined();
     expect(parsed?.statBonuses.vitality).toBe(3);
     expect(parsed?.statBonuses.physicalDefense).toBeGreaterThan(0);
+  });
+
+  it("gives later weapon templates a higher baseline power at their native level", () => {
+    const earlyTemplate = getItemTemplate("warrior_plainsteel_longsword");
+    const lateTemplate = getItemTemplate("warrior_silvermark_longblade");
+    const earlyWeapon = rollInventoryItem({
+      playerId: "player_1",
+      templateId: earlyTemplate.id,
+      rarity: "common",
+      deterministic: true,
+      deterministicCode: "early_weapon",
+      itemLevel: earlyTemplate.baseLevel
+    });
+    const lateWeapon = rollInventoryItem({
+      playerId: "player_1",
+      templateId: lateTemplate.id,
+      rarity: "common",
+      deterministic: true,
+      deterministicCode: "late_weapon",
+      itemLevel: lateTemplate.baseLevel
+    });
+
+    expect(lateTemplate.baseLevel).toBeGreaterThan(earlyTemplate.baseLevel);
+    expect(lateWeapon.power).toBeGreaterThan(earlyWeapon.power);
+  });
+
+  it("gives later armor templates a higher baseline power at their native level", () => {
+    const earlyTemplate = getItemTemplate("warrior_service_helm");
+    const lateTemplate = getItemTemplate("warrior_silvermark_sabatons");
+    const earlyArmor = rollInventoryItem({
+      playerId: "player_1",
+      templateId: earlyTemplate.id,
+      rarity: "common",
+      deterministic: true,
+      deterministicCode: "early_armor",
+      itemLevel: earlyTemplate.baseLevel
+    });
+    const lateArmor = rollInventoryItem({
+      playerId: "player_1",
+      templateId: lateTemplate.id,
+      rarity: "common",
+      deterministic: true,
+      deterministicCode: "late_armor",
+      itemLevel: lateTemplate.baseLevel
+    });
+
+    expect(lateTemplate.baseLevel).toBeGreaterThan(earlyTemplate.baseLevel);
+    expect(lateArmor.power).toBeGreaterThan(earlyArmor.power);
   });
 });

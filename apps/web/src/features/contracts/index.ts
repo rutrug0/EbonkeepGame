@@ -2,10 +2,13 @@ export { ContractsPanel } from "./ContractsPanel";
 export {
   abandonContractsSlot,
   claimContractRun,
+  fetchDeveloperContractSimulation,
   fetchContractRun,
   fetchContractsBoard,
+  runDeveloperContractSimulation,
   startContractsRun
 } from "./api";
+export { DeveloperContractsSimulationPanel } from "./DeveloperContractsSimulationPanel";
 export {
   COMBAT_FAST_FORWARD_ANIMATION_RATE,
   COMBAT_PLAYBACK_BEAT_MS,

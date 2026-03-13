@@ -2,6 +2,7 @@ import fastifyJwt from "@fastify/jwt";
 import fp from "fastify-plugin";
 
 import { getEnv } from "../config/env.js";
+import { isDeveloperToolsEnabledForAccount } from "../modules/auth/developer-tools.js";
 
 export const authPlugin = fp(async (fastify) => {
   const env = getEnv();
@@ -25,6 +26,19 @@ export const authPlugin = fp(async (fastify) => {
       const adminIds = process.env.ADMIN_ACCOUNT_IDS?.split(",") ?? [];
       if (!adminIds.includes(request.user.accountId)) {
         void reply.code(403).send({ error: "Admin access required" });
+      }
+    } catch {
+      void reply.code(401).send({ error: "Unauthorized" });
+    }
+  });
+
+  fastify.decorate("requireDeveloperTools", async (request, reply) => {
+    try {
+      await request.jwtVerify();
+
+      const enabled = await isDeveloperToolsEnabledForAccount(fastify.prisma, request.user.accountId);
+      if (!enabled) {
+        void reply.code(403).send({ error: "Developer tools access required" });
       }
     } catch {
       void reply.code(401).send({ error: "Unauthorized" });

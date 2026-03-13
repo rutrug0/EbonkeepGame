@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accountOverviewResponseSchema,
+  developerContractsStaticCurvesResponseSchema,
+  developerContractSimulationJobSchema,
   leaderboardTypeSchema as compatibilityLeaderboardTypeSchema,
   getAllowedClassesForArchetype,
   isItemUsableByClass,
+  runDeveloperContractSimulationBodySchema,
   validateVestigeLoadout
 } from "../src/index.js";
 import { leaderboardTypeSchema } from "../src/domains/leaderboard/index.js";
@@ -46,5 +50,159 @@ describe("shared contracts", () => {
 
   it("keeps the root barrel as a compatibility re-export", () => {
     expect(compatibilityLeaderboardTypeSchema).toBe(leaderboardTypeSchema);
+  });
+
+  it("parses the developer tools account flag", () => {
+    expect(accountOverviewResponseSchema.parse({
+      accountId: "acct_1",
+      username: "warden",
+      email: "warden@example.com",
+      emailVerified: true,
+      developerToolsEnabled: true,
+      provider: "dev-guest",
+      createdAt: new Date().toISOString(),
+      profile: null,
+      currency: null
+    }).developerToolsEnabled).toBe(true);
+  });
+
+  it("parses contracts simulation requests and completed jobs", () => {
+    const body = runDeveloperContractSimulationBodySchema.parse({
+      playerClass: "juggernaut"
+    });
+
+    expect(body.sampleSize).toBe(200);
+    expect(
+      developerContractSimulationJobSchema.parse({
+        jobId: "job_1",
+        status: "completed",
+        config: {
+          playerClass: "juggernaut",
+          sampleSize: 200,
+          maxLevel: 3
+        },
+        progress: {
+          totalSamples: 600,
+          completedSamples: 600,
+          currentArchetype: null,
+          currentLevel: null,
+          currentSampleIndex: null
+        },
+        startedAt: new Date().toISOString(),
+        finishedAt: new Date().toISOString(),
+        artifactPath: "D:\\Ebonkeep\\artifacts\\contracts-simulations\\contracts-simulation-job_1.json",
+        error: null,
+        result: {
+          playerClass: "juggernaut",
+          sampleSize: 200,
+          maxLevel: 3,
+          archetypes: [
+            {
+              archetype: "active",
+              levels: [
+                {
+                  level: 1,
+                  gearScore: 42,
+                  completedSamples: 200,
+                  completionRate: 1,
+                  avgElapsedSecondsToClearLevel: 20,
+                  avgActivePlaySecondsToClearLevel: 10,
+                  avgIdleSecondsToClearLevel: 10,
+                  avgStaminaWaitSecondsToClearLevel: 4,
+                  avgContractAvailabilityWaitSecondsToClearLevel: 6,
+                  avgFightsToClearLevel: 2,
+                  avgWinsByDifficulty: { easy: 1, medium: 1, hard: 0 },
+                  avgLossesByDifficulty: { easy: 0, medium: 0, hard: 1 },
+                  winRateByDifficulty: { easy: 1, medium: 1, hard: 0 },
+                  avgXpPerFight: 100,
+                  avgStaminaSpent: 8,
+                  avgRestCount: 0,
+                  avgCombatSeconds: 5,
+                  avgInputOverheadSeconds: 5,
+                  avgPlayerAttackRoll: 23,
+                  avgPlayerHpLossPercent: 18
+                }
+              ]
+            },
+            {
+              archetype: "average",
+              levels: [
+                {
+                  level: 1,
+                  gearScore: 42,
+                  completedSamples: 200,
+                  completionRate: 1,
+                  avgElapsedSecondsToClearLevel: 20,
+                  avgActivePlaySecondsToClearLevel: 10,
+                  avgIdleSecondsToClearLevel: 10,
+                  avgStaminaWaitSecondsToClearLevel: 4,
+                  avgContractAvailabilityWaitSecondsToClearLevel: 6,
+                  avgFightsToClearLevel: 2,
+                  avgWinsByDifficulty: { easy: 1, medium: 1, hard: 0 },
+                  avgLossesByDifficulty: { easy: 0, medium: 0, hard: 1 },
+                  winRateByDifficulty: { easy: 1, medium: 1, hard: 0 },
+                  avgXpPerFight: 100,
+                  avgStaminaSpent: 8,
+                  avgRestCount: 0,
+                  avgCombatSeconds: 5,
+                  avgInputOverheadSeconds: 5,
+                  avgPlayerAttackRoll: 23,
+                  avgPlayerHpLossPercent: 18
+                }
+              ]
+            },
+            {
+              archetype: "slow",
+              levels: [
+                {
+                  level: 1,
+                  gearScore: 42,
+                  completedSamples: 200,
+                  completionRate: 1,
+                  avgElapsedSecondsToClearLevel: 20,
+                  avgActivePlaySecondsToClearLevel: 10,
+                  avgIdleSecondsToClearLevel: 10,
+                  avgStaminaWaitSecondsToClearLevel: 4,
+                  avgContractAvailabilityWaitSecondsToClearLevel: 6,
+                  avgFightsToClearLevel: 2,
+                  avgWinsByDifficulty: { easy: 1, medium: 1, hard: 0 },
+                  avgLossesByDifficulty: { easy: 0, medium: 0, hard: 1 },
+                  winRateByDifficulty: { easy: 1, medium: 1, hard: 0 },
+                  avgXpPerFight: 100,
+                  avgStaminaSpent: 8,
+                  avgRestCount: 0,
+                  avgCombatSeconds: 5,
+                  avgInputOverheadSeconds: 5,
+                  avgPlayerAttackRoll: 23,
+                  avgPlayerHpLossPercent: 18
+                }
+              ]
+            }
+          ]
+        }
+      }).status
+    ).toBe("completed");
+  });
+
+  it("parses developer contracts static curves", () => {
+    expect(
+      developerContractsStaticCurvesResponseSchema.parse({
+        levels: [
+          {
+            level: 1,
+            averageTravelSeconds: 30,
+            averageReplenishSeconds: 60,
+            averageStaminaWaitSecondsForContract: 120,
+            averageContractAvailabilityWaitSeconds: 20,
+            averageExperiencePerContract: {
+              easy: 100,
+              medium: 125,
+              hard: 150
+            },
+            experienceToNextLevel: 250
+          }
+        ]
+      }).levels
+    ).toHaveLength(1);
   });
 });

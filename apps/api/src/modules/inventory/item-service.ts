@@ -204,6 +204,26 @@ const TIER_POWER_BONUS = {
   T2: 4,
   T3: 7
 } as const;
+const STAT_POWER_WEIGHT: Partial<Record<PlayerStatKey, number>> = {
+  strength: 1,
+  intelligence: 1,
+  dexterity: 1,
+  vitality: 1,
+  initiative: 1,
+  luck: 1,
+  armor: 0.5,
+  spellShield: 0.5,
+  missileResistance: 0.5,
+  physicalDefense: 0.5,
+  magicDefense: 0.5,
+  maxHitpoints: 0.1,
+  damage: 1.5,
+  accuracy: 0.75,
+  critChance: 0.02,
+  critMultiplier: 0.01,
+  dodgeChance: 0.02,
+  extraAttackChance: 0.02
+} as const;
 const WEAPON_RARITY_MULTIPLIER: Record<ItemRarity, number> = {
   common: 1,
   uncommon: 1.12,
@@ -656,6 +676,17 @@ function toCategoryLabel(value: string): string {
 
 function addStatBonus(totals: PlayerStatBonuses, statKey: PlayerStatKey, value: number): void {
   totals[statKey] = (totals[statKey] ?? 0) + value;
+}
+
+function getStatBonusPower(statBonuses: PlayerStatBonuses): number {
+  return Math.floor(
+    Object.entries(statBonuses).reduce((sum, [statKey, value]) => {
+      if (typeof value !== "number") {
+        return sum;
+      }
+      return sum + value * (STAT_POWER_WEIGHT[statKey as PlayerStatKey] ?? 0);
+    }, 0)
+  );
 }
 
 function isEquipmentGroup(value: string): value is EquipmentGroup {
@@ -1188,12 +1219,16 @@ function buildPower(
   template: ItemTemplate,
   rarity: ItemRarity,
   itemLevel: number,
+  statBonuses: PlayerStatBonuses,
+  damageRoll: WeaponDamageRoll | undefined,
   prefix?: ItemModifier,
   affix?: ItemModifier
 ): number {
   return (
     template.basePower +
     getLevelDelta(template, itemLevel) * (template.powerPerLevel ?? 2) +
+    getStatBonusPower(statBonuses) +
+    Math.floor((damageRoll?.averageDamage ?? 0) / 12) +
     RARITY_BONUS[rarity] +
     (prefix ? TIER_POWER_BONUS[prefix.tier] : 0) +
     (affix ? TIER_POWER_BONUS[affix.tier] : 0)
@@ -1367,6 +1402,8 @@ export function rollInventoryItem(args: {
   const deterministic = args.deterministic === true;
   const itemLevel = getItemLevel(template, args.itemLevel);
   const modifiers = deterministic ? {} : rollModifiers(template, itemLevel, rarity);
+  const damageRoll = rollWeaponDamage(template, rarity, deterministic, itemLevel);
+  const statBonuses = buildStatBonuses(template, itemLevel, rarity, modifiers.prefix, modifiers.affix);
   const itemCode = buildItemCode(template, rarity, itemLevel, args.deterministicCode);
 
   return inventoryItemSchema.parse({
@@ -1379,10 +1416,10 @@ export function rollInventoryItem(args: {
     levelRequirement: itemLevel,
     allowedSlotIds: [...template.allowedSlotIds],
     baseLevel: itemLevel,
-    power: buildPower(template, rarity, itemLevel, modifiers.prefix, modifiers.affix),
+    power: buildPower(template, rarity, itemLevel, statBonuses, damageRoll, modifiers.prefix, modifiers.affix),
     archetype: template.archetype,
-    statBonuses: buildStatBonuses(template, itemLevel, rarity, modifiers.prefix, modifiers.affix),
-    damageRoll: rollWeaponDamage(template, rarity, deterministic, itemLevel),
+    statBonuses,
+    damageRoll,
     prefix: modifiers.prefix,
     affix: modifiers.affix,
     description: template.description

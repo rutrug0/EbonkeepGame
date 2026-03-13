@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { playerClassSchema } from "../../core/index.js";
+
 export const createCombatSessionBodySchema = z.object({
   mode: z.enum(["pve"]),
   enemyPackId: z.string().default("starter-pack")
@@ -242,6 +244,110 @@ export const contractRunResultSchema = z.object({
     .optional()
 });
 export type ContractRunResult = z.infer<typeof contractRunResultSchema>;
+
+export const developerContractSimulationArchetypeSchema = z.enum(["active", "average", "slow"]);
+export type DeveloperContractSimulationArchetype = z.infer<typeof developerContractSimulationArchetypeSchema>;
+
+export const developerContractSimulationJobStatusSchema = z.enum(["queued", "running", "completed", "failed"]);
+export type DeveloperContractSimulationJobStatus = z.infer<typeof developerContractSimulationJobStatusSchema>;
+
+export const developerContractSimulationDifficultyAveragesSchema = z.object({
+  easy: z.number().min(0),
+  medium: z.number().min(0),
+  hard: z.number().min(0)
+});
+export type DeveloperContractSimulationDifficultyAverages = z.infer<typeof developerContractSimulationDifficultyAveragesSchema>;
+
+export const runDeveloperContractSimulationBodySchema = z.object({
+  playerClass: playerClassSchema,
+  sampleSize: z.number().int().min(1).max(1_000).default(200),
+  maxLevel: z.number().int().min(1).max(100).optional()
+});
+export type RunDeveloperContractSimulationBody = z.infer<typeof runDeveloperContractSimulationBodySchema>;
+
+export const developerContractSimulationLevelSummarySchema = z.object({
+  level: z.number().int().min(1).max(100),
+  gearScore: z.number().int().min(0),
+  completedSamples: z.number().int().min(0),
+  completionRate: z.number().min(0).max(1),
+  avgElapsedSecondsToClearLevel: z.number().min(0),
+  avgActivePlaySecondsToClearLevel: z.number().min(0),
+  avgIdleSecondsToClearLevel: z.number().min(0),
+  avgStaminaWaitSecondsToClearLevel: z.number().min(0),
+  avgContractAvailabilityWaitSecondsToClearLevel: z.number().min(0),
+  avgFightsToClearLevel: z.number().min(0),
+  avgWinsByDifficulty: developerContractSimulationDifficultyAveragesSchema,
+  avgLossesByDifficulty: developerContractSimulationDifficultyAveragesSchema,
+  winRateByDifficulty: z.object({
+    easy: z.number().min(0).max(1),
+    medium: z.number().min(0).max(1),
+    hard: z.number().min(0).max(1)
+  }),
+  avgXpPerFight: z.number().min(0),
+  avgStaminaSpent: z.number().min(0),
+  avgRestCount: z.number().min(0),
+  avgCombatSeconds: z.number().min(0),
+  avgInputOverheadSeconds: z.number().min(0),
+  avgPlayerAttackRoll: z.number().min(0),
+  avgPlayerHpLossPercent: z.number().min(0).max(100)
+});
+export type DeveloperContractSimulationLevelSummary = z.infer<typeof developerContractSimulationLevelSummarySchema>;
+
+export const developerContractSimulationArchetypeResultSchema = z.object({
+  archetype: developerContractSimulationArchetypeSchema,
+  levels: z.array(developerContractSimulationLevelSummarySchema)
+});
+export type DeveloperContractSimulationArchetypeResult = z.infer<typeof developerContractSimulationArchetypeResultSchema>;
+
+export const developerContractSimulationResultSchema = z.object({
+  playerClass: playerClassSchema,
+  sampleSize: z.number().int().min(1),
+  maxLevel: z.number().int().min(1).max(100),
+  archetypes: z.array(developerContractSimulationArchetypeResultSchema).length(3)
+});
+export type DeveloperContractSimulationResult = z.infer<typeof developerContractSimulationResultSchema>;
+
+export const developerContractSimulationProgressSchema = z.object({
+  totalSamples: z.number().int().min(1),
+  completedSamples: z.number().int().min(0),
+  currentArchetype: developerContractSimulationArchetypeSchema.nullable(),
+  currentLevel: z.number().int().min(1).max(100).nullable(),
+  currentSampleIndex: z.number().int().min(1).nullable()
+});
+export type DeveloperContractSimulationProgress = z.infer<typeof developerContractSimulationProgressSchema>;
+
+export const developerContractSimulationJobSchema = z.object({
+  jobId: z.string(),
+  status: developerContractSimulationJobStatusSchema,
+  config: z.object({
+    playerClass: playerClassSchema,
+    sampleSize: z.number().int().min(1),
+    maxLevel: z.number().int().min(1).max(100)
+  }),
+  progress: developerContractSimulationProgressSchema,
+  startedAt: z.string(),
+  finishedAt: z.string().nullable(),
+  artifactPath: z.string().nullable(),
+  error: z.string().nullable(),
+  result: developerContractSimulationResultSchema.nullable()
+});
+export type DeveloperContractSimulationJob = z.infer<typeof developerContractSimulationJobSchema>;
+
+export const developerContractsStaticCurvePointSchema = z.object({
+  level: z.number().int().min(1).max(100),
+  averageTravelSeconds: z.number().min(0),
+  averageReplenishSeconds: z.number().min(0),
+  averageStaminaWaitSecondsForContract: z.number().min(0),
+  averageContractAvailabilityWaitSeconds: z.number().min(0),
+  averageExperiencePerContract: developerContractSimulationDifficultyAveragesSchema,
+  experienceToNextLevel: z.number().int().min(0)
+});
+export type DeveloperContractsStaticCurvePoint = z.infer<typeof developerContractsStaticCurvePointSchema>;
+
+export const developerContractsStaticCurvesResponseSchema = z.object({
+  levels: z.array(developerContractsStaticCurvePointSchema).min(1)
+});
+export type DeveloperContractsStaticCurvesResponse = z.infer<typeof developerContractsStaticCurvesResponseSchema>;
 
 export const combatPlaybackActorSchema = z.object({
   id: z.string(),

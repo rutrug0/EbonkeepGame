@@ -1,11 +1,12 @@
 import {
   combatActorSnapshotSchema,
   combatEventSchema,
+  type ContractDifficulty,
   type CombatActorSnapshot,
   type CombatDamageKind,
   type CombatEvent
 } from "@ebonkeep/shared/combat";
-import { classToEquipmentGroup, type PlayerClass } from "@ebonkeep/shared/core";
+import { classToEquipmentGroup, type EquipmentSlotId, type PlayerClass } from "@ebonkeep/shared/core";
 import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { allDefinedItemTemplates } from "../inventory/item-service.js";
@@ -24,6 +25,8 @@ import {
 const ACTION_COST = 1000;
 const MAX_CHAIN_STRIKES = 5;
 const MAX_SIMULATION_ACTIONS = 300;
+const MONSTER_GLOBAL_DAMAGE_MULTIPLIER = 0.6;
+const MINIMUM_HIT_DAMAGE_RATIO_BPS = 200;
 
 export type StoredRewardSpec = {
   experience: number;
@@ -36,6 +39,8 @@ export type StoredRewardSpec = {
     itemName: string;
   };
 };
+
+export type RewardItemRollSpec = NonNullable<StoredRewardSpec["item"]>;
 
 type RuntimeActor = CombatActorSnapshot & {
   currentHp: number;
@@ -97,7 +102,7 @@ export function buildMonsterActorSnapshots(args: {
   const difficultyProfile = DIFFICULTY_PROFILES[args.encounter.difficulty];
   const enemyCount = args.encounter.members.length;
   const levelScale = Math.max(0.75, 1 + (args.encounter.encounterLevel - args.playerState.level) * 0.075);
-  const totalDamageBudget = Math.max(6, player.maxHp * difficultyProfile.totalDpsFactor);
+  const totalDamageBudget = Math.max(2, player.maxHp * difficultyProfile.totalDpsFactor * MONSTER_GLOBAL_DAMAGE_MULTIPLIER);
   const totalHpBudget = Math.max(12, player.maxDamage * difficultyProfile.totalHpFactor);
   const sharedCountPenalty = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.72 : 0.58;
 
@@ -180,38 +185,93 @@ export function buildStoredRewards(args: {
   const rewardPreview = args.encounter.rewardPreview;
   const experience = randomInt(args.rng, rewardPreview.experienceMin, rewardPreview.experienceMax);
   const ducats = randomInt(args.rng, rewardPreview.ducatsMin, rewardPreview.ducatsMax);
-  let item: StoredRewardSpec["item"] = null;
-
-  if (rollBps(args.rng, rewardPreview.itemDropChanceBps)) {
-    const equipmentGroup = classToEquipmentGroup(args.playerState.class as PlayerClass);
-    const templates = allDefinedItemTemplates.filter(
-      (template) =>
-        template.allowedClass === equipmentGroup &&
-        template.baseLevel <= args.encounter.encounterLevel + 2 &&
-        template.baseLevel >= Math.max(1, args.encounter.encounterLevel - 6)
-    );
-    const template = randomChoice(args.rng, templates.length > 0 ? templates : allDefinedItemTemplates);
-    const rarity = rollBps(args.rng, args.encounter.difficulty === "hard" ? 1400 : args.encounter.difficulty === "medium" ? 700 : 250)
-      ? "epic"
-      : rollBps(args.rng, args.encounter.difficulty === "hard" ? 3200 : 1800)
-        ? "rare"
-        : rollBps(args.rng, 3600)
-          ? "uncommon"
-          : "common";
-
-    item = {
-      templateId: template.id,
-      rarity,
-      itemLevel: Math.max(1, args.encounter.encounterLevel),
-      itemName: template.itemName
-    };
-  }
+  const item = rollBps(args.rng, rewardPreview.itemDropChanceBps)
+    ? rollRewardItemSpec({
+        rng: args.rng,
+        playerClass: args.playerState.class as PlayerClass,
+        encounterLevel: args.encounter.encounterLevel,
+        difficulty: args.encounter.difficulty
+      })
+    : null;
 
   return {
     experience,
     ducats,
     itemDropChanceBps: rewardPreview.itemDropChanceBps,
     item
+  };
+}
+
+function pickRewardItemTemplates(args: {
+  playerClass: PlayerClass;
+  encounterLevel: number;
+  allowedSlotId?: EquipmentSlotId;
+}) {
+  const equipmentGroup = classToEquipmentGroup(args.playerClass);
+  const matchesOwnership = (template: (typeof allDefinedItemTemplates)[number]) =>
+    template.allowedClass === equipmentGroup || template.allowedClass === "all";
+  const matchesSlot = (template: (typeof allDefinedItemTemplates)[number]) =>
+    args.allowedSlotId ? template.allowedSlotIds.includes(args.allowedSlotId) : true;
+
+  const exact = allDefinedItemTemplates.filter(
+    (template) =>
+      matchesOwnership(template) &&
+      matchesSlot(template) &&
+      template.dropMinLevel <= args.encounterLevel &&
+      template.dropMaxLevel >= args.encounterLevel
+  );
+
+  if (exact.length > 0) {
+    return exact;
+  }
+
+  const byBaseLevel = allDefinedItemTemplates.filter(
+    (template) =>
+      matchesOwnership(template) &&
+      matchesSlot(template) &&
+      template.baseLevel <= args.encounterLevel + 2 &&
+      template.baseLevel >= Math.max(1, args.encounterLevel - 6)
+  );
+
+  if (byBaseLevel.length > 0) {
+    return byBaseLevel;
+  }
+
+  return allDefinedItemTemplates.filter((template) => matchesOwnership(template) && matchesSlot(template));
+}
+
+export function rollRewardItemRarity(rng: () => number, difficulty: ContractDifficulty): RewardItemRollSpec["rarity"] {
+  return rollBps(rng, difficulty === "hard" ? 1400 : difficulty === "medium" ? 700 : 250)
+    ? "epic"
+    : rollBps(rng, difficulty === "hard" ? 3200 : 1800)
+      ? "rare"
+      : rollBps(rng, 3600)
+        ? "uncommon"
+        : "common";
+}
+
+export function rollRewardItemSpec(args: {
+  rng: () => number;
+  playerClass: PlayerClass;
+  encounterLevel: number;
+  difficulty: ContractDifficulty;
+  allowedSlotId?: EquipmentSlotId;
+}): RewardItemRollSpec | null {
+  const templates = pickRewardItemTemplates({
+    playerClass: args.playerClass,
+    encounterLevel: args.encounterLevel,
+    allowedSlotId: args.allowedSlotId
+  });
+  const template = randomChoice(args.rng, templates);
+  if (!template) {
+    return null;
+  }
+
+  return {
+    templateId: template.id,
+    rarity: rollRewardItemRarity(args.rng, args.difficulty),
+    itemLevel: Math.max(1, args.encounterLevel),
+    itemName: template.itemName
   };
 }
 
@@ -250,7 +310,8 @@ function applyMitigation(rawDamage: number, damageKind: CombatDamageKind, target
       : damageKind === "ranged"
         ? target.missileResistance + target.physicalDefense
         : target.spellShield + target.magicDefense;
-  return Math.max(0, rawDamage - reduction);
+  const minimumDamage = Math.max(1, Math.floor((Math.max(0, rawDamage) * MINIMUM_HIT_DAMAGE_RATIO_BPS) / 10_000));
+  return Math.max(minimumDamage, rawDamage - reduction);
 }
 
 function snapshotActors(actors: RuntimeActor[]): CombatActorSnapshot[] {

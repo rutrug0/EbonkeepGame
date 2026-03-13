@@ -8,6 +8,7 @@ declare module "fastify" {
     redis: Redis;
     authenticate: preHandlerHookHandler;
     requireAdmin: preHandlerHookHandler; // For auction admin endpoints
+    requireDeveloperTools: preHandlerHookHandler;
   }
 
   interface FastifyRequest {
