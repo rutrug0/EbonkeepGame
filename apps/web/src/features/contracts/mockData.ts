@@ -1,14 +1,14 @@
+import type { PlayerClass, PlayerStatBlock } from "@ebonkeep/shared/core";
+import { classToStatTree } from "@ebonkeep/shared/core";
+
+import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import {
   combatPlaybackEncounterSchema,
   combatPlaybackEventSchema,
   type CombatPlaybackActionResolved,
   type CombatPlaybackEncounter,
   type CombatPlaybackEvent
-} from "@ebonkeep/shared/combat";
-import type { PlayerClass, PlayerStatBlock } from "@ebonkeep/shared/core";
-import { classToStatTree } from "@ebonkeep/shared/core";
-
-import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
+} from "../combat/playback";
 
 export type ContractDifficulty = "easy" | "medium" | "hard";
 export type ContractRoll = "low" | "medium" | "high";
@@ -63,6 +63,7 @@ export type ActiveContractEncounterState = {
   currentEventIndex: number;
   hpByActorId: Record<string, number>;
   combatLogEntries: string[];
+  combatLogEventIds: string[];
   activeAction: CombatPlaybackActionResolved | null;
   impactTargetId: string | null;
   resolutionState: CombatEncounterResolutionState;
@@ -480,6 +481,7 @@ export function buildMockCombatEncounterState(args: {
       [enemyActor.id]: enemyActor.maxHp
     },
     combatLogEntries: [],
+    combatLogEventIds: [],
     activeAction: null,
     impactTargetId: null,
     resolutionState: "playing",
@@ -505,6 +507,7 @@ export function resetCombatEncounterPlayback(previousEncounter: ActiveContractEn
       )
     },
     combatLogEntries: [],
+    combatLogEventIds: [],
     activeAction: null,
     impactTargetId: null,
     resolutionState: "playing",

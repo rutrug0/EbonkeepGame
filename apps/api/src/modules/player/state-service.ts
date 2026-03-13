@@ -23,6 +23,7 @@ import {
   type EquipmentState as InventoryEquipmentState
 } from "@ebonkeep/shared/inventory";
 import { parseStoredInventoryItem } from "../inventory/item-service.js";
+import { syncPlayerProgress } from "./progression-service.js";
 
 const BASE_ACCURACY = 75;
 const BASE_CRIT_CHANCE = 500;
@@ -312,6 +313,8 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     return null;
   }
 
+  const progress = await syncPlayerProgress(prisma, playerId);
+
   // Ensure stats exist
   let stats = profile.stats;
   if (!stats) {
@@ -369,8 +372,15 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     portraitId: profile.portraitId ?? "str_01",
     backgroundId: profile.backgroundId ?? "bg_01",
     preferredLocale: profile.preferredLocale ?? "en",
-    level: profile.level,
+    level: progress.experience.level,
+    experience: progress.experience.experience,
+    experienceToNextLevel: progress.experience.experienceToNextLevel,
     gearScore: computeGearScore(equipment),
+    stamina: {
+      current: progress.stamina.current,
+      max: progress.stamina.max,
+      nextPointAt: progress.stamina.nextPointAt
+    },
     stats: {
       strength: statSnapshot.total.strength,
       intelligence: statSnapshot.total.intelligence,

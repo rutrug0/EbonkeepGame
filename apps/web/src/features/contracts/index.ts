@@ -1,5 +1,12 @@
 export { ContractsPanel } from "./ContractsPanel";
 export {
+  abandonContractsSlot,
+  claimContractRun,
+  fetchContractRun,
+  fetchContractsBoard,
+  startContractsRun
+} from "./api";
+export {
   COMBAT_FAST_FORWARD_ANIMATION_RATE,
   COMBAT_PLAYBACK_BEAT_MS,
   COMBAT_PLAYBACK_IMPACT_DELAY_MS,
@@ -22,3 +29,10 @@ export {
   type ContractRoll,
   type ContractSlotState
 } from "./mockData";
+export {
+  asPlaybackAction,
+  buildOfferFromRun,
+  buildResolvedEncounterState,
+  buildTravelEncounterState,
+  mapBoardSlotsToUi
+} from "./serverPlayback";

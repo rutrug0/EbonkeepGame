@@ -17,7 +17,14 @@ export const playerStateSchema = z.object({
   backgroundId: z.string(),
   preferredLocale: supportedLocaleSchema.default("en"),
   level: z.number().int().min(1),
+  experience: z.number().int().min(0),
+  experienceToNextLevel: z.number().int().min(1),
   gearScore: z.number().int().min(0),
+  stamina: z.object({
+    current: z.number().int().min(0),
+    max: z.number().int().min(0),
+    nextPointAt: z.string().nullable()
+  }),
   stats: statBlockSchema,
   statSnapshot: playerStatSnapshotSchema,
   inventory: z.array(z.lazy(() => inventoryItemSchema)),
