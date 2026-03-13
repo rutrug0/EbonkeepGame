@@ -4,6 +4,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 test("guest login bootstrap works @smoke", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByTestId("guest-login-button")).toBeVisible();
   await page.getByTestId("guest-login-button").click();
   await expect(page.getByTestId("menu-inventory")).toBeVisible();
   await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();

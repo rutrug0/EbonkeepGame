@@ -266,20 +266,194 @@ button:focus-visible {
   width: 100%;
   min-height: 100%;
   height: 100%;
-  display: grid;
-  place-items: center;
-  padding: var(--space-5);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
 }
 
 .authCard {
   width: min(440px, 100%);
   border: 1px solid var(--border);
   border-radius: var(--soft-radius);
-  background: var(--panel);
+  background:
+    linear-gradient(180deg, rgba(13, 18, 24, 0.84), rgba(11, 15, 20, 0.92)),
+    rgba(11, 15, 20, 0.72);
+  backdrop-filter: blur(18px);
   padding: var(--space-5);
   display: grid;
   gap: var(--space-3);
   animation: riseIn 260ms ease-out;
+  box-shadow:
+    0 22px 50px rgba(2, 4, 8, 0.52),
+    inset 0 1px 0 rgba(243, 227, 193, 0.06);
+}
+
+.authIntroBackground {
+  position: absolute;
+  inset: -4%;
+  background: #000;
+  opacity: 0;
+  transition: opacity 900ms ease;
+  z-index: 0;
+}
+
+.authIntroBackground.is-visible {
+  opacity: 1;
+}
+
+.authIntroVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  filter: blur(3px) brightness(0.82) saturate(0.98);
+  transform: scale(1.03);
+}
+
+.authIntroVideoScrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgba(14, 19, 24, 0.04), rgba(3, 5, 8, 0.24)),
+    linear-gradient(180deg, rgba(3, 5, 8, 0.1), rgba(3, 5, 8, 0.34));
+}
+
+.authIntroLoader {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 260ms ease, visibility 0s linear 260ms;
+  z-index: 1;
+}
+
+.authIntroLoader.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 260ms ease;
+}
+
+.authHourglass {
+  position: relative;
+  width: clamp(92px, 11vw, 144px);
+  height: clamp(144px, 18vw, 208px);
+  border-left: 4px solid rgba(210, 173, 114, 0.9);
+  border-right: 4px solid rgba(210, 173, 114, 0.9);
+  border-radius: 999px;
+  box-shadow:
+    0 0 40px rgba(210, 173, 114, 0.18),
+    inset 0 0 24px rgba(210, 173, 114, 0.1);
+  animation: authHourglassPulse 1.6s ease-in-out infinite;
+}
+
+.authHourglass::before,
+.authHourglass::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: clamp(22px, 3vw, 34px) solid transparent;
+  border-right: clamp(22px, 3vw, 34px) solid transparent;
+}
+
+.authHourglass::before {
+  top: 14px;
+  border-bottom: clamp(38px, 5vw, 60px) solid rgba(233, 211, 158, 0.92);
+  animation: authHourglassTopSand 1.6s ease-in-out infinite;
+}
+
+.authHourglass::after {
+  bottom: 14px;
+  border-top: clamp(38px, 5vw, 60px) solid rgba(210, 173, 114, 0.82);
+  animation: authHourglassBottomSand 1.6s ease-in-out infinite;
+}
+
+.authContentLayer {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition:
+    opacity 420ms ease,
+    transform 420ms ease,
+    visibility 0s linear 420ms;
+}
+
+.authContentLayer.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 420ms ease,
+    transform 420ms ease,
+    visibility 0s linear 0s;
+}
+
+@keyframes authHourglassPulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  50% {
+    transform: translateY(-3px) scale(1.015);
+  }
+}
+
+@keyframes authHourglassTopSand {
+  0%,
+  12% {
+    opacity: 0.95;
+    transform: translateX(-50%) scaleY(1);
+  }
+
+  82%,
+  100% {
+    opacity: 0.2;
+    transform: translateX(-50%) scaleY(0.22);
+  }
+}
+
+@keyframes authHourglassBottomSand {
+  0%,
+  12% {
+    opacity: 0.22;
+    transform: translateX(-50%) scaleY(0.2);
+  }
+
+  82%,
+  100% {
+    opacity: 0.9;
+    transform: translateX(-50%) scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .authIntroBackground,
+  .authIntroLoader,
+  .authContentLayer {
+    transition-duration: 1ms;
+  }
+
+  .authHourglass,
+  .authHourglass::before,
+  .authHourglass::after {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
 }
 
 /* Auth form utility classes */

@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useEffectEvent, useRef, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { PlayerClass } from "@ebonkeep/shared/core";
@@ -55,6 +55,58 @@ export type AuthScreenProps = {
   onForgotPasswordEmailChange: (value: string) => void;
   onCheckCredentials?: () => Promise<boolean>;
 };
+
+const AUTH_INTRO_SESSION_KEY = "ebonkeep.authIntroSeen";
+const AUTH_INTRO_VIDEO_PATH = "/assets/video/ebonkeep_video.mp4";
+const AUTH_INTRO_TIMEOUT_MS = 4500;
+const AUTH_VIDEO_FADE_MS = 900;
+
+type AuthIntroPhase = "boot" | "video-visible" | "form-visible";
+
+function hasSeenAuthIntro(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return window.sessionStorage.getItem(AUTH_INTRO_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function readReducedMotionPreference(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState<boolean>(readReducedMotionPreference);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    syncPreference();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncPreference);
+      return () => mediaQuery.removeEventListener("change", syncPreference);
+    }
+
+    mediaQuery.addListener(syncPreference);
+    return () => mediaQuery.removeListener(syncPreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
 
 // ─── Stat-tree metadata ────────────────────────────────────────────────────────
 
@@ -652,8 +704,13 @@ const eyeButtonStyle: React.CSSProperties = {
 
 export function AuthScreen(props: AuthScreenProps) {
   const { t } = useTranslation("common");
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const [registerStep, setRegisterStep] = useState<number>(0);
+  const [hasSeenIntroThisSession, setHasSeenIntroThisSession] = useState<boolean>(hasSeenAuthIntro);
+  const [introPhase, setIntroPhase] = useState<AuthIntroPhase>("boot");
+  const [videoFailed, setVideoFailed] = useState(false);
+  const introVideoRef = useRef<HTMLVideoElement | null>(null);
   const [selectedTree, setSelectedTree] = useState<PlayerStatTree>(() =>
     classesByStatTree.strength.includes(props.authClass)
       ? "strength"
@@ -678,80 +735,199 @@ export function AuthScreen(props: AuthScreenProps) {
     setRegisterStep(1);
   }
 
+  const completeIntro = useEffectEvent(() => {
+    setIntroPhase("form-visible");
+    setHasSeenIntroThisSession(true);
+
+    if (typeof window !== "undefined") {
+      try {
+        window.sessionStorage.setItem(AUTH_INTRO_SESSION_KEY, "1");
+      } catch {
+        // Ignore session storage failures and continue.
+      }
+    }
+  });
+
+  const revealVideo = useEffectEvent(() => {
+    setIntroPhase((currentPhase) => (currentPhase === "boot" ? "video-visible" : currentPhase));
+  });
+
+  const handleVideoReady = useEffectEvent(() => {
+    if (videoFailed) {
+      return;
+    }
+
+    if (hasSeenIntroThisSession || prefersReducedMotion) {
+      completeIntro();
+      return;
+    }
+
+    revealVideo();
+  });
+
+  const handleVideoError = useEffectEvent(() => {
+    setVideoFailed(true);
+    completeIntro();
+  });
+
   useEffect(() => {
     if (!props.error) return;
     const lower = props.error.toLowerCase();
     if ((lower.includes("email") || lower.includes("username")) && registerStep > 0) {
       setRegisterStep(0);
     }
-  }, [props.error]);
+  }, [props.error, registerStep]);
+
+  useEffect(() => {
+    if (introPhase !== "boot") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setVideoFailed(true);
+      completeIntro();
+    }, prefersReducedMotion ? 1200 : AUTH_INTRO_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [completeIntro, introPhase, prefersReducedMotion]);
+
+  useEffect(() => {
+    if (introPhase !== "boot" || videoFailed) {
+      return;
+    }
+
+    const videoElement = introVideoRef.current;
+    const readyThreshold = typeof HTMLMediaElement !== "undefined" ? HTMLMediaElement.HAVE_CURRENT_DATA : 2;
+    if (videoElement && videoElement.readyState >= readyThreshold) {
+      handleVideoReady();
+    }
+  }, [handleVideoReady, introPhase, videoFailed]);
+
+  useEffect(() => {
+    if (introPhase !== "video-visible") {
+      return;
+    }
+
+    if (prefersReducedMotion) {
+      completeIntro();
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      completeIntro();
+    }, AUTH_VIDEO_FADE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [completeIntro, introPhase, prefersReducedMotion]);
+
+  const introLoaderState = introPhase === "boot" ? "visible" : "hidden";
+  const introContentState = introPhase === "form-visible" ? "visible" : "hidden";
+  const introVideoState = videoFailed ? "failed" : introPhase === "boot" ? "hidden" : "visible";
 
   return (
     <main className={`appRoot layout-${props.layoutMode}`}>
       <div className="appSurface">
-        <section className="authPage">
-          <section className="authCard" style={{ width: props.authMode === "register" && registerStep === 3 ? "min(800px, calc(100vw - 32px))" : "min(520px, 100%)", transition: "width 220ms ease" }}>
-            <h1 style={{ margin: 0, textAlign: "center" }}>{t("app.title")}</h1>
+        <section className="authPage" data-intro-phase={introPhase}>
+          <div
+            className={`authIntroBackground${introVideoState === "visible" ? " is-visible" : ""}`}
+            data-state={introVideoState}
+            aria-hidden="true"
+          >
+            {!videoFailed ? (
+              <video
+                ref={introVideoRef}
+                data-testid="auth-intro-video"
+                className="authIntroVideo"
+                src={AUTH_INTRO_VIDEO_PATH}
+                muted
+                autoPlay
+                playsInline
+                loop
+                preload="auto"
+                onLoadedData={handleVideoReady}
+                onCanPlay={handleVideoReady}
+                onError={handleVideoError}
+              />
+            ) : null}
+            <div className="authIntroVideoScrim" />
+          </div>
 
-            {props.resetToken ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <h2 style={{ margin: 0 }}>{t("auth.resetYourPassword")}</h2>
-                <form
-                  onSubmit={props.onResetPasswordSubmit}
-                  style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-                >
-                  <input
-                    className="authInput"
-                    type="password"
-                    placeholder={t("register.newPassword")}
-                    value={props.newPassword}
-                    onChange={(e) => props.onNewPasswordChange(e.target.value)}
-                    required
-                    minLength={8}
-                  />
-                  <input
-                    className="authInput"
-                    type="password"
-                    placeholder={t("register.confirmNewPassword")}
-                    value={props.confirmPassword}
-                    onChange={(e) => props.onConfirmPasswordChange(e.target.value)}
-                    required
-                    minLength={8}
-                  />
-                  <button type="submit" className="btn btn-primary authSubmit">
-                    {t("auth.resetPassword")}
-                  </button>
-                </form>
-                {props.resetPasswordMessage ? (
-                  <div className={props.resetPasswordMessage.toLowerCase().includes("success") ? "authSuccess" : "authError"}>
-                    {props.resetPasswordMessage}
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <>
-                <div style={tabsStyle}>
-                  <button
-                    type="button"
-                    onClick={() => { props.onAuthModeChange("login"); setRegisterStep(0); }}
-                    style={tabStyle(props.authMode === "login")}
-                  >
-                    {t("auth.login")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { props.onAuthModeChange("register"); setRegisterStep(0); }}
-                    style={tabStyle(props.authMode === "register")}
-                  >
-                    {t("auth.register")}
-                  </button>
-                </div>
+          <div
+            className={`authIntroLoader${introLoaderState === "visible" ? " is-visible" : ""}`}
+            data-testid="auth-intro-loader"
+            data-state={introLoaderState}
+            aria-hidden={introLoaderState !== "visible"}
+          >
+            <div className="authHourglass" />
+          </div>
 
-                {props.authMode === "login" ? (
+          <div
+            className={`authContentLayer${introContentState === "visible" ? " is-visible" : ""}`}
+            data-testid="auth-content"
+            data-state={introContentState}
+          >
+            <section className="authCard" style={{ width: props.authMode === "register" && registerStep === 3 ? "min(800px, calc(100vw - 32px))" : "min(520px, 100%)", transition: "width 220ms ease" }}>
+              <h1 style={{ margin: 0, textAlign: "center" }}>{t("app.title")}</h1>
+
+              {props.resetToken ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                  <h2 style={{ margin: 0 }}>{t("auth.resetYourPassword")}</h2>
                   <form
-                    onSubmit={props.onLoginSubmit}
-                    style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                    onSubmit={props.onResetPasswordSubmit}
+                    style={{ display: "flex", flexDirection: "column", gap: "12px" }}
                   >
+                    <input
+                      className="authInput"
+                      type="password"
+                      placeholder={t("register.newPassword")}
+                      value={props.newPassword}
+                      onChange={(e) => props.onNewPasswordChange(e.target.value)}
+                      required
+                      minLength={8}
+                    />
+                    <input
+                      className="authInput"
+                      type="password"
+                      placeholder={t("register.confirmNewPassword")}
+                      value={props.confirmPassword}
+                      onChange={(e) => props.onConfirmPasswordChange(e.target.value)}
+                      required
+                      minLength={8}
+                    />
+                    <button type="submit" className="btn btn-primary authSubmit">
+                      {t("auth.resetPassword")}
+                    </button>
+                  </form>
+                  {props.resetPasswordMessage ? (
+                    <div className={props.resetPasswordMessage.toLowerCase().includes("success") ? "authSuccess" : "authError"}>
+                      {props.resetPasswordMessage}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <div style={tabsStyle}>
+                    <button
+                      type="button"
+                      onClick={() => { props.onAuthModeChange("login"); setRegisterStep(0); }}
+                      style={tabStyle(props.authMode === "login")}
+                    >
+                      {t("auth.login")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { props.onAuthModeChange("register"); setRegisterStep(0); }}
+                      style={tabStyle(props.authMode === "register")}
+                    >
+                      {t("auth.register")}
+                    </button>
+                  </div>
+
+                  {props.authMode === "login" ? (
+                    <form
+                      onSubmit={props.onLoginSubmit}
+                      style={{ display: "flex", flexDirection: "column", gap: "14px" }}
+                    >
                     <div>
                       <label className="authLabel">{t("register.email")}</label>
                       <input
@@ -874,10 +1050,10 @@ export function AuthScreen(props: AuthScreenProps) {
                       </>
                     )}
                   </div>
-                )}
-              </>
-            )}
-          </section>
+                  )}
+                </>
+              )}
+            </section>
 
           {props.showForgotPassword ? (
             <section
@@ -923,6 +1099,7 @@ export function AuthScreen(props: AuthScreenProps) {
               ) : null}
             </section>
           ) : null}
+          </div>
         </section>
       </div>
     </main>
