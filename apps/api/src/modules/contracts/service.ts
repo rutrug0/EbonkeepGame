@@ -109,6 +109,10 @@ function buildReplenishAt(rng: () => number, now: Date): Date {
   return new Date(now.getTime() + randomInt(rng, CONTRACT_REPLENISH_MIN_MS, CONTRACT_REPLENISH_MAX_MS));
 }
 
+async function lockPlayerContractState(tx: Prisma.TransactionClient, playerId: string): Promise<void> {
+  await tx.$queryRaw`SELECT "id" FROM "player_profiles" WHERE "id" = ${playerId} FOR UPDATE`;
+}
+
 async function getPlayerContractContext(prisma: PrismaClient, playerId: string): Promise<BoardGenerationContext> {
   const profile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
@@ -305,32 +309,6 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     throw new Error("Player state not found.");
   }
 
-  const slot = await prisma.contractBoardSlot.findUnique({
-    where: {
-      playerId_slotIndex: {
-        playerId,
-        slotIndex: slotId
-      }
-    }
-  });
-  if (!slot || slot.state !== "available" || !slot.difficulty || !slot.familyId || !slot.contractName || !slot.familyName || !slot.locationName || !slot.encounterLevel) {
-    throw new Error("Contract slot is not available.");
-  }
-  if (slot.expiresAt && slot.expiresAt <= now) {
-    throw new Error("Contract offer has expired.");
-  }
-
-  const activeRun = await prisma.contractRun.findFirst({
-    where: {
-      playerId,
-      state: { in: ["traveling", "ready_to_claim"] }
-    },
-    select: { id: true }
-  });
-  if (activeRun) {
-    throw new Error("Another contract run is already active.");
-  }
-
   const profile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
     select: {
@@ -341,17 +319,48 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     throw new Error("Player profile not found.");
   }
 
-  const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level);
-  const runId = `ctr_${randomUUID().replaceAll("-", "")}`;
-  const simulation = simulateEncounter({
-    playerState,
-    playerName: profile.account.username ?? "Warden",
-    encounter,
-    runId
-  });
-  const travelEndsAt = new Date(now.getTime() + CONTRACT_TRAVEL_DURATION_MS);
+  let runId = "";
+  let travelEndsAt: Date | null = null;
 
   await prisma.$transaction(async (tx) => {
+    await lockPlayerContractState(tx, playerId);
+
+    const activeRun = await tx.contractRun.findFirst({
+      where: {
+        playerId,
+        state: { in: ["traveling", "ready_to_claim"] }
+      },
+      select: { id: true }
+    });
+    if (activeRun) {
+      throw new Error("Another contract run is already active.");
+    }
+
+    const slot = await tx.contractBoardSlot.findUnique({
+      where: {
+        playerId_slotIndex: {
+          playerId,
+          slotIndex: slotId
+        }
+      }
+    });
+    if (!slot || slot.state !== "available" || !slot.difficulty || !slot.familyId || !slot.contractName || !slot.familyName || !slot.locationName || !slot.encounterLevel) {
+      throw new Error("Contract slot is not available.");
+    }
+    if (slot.expiresAt && slot.expiresAt <= now) {
+      throw new Error("Contract offer has expired.");
+    }
+
+    const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level);
+    runId = `ctr_${randomUUID().replaceAll("-", "")}`;
+    const simulation = simulateEncounter({
+      playerState,
+      playerName: profile.account.username ?? "Warden",
+      encounter,
+      runId
+    });
+    travelEndsAt = new Date(now.getTime() + CONTRACT_TRAVEL_DURATION_MS);
+
     await spendPlayerStamina(tx, playerId, encounter.rewardPreview.staminaCost, now);
     await tx.contractRun.create({
       data: {
@@ -393,7 +402,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     runId,
     slotId,
     state: "traveling",
-    travelEndsAt: travelEndsAt.toISOString()
+    travelEndsAt: (travelEndsAt ?? now).toISOString()
   });
 }
 
@@ -447,22 +456,9 @@ export async function getContractRun(prisma: PrismaClient, playerId: string, run
 export async function claimContractRunResult(prisma: PrismaClient, playerId: string, runId: string): Promise<ContractRunResult> {
   const now = new Date();
   await syncRunState(prisma, runId, now);
-
-  const run = await prisma.contractRun.findFirst({
-    where: { id: runId, playerId }
-  });
-  if (!run) {
-    throw new Error("Contract run not found.");
-  }
-  if (run.state === "traveling") {
-    throw new Error("Contract travel has not completed yet.");
-  }
-  if (run.state === "claimed") {
-    throw new Error("Contract result already claimed.");
-  }
-
-  const events = combatEventSchema.array().parse(run.events);
-  const rewards = parseStoredRewards(run.rewards);
+  let events = combatEventSchema.array().parse([]);
+  let winnerSide: "player" | "enemy" = "enemy";
+  let snapshot: ContractRunSnapshot | null = null;
   let rewardOutcome: {
     experience: number;
     ducats: number;
@@ -474,7 +470,26 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
   };
 
   await prisma.$transaction(async (tx) => {
-    if (run.winnerSide === "player" && !run.rewardsGranted) {
+    await lockPlayerContractState(tx, playerId);
+
+    const run = await tx.contractRun.findFirst({
+      where: { id: runId, playerId }
+    });
+    if (!run) {
+      throw new Error("Contract run not found.");
+    }
+    if (run.state === "traveling") {
+      throw new Error("Contract travel has not completed yet.");
+    }
+    if (run.state === "claimed") {
+      throw new Error("Contract result already claimed.");
+    }
+
+    events = combatEventSchema.array().parse(run.events);
+    const rewards = parseStoredRewards(run.rewards);
+    winnerSide = run.winnerSide === "player" ? "player" : "enemy";
+
+    if (winnerSide === "player" && !run.rewardsGranted) {
       await grantPlayerExperience(tx, playerId, rewards.experience);
       await tx.currencyBalance.upsert({
         where: { playerId },
@@ -524,7 +539,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       data: {
         state: "claimed",
         claimedAt: now,
-        rewardsGranted: run.winnerSide === "player"
+        rewardsGranted: winnerSide === "player"
       }
     });
     await tx.contractBoardSlot.updateMany({
@@ -544,6 +559,8 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         replenishAt: buildReplenishAt(slotRng, now)
       }
     });
+
+    snapshot = await loadRunSnapshotFromRecord(run);
   });
 
   const updatedProfile = await prisma.playerProfile.findUniqueOrThrow({
@@ -568,19 +585,18 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     where: { playerId },
     select: { ducats: true }
   });
-  const snapshot = await loadRunSnapshotFromRecord(run);
-
   return contractRunResultSchema.parse({
     run: {
-      ...snapshot,
+      ...(snapshot ?? (await getContractRun(prisma, playerId, runId))!),
       state: "claimed"
     },
-    winnerSide: run.winnerSide,
+    winnerSide,
     rewards: rewardOutcome,
     events,
     playerState: {
       level: progress.experience.level,
       experience: progress.experience.experience,
+      experienceIntoLevel: progress.experience.experienceIntoLevel,
       experienceToNextLevel: progress.experience.experienceToNextLevel,
       stamina: {
         current: progress.stamina.current,

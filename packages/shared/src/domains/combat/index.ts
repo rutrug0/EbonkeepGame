@@ -220,6 +220,7 @@ export const contractRunResultSchema = z.object({
     .object({
       level: z.number().int().min(1),
       experience: z.number().int().min(0),
+      experienceIntoLevel: z.number().int().min(0),
       experienceToNextLevel: z.number().int().min(1),
       stamina: z.object({
         current: z.number().int().min(0),

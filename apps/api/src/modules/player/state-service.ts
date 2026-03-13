@@ -374,6 +374,7 @@ export async function loadPlayerState(prisma: PrismaClient, playerId: string): P
     preferredLocale: profile.preferredLocale ?? "en",
     level: progress.experience.level,
     experience: progress.experience.experience,
+    experienceIntoLevel: progress.experience.experienceIntoLevel,
     experienceToNextLevel: progress.experience.experienceToNextLevel,
     gearScore: computeGearScore(equipment),
     stamina: {

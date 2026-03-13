@@ -22,6 +22,7 @@ type StaminaState = {
 type ExperienceState = {
   level: number;
   experience: number;
+  experienceIntoLevel: number;
   experienceToNextLevel: number;
 };
 
@@ -107,6 +108,15 @@ export function getExperienceToNextLevel(level: number): number {
   return normalizedLevel >= MAX_LEVEL ? 1 : Math.max(1, row.xpToNext);
 }
 
+export function getCumulativeExperienceToReachLevel(level: number): number {
+  const normalizedLevel = clampLevel(level);
+  const row = EXPERIENCE_ROW_BY_LEVEL.get(normalizedLevel);
+  if (!row) {
+    return 0;
+  }
+  return Math.max(0, row.cumulativeXpToReachLevel);
+}
+
 export function resolveLevelFromExperience(experience: number): number {
   const normalizedExperience = Math.max(0, Math.floor(experience));
   let resolvedLevel = 1;
@@ -125,10 +135,12 @@ export function resolveLevelFromExperience(experience: number): number {
 export function resolveExperienceState(args: { level: number; experience: number }): ExperienceState {
   const experience = Math.max(0, Math.floor(args.experience));
   const level = Math.max(clampLevel(args.level), resolveLevelFromExperience(experience));
+  const currentLevelFloor = getCumulativeExperienceToReachLevel(level);
 
   return {
     level,
     experience,
+    experienceIntoLevel: Math.max(0, experience - currentLevelFloor),
     experienceToNextLevel: getExperienceToNextLevel(level)
   };
 }

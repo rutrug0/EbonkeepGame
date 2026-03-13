@@ -18,6 +18,7 @@ export const playerStateSchema = z.object({
   preferredLocale: supportedLocaleSchema.default("en"),
   level: z.number().int().min(1),
   experience: z.number().int().min(0),
+  experienceIntoLevel: z.number().int().min(0),
   experienceToNextLevel: z.number().int().min(1),
   gearScore: z.number().int().min(0),
   stamina: z.object({

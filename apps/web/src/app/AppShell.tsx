@@ -1832,7 +1832,7 @@ export function AppShell() {
         Math.min(
           100,
           Math.round(
-            ((playerState.experience % Math.max(1, playerState.experienceToNextLevel)) /
+            (playerState.experienceIntoLevel /
               Math.max(1, playerState.experienceToNextLevel)) *
               100
           )
@@ -3467,6 +3467,7 @@ export function AppShell() {
   function applyContractResultPlayerState(resultPlayerState: {
     level: number;
     experience: number;
+    experienceIntoLevel: number;
     experienceToNextLevel: number;
     stamina: {
       current: number;
@@ -3483,6 +3484,7 @@ export function AppShell() {
         ...previousState,
         level: resultPlayerState.level,
         experience: resultPlayerState.experience,
+        experienceIntoLevel: resultPlayerState.experienceIntoLevel,
         experienceToNextLevel: resultPlayerState.experienceToNextLevel,
         stamina: resultPlayerState.stamina,
         currency: {
