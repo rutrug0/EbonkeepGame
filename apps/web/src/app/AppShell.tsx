@@ -257,8 +257,8 @@ type PlayerCardScoreBreakdown = {
   offense: number;
   defense: number;
   offenseParts: {
-    weaponAverage: number;
-    flatDamage: number;
+    weaponDamage: number;
+    itemDamageBonus: number;
     mainStatBonus: number;
     critFactor: number;
     extraAttackFactor: number;
@@ -1838,8 +1838,8 @@ export function AppShell() {
         offense: 0,
         defense: 0,
         offenseParts: {
-          weaponAverage: 0,
-          flatDamage: 0,
+          weaponDamage: 0,
+          itemDamageBonus: 0,
           mainStatBonus: 0,
           critFactor: 1,
           extraAttackFactor: 1,
@@ -1861,10 +1861,10 @@ export function AppShell() {
 
     const totalStats = playerState.statSnapshot.total;
     const mainStatKey = getMainOffenseStatKey(playerState.class);
-    const mainStatBonus = totalStats[mainStatKey] * 0.1;
-    const weaponAverage = playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0;
-    const flatDamage = totalStats.damage;
-    const baseOffense = weaponAverage + flatDamage + mainStatBonus;
+    const mainStatBonus = Math.floor(totalStats[mainStatKey] * 0.1);
+    const weaponDamage = Math.round(playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0);
+    const baseOffense = totalStats.damage;
+    const itemDamageBonus = Math.max(0, baseOffense - weaponDamage - mainStatBonus);
     const critChanceDecimal = totalStats.critChance / 10_000;
     const critMultiplierDecimal = totalStats.critMultiplier / 10_000;
     const extraAttackDecimal = totalStats.extraAttackChance / 10_000;
@@ -1888,8 +1888,8 @@ export function AppShell() {
       offense,
       defense,
       offenseParts: {
-        weaponAverage,
-        flatDamage,
+        weaponDamage,
+        itemDamageBonus,
         mainStatBonus,
         critFactor,
         extraAttackFactor,
@@ -4062,7 +4062,7 @@ export function AppShell() {
         : playerStatTree === "dexterity"
           ? i18n.t("profile.rangedAttackDamage")
           : i18n.t("profile.meleeDamage");
-    const flatBonusDamage = (mainOffenseStat * 0.1).toFixed(1);
+    const flatBonusDamage = Math.floor(mainOffenseStat * 0.1).toFixed(1);
 
     const groupedStats: Array<{
       title: string;
@@ -4469,10 +4469,10 @@ export function AppShell() {
                     body={
                       <>
                         <p className="uiHoverTooltipLine">
-                          <strong>Weapon Avg:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.weaponAverage)}
+                          <strong>Weapon Damage:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.weaponDamage)}
                         </p>
                         <p className="uiHoverTooltipLine">
-                          <strong>Flat Damage:</strong> {playerCardScoreSummary.offenseParts.flatDamage}
+                          <strong>Item Damage Bonus:</strong> {playerCardScoreSummary.offenseParts.itemDamageBonus}
                         </p>
                         <p className="uiHoverTooltipLine">
                           <strong>Main Stat Bonus:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.mainStatBonus)}
@@ -4487,7 +4487,7 @@ export function AppShell() {
                           <strong>Extra Attack:</strong> x{formatOneDecimal(playerCardScoreSummary.offenseParts.extraAttackFactor)}
                         </p>
                         <p className="uiHoverTooltipLine">
-                          <strong>Accuracy:</strong> x{formatOneDecimal(playerCardScoreSummary.offenseParts.accuracyFactor)}
+                          <strong>Hit Chance:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.accuracyFactor * 100)}%
                         </p>
                         <p className="uiHoverTooltipLine">
                           <strong>Final Score:</strong> {playerCardScoreSummary.offense}

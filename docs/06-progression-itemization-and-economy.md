@@ -65,16 +65,16 @@ Guardrails:
 - `strength`, `intelligence`, `dexterity`, `vitality`, `initiative`, `luck`.
 - Derived stats:
 - From strength:
-* Melee damage (so this is for warriors only)
+* Melee flat bonus damage (so this is for warriors only)
 * Armor (flat damage reduction from melee attacks)
 - From intelligence:
-* Spell damage (mages only)
+* Spell flat bonus damage (mages only)
 * Spell shield (flat damage reduction from spell damage)
 - From dexterity:
-* Ranged attack damage (rangers only)
+* Ranged flat bonus damage (rangers only)
 * Missile resistance (flat damage reduction from ranged attack damage)
 - From luck:
-* Crit chance
+* Crit chance (adds on top of a 5% base crit chance)
 * Crit damage
 - From initiative:
 * combat speed
@@ -87,6 +87,11 @@ Guardrails:
 - Global uncapped main-stat damage rule:
 * flat bonus damage = main offensive stat * 0.10
 * strength for melee, intelligence for spell, dexterity for ranged
+- Total displayed attack damage rule:
+* total damage = rounded weapon damage + flat bonus damage + item damage bonuses
+- Accuracy baseline:
+* base accuracy = 75
+* accuracy bonuses come from items; main stat does not add accuracy
 
 Combat mitigation model:
 - melee received damage = `melee damage - armor - physicalDefense`
@@ -108,6 +113,10 @@ Combat mitigation model:
     - melee: sword, axe
     - arcane: wand, staff
     - ranged: sling, bow
+- Weapon items do not grant hidden core-stat or accuracy bonuses from their base template.
+- A weapon contributes only its rolled weapon damage plus any explicit prefix/affix bonuses it rolled.
+- Armor items do not grant hidden base stats from their template.
+- Armor contributes its slot/archetype defense table value plus any explicit prefix/affix bonuses it rolled.
   - Jewelry
   - Vestiges
 - Defense contribution rules:

@@ -339,50 +339,43 @@ const ITEM_AFFIX_DEFINITIONS: Partial<Record<PlayerStatKey, ItemAffixDefinition>
 const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, ArmorProfile>>> = {
   heavy: {
     helmet: {
-      baseStatBonuses: { strength: 1, armor: 1 },
-      statGrowthPerLevel: { armor: 1 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["strength", "vitality", "armor", "initiative", "luck"]
     },
     upperArmor: {
-      baseStatBonuses: { strength: 1, vitality: 1, armor: 2, maxHitpoints: 6 },
-      statGrowthPerLevel: { vitality: 1, armor: 1, maxHitpoints: 2 },
+      baseStatBonuses: {},
       basePower: 8,
       powerPerLevel: 2,
       eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "initiative", "luck"]
     },
     belt: {
-      baseStatBonuses: { vitality: 1, armor: 1, maxHitpoints: 3 },
-      statGrowthPerLevel: { armor: 1, maxHitpoints: 2 },
+      baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
       eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "initiative", "luck"]
     },
     pauldrons: {
-      baseStatBonuses: { strength: 1, armor: 1, missileResistance: 1 },
-      statGrowthPerLevel: { armor: 1, missileResistance: 1 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["strength", "armor", "missileResistance", "vitality", "luck"]
     },
     gloves: {
-      baseStatBonuses: { strength: 1, armor: 1, accuracy: 1 },
-      statGrowthPerLevel: { armor: 1, accuracy: 1 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["strength", "armor", "accuracy", "initiative", "luck"]
     },
     lowerArmor: {
-      baseStatBonuses: { vitality: 1, armor: 2, maxHitpoints: 5 },
-      statGrowthPerLevel: { vitality: 1, armor: 1, maxHitpoints: 2 },
+      baseStatBonuses: {},
       basePower: 7,
       powerPerLevel: 2,
       eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "luck"]
     },
     boots: {
-      baseStatBonuses: { vitality: 1, armor: 1, initiative: 1 },
-      statGrowthPerLevel: { armor: 1, initiative: 1 },
+      baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
       eligibleAffixKeys: ["vitality", "armor", "initiative", "luck", "maxHitpoints"]
@@ -390,50 +383,43 @@ const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, Arm
   },
   light: {
     helmet: {
-      baseStatBonuses: { dexterity: 1, initiative: 1, dodgeChance: 15 },
-      statGrowthPerLevel: { initiative: 1, dodgeChance: 5 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "initiative", "dodgeChance", "luck", "accuracy"]
     },
     upperArmor: {
-      baseStatBonuses: { dexterity: 1, vitality: 1, missileResistance: 2, dodgeChance: 20 },
-      statGrowthPerLevel: { missileResistance: 1, dodgeChance: 5 },
+      baseStatBonuses: {},
       basePower: 9,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "vitality", "missileResistance", "dodgeChance", "initiative", "luck"]
     },
     belt: {
-      baseStatBonuses: { dexterity: 1, initiative: 1, accuracy: 1 },
-      statGrowthPerLevel: { initiative: 1, accuracy: 1 },
+      baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "initiative", "accuracy", "luck", "dodgeChance"]
     },
     pauldrons: {
-      baseStatBonuses: { dexterity: 1, missileResistance: 1, dodgeChance: 10 },
-      statGrowthPerLevel: { missileResistance: 1, dodgeChance: 5 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "missileResistance", "dodgeChance", "initiative", "luck"]
     },
     gloves: {
-      baseStatBonuses: { dexterity: 1, accuracy: 1, initiative: 1 },
-      statGrowthPerLevel: { accuracy: 1, initiative: 1 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "accuracy", "initiative", "luck", "critChance"]
     },
     lowerArmor: {
-      baseStatBonuses: { vitality: 1, missileResistance: 2, dodgeChance: 15 },
-      statGrowthPerLevel: { vitality: 1, missileResistance: 1, dodgeChance: 5 },
+      baseStatBonuses: {},
       basePower: 7,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "vitality", "missileResistance", "dodgeChance", "luck"]
     },
     boots: {
-      baseStatBonuses: { dexterity: 1, initiative: 1, dodgeChance: 10 },
-      statGrowthPerLevel: { initiative: 1, dodgeChance: 5 },
+      baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
       eligibleAffixKeys: ["dexterity", "initiative", "dodgeChance", "luck", "extraAttackChance"]
@@ -441,50 +427,43 @@ const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, Arm
   },
   robe: {
     helmet: {
-      baseStatBonuses: { intelligence: 1, initiative: 1, spellShield: 1 },
-      statGrowthPerLevel: { initiative: 1, spellShield: 1 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "initiative", "spellShield", "luck", "accuracy"]
     },
     upperArmor: {
-      baseStatBonuses: { intelligence: 1, vitality: 1, spellShield: 2, maxHitpoints: 6 },
-      statGrowthPerLevel: { spellShield: 1, maxHitpoints: 2 },
+      baseStatBonuses: {},
       basePower: 9,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "vitality", "spellShield", "maxHitpoints", "initiative", "luck"]
     },
     belt: {
-      baseStatBonuses: { intelligence: 1, spellShield: 1, maxHitpoints: 3 },
-      statGrowthPerLevel: { spellShield: 1, maxHitpoints: 2 },
+      baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "spellShield", "maxHitpoints", "initiative", "luck"]
     },
     pauldrons: {
-      baseStatBonuses: { intelligence: 1, spellShield: 1, initiative: 1 },
-      statGrowthPerLevel: { spellShield: 1, initiative: 1 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "spellShield", "initiative", "luck", "accuracy"]
     },
     gloves: {
-      baseStatBonuses: { intelligence: 1, accuracy: 1, critChance: 20 },
-      statGrowthPerLevel: { accuracy: 1, critChance: 5 },
+      baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "accuracy", "critChance", "initiative", "luck"]
     },
     lowerArmor: {
-      baseStatBonuses: { vitality: 1, spellShield: 2, maxHitpoints: 5 },
-      statGrowthPerLevel: { vitality: 1, spellShield: 1, maxHitpoints: 2 },
+      baseStatBonuses: {},
       basePower: 7,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "vitality", "spellShield", "maxHitpoints", "luck"]
     },
     boots: {
-      baseStatBonuses: { intelligence: 1, initiative: 1, extraAttackChance: 20 },
-      statGrowthPerLevel: { initiative: 1, extraAttackChance: 5 },
+      baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
       eligibleAffixKeys: ["intelligence", "initiative", "extraAttackChance", "luck", "maxHitpoints"]
@@ -513,8 +492,7 @@ const JEWELRY_PROFILES: Record<JewelryCsvRow["slotFamily"], JewelryProfile> = {
 
 const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
   sword: {
-    baseStatBonuses: { strength: 2, damage: 1, accuracy: 1 },
-    statGrowthPerLevel: { damage: 1 },
+    baseStatBonuses: {},
     basePower: 11,
     powerPerLevel: 3,
     weaponDamageProfile: {
@@ -526,8 +504,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
     eligibleAffixKeys: ["strength", "vitality", "damage", "accuracy", "critChance", "critMultiplier", "luck"]
   },
   axe: {
-    baseStatBonuses: { strength: 2, damage: 2 },
-    statGrowthPerLevel: { damage: 1, vitality: 1 },
+    baseStatBonuses: {},
     basePower: 12,
     powerPerLevel: 3,
     weaponDamageProfile: {
@@ -539,8 +516,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
     eligibleAffixKeys: ["strength", "vitality", "damage", "critChance", "critMultiplier", "luck"]
   },
   wand: {
-    baseStatBonuses: { intelligence: 2, damage: 1, accuracy: 1 },
-    statGrowthPerLevel: { damage: 1 },
+    baseStatBonuses: {},
     basePower: 11,
     powerPerLevel: 3,
     weaponDamageProfile: {
@@ -552,8 +528,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
     eligibleAffixKeys: ["intelligence", "initiative", "luck", "damage", "accuracy", "critChance", "critMultiplier"]
   },
   staff: {
-    baseStatBonuses: { intelligence: 2, damage: 2, spellShield: 1 },
-    statGrowthPerLevel: { damage: 1, spellShield: 1 },
+    baseStatBonuses: {},
     basePower: 12,
     powerPerLevel: 3,
     weaponDamageProfile: {
@@ -565,8 +540,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
     eligibleAffixKeys: ["intelligence", "spellShield", "initiative", "damage", "critChance", "critMultiplier", "luck"]
   },
   sling: {
-    baseStatBonuses: { dexterity: 2, damage: 1, accuracy: 1 },
-    statGrowthPerLevel: { damage: 1 },
+    baseStatBonuses: {},
     basePower: 10,
     powerPerLevel: 3,
     weaponDamageProfile: {
@@ -578,8 +552,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
     eligibleAffixKeys: ["dexterity", "initiative", "luck", "damage", "accuracy", "critChance", "extraAttackChance"]
   },
   bow: {
-    baseStatBonuses: { dexterity: 2, damage: 1, accuracy: 1 },
-    statGrowthPerLevel: { damage: 1 },
+    baseStatBonuses: {},
     basePower: 11,
     powerPerLevel: 3,
     weaponDamageProfile: {
@@ -1253,6 +1226,101 @@ function buildStatBonuses(
   return totals;
 }
 
+function buildExplicitModifierBonuses(prefix?: ItemModifier, affix?: ItemModifier): PlayerStatBonuses {
+  const totals: PlayerStatBonuses = {};
+  if (prefix) {
+    addStatBonus(totals, prefix.statKey, prefix.value);
+  }
+  if (affix) {
+    addStatBonus(totals, affix.statKey, affix.value);
+  }
+  return totals;
+}
+
+function slotToFixedDefenseRowSlot(slotId: EquipmentSlotId): NonNullable<ItemTemplate["fixedDefenseProfile"]>["rowSlot"] | null {
+  if (slotId === "ringLeft" || slotId === "ringRight") {
+    return "ring";
+  }
+  if (slotId === "helmet" || slotId === "upperArmor" || slotId === "belt" || slotId === "pauldrons" || slotId === "gloves" || slotId === "lowerArmor" || slotId === "boots" || slotId === "necklace") {
+    return slotId;
+  }
+  return null;
+}
+
+function addFixedDefenseBonus(
+  totals: PlayerStatBonuses,
+  args: {
+    majorCategory: InventoryItem["archetype"]["majorCategory"];
+    armorArchetype?: InventoryItem["archetype"]["armorArchetype"];
+    allowedSlotIds: readonly EquipmentSlotId[];
+    rarity: ItemRarity;
+    itemLevel: number;
+  }
+): void {
+  const slotId = args.allowedSlotIds[0];
+  if (!slotId) {
+    return;
+  }
+
+  if (args.majorCategory === "armor") {
+    if (!args.armorArchetype) {
+      return;
+    }
+    const tableId =
+      args.armorArchetype === "heavy"
+        ? "heavyArmor"
+        : args.armorArchetype === "light"
+          ? "lightArmor"
+          : "robeArmor";
+    const rowSlot = slotToFixedDefenseRowSlot(slotId);
+    if (!rowSlot || rowSlot === "ring" || rowSlot === "necklace") {
+      return;
+    }
+    const row = FIXED_DEFENSE_LOOKUPS[tableId].get(`${args.itemLevel}:${args.rarity}`);
+    addStatBonus(totals, "physicalDefense", row?.[rowSlot] ?? 0);
+    return;
+  }
+
+  if (args.majorCategory === "jewelry") {
+    const rowSlot = slotToFixedDefenseRowSlot(slotId);
+    if (!rowSlot || (rowSlot !== "necklace" && rowSlot !== "ring")) {
+      return;
+    }
+    const row = FIXED_DEFENSE_LOOKUPS.jewelry.get(`${args.itemLevel}:${args.rarity}`);
+    const rawValue = row?.[rowSlot] ?? 0;
+    addStatBonus(totals, "magicDefense", rowSlot === "ring" ? Math.floor(rawValue / 2) : rawValue);
+  }
+}
+
+function normalizeStoredStatBonuses(args: {
+  archetype: Pick<InventoryItem["archetype"], "majorCategory">;
+  armorArchetype?: InventoryItem["archetype"]["armorArchetype"];
+  statBonuses?: PlayerStatBonuses;
+  prefix?: ItemModifier;
+  affix?: ItemModifier;
+  allowedSlotIds: readonly EquipmentSlotId[];
+  rarity: ItemRarity;
+  itemLevel: number;
+}): PlayerStatBonuses {
+  if (args.archetype.majorCategory === "weapon") {
+    return buildExplicitModifierBonuses(args.prefix, args.affix);
+  }
+
+  if (args.archetype.majorCategory === "armor" || args.archetype.majorCategory === "jewelry") {
+    const totals = buildExplicitModifierBonuses(args.prefix, args.affix);
+    addFixedDefenseBonus(totals, {
+      majorCategory: args.archetype.majorCategory,
+      armorArchetype: args.armorArchetype,
+      allowedSlotIds: args.allowedSlotIds,
+      rarity: args.rarity,
+      itemLevel: args.itemLevel
+    });
+    return totals;
+  }
+
+  return args.statBonuses ?? {};
+}
+
 function buildItemCode(template: ItemTemplate, rarity: ItemRarity, itemLevel: number, deterministicCode?: string): string {
   if (deterministicCode) {
     return deterministicCode;
@@ -1360,7 +1428,19 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
     itemCode: item.itemCode
   });
   if (parsedCurrent.success) {
-    return parsedCurrent.data;
+    return inventoryItemSchema.parse({
+      ...parsedCurrent.data,
+      statBonuses: normalizeStoredStatBonuses({
+        archetype: parsedCurrent.data.archetype,
+        armorArchetype: parsedCurrent.data.archetype.armorArchetype,
+        statBonuses: parsedCurrent.data.statBonuses,
+        prefix: parsedCurrent.data.prefix,
+        affix: parsedCurrent.data.affix,
+        allowedSlotIds: parsedCurrent.data.allowedSlotIds,
+        rarity: parsedCurrent.data.rarity,
+        itemLevel: parsedCurrent.data.baseLevel ?? parsedCurrent.data.levelRequirement
+      })
+    });
   }
 
   const parsedLegacy = legacyStoredItemSchema.safeParse({
@@ -1384,7 +1464,16 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
     baseLevel: parsedLegacy.data.baseLevel,
     power: parsedLegacy.data.power,
     archetype: parsedLegacy.data.archetype,
+    statBonuses: normalizeStoredStatBonuses({
+    archetype: parsedLegacy.data.archetype,
+    armorArchetype: parsedLegacy.data.archetype.armorArchetype,
     statBonuses: parsedLegacy.data.statBonuses ?? {},
+    prefix: parsedLegacy.data.prefix,
+    affix: parsedLegacy.data.affix,
+    allowedSlotIds: [parsedLegacy.data.equipSlotId],
+    rarity: parsedLegacy.data.rarity,
+    itemLevel: parsedLegacy.data.baseLevel ?? parsedLegacy.data.levelRequirement
+  }),
     damageRoll: parsedLegacy.data.damageRoll,
     prefix: parsedLegacy.data.prefix,
     affix: parsedLegacy.data.affix,

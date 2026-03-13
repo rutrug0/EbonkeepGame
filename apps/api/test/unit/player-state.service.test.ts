@@ -27,7 +27,16 @@ describe("player state service", () => {
       },
       statBonuses: {
         strength: 4,
-        damage: 8
+        damage: 8,
+        accuracy: 6,
+        critChance: 125
+      },
+      damageRoll: {
+        minRollRange: [10, 12],
+        rolledMin: 11,
+        rolledMax: 13,
+        maxRollRange: [12, 14],
+        averageDamage: 12
       },
       description: "Used by tests."
     };
@@ -46,8 +55,13 @@ describe("player state service", () => {
     });
 
     expect(snapshot.total.strength).toBe(14);
-    expect(snapshot.total.damage).toBeGreaterThan(snapshot.base.damage);
-    expect(snapshot.equipment.damage).toBeGreaterThan(0);
+    expect(snapshot.base.damage).toBe(1);
+    expect(snapshot.total.damage).toBe(21);
+    expect(snapshot.equipment.damage).toBe(20);
+    expect(snapshot.base.accuracy).toBe(75);
+    expect(snapshot.total.accuracy).toBe(81);
+    expect(snapshot.base.critChance).toBe(550);
+    expect(snapshot.total.critChance).toBe(675);
   });
 
   it("computes gear score from equipped item power", () => {
