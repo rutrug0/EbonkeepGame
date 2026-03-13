@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ebonkeep Localization Sync"
+  short_description: "Keep locale keys and validation aligned across the web app"
+  default_prompt: "Use $ebonkeep-localization-sync to add or update UI copy and keep all Ebonkeep locales in sync."
