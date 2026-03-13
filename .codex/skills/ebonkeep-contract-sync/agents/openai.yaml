@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ebonkeep Contract Sync"
+  short_description: "Shared-first contract and consumer update workflow"
+  default_prompt: "Use $ebonkeep-contract-sync to change a shared contract and carry the update through API and web consumers."
