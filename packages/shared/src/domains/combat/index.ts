@@ -30,6 +30,9 @@ export type CombatActionResponse = z.infer<typeof combatActionResponseSchema>;
 export const contractDifficultySchema = z.enum(["easy", "medium", "hard"]);
 export type ContractDifficulty = z.infer<typeof contractDifficultySchema>;
 
+export const contractEfficiencyTierSchema = z.enum(["low_cost", "standard_cost", "high_cost"]);
+export type ContractEfficiencyTier = z.infer<typeof contractEfficiencyTierSchema>;
+
 export const contractBoardSlotStateSchema = z.enum(["available", "traveling", "ready_to_claim", "replenishing"]);
 export type ContractBoardSlotState = z.infer<typeof contractBoardSlotStateSchema>;
 
@@ -39,7 +42,8 @@ export const contractRewardPreviewSchema = z.object({
   ducatsMin: z.number().int().min(0),
   ducatsMax: z.number().int().min(0),
   itemDropChanceBps: z.number().int().min(0).max(10000),
-  staminaCost: z.number().int().min(0)
+  staminaCost: z.number().int().min(0),
+  efficiencyTier: contractEfficiencyTierSchema
 });
 export type ContractRewardPreview = z.infer<typeof contractRewardPreviewSchema>;
 
@@ -174,7 +178,8 @@ export const startContractRunResponseSchema = z.object({
   runId: z.string(),
   slotId: z.number().int().min(1),
   state: contractRunStateSchema,
-  travelEndsAt: z.string()
+  travelEndsAt: z.string(),
+  travelDurationSeconds: z.number().int().min(1)
 });
 export type StartContractRunResponse = z.infer<typeof startContractRunResponseSchema>;
 
@@ -189,6 +194,7 @@ export const contractRunSnapshotSchema = z.object({
   locationName: z.string(),
   encounterLevel: z.number().int().min(1),
   travelEndsAt: z.string(),
+  travelDurationSeconds: z.number().int().min(1),
   player: combatActorSnapshotSchema,
   enemies: z.array(combatActorSnapshotSchema).min(1),
   combatBackgroundPath: z.string().nullable(),

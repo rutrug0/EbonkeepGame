@@ -102,10 +102,15 @@
     "table": {
       "contract": "Contrato",
       "difficulty": "Dificuldade",
+      "staminaCost": "Custo de Energia",
       "action": "Ação"
     },
     "abandon": "Abandonar",
-    "replenishing": "Repondo"
+    "replenishing": "Repondo",
+    "staminaCostValue": "{{cost}} stamina ({{tier}})",
+    "efficiencyLowCost": "Baixo Custo",
+    "efficiencyStandardCost": "Custo Padrão",
+    "efficiencyHighCost": "Alto Custo"
   },
   "currencies": {
     "ducats": "Ducados",

@@ -154,6 +154,7 @@
       "materialsRoll": "Materials Roll",
       "itemDropRoll": "Item Drop Roll",
       "staminaRoll": "Stamina Roll",
+      "staminaCost": "Stamina Cost",
       "expiresIn": "Expires In",
       "action": "Action"
     },
@@ -181,6 +182,10 @@
     "rollLow": "Low",
     "rollMedium": "Medium",
     "rollHigh": "High",
+    "staminaCostValue": "{{cost}} stamina ({{tier}})",
+    "efficiencyLowCost": "Low Cost",
+    "efficiencyStandardCost": "Standard Cost",
+    "efficiencyHighCost": "High Cost",
     "difficultyEasy": "Easy",
     "difficultyMedium": "Medium",
     "difficultyHard": "Hard"

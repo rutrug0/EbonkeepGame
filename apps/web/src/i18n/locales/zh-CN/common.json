@@ -101,10 +101,15 @@
     "table": {
       "contract": "契约",
       "difficulty": "难度",
+      "staminaCost": "体力消耗",
       "action": "操作"
     },
     "abandon": "放弃",
-    "replenishing": "补充中"
+    "replenishing": "补充中",
+    "staminaCostValue": "{{cost}} stamina ({{tier}})",
+    "efficiencyLowCost": "低消耗",
+    "efficiencyStandardCost": "标准消耗",
+    "efficiencyHighCost": "高消耗"
   },
   "currencies": {
     "ducats": "杜卡特",

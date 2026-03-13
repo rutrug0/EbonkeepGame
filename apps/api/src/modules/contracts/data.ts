@@ -1,13 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import type { ContractDifficulty, ContractRewardPreview, CombatDamageKind } from "@ebonkeep/shared/combat";
+import {
+  resolveContractStaminaCost
+} from "../../config/activity-pacing.js";
+import type {
+  ContractDifficulty,
+  ContractEfficiencyTier,
+  ContractRewardPreview,
+  CombatDamageKind
+} from "@ebonkeep/shared/combat";
 import type { PlayerClass } from "@ebonkeep/shared/core";
 
 export const CONTRACT_SLOT_COUNT = 6;
-export const CONTRACT_TRAVEL_DURATION_MS = 10_000;
-export const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
-export const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
 
 export const CONTRACT_DIFFICULTY_OFFSETS: Record<ContractDifficulty, readonly [number, number]> = {
   easy: [-1, 0],
@@ -153,6 +158,12 @@ export type EncounterDefinition = {
   members: MonsterMember[];
   encounterLevel: number;
   rewardPreview: ContractRewardPreview;
+};
+
+export const CONTRACT_EFFICIENCY_TIER_WEIGHTS: Record<ContractEfficiencyTier, number> = {
+  low_cost: 0.5,
+  standard_cost: 0.35,
+  high_cost: 0.15
 };
 
 export function clampInt(value: number, min: number, max: number): number {
@@ -314,7 +325,23 @@ export function getRoleProfile(role: string, isBoss: boolean) {
   return ROLE_PROFILES[role] ?? ROLE_PROFILES.default;
 }
 
-export function buildRewardPreview(difficulty: ContractDifficulty, encounterLevel: number): ContractRewardPreview {
+export function pickContractEfficiencyTier(rng: () => number): ContractEfficiencyTier {
+  const roll = rng();
+  if (roll < CONTRACT_EFFICIENCY_TIER_WEIGHTS.low_cost) {
+    return "low_cost";
+  }
+  if (roll < CONTRACT_EFFICIENCY_TIER_WEIGHTS.low_cost + CONTRACT_EFFICIENCY_TIER_WEIGHTS.standard_cost) {
+    return "standard_cost";
+  }
+  return "high_cost";
+}
+
+export function buildRewardPreview(
+  difficulty: ContractDifficulty,
+  encounterLevel: number,
+  playerLevel: number,
+  efficiencyTier: ContractEfficiencyTier
+): ContractRewardPreview {
   const profile = DIFFICULTY_PROFILES[difficulty];
   const experienceBase = Math.round((110 + encounterLevel * 26) * profile.rewardFactor);
   const ducatsBase = Math.round((65 + encounterLevel * 18) * profile.rewardFactor);
@@ -325,7 +352,8 @@ export function buildRewardPreview(difficulty: ContractDifficulty, encounterLeve
     ducatsMin: Math.max(10, Math.round(ducatsBase * 0.85)),
     ducatsMax: Math.max(12, Math.round(ducatsBase * 1.15)),
     itemDropChanceBps: profile.itemDropChanceBps,
-    staminaCost: clampInt(profile.staminaBase + encounterLevel * 0.35, profile.staminaBase, profile.staminaBase + 20)
+    staminaCost: resolveContractStaminaCost(playerLevel, efficiencyTier),
+    efficiencyTier
   };
 }
 
@@ -395,6 +423,7 @@ export function buildEncounterDefinition(rng: () => number, context: BoardGenera
   const encounterLevel = pickEncounterLevel(rng, difficulty, context.playerLevel);
   const family = pickFamilyForLevel(rng, encounterLevel);
   const members = pickEncounterMembers(rng, difficulty, family.familyId);
+  const efficiencyTier = pickContractEfficiencyTier(rng);
 
   return {
     contractName: buildContractName(rng, family, difficulty),
@@ -402,6 +431,6 @@ export function buildEncounterDefinition(rng: () => number, context: BoardGenera
     family,
     members,
     encounterLevel,
-    rewardPreview: buildRewardPreview(difficulty, encounterLevel)
+    rewardPreview: buildRewardPreview(difficulty, encounterLevel, context.playerLevel, efficiencyTier)
   };
 }

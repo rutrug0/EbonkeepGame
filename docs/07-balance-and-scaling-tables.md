@@ -50,9 +50,9 @@ Sample table:
 | Parameter | Value |
 |---|---:|
 | Max stamina | 120 |
-| Regen interval | 1 per 6 min |
-| PvE mission cost | 8-20 |
-| Daily passive refill cap | 240 regained |
+| Regen rate | 25% of max stamina per hour |
+| PvE mission cost | level-table driven |
+| Daily refill if empty all day | 720 regained |
 
 ## Contracts Board (Timed Activities)
 | Job Tier | Duration | Reward Profile |
@@ -64,7 +64,15 @@ Sample table:
 Contracts board defaults:
 - Max available contracts at one time: `6`.
 - Expired contracts are removed from available list.
-- Replenish cooldown after expire/abandon: `1-2 hours`.
+- Travel duration: level-table driven, then modified by contract efficiency tier (`0.7x`, `1.0x`, `1.3x`).
+- Replenish cooldown after expire/abandon: level-table driven.
+
+## Activity Pacing Tables (Level 1-100)
+- Activity pacing table: `docs/data/activity_pacing_level_1_100.csv`
+- Contract replenish pacing table: `docs/data/contract_replenish_pacing_level_1_100.csv`
+- Coefficients source: `docs/data/activity_pacing_coefficients.csv`
+- Generator:
+  - `powershell -ExecutionPolicy Bypass -File .\tools\generate_activity_pacing_tables.ps1`
 
 ## Shop Refresh Cadence
 | Shop Type | Refresh Interval | Manual Refresh |

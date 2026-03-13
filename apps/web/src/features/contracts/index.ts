@@ -25,6 +25,7 @@ export {
   snapshotEncounterPlayback,
   type ActiveContractEncounterState,
   type ContractDifficulty,
+  type ContractEfficiencyTier,
   type ContractOffer,
   type ContractRoll,
   type ContractSlotState

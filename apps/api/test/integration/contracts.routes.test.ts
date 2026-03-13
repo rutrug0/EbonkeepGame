@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import {
+  getContractReplenishPacingRow,
+  resolveContractTravelDurationSeconds
+} from "../../src/config/activity-pacing.js";
 import { authHeaders, loginAsGuest } from "../helpers/fixtures.js";
 import { createApiTestContext } from "../helpers/runtime.js";
 
@@ -61,7 +65,10 @@ describe("contracts routes", () => {
     });
     expect(startResponse.statusCode).toBe(200);
 
-    const startedRun = startResponse.json() as { runId: string };
+    const startedRun = startResponse.json() as { runId: string; travelDurationSeconds: number };
+    expect(startedRun.travelDurationSeconds).toBe(
+      resolveContractTravelDurationSeconds(25, availableSlot.rewardsPreview.efficiencyTier)
+    );
     const prematureClaim = await context.app.inject({
       method: "POST",
       url: `/v1/contracts/runs/${startedRun.runId}/claim-result`,
@@ -331,5 +338,9 @@ describe("contracts routes", () => {
     expect(abandonedSlot.state).toBe("replenishing");
     expect(abandonedSlot.replenishAt).toBeTruthy();
     expect(abandonedSlot.startedRunId).toBeNull();
+    const replenishMs = Date.parse(abandonedSlot.replenishAt) - Date.now();
+    const replenishWindow = getContractReplenishPacingRow(1);
+    expect(replenishMs).toBeGreaterThanOrEqual(replenishWindow.replenishMinSeconds * 1000 - 5_000);
+    expect(replenishMs).toBeLessThanOrEqual(replenishWindow.replenishMaxSeconds * 1000 + 5_000);
   });
 });
