@@ -102,10 +102,15 @@
     "table": {
       "contract": "Kontrata",
       "difficulty": "Hirap",
+      "staminaCost": "Gastos sa Stamina",
       "action": "Aksyon"
     },
     "abandon": "I-abandon",
-    "replenishing": "Nagre-replenish"
+    "replenishing": "Nagre-replenish",
+    "staminaCostValue": "{{cost}} stamina ({{tier}})",
+    "efficiencyLowCost": "Mababang Gastos",
+    "efficiencyStandardCost": "Karaniwang Gastos",
+    "efficiencyHighCost": "Mataas na Gastos"
   },
   "currencies": {
     "ducats": "Mga Ducat",

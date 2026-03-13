@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { Prisma, type PrismaClient } from "@prisma/client";
 import {
+  resolveContractTravelDurationSeconds,
+  getContractReplenishPacingRow
+} from "../../config/activity-pacing.js";
+import {
   combatActorSnapshotSchema,
   combatEventSchema,
   contractBoardResponseSchema,
@@ -25,10 +29,7 @@ import { grantPlayerExperience, spendPlayerStamina } from "../player/progression
 import { loadPlayerState } from "../player/state-service.js";
 import {
   CONTRACT_DIFFICULTY_WINDOWS,
-  CONTRACT_REPLENISH_MAX_MS,
-  CONTRACT_REPLENISH_MIN_MS,
   CONTRACT_SLOT_COUNT,
-  CONTRACT_TRAVEL_DURATION_MS,
   buildEncounterDefinition,
   buildRewardPreview,
   createSeededRng,
@@ -60,9 +61,19 @@ type BoardSlotRecord = {
   rewardsPreview: Prisma.JsonValue | null;
 };
 
+function normalizeRewardPreview(value: Prisma.JsonValue | null): ContractRewardPreview | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const next = { ...(value as Record<string, unknown>) };
+  if (!("efficiencyTier" in next)) {
+    next.efficiencyTier = "standard_cost";
+  }
+  return contractBoardSlotViewSchema.shape.rewardsPreview.parse(next);
+}
+
 function parseRewardPreview(value: Prisma.JsonValue | null): ContractRewardPreview | null {
-  if (!value) return null;
-  return contractBoardSlotViewSchema.shape.rewardsPreview.parse(value);
+  return normalizeRewardPreview(value);
 }
 
 function parseStoredRewards(value: Prisma.JsonValue): StoredRewardSpec {
@@ -105,8 +116,9 @@ function buildAvailabilityExpiry(rng: () => number, difficulty: ContractDifficul
   return new Date(now.getTime() + randomInt(rng, window.minMs, window.maxMs));
 }
 
-function buildReplenishAt(rng: () => number, now: Date): Date {
-  return new Date(now.getTime() + randomInt(rng, CONTRACT_REPLENISH_MIN_MS, CONTRACT_REPLENISH_MAX_MS));
+function buildReplenishAt(rng: () => number, now: Date, playerLevel: number): Date {
+  const pacing = getContractReplenishPacingRow(playerLevel);
+  return new Date(now.getTime() + randomInt(rng, pacing.replenishMinSeconds * 1000, pacing.replenishMaxSeconds * 1000));
 }
 
 async function lockPlayerContractState(tx: Prisma.TransactionClient, playerId: string): Promise<void> {
@@ -205,7 +217,7 @@ async function refreshBoardState(prisma: PrismaClient, playerId: string, now = n
           enemyCount: null,
           expiresAt: null,
           rewardsPreview: Prisma.JsonNull,
-          replenishAt: buildReplenishAt(rng, now)
+          replenishAt: buildReplenishAt(rng, now, context.playerLevel)
         }
       });
       continue;
@@ -245,6 +257,7 @@ async function loadRunSnapshotFromRecord(run: {
   locationName: string;
   encounterLevel: number;
   travelEndsAt: Date;
+  travelDurationSeconds: number;
   combatBackgroundPath: string | null;
   travelImagePath: string | null;
   playerSnapshot: Prisma.JsonValue;
@@ -261,6 +274,7 @@ async function loadRunSnapshotFromRecord(run: {
     locationName: run.locationName,
     encounterLevel: run.encounterLevel,
     travelEndsAt: run.travelEndsAt.toISOString(),
+    travelDurationSeconds: run.travelDurationSeconds,
     player: combatActorSnapshotSchema.parse(run.playerSnapshot),
     enemies: combatActorSnapshotSchema.array().parse(run.enemySnapshots),
     combatBackgroundPath: run.combatBackgroundPath,
@@ -292,6 +306,7 @@ function resolvePlayerCurrentHpFromEvents(run: {
 
 function coerceEncounterForRun(slot: BoardSlotRecord, playerLevel: number): EncounterDefinition {
   const rng = createSeededRng(`${slot.familyId}:${slot.slotIndex}:${slot.encounterLevel}`);
+  const storedRewardPreview = parseRewardPreview(slot.rewardsPreview);
   return {
     contractName: slot.contractName ?? "Contract",
     difficulty: (slot.difficulty ?? "easy") as ContractDifficulty,
@@ -304,7 +319,14 @@ function coerceEncounterForRun(slot: BoardSlotRecord, playerLevel: number): Enco
     members: pickEncounterMembers(rng, (slot.difficulty ?? "easy") as ContractDifficulty, slot.familyId ?? "")
       .slice(0, slot.enemyCount ?? undefined),
     encounterLevel: slot.encounterLevel ?? playerLevel,
-    rewardPreview: parseRewardPreview(slot.rewardsPreview) ?? buildRewardPreview((slot.difficulty ?? "easy") as ContractDifficulty, slot.encounterLevel ?? playerLevel)
+    rewardPreview:
+      storedRewardPreview ??
+      buildRewardPreview(
+        (slot.difficulty ?? "easy") as ContractDifficulty,
+        slot.encounterLevel ?? playerLevel,
+        playerLevel,
+        "standard_cost"
+      )
   };
 }
 
@@ -338,6 +360,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
 
   let runId = "";
   let travelEndsAt: Date | null = null;
+  let travelDurationSeconds = 1;
 
   await prisma.$transaction(async (tx) => {
     await lockPlayerContractState(tx, playerId);
@@ -383,7 +406,9 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
       encounter,
       runId
     });
-    travelEndsAt = new Date(now.getTime() + CONTRACT_TRAVEL_DURATION_MS);
+    const efficiencyTier = encounter.rewardPreview.efficiencyTier;
+    travelDurationSeconds = resolveContractTravelDurationSeconds(playerState.level, efficiencyTier);
+    travelEndsAt = new Date(now.getTime() + travelDurationSeconds * 1000);
 
     await spendPlayerStamina(tx, playerId, encounter.rewardPreview.staminaCost, now);
     await tx.contractRun.create({
@@ -399,6 +424,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
         locationName: encounter.family.locationName,
         encounterLevel: encounter.encounterLevel,
         travelEndsAt,
+        travelDurationSeconds,
         winnerSide: simulation.winnerSide,
         combatBackgroundPath: null,
         travelImagePath: null,
@@ -426,13 +452,15 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     runId,
     slotId,
     state: "traveling",
-    travelEndsAt: (travelEndsAt ?? now).toISOString()
+    travelEndsAt: (travelEndsAt ?? now).toISOString(),
+    travelDurationSeconds
   });
 }
 
 export async function abandonContractOffer(prisma: PrismaClient, playerId: string, slotId: number): Promise<ContractBoardResponse> {
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
+  const context = await getPlayerContractContext(prisma, playerId);
 
   const slot = await prisma.contractBoardSlot.findUnique({
     where: {
@@ -460,7 +488,7 @@ export async function abandonContractOffer(prisma: PrismaClient, playerId: strin
       enemyCount: null,
       expiresAt: null,
       rewardsPreview: Prisma.JsonNull,
-      replenishAt: buildReplenishAt(rng, now)
+      replenishAt: buildReplenishAt(rng, now, context.playerLevel)
     }
   });
 
@@ -516,7 +544,6 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       playerSnapshot: run.playerSnapshot,
       events: run.events
     });
-
     if (winnerSide === "player" && !run.rewardsGranted) {
       await grantPlayerExperience(tx, playerId, rewards.experience);
       await tx.currencyBalance.upsert({
@@ -561,6 +588,11 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       }
     }
 
+    const playerState = await loadPlayerState(tx, playerId);
+    if (!playerState) {
+      throw new Error("Player state not found.");
+    }
+
     const slotRng = createSeededRng(`${playerId}:slot:${run.slotIndex}:claimed:${now.toISOString()}`);
     await tx.contractRun.update({
       where: { id: run.id },
@@ -584,7 +616,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         expiresAt: null,
         activeRunId: null,
         rewardsPreview: Prisma.JsonNull,
-        replenishAt: buildReplenishAt(slotRng, now)
+        replenishAt: buildReplenishAt(slotRng, now, playerState.level)
       }
     });
     await tx.playerProfile.update({

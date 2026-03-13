@@ -101,10 +101,15 @@
     "table": {
       "contract": "계약",
       "difficulty": "난이도",
+      "staminaCost": "기력 소모",
       "action": "행동"
     },
     "abandon": "포기",
-    "replenishing": "보충 중"
+    "replenishing": "보충 중",
+    "staminaCostValue": "{{cost}} stamina ({{tier}})",
+    "efficiencyLowCost": "저비용",
+    "efficiencyStandardCost": "표준 비용",
+    "efficiencyHighCost": "고비용"
   },
   "currencies": {
     "ducats": "두캇",

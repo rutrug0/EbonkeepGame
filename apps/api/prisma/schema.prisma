@@ -279,6 +279,7 @@ model ContractRun {
   locationName         String
   encounterLevel       Int
   travelEndsAt         DateTime
+  travelDurationSeconds Int          @default(1)
   claimedAt            DateTime?
   winnerSide           String
   combatBackgroundPath String?

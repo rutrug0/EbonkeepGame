@@ -29,7 +29,13 @@ Flow:
   - `medium`: `25-75 min`
   - `hard`: `20-60 min`
 - Replenishment window after completion, expiry, or abandon:
-  - `60-120 min`
+  - level-based from `docs/data/contract_replenish_pacing_level_1_100.csv`
+- Travel duration:
+  - base duration from `docs/data/activity_pacing_level_1_100.csv`
+  - tier adjusted by contract efficiency:
+    - `low_cost = 0.7x`
+    - `standard_cost = 1.0x`
+    - `high_cost = 1.3x`
 
 ## Combat Model
 Contracts combat is playback-only auto-battle.
@@ -82,7 +88,8 @@ Mitigation:
 - melee: `raw - armor - physicalDefense`
 - ranged: `raw - missileResistance - physicalDefense`
 - spell: `raw - spellShield - magicDefense`
-- final damage clamps to `>= 0`
+- successful hits always deal at least `2%` of the attacker's rolled damage, rounded down with a minimum of `1`
+- final damage is `max(minimumChipDamage, raw - mitigation)`
 
 ### Battle End
 - battle ends when one side has no alive actors
@@ -126,9 +133,14 @@ The server derives monster combat stats from a reference player curve using:
 - member `accuracy_bias`
 - member `crit_bias`
 - member `evasion_bias`
+- monster outgoing damage is globally reduced to `60%` of the prior baseline
 
 ## Rewards
 - stamina is spent on start
+- stamina cost is level-based and rolled from one of three efficiency tiers:
+  - `low_cost`
+  - `standard_cost`
+  - `high_cost`
 - rewards are applied on `claim-result`, not on start
 - loss grants no XP, ducats, or loot
 - win grants XP, ducats, and optional single item loot

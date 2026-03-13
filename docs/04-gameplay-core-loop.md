@@ -32,7 +32,7 @@
 ### Contracts Board
 - Timed activity board with up to 6 available contracts at a time.
 - Contracts expire if not accepted before their timer ends.
-- Expired or abandoned contracts replenish after a 1-2 hour cooldown.
+- Expired or abandoned contracts replenish from a level-based cooldown table.
 
 ### Instanced Shops
 - Player-personal stock.

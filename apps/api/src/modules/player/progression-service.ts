@@ -2,9 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { resolveStaminaRegenPercentPerHour } from "../../config/activity-pacing.js";
 
 const MAX_LEVEL = 100;
-const STAMINA_REGEN_INTERVAL_MS = 5 * 60 * 1000;
 const REST_HEALTH_PER_DUCAT = 10;
 const REST_STAMINA_PER_DUCAT = 1;
 
@@ -151,11 +151,15 @@ export function resolveStaminaState(args: {
   current: number;
   max: number;
   updatedAt: Date;
+  level: number;
   now?: Date;
 }): StaminaState {
   const max = Math.max(0, Math.floor(args.max));
   const current = Math.max(0, Math.min(max, Math.floor(args.current)));
   const now = args.now ?? new Date();
+  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
+  const regenPerHour = (max * regenPercentPerHour) / 100;
+  const msPerPoint = regenPerHour > 0 ? 3_600_000 / regenPerHour : Number.POSITIVE_INFINITY;
 
   if (current >= max) {
     return {
@@ -166,15 +170,24 @@ export function resolveStaminaState(args: {
     };
   }
 
+  if (!Number.isFinite(msPerPoint) || msPerPoint <= 0) {
+    return {
+      current,
+      max,
+      updatedAt: args.updatedAt,
+      nextPointAt: null
+    };
+  }
+
   const elapsedMs = Math.max(0, now.getTime() - args.updatedAt.getTime());
-  const regeneratedPoints = Math.floor(elapsedMs / STAMINA_REGEN_INTERVAL_MS);
+  const regeneratedPoints = Math.floor(elapsedMs / msPerPoint);
 
   if (regeneratedPoints <= 0) {
     return {
       current,
       max,
       updatedAt: args.updatedAt,
-      nextPointAt: new Date(args.updatedAt.getTime() + STAMINA_REGEN_INTERVAL_MS).toISOString()
+      nextPointAt: new Date(args.updatedAt.getTime() + msPerPoint).toISOString()
     };
   }
 
@@ -188,14 +201,14 @@ export function resolveStaminaState(args: {
     };
   }
 
-  const consumedMs = regeneratedPoints * STAMINA_REGEN_INTERVAL_MS;
+  const consumedMs = regeneratedPoints * msPerPoint;
   const updatedAt = new Date(args.updatedAt.getTime() + consumedMs);
 
   return {
     current: nextCurrent,
     max,
     updatedAt,
-    nextPointAt: new Date(updatedAt.getTime() + STAMINA_REGEN_INTERVAL_MS).toISOString()
+    nextPointAt: new Date(updatedAt.getTime() + msPerPoint).toISOString()
   };
 }
 
@@ -207,15 +220,16 @@ export function resolvePlayerProgressState(args: {
   staminaUpdatedAt: Date;
   now?: Date;
 }): PlayerProgressState {
+  const experience = resolveExperienceState({
+    level: args.level,
+    experience: args.experience
+  });
   const stamina = resolveStaminaState({
     current: args.staminaCurrent,
     max: args.staminaMax,
     updatedAt: args.staminaUpdatedAt,
+    level: experience.level,
     now: args.now
-  });
-  const experience = resolveExperienceState({
-    level: args.level,
-    experience: args.experience
   });
 
   return {
@@ -292,6 +306,7 @@ export async function spendPlayerStamina(
     current: profile.staminaCurrent,
     max: profile.staminaMax,
     updatedAt: profile.staminaUpdatedAt,
+    level: profile.level,
     now
   });
   const spendAmount = Math.max(0, Math.floor(amount));
@@ -319,6 +334,7 @@ export async function spendPlayerStamina(
     current: nextCurrent,
     max: stamina.max,
     updatedAt: nextUpdatedAt,
+    level: profile.level,
     now
   });
 }
@@ -359,7 +375,7 @@ export async function grantPlayerExperience(
 
 export const playerProgressionConfig = {
   maxLevel: MAX_LEVEL,
-  staminaRegenIntervalMs: STAMINA_REGEN_INTERVAL_MS,
+  staminaRegenPercentPerHour: resolveStaminaRegenPercentPerHour(1),
   restHealthPerDucat: REST_HEALTH_PER_DUCAT,
   restStaminaPerDucat: REST_STAMINA_PER_DUCAT
 } as const;
@@ -399,7 +415,8 @@ export async function restPlayerResources(args: {
       hitpointsCurrent: true,
       staminaCurrent: true,
       staminaMax: true,
-      staminaUpdatedAt: true
+      staminaUpdatedAt: true,
+      level: true
     }
   });
 
@@ -413,6 +430,7 @@ export async function restPlayerResources(args: {
     current: profile.staminaCurrent,
     max: profile.staminaMax,
     updatedAt: profile.staminaUpdatedAt,
+    level: profile.level,
     now
   });
   const costDucats = calculateRestCost({

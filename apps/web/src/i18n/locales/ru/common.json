@@ -101,10 +101,15 @@
     "table": {
       "contract": "Контракт",
       "difficulty": "Сложность",
+      "staminaCost": "Цена выносливости",
       "action": "Действие"
     },
     "abandon": "Отменить",
-    "replenishing": "Обновляется"
+    "replenishing": "Обновляется",
+    "staminaCostValue": "{{cost}} stamina ({{tier}})",
+    "efficiencyLowCost": "Низкая цена",
+    "efficiencyStandardCost": "Стандартная цена",
+    "efficiencyHighCost": "Высокая цена"
   },
   "currencies": {
     "ducats": "Дукаты",

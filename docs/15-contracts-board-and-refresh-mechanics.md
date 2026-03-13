@@ -15,13 +15,13 @@ Define the v1 Contracts board loop used for timed activity selection, expiry pre
 
 ## Replenishment Rules
 - When a contract expires, its slot starts a replenishment timer.
-- Replenishment cooldown is random in the range `1-2 hours`.
+- Replenishment cooldown is random inside the current player's level row from `docs/data/contract_replenish_pacing_level_1_100.csv`.
 - When cooldown ends, the slot receives a new contract and becomes available again.
 
 ## Early Abandon Rules
 - Player may abandon an available contract at any time.
 - Abandoning a contract removes it immediately.
-- Abandon triggers replenishment immediately, using the same `1-2 hours` cooldown range.
+- Abandon triggers replenishment immediately, using the same level-based cooldown range.
 
 ## Contract Row Data Schema
 Each available row must define:
@@ -34,7 +34,8 @@ Each available row must define:
 | `ducats_roll` | low/medium/high | Possible ducats payout roll bands. |
 | `materials_roll` | low/medium/high | Possible materials payout roll bands. |
 | `item_drop_roll` | low/medium/high | Possible item drop chance roll bands. |
-| `stamina_cost` | low/medium/high | Possible stamina spend roll bands. |
+| `stamina_cost` | integer | Authoritative stamina spend for the rolled efficiency tier. |
+| `efficiency_tier` | enum | `low_cost`, `standard_cost`, `high_cost`. Higher cost tiers are less desirable. |
 | `expires_at` | timestamp | End of availability window. |
 
 ## UI Requirements (v1 Web Stub)
@@ -49,4 +50,4 @@ Each available row must define:
 ## Design Intent
 - Contracts create short-term decision pressure through expiry timers.
 - Replenishment window enforces return cadence without forcing combat input.
-- Stamina, timers, and board churn form a predictable planning loop for short sessions.
+- Stamina, travel time, and board churn form a predictable cherry-pick loop for short sessions.

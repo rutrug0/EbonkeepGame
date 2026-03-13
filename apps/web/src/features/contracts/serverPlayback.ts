@@ -69,6 +69,8 @@ function toOfferFromSlot(slot: ContractBoardSlotView): ContractOffer | null {
   }
 
   const cue = toRoll(slot.difficulty);
+  const staminaCost = slot.rewardsPreview?.staminaCost ?? 0;
+  const efficiencyTier = slot.rewardsPreview?.efficiencyTier ?? "standard_cost";
   return {
     instanceId: `${slot.familyId ?? "contract"}-${slot.slotId}`,
     template: {
@@ -80,11 +82,13 @@ function toOfferFromSlot(slot: ContractBoardSlotView): ContractOffer | null {
       materials: { low: 0, medium: 0, high: 0 },
       itemDrop: { low: 0, medium: 0, high: 0 },
       staminaCost: {
-        low: slot.rewardsPreview?.staminaCost ?? 0,
-        medium: slot.rewardsPreview?.staminaCost ?? 0,
-        high: slot.rewardsPreview?.staminaCost ?? 0
+        low: staminaCost,
+        medium: staminaCost,
+        high: staminaCost
       }
     },
+    efficiencyTier,
+    staminaCostValue: staminaCost,
     rollCue: {
       experience: cue,
       ducats: cue,
@@ -118,6 +122,8 @@ export function buildOfferFromRun(run: ContractRunSnapshot): ContractOffer {
       itemDrop: { low: 0, medium: 0, high: 0 },
       staminaCost: { low: 0, medium: 0, high: 0 }
     },
+    efficiencyTier: "standard_cost",
+    staminaCostValue: 0,
     rollCue: {
       experience: cue,
       ducats: cue,
@@ -248,6 +254,7 @@ export function buildTravelEncounterState(args: {
     offer: args.offer,
     phase: "travel",
     travelEndsAt: Date.parse(args.run.travelEndsAt),
+    travelDurationMs: args.run.travelDurationSeconds * 1000,
     travelDescription: getEncounterTravelDescription(args.run.difficulty),
     encounter,
     timeline: [],
@@ -282,6 +289,7 @@ export function buildResolvedEncounterState(args: {
     offer: args.offer,
     phase: "combat",
     travelEndsAt: null,
+    travelDurationMs: args.result.run.travelDurationSeconds * 1000,
     travelDescription: getEncounterTravelDescription(args.result.run.difficulty),
     encounter,
     timeline: buildPlaybackTimeline(args.result.run, args.result.events),

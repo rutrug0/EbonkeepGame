@@ -104,6 +104,7 @@ import {
   startContractsRun,
   type ActiveContractEncounterState,
   type ContractDifficulty,
+  type ContractEfficiencyTier,
   type ContractOffer,
   type ContractRoll,
   type ContractSlotState
@@ -3537,6 +3538,16 @@ export function AppShell() {
     return i18n.t(`contracts.difficulty${difficulty.charAt(0).toUpperCase()}${difficulty.slice(1)}`);
   }
 
+  function formatContractEfficiencyTier(tier: ContractEfficiencyTier): string {
+    if (tier === "low_cost") {
+      return i18n.t("contracts.efficiencyLowCost");
+    }
+    if (tier === "high_cost") {
+      return i18n.t("contracts.efficiencyHighCost");
+    }
+    return i18n.t("contracts.efficiencyStandardCost");
+  }
+
   function formatContractRoll(roll: ContractRoll): string {
     return i18n.t(`contracts.roll${roll.charAt(0).toUpperCase()}${roll.slice(1)}`);
   }
@@ -4393,6 +4404,7 @@ export function AppShell() {
         onContractRowKeyDown={handleContractRowKeyDown}
         onAbandonContractSlot={abandonContractSlot}
         formatContractDifficulty={formatContractDifficulty}
+        formatContractEfficiencyTier={formatContractEfficiencyTier}
         formatContractRoll={formatContractRoll}
         formatDurationFromMs={formatDurationFromMs}
       />

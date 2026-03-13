@@ -3,10 +3,10 @@ import type { KeyboardEvent } from "react";
 import { CombatEncounterPanel } from "../combat";
 import {
   CONTRACT_SLOT_COUNT,
-  CONTRACT_TRAVEL_DURATION_MS,
   getEncounterAnimationRate,
   type ActiveContractEncounterState,
   type ContractDifficulty,
+  type ContractEfficiencyTier,
   type ContractOffer,
   type ContractRoll,
   type ContractSlotState
@@ -32,6 +32,7 @@ export type ContractsPanelProps = {
   ) => void;
   onAbandonContractSlot: (slotIndex: number) => void;
   formatContractDifficulty: (difficulty: ContractDifficulty) => string;
+  formatContractEfficiencyTier: (tier: ContractEfficiencyTier) => string;
   formatContractRoll: (roll: ContractRoll) => string;
   formatDurationFromMs: (value: number) => string;
 };
@@ -72,7 +73,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
         currentEventIndex={props.activeContractEncounter.currentEventIndex}
         nowMs={props.nowMs}
         travelEndsAt={props.activeContractEncounter.travelEndsAt}
-        travelDurationMs={CONTRACT_TRAVEL_DURATION_MS}
+        travelDurationMs={props.activeContractEncounter.travelDurationMs}
         travelDescription={props.activeContractEncounter.travelDescription}
         hpByActorId={props.activeContractEncounter.hpByActorId}
         combatLogEntries={props.activeContractEncounter.combatLogEntries}
@@ -120,7 +121,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
                   <th>{i18n.t("contracts.table.ducatsRoll")}</th>
                   <th>{i18n.t("contracts.table.materialsRoll")}</th>
                   <th>{i18n.t("contracts.table.itemDropRoll")}</th>
-                  <th>{i18n.t("contracts.table.staminaRoll")}</th>
+                  <th>{i18n.t("contracts.table.staminaCost")}</th>
                   <th>{i18n.t("contracts.table.expiresIn")}</th>
                   <th>{i18n.t("contracts.table.action")}</th>
                 </tr>
@@ -168,7 +169,10 @@ export function ContractsPanel(props: ContractsPanelProps) {
                       <td data-label={i18n.t("contracts.table.contract")}>
                         <div className="contractsNameCell">
                           <strong>{template.name}</strong>
-                          <span>{i18n.t("contracts.slot", { index: slot.slotIndex })}</span>
+                          <span>
+                            {i18n.t("contracts.slot", { index: slot.slotIndex })} |{" "}
+                            {props.formatContractEfficiencyTier(slot.offer.efficiencyTier)}
+                          </span>
                         </div>
                       </td>
                       <td data-label={i18n.t("contracts.table.difficulty")}>
@@ -188,8 +192,11 @@ export function ContractsPanel(props: ContractsPanelProps) {
                       <td data-label={i18n.t("contracts.table.itemDropRoll")}>
                         {props.formatContractRoll(rollCue.itemDrop)}
                       </td>
-                      <td data-label={i18n.t("contracts.table.staminaRoll")}>
-                        {props.formatContractRoll(rollCue.staminaCost)}
+                      <td data-label={i18n.t("contracts.table.staminaCost")}>
+                        {i18n.t("contracts.staminaCostValue", {
+                          cost: slot.offer.staminaCostValue,
+                          tier: props.formatContractEfficiencyTier(slot.offer.efficiencyTier)
+                        })}
                       </td>
                       <td data-label={i18n.t("contracts.table.expiresIn")} className="contractsTimeCell">
                         {props.formatDurationFromMs(slot.offer.expiresAt - props.nowMs)}

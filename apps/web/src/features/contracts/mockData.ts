@@ -1,3 +1,4 @@
+import type { ContractEfficiencyTier } from "@ebonkeep/shared/combat";
 import type { PlayerClass, PlayerStatBlock } from "@ebonkeep/shared/core";
 import { classToStatTree } from "@ebonkeep/shared/core";
 
@@ -9,6 +10,8 @@ import {
   type CombatPlaybackEncounter,
   type CombatPlaybackEvent
 } from "../combat/playback";
+
+export type { ContractEfficiencyTier } from "@ebonkeep/shared/combat";
 
 export type ContractDifficulty = "easy" | "medium" | "hard";
 export type ContractRoll = "low" | "medium" | "high";
@@ -33,6 +36,8 @@ type ContractTemplate = {
 export type ContractOffer = {
   instanceId: string;
   template: ContractTemplate;
+  efficiencyTier: ContractEfficiencyTier;
+  staminaCostValue: number;
   rollCue: {
     experience: ContractRoll;
     ducats: ContractRoll;
@@ -57,6 +62,7 @@ export type ActiveContractEncounterState = {
   offer: ContractOffer;
   phase: ContractEncounterPhase;
   travelEndsAt: number | null;
+  travelDurationMs: number;
   travelDescription: string;
   encounter: CombatPlaybackEncounter;
   timeline: CombatPlaybackEvent[];
@@ -76,8 +82,8 @@ export type ActiveContractEncounterState = {
 };
 
 export const CONTRACT_SLOT_COUNT = 6;
-export const CONTRACT_REPLENISH_MIN_MS = 60 * 60 * 1000;
-export const CONTRACT_REPLENISH_MAX_MS = 120 * 60 * 1000;
+export const CONTRACT_REPLENISH_MIN_MS = 1 * 60 * 1000;
+export const CONTRACT_REPLENISH_MAX_MS = 2 * 60 * 1000;
 export const CONTRACT_TRAVEL_DURATION_MS = 10 * 1000;
 export const COMBAT_PLAYBACK_START_DELAY_MS = 330;
 export const COMBAT_PLAYBACK_IMPACT_DELAY_MS = 760;
@@ -472,6 +478,7 @@ export function buildMockCombatEncounterState(args: {
     offer,
     phase: "travel",
     travelEndsAt: nowMs + CONTRACT_TRAVEL_DURATION_MS,
+    travelDurationMs: CONTRACT_TRAVEL_DURATION_MS,
     encounter,
     travelDescription: getEncounterTravelDescription(offer.template.difficulty),
     timeline,
@@ -570,6 +577,8 @@ export function createContractOffer(nowMs: number): ContractOffer {
   return {
     instanceId: `${template.id}-${nowMs}-${randomInRange(1000, 9999)}`,
     template,
+    efficiencyTier: "standard_cost",
+    staminaCostValue: template.staminaCost.medium,
     rollCue: {
       experience: randomContractRoll(),
       ducats: randomContractRoll(),
