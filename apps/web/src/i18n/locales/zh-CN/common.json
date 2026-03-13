@@ -551,6 +551,55 @@
       "enemies": "敌人"
     }
   },
+  "academy": {
+    "title": "学院",
+    "loading": "正在加载学院...",
+    "totalDonated": "总捐献",
+    "level": "等级",
+    "toNextLevel": "距下一级",
+    "nextLevel": "升级进度",
+    "resetView": "重置",
+    "views": {
+      "tree": "研究树",
+      "history": "捐献历史",
+      "contributions": "贡献排行"
+    },
+    "status": {
+      "label": "状态",
+      "locked": "已锁定",
+      "available": "可用",
+      "in_progress": "进行中",
+      "completed": "已完成",
+      "maxed": "已满级"
+    },
+    "rewards": {
+      "title": "奖励",
+      "completion": "完成奖励"
+    },
+    "donate": {
+      "button": "捐献金币",
+      "title": "捐献给研究项目",
+      "yourDucats": "你的金币",
+      "amountPlaceholder": "输入金额...",
+      "max": "最大",
+      "confirm": "捐献",
+      "donating": "捐献中...",
+      "success": "成功捐献 {{amount}} 金币！",
+      "levelsGained": "(+{{count}} 级)"
+    },
+    "history": {
+      "empty": "暂无捐献记录。"
+    },
+    "contributions": {
+      "empty": "暂无贡献。"
+    },
+    "errors": {
+      "loadFailed": "加载学院失败。",
+      "invalidAmount": "请输入有效金额。",
+      "insufficientDucats": "金币不足。",
+      "donateFailed": "捐献失败，请重试。"
+    }
+  },
   "class": {
     "warrior": "战士",
     "mage": "法师",

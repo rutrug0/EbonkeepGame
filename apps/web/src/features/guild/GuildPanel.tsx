@@ -41,6 +41,7 @@ import {
   transferLeadership,
   sendGuildInvite
 } from "./api";
+import { GuildAcademy } from "./GuildAcademy";
 import { GuildCrestEditor } from "./GuildCrestEditor";
 import { GuildCrestDisplay } from "./GuildList";
 import type { PlayerClass } from "@ebonkeep/shared/core";
@@ -54,11 +55,13 @@ export interface GuildPanelProps {
   playerName?: string | null;
   playerClass?: PlayerClass | null;
   playerPower?: number | null;
+  playerDucats?: number | null;
   onActiveMissionChange?: (active: boolean) => void;
+  onDucatsChanged?: (newAmount: number) => void;
 }
 
 type GuildView = "myGuild" | "search";
-type GuildDetailTab = "members" | "activity" | "invites" | "settings" | "missions";
+type GuildDetailTab = "members" | "activity" | "academy" | "invites" | "settings" | "missions";
 
 // ── Shared shield icon ──────────────────────────────────────────────────
 function ShieldIcon({ size = 48 }: { size?: number }) {
@@ -123,7 +126,7 @@ function ConfirmModal({
 }
 
 // ── Top-Level ────────────────────────────────────────────────────────────
-export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, playerClass, playerPower, onActiveMissionChange }: GuildPanelProps) {
+export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, playerClass, playerPower, playerDucats, onActiveMissionChange, onDucatsChanged }: GuildPanelProps) {
   const { t } = useTranslation("common");
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
   const [hasGuild, setHasGuild] = useState(false);
@@ -199,9 +202,11 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
             playerName={playerName}
             playerClass={playerClass}
             playerPower={playerPower}
+            playerDucats={playerDucats}
             isActiveMission={isActiveMission}
             onActiveMissionChange={handleMissionActiveChange}
             onSearchClick={() => setCurrentView("search")}
+            onDucatsChanged={onDucatsChanged}
           />
         )}
         {!isActiveMission && currentView === "search" && (
@@ -222,9 +227,11 @@ function MyGuildView({
   playerName,
   playerClass,
   playerPower,
+  playerDucats,
   isActiveMission = false,
   onActiveMissionChange,
   onSearchClick,
+  onDucatsChanged,
 }: {
   token: string;
   currentPlayerId?: string | null;
@@ -232,9 +239,11 @@ function MyGuildView({
   playerName?: string | null;
   playerClass?: PlayerClass | null;
   playerPower?: number | null;
+  playerDucats?: number | null;
   isActiveMission?: boolean;
   onActiveMissionChange?: (active: boolean) => void;
   onSearchClick: () => void;
+  onDucatsChanged?: (newAmount: number) => void;
 }) {
   const { t } = useTranslation("common");
   const [guildData, setGuildData] = useState<GuildDetailsResponse | null>(null);
@@ -319,6 +328,7 @@ function MyGuildView({
   const tabs: Array<{ id: GuildDetailTab; label: string; manageOnly?: boolean; leaderOnly?: boolean }> = [
     { id: "members",   label: t("guild.memberList") },
     { id: "activity",  label: t("guild.activityLog") },
+    { id: "academy",   label: t("academy.title") },
     { id: "missions",  label: t("menu.missions") },
     { id: "invites",   label: t("guild.invite.invitesTab"), manageOnly: true },
     { id: "settings",  label: t("guild.settings"), manageOnly: true },
@@ -429,7 +439,7 @@ function MyGuildView({
 
           {/* ── Tab content ── */}
           {activeTab !== "missions" && (
-            <article className="contentCard">
+            <article className={activeTab === "academy" ? "contentCard contentCard--academy" : "contentCard"}>
               {activeTab === "members" && (
                 <GuildMembersTab
                   token={token}
@@ -440,6 +450,14 @@ function MyGuildView({
               )}
               {activeTab === "activity" && (
                 <GuildActivityTab token={token} guildId={guildData.guild.id} />
+              )}
+              {activeTab === "academy" && (
+                <GuildAcademy
+                  token={token}
+                  guildId={guildData.guild.id}
+                  playerDucats={playerDucats ?? 0}
+                  onDucatsChanged={onDucatsChanged}
+                />
               )}
               {activeTab === "invites" && canManage && (
                 <GuildInvitesTab token={token} guildId={guildData.guild.id} />
