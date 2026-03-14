@@ -160,6 +160,12 @@ export type EncounterDefinition = {
   rewardPreview: ContractRewardPreview;
 };
 
+export type MonsterCombatTuning = {
+  hpMultiplier: number;
+  damageMultiplier: number;
+  defenseMultiplier: number;
+};
+
 export const CONTRACT_EFFICIENCY_TIER_WEIGHTS: Record<ContractEfficiencyTier, number> = {
   low_cost: 0.5,
   standard_cost: 0.35,
@@ -314,6 +320,29 @@ for (const member of monsterMembers) {
   monsterMembersByFamily.set(member.familyId, members);
 }
 
+const monsterCombatTuningByLevel = new Map<number, Record<ContractDifficulty, MonsterCombatTuning>>(
+  parseCsv("contracts_monster_combat_tuning_level_1_100.csv")
+    .map((row) => ({
+      level: toInt(row.level, 1),
+      easy: {
+        hpMultiplier: Number.parseFloat(row.easy_hp_multiplier ?? "1") || 1,
+        damageMultiplier: Number.parseFloat(row.easy_damage_multiplier ?? "1") || 1,
+        defenseMultiplier: Number.parseFloat(row.easy_defense_multiplier ?? "1") || 1
+      },
+      medium: {
+        hpMultiplier: Number.parseFloat(row.medium_hp_multiplier ?? "1") || 1,
+        damageMultiplier: Number.parseFloat(row.medium_damage_multiplier ?? "1") || 1,
+        defenseMultiplier: Number.parseFloat(row.medium_defense_multiplier ?? "1") || 1
+      },
+      hard: {
+        hpMultiplier: Number.parseFloat(row.hard_hp_multiplier ?? "1") || 1,
+        damageMultiplier: Number.parseFloat(row.hard_damage_multiplier ?? "1") || 1,
+        defenseMultiplier: Number.parseFloat(row.hard_defense_multiplier ?? "1") || 1
+      }
+    }))
+    .map((row) => [row.level, { easy: row.easy, medium: row.medium, hard: row.hard }] as const)
+);
+
 export function getBiasMultiplier(value: MonsterBias): number {
   return BIAS_MULTIPLIERS[value] ?? 1;
 }
@@ -323,6 +352,16 @@ export function getRoleProfile(role: string, isBoss: boolean) {
     return ROLE_PROFILES.boss;
   }
   return ROLE_PROFILES[role] ?? ROLE_PROFILES.default;
+}
+
+export function getMonsterCombatTuning(level: number, difficulty: ContractDifficulty): MonsterCombatTuning {
+  const clampedLevel = clampInt(level, 1, 100);
+  const tuningRow = monsterCombatTuningByLevel.get(clampedLevel);
+  return tuningRow?.[difficulty] ?? {
+    hpMultiplier: 1,
+    damageMultiplier: 1,
+    defenseMultiplier: 1
+  };
 }
 
 export function pickContractEfficiencyTier(rng: () => number): ContractEfficiencyTier {

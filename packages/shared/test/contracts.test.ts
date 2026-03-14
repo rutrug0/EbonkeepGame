@@ -120,9 +120,11 @@ describe("shared contracts", () => {
                   avgCombatSeconds: 5,
                   avgInputOverheadSeconds: 5,
                   avgPlayerAttackRoll: 23,
-                  avgPlayerHpLossPercent: 18
+                  avgPlayerHpLossPercent: 18,
+                  avgPlayerHpLossPercentByDifficulty: { easy: 6, medium: 12, hard: 20 }
                 }
-              ]
+              ],
+              benchmarkTargetBandHitRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.25 }
             },
             {
               archetype: "average",
@@ -147,9 +149,11 @@ describe("shared contracts", () => {
                   avgCombatSeconds: 5,
                   avgInputOverheadSeconds: 5,
                   avgPlayerAttackRoll: 23,
-                  avgPlayerHpLossPercent: 18
+                  avgPlayerHpLossPercent: 18,
+                  avgPlayerHpLossPercentByDifficulty: { easy: 7, medium: 13, hard: 21 }
                 }
-              ]
+              ],
+              benchmarkTargetBandHitRateByDifficulty: { easy: 0.8, medium: 0.6, hard: 0.3 }
             },
             {
               archetype: "slow",
@@ -174,9 +178,11 @@ describe("shared contracts", () => {
                   avgCombatSeconds: 5,
                   avgInputOverheadSeconds: 5,
                   avgPlayerAttackRoll: 23,
-                  avgPlayerHpLossPercent: 18
+                  avgPlayerHpLossPercent: 18,
+                  avgPlayerHpLossPercentByDifficulty: { easy: 8, medium: 14, hard: 24 }
                 }
-              ]
+              ],
+              benchmarkTargetBandHitRateByDifficulty: { easy: 0.7, medium: 0.5, hard: 0.4 }
             }
           ]
         }
