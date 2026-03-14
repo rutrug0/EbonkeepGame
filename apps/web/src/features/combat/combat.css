@@ -127,6 +127,7 @@
 }
 
 .combatTurnChipPortrait {
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -745,6 +746,7 @@
 }
 
 .combatLogPortrait {
+  position: relative;
   width: 42px;
   height: 42px;
   border: 1px solid rgba(125, 136, 145, 0.32);
