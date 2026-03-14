@@ -33,6 +33,8 @@ import {
   buildEncounterDefinition,
   buildRewardPreview,
   createSeededRng,
+  hasEncounterMembersForFamily,
+  isKnownMonsterFamily,
   pickEncounterMembers,
   randomInt,
   type BoardGenerationContext,
@@ -131,6 +133,40 @@ function buildReplenishAt(
   }
   const pacing = getContractReplenishPacingRow(playerLevel);
   return new Date(now.getTime() + randomInt(rng, pacing.replenishMinSeconds * 1000, pacing.replenishMaxSeconds * 1000));
+}
+
+function isStaleAvailableSlot(slot: BoardSlotRecord): boolean {
+  if (slot.state !== "available" || !slot.familyId) {
+    return false;
+  }
+  return !isKnownMonsterFamily(slot.familyId) || !hasEncounterMembersForFamily(slot.familyId);
+}
+
+async function repopulateAvailableSlot(
+  prisma: PrismaClient,
+  slot: { id: string; slotIndex: number },
+  context: BoardGenerationContext,
+  now: Date,
+  seedSuffix: string
+): Promise<void> {
+  const rng = createSeededRng(`${context.playerId}:slot:${slot.slotIndex}:${seedSuffix}`);
+  const encounter = buildEncounterDefinition(rng, context, slot.slotIndex);
+  await prisma.contractBoardSlot.update({
+    where: { id: slot.id },
+    data: {
+      state: "available",
+      contractName: encounter.contractName,
+      difficulty: encounter.difficulty,
+      familyId: encounter.family.familyId,
+      familyName: encounter.family.familyName,
+      locationName: encounter.family.locationName,
+      encounterLevel: encounter.encounterLevel,
+      enemyCount: encounter.members.length,
+      expiresAt: buildAvailabilityExpiry(rng, encounter.difficulty, now),
+      replenishAt: null,
+      rewardsPreview: json(encounter.rewardPreview)
+    }
+  });
 }
 
 function getEffectiveReplenishAt(slot: BoardSlotRecord, fastContractReplenishEnabled: boolean): Date | null {
@@ -249,6 +285,17 @@ async function refreshBoardState(prisma: PrismaClient, playerId: string, now = n
       continue;
     }
 
+    if (isStaleAvailableSlot(slot as BoardSlotRecord)) {
+      await repopulateAvailableSlot(
+        prisma,
+        slot,
+        context,
+        now,
+        `stale:${slot.familyId ?? "unknown"}:${slot.updatedAt?.toISOString() ?? "unknown"}`
+      );
+      continue;
+    }
+
     if (slot.state === "available" && slot.expiresAt && slot.expiresAt <= now) {
       const rng = createSeededRng(`${playerId}:slot:${slot.slotIndex}:expire:${slot.expiresAt.toISOString()}`);
       await prisma.contractBoardSlot.update({
@@ -272,26 +319,13 @@ async function refreshBoardState(prisma: PrismaClient, playerId: string, now = n
 
     const effectiveReplenishAt = getEffectiveReplenishAt(slot as BoardSlotRecord, context.fastContractReplenishEnabled);
     if (slot.state === "replenishing" && effectiveReplenishAt && effectiveReplenishAt <= now) {
-      const rng = createSeededRng(
-        `${playerId}:slot:${slot.slotIndex}:replenish:${(slot.replenishAt ?? effectiveReplenishAt).toISOString()}`
+      await repopulateAvailableSlot(
+        prisma,
+        slot,
+        context,
+        now,
+        `replenish:${(slot.replenishAt ?? effectiveReplenishAt).toISOString()}`
       );
-      const encounter = buildEncounterDefinition(rng, context, slot.slotIndex);
-      await prisma.contractBoardSlot.update({
-        where: { id: slot.id },
-        data: {
-          state: "available",
-          contractName: encounter.contractName,
-          difficulty: encounter.difficulty,
-          familyId: encounter.family.familyId,
-          familyName: encounter.family.familyName,
-          locationName: encounter.family.locationName,
-          encounterLevel: encounter.encounterLevel,
-          enemyCount: encounter.members.length,
-          expiresAt: buildAvailabilityExpiry(rng, encounter.difficulty, now),
-          replenishAt: null,
-          rewardsPreview: json(encounter.rewardPreview)
-        }
-      });
     }
   }
 }
