@@ -9,6 +9,14 @@ import {
 } from "../../core/index.js";
 import { equipmentStateSchema, inventoryItemSchema } from "../inventory/index.js";
 
+export const playerCheatSettingsSchema = z.object({
+  fastTravelEnabled: z.boolean().default(false),
+  fastContractReplenishEnabled: z.boolean().default(false),
+  invincibilityEnabled: z.boolean().default(false),
+  fastTrainTimeEnabled: z.boolean().default(false)
+});
+export type PlayerCheatSettings = z.infer<typeof playerCheatSettingsSchema>;
+
 export const playerStateSchema = z.object({
   playerId: z.string(),
   accountId: z.string(),
@@ -34,7 +42,8 @@ export const playerStateSchema = z.object({
   statSnapshot: playerStatSnapshotSchema,
   inventory: z.array(z.lazy(() => inventoryItemSchema)),
   equipment: z.lazy(() => equipmentStateSchema),
-  currency: currencyBalanceSchema
+  currency: currencyBalanceSchema,
+  cheatSettings: playerCheatSettingsSchema
 });
 export type PlayerState = z.infer<typeof playerStateSchema>;
 
@@ -66,6 +75,37 @@ export const updatePortraitBodySchema = z.object({
   backgroundId: z.string().min(1).optional()
 });
 export type UpdatePortraitBody = z.infer<typeof updatePortraitBodySchema>;
+
+export const updatePlayerCheatSettingsBodySchema = playerCheatSettingsSchema;
+export type UpdatePlayerCheatSettingsBody = z.infer<typeof updatePlayerCheatSettingsBodySchema>;
+
+export const playerCheatActionResponseSchema = z.object({
+  playerState: playerStateSchema
+});
+export type PlayerCheatActionResponse = z.infer<typeof playerCheatActionResponseSchema>;
+
+export const playerCheatLevelUpBodySchema = z.object({
+  targetLevel: z.number().int().min(2).max(100)
+});
+export type PlayerCheatLevelUpBody = z.infer<typeof playerCheatLevelUpBodySchema>;
+
+export const playerCheatGenerateEquipmentBodySchema = z.object({
+  rarity: z.enum(["common", "uncommon", "rare", "epic"])
+});
+export type PlayerCheatGenerateEquipmentBody = z.infer<typeof playerCheatGenerateEquipmentBodySchema>;
+
+export const playerCheatGenerateEquipmentResponseSchema = z.object({
+  playerState: playerStateSchema,
+  generatedItems: z.array(z.lazy(() => inventoryItemSchema))
+});
+export type PlayerCheatGenerateEquipmentResponse = z.infer<typeof playerCheatGenerateEquipmentResponseSchema>;
+
+export const playerCheatGrantCurrencyResponseSchema = z.object({
+  playerState: playerStateSchema,
+  ducatsGranted: z.number().int().min(0),
+  imperialsGranted: z.number().int().min(0)
+});
+export type PlayerCheatGrantCurrencyResponse = z.infer<typeof playerCheatGrantCurrencyResponseSchema>;
 
 export const publicPlayerProfileSchema = z.object({
   playerId: z.string(),

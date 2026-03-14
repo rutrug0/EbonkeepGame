@@ -2,14 +2,23 @@ import type { InventoryMoveResponse } from "@ebonkeep/shared/inventory";
 import { inventoryMoveResponseSchema } from "@ebonkeep/shared/inventory";
 import type {
   DevGuestLoginResponse,
+  PlayerCheatActionResponse,
+  PlayerCheatGenerateEquipmentBody,
+  PlayerCheatGenerateEquipmentResponse,
+  PlayerCheatGrantCurrencyResponse,
+  PlayerCheatLevelUpBody,
   PlayerRestResponse,
   PlayerPreferences,
   PlayerState,
+  UpdatePlayerCheatSettingsBody,
   UpdatePlayerPreferencesBody,
   UpdatePortraitBody
 } from "@ebonkeep/shared/player";
 import {
   devGuestLoginResponseSchema,
+  playerCheatActionResponseSchema,
+  playerCheatGenerateEquipmentResponseSchema,
+  playerCheatGrantCurrencyResponseSchema,
   playerRestResponseSchema,
   playerPreferencesSchema,
   playerStateSchema
@@ -127,4 +136,98 @@ export async function restPlayer(token: string): Promise<PlayerRestResponse> {
   }
 
   return playerRestResponseSchema.parse(await response.json());
+}
+
+export async function updatePlayerCheatSettings(
+  token: string,
+  body: UpdatePlayerCheatSettingsBody
+): Promise<PlayerCheatActionResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/settings`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Update cheat settings failed"));
+  }
+
+  return playerCheatActionResponseSchema.parse(await response.json());
+}
+
+export async function replenishPlayerCheats(token: string): Promise<PlayerCheatActionResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/replenish`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Cheat replenish failed"));
+  }
+
+  return playerCheatActionResponseSchema.parse(await response.json());
+}
+
+export async function levelUpPlayerCheats(
+  token: string,
+  body: PlayerCheatLevelUpBody
+): Promise<PlayerCheatActionResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/level-up`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Cheat level up failed"));
+  }
+
+  return playerCheatActionResponseSchema.parse(await response.json());
+}
+
+export async function generateEquipmentCheats(
+  token: string,
+  body: PlayerCheatGenerateEquipmentBody
+): Promise<PlayerCheatGenerateEquipmentResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/generate-equipment`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Generate equipment failed"));
+  }
+
+  return playerCheatGenerateEquipmentResponseSchema.parse(await response.json());
+}
+
+export async function grantCurrencyCheats(token: string): Promise<PlayerCheatGrantCurrencyResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/grant-currency`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Grant currency failed"));
+  }
+
+  return playerCheatGrantCurrencyResponseSchema.parse(await response.json());
 }

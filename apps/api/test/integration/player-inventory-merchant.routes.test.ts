@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { getCumulativeExperienceToReachLevel } from "../../src/modules/player/progression-service.js";
+
 import {
   authHeaders,
   createInventoryItemForPlayer,
@@ -76,6 +78,120 @@ describe("player, inventory, and merchant routes", () => {
     expect(body.playerState.health.current).toBe(body.playerState.health.max);
     expect(body.playerState.stamina.current).toBe(body.playerState.stamina.max);
     expect(body.playerState.currency.ducats).toBe(1_000 - body.costDucats);
+  });
+
+  it("persists cheat settings and applies cheat actions through player routes", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const initialStateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+    expect(initialStateResponse.statusCode).toBe(200);
+    expect(initialStateResponse.json().cheatSettings).toEqual({
+      fastTravelEnabled: false,
+      fastContractReplenishEnabled: false,
+      invincibilityEnabled: false,
+      fastTrainTimeEnabled: false
+    });
+
+    const settingsResponse = await context.app.inject({
+      method: "PATCH",
+      url: "/v1/player/cheats/settings",
+      headers,
+      payload: {
+        fastTravelEnabled: true,
+        fastContractReplenishEnabled: true,
+        invincibilityEnabled: true,
+        fastTrainTimeEnabled: true
+      }
+    });
+    expect(settingsResponse.statusCode).toBe(200);
+    expect(settingsResponse.json().playerState.cheatSettings).toEqual({
+      fastTravelEnabled: true,
+      fastContractReplenishEnabled: true,
+      invincibilityEnabled: true,
+      fastTrainTimeEnabled: true
+    });
+
+    const persistedStateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+    expect(persistedStateResponse.statusCode).toBe(200);
+    expect(persistedStateResponse.json().cheatSettings.fastTravelEnabled).toBe(true);
+    expect(persistedStateResponse.json().cheatSettings.fastContractReplenishEnabled).toBe(true);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsCurrent: 1,
+        staminaCurrent: 5,
+        staminaUpdatedAt: new Date()
+      }
+    });
+
+    const replenishResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/cheats/replenish",
+      headers,
+      payload: {}
+    });
+    expect(replenishResponse.statusCode).toBe(200);
+    expect(replenishResponse.json().playerState.health.current).toBe(replenishResponse.json().playerState.health.max);
+    expect(replenishResponse.json().playerState.stamina.current).toBe(replenishResponse.json().playerState.stamina.max);
+
+    const levelUpResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/cheats/level-up",
+      headers,
+      payload: {
+        targetLevel: 7
+      }
+    });
+    expect(levelUpResponse.statusCode).toBe(200);
+    expect(levelUpResponse.json().playerState.level).toBe(7);
+    expect(levelUpResponse.json().playerState.experience).toBe(getCumulativeExperienceToReachLevel(7));
+
+    const rejectLevelResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/cheats/level-up",
+      headers,
+      payload: {
+        targetLevel: 7
+      }
+    });
+    expect(rejectLevelResponse.statusCode).toBe(400);
+
+    const inventoryCountBefore = levelUpResponse.json().playerState.inventory.length;
+    const generateEquipmentResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/cheats/generate-equipment",
+      headers,
+      payload: {
+        rarity: "epic"
+      }
+    });
+    expect(generateEquipmentResponse.statusCode).toBe(200);
+    expect(generateEquipmentResponse.json().generatedItems).toHaveLength(11);
+    expect(generateEquipmentResponse.json().generatedItems.every((item: { rarity: string }) => item.rarity === "epic")).toBe(true);
+    expect(generateEquipmentResponse.json().playerState.inventory).toHaveLength(inventoryCountBefore + 11);
+
+    const currencyBefore = generateEquipmentResponse.json().playerState.currency;
+    const grantCurrencyResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/cheats/grant-currency",
+      headers,
+      payload: {}
+    });
+    expect(grantCurrencyResponse.statusCode).toBe(200);
+    expect(grantCurrencyResponse.json().ducatsGranted).toBe(1_000_000);
+    expect(grantCurrencyResponse.json().imperialsGranted).toBe(10_000);
+    expect(grantCurrencyResponse.json().playerState.currency.ducats).toBe(currencyBefore.ducats + 1_000_000);
+    expect(grantCurrencyResponse.json().playerState.currency.imperials).toBe(currencyBefore.imperials + 10_000);
   });
 
   it("prevents concurrent rest requests from double-charging the player", async () => {

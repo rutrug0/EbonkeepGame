@@ -40,6 +40,9 @@ import {
 } from "./data.js";
 import { simulateEncounter, type StoredRewardSpec } from "./simulator.js";
 
+const FAST_TRAVEL_CHEAT_DURATION_MS = 2_000;
+const FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS = 3_000;
+
 function json<T>(value: T): Prisma.JsonObject {
   return JSON.parse(JSON.stringify(value)) as Prisma.JsonObject;
 }
@@ -57,6 +60,7 @@ type BoardSlotRecord = {
   enemyCount: number | null;
   expiresAt: Date | null;
   replenishAt: Date | null;
+  updatedAt?: Date;
   activeRunId: string | null;
   rewardsPreview: Prisma.JsonValue | null;
 };
@@ -116,27 +120,56 @@ function buildAvailabilityExpiry(rng: () => number, difficulty: ContractDifficul
   return new Date(now.getTime() + randomInt(rng, window.minMs, window.maxMs));
 }
 
-function buildReplenishAt(rng: () => number, now: Date, playerLevel: number): Date {
+function buildReplenishAt(
+  rng: () => number,
+  now: Date,
+  playerLevel: number,
+  fastContractReplenishEnabled: boolean
+): Date {
+  if (fastContractReplenishEnabled) {
+    return new Date(now.getTime() + FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS);
+  }
   const pacing = getContractReplenishPacingRow(playerLevel);
   return new Date(now.getTime() + randomInt(rng, pacing.replenishMinSeconds * 1000, pacing.replenishMaxSeconds * 1000));
+}
+
+function getEffectiveReplenishAt(slot: BoardSlotRecord, fastContractReplenishEnabled: boolean): Date | null {
+  if (!slot.replenishAt) {
+    return null;
+  }
+  if (!fastContractReplenishEnabled || !slot.updatedAt) {
+    return slot.replenishAt;
+  }
+  return new Date(
+    Math.min(slot.replenishAt.getTime(), slot.updatedAt.getTime() + FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS)
+  );
 }
 
 async function lockPlayerContractState(tx: Prisma.TransactionClient, playerId: string): Promise<void> {
   await tx.$queryRaw`SELECT "id" FROM "player_profiles" WHERE "id" = ${playerId} FOR UPDATE`;
 }
 
-async function getPlayerContractContext(prisma: PrismaClient, playerId: string): Promise<BoardGenerationContext> {
-  const profile = await prisma.playerProfile.findUnique({
-    where: { id: playerId },
-    select: { id: true, level: true, class: true }
-  });
+async function getPlayerContractContext(
+  prisma: PrismaClient,
+  playerId: string
+): Promise<BoardGenerationContext & { fastContractReplenishEnabled: boolean }> {
+  const rows = await prisma.$queryRaw<
+    Array<{ id: string; level: number; class: string; fastContractReplenishEnabled: boolean }>
+  >`
+    SELECT "id", "level", "class", "fastContractReplenishEnabled"
+    FROM "player_profiles"
+    WHERE "id" = ${playerId}
+    LIMIT 1
+  `;
+  const profile = rows[0];
   if (!profile) {
     throw new Error("Player not found.");
   }
   return {
     playerId: profile.id,
     playerLevel: profile.level,
-    playerClass: profile.class as PlayerClass
+    playerClass: profile.class as PlayerClass,
+    fastContractReplenishEnabled: profile.fastContractReplenishEnabled
   };
 }
 
@@ -165,14 +198,28 @@ async function syncRunState(prisma: PrismaClient, runId: string, now: Date): Pro
     where: { id: runId },
     select: {
       id: true,
+      createdAt: true,
       playerId: true,
       slotIndex: true,
       state: true,
-      travelEndsAt: true
+      travelEndsAt: true,
+      player: {
+        select: {
+          fastTravelEnabled: true
+        }
+      }
     }
   });
 
-  if (!run || run.state !== "traveling" || run.travelEndsAt > now) {
+  const effectiveTravelEndsAt = !run
+    ? null
+    : new Date(
+        run.player.fastTravelEnabled
+          ? Math.min(run.travelEndsAt.getTime(), run.createdAt.getTime() + FAST_TRAVEL_CHEAT_DURATION_MS)
+          : run.travelEndsAt.getTime()
+      );
+
+  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt > now) {
     return;
   }
 
@@ -217,14 +264,17 @@ async function refreshBoardState(prisma: PrismaClient, playerId: string, now = n
           enemyCount: null,
           expiresAt: null,
           rewardsPreview: Prisma.JsonNull,
-          replenishAt: buildReplenishAt(rng, now, context.playerLevel)
+          replenishAt: buildReplenishAt(rng, now, context.playerLevel, context.fastContractReplenishEnabled)
         }
       });
       continue;
     }
 
-    if (slot.state === "replenishing" && slot.replenishAt && slot.replenishAt <= now) {
-      const rng = createSeededRng(`${playerId}:slot:${slot.slotIndex}:replenish:${slot.replenishAt.toISOString()}`);
+    const effectiveReplenishAt = getEffectiveReplenishAt(slot as BoardSlotRecord, context.fastContractReplenishEnabled);
+    if (slot.state === "replenishing" && effectiveReplenishAt && effectiveReplenishAt <= now) {
+      const rng = createSeededRng(
+        `${playerId}:slot:${slot.slotIndex}:replenish:${(slot.replenishAt ?? effectiveReplenishAt).toISOString()}`
+      );
       const encounter = buildEncounterDefinition(rng, context, slot.slotIndex);
       await prisma.contractBoardSlot.update({
         where: { id: slot.id },
@@ -400,8 +450,17 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
 
     const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level);
     runId = `ctr_${randomUUID().replaceAll("-", "")}`;
+    const simulationPlayerState = playerState.cheatSettings.invincibilityEnabled
+      ? {
+          ...playerState,
+          health: {
+            ...playerState.health,
+            current: playerState.health.max
+          }
+        }
+      : playerState;
     const simulation = simulateEncounter({
-      playerState,
+      playerState: simulationPlayerState,
       playerName: profile.account.username ?? "Warden",
       encounter,
       runId
@@ -488,7 +547,7 @@ export async function abandonContractOffer(prisma: PrismaClient, playerId: strin
       enemyCount: null,
       expiresAt: null,
       rewardsPreview: Prisma.JsonNull,
-      replenishAt: buildReplenishAt(rng, now, context.playerLevel)
+      replenishAt: buildReplenishAt(rng, now, context.playerLevel, context.fastContractReplenishEnabled)
     }
   });
 
@@ -616,7 +675,12 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         expiresAt: null,
         activeRunId: null,
         rewardsPreview: Prisma.JsonNull,
-        replenishAt: buildReplenishAt(slotRng, now, playerState.level)
+        replenishAt: buildReplenishAt(
+          slotRng,
+          now,
+          playerState.level,
+          playerState.cheatSettings.fastContractReplenishEnabled
+        )
       }
     });
     await tx.playerProfile.update({

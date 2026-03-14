@@ -343,6 +343,7 @@ export function simulateCombat(args: {
   player: CombatActorSnapshot;
   enemies: CombatActorSnapshot[];
   seed: string;
+  playerInvincible?: boolean;
 }): CombatEvent[] {
   const rng = createSeededRng(args.seed);
   const actors = [createRuntimeActor(args.player), ...args.enemies.map(createRuntimeActor)];
@@ -412,7 +413,11 @@ export function simulateCombat(args: {
       const crit = hit ? rollBps(rng, actor.critChance) : false;
       const rawBaseDamage = hit ? randomInt(rng, actor.minDamage, actor.maxDamage) : 0;
       const rawDamage = crit ? Math.max(0, Math.round((rawBaseDamage * actor.critMultiplier) / 10_000)) : rawBaseDamage;
-      const mitigatedDamage = hit ? applyMitigation(rawDamage, actor.damageKind, target) : 0;
+      const mitigatedDamage = hit
+        ? args.playerInvincible && actor.side === "enemy" && target.side === "player"
+          ? 0
+          : applyMitigation(rawDamage, actor.damageKind, target)
+        : 0;
 
       target.currentHp = Math.max(0, target.currentHp - mitigatedDamage);
       const killed = hit && target.currentHp === 0 && !target.defeated;
@@ -486,7 +491,8 @@ export function simulateEncounter(args: {
   const events = simulateCombat({
     player,
     enemies,
-    seed: args.runId
+    seed: args.runId,
+    playerInvincible: args.playerState.cheatSettings.invincibilityEnabled
   });
   const rewardRng = createSeededRng(`${args.runId}:rewards`);
   const rewards = (events[events.length - 1] as Extract<CombatEvent, { type: "CombatEnded" }>).winnerSide === "player"

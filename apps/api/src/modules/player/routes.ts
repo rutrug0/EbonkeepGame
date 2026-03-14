@@ -1,14 +1,27 @@
 import {
+  playerCheatActionResponseSchema,
+  playerCheatGenerateEquipmentBodySchema,
+  playerCheatGenerateEquipmentResponseSchema,
+  playerCheatGrantCurrencyResponseSchema,
+  playerCheatLevelUpBodySchema,
   playerPreferencesSchema,
   publicPlayerProfileSchema,
+  updatePlayerCheatSettingsBodySchema,
   updatePlayerPreferencesBodySchema,
   updatePortraitBodySchema
-} from "@ebonkeep/shared";
-import { playerRestResponseSchema } from "@ebonkeep/shared/player";
+} from "@ebonkeep/shared/player";
 
 import type { FastifyPluginAsync } from "fastify";
+import {
+  generateEquipmentForCheats,
+  grantCurrencyForCheats,
+  levelPlayerForCheats,
+  replenishPlayerForCheats,
+  updatePlayerCheatSettings
+} from "./cheat-service.js";
 import { loadPlayerState, getPublicPlayerProfile } from "./state-service.js";
 import { restPlayerResources } from "./progression-service.js";
+import { playerRestResponseSchema } from "@ebonkeep/shared/player";
 
 export const playerRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
@@ -101,6 +114,98 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
         const message = error instanceof Error ? error.message : "Failed to rest.";
         const statusCode = message.includes("ducats") ? 400 : message.includes("not found") ? 404 : 500;
         fastify.log.error({ err: error }, "Error in POST /v1/player/rest");
+        return reply.code(statusCode).send({ error: message });
+      }
+    }
+  );
+
+  fastify.patch(
+    "/v1/player/cheats/settings",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const playerId = request.user.playerId;
+        const body = updatePlayerCheatSettingsBodySchema.parse(request.body ?? {});
+        const playerState = await updatePlayerCheatSettings(fastify.prisma, playerId, body);
+
+        return reply.send(
+          playerCheatActionResponseSchema.parse({
+            playerState
+          })
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to update cheat settings.";
+        const statusCode = message.includes("not found") ? 404 : 400;
+        return reply.code(statusCode).send({ error: message });
+      }
+    }
+  );
+
+  fastify.post(
+    "/v1/player/cheats/replenish",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const playerState = await replenishPlayerForCheats(fastify.prisma, request.user.playerId);
+        return reply.send(playerCheatActionResponseSchema.parse({ playerState }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to replenish player resources.";
+        const statusCode = message.includes("not found") ? 404 : 500;
+        return reply.code(statusCode).send({ error: message });
+      }
+    }
+  );
+
+  fastify.post(
+    "/v1/player/cheats/level-up",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const body = playerCheatLevelUpBodySchema.parse(request.body ?? {});
+        const playerState = await levelPlayerForCheats(fastify.prisma, request.user.playerId, body.targetLevel);
+        return reply.send(playerCheatActionResponseSchema.parse({ playerState }));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to level up player.";
+        const statusCode =
+          message.includes("Target level") ? 400 :
+          message.includes("not found") ? 404 :
+          500;
+        return reply.code(statusCode).send({ error: message });
+      }
+    }
+  );
+
+  fastify.post(
+    "/v1/player/cheats/generate-equipment",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const body = playerCheatGenerateEquipmentBodySchema.parse(request.body ?? {});
+        const result = await fastify.prisma.$transaction((tx) =>
+          generateEquipmentForCheats(tx, request.user.playerId, body.rarity)
+        );
+        return reply.send(playerCheatGenerateEquipmentResponseSchema.parse(result));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to generate equipment.";
+        const statusCode =
+          message.includes("No item template") ? 400 :
+          message.includes("not found") ? 404 :
+          500;
+        return reply.code(statusCode).send({ error: message });
+      }
+    }
+  );
+
+  fastify.post(
+    "/v1/player/cheats/grant-currency",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const result = await grantCurrencyForCheats(fastify.prisma, request.user.playerId);
+        return reply.send(playerCheatGrantCurrencyResponseSchema.parse(result));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to grant cheat currency.";
+        const statusCode = message.includes("not found") ? 404 : 500;
         return reply.code(statusCode).send({ error: message });
       }
     }

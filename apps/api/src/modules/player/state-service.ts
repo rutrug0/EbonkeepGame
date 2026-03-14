@@ -12,6 +12,7 @@ import {
   type StatBlock
 } from "@ebonkeep/shared/core";
 import {
+  playerCheatSettingsSchema,
   playerStateSchema,
   publicPlayerProfileSchema,
   type PlayerState,
@@ -375,6 +376,29 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     equipment
   });
   const resolvedCurrentHealth = resolveCurrentHealth(profile.hitpointsCurrent, statSnapshot.total.maxHitpoints);
+  const cheatSettingsRows = await prisma.$queryRaw<
+    Array<{
+      fastTravelEnabled: boolean;
+      fastContractReplenishEnabled: boolean;
+      invincibilityEnabled: boolean;
+      fastTrainTimeEnabled: boolean;
+    }>
+  >`
+    SELECT
+      "fastTravelEnabled",
+      "fastContractReplenishEnabled",
+      "invincibilityEnabled",
+      "fastTrainTimeEnabled"
+    FROM "player_profiles"
+    WHERE "id" = ${playerId}
+    LIMIT 1
+  `;
+  const cheatSettingsRow = cheatSettingsRows[0] ?? {
+    fastTravelEnabled: false,
+    fastContractReplenishEnabled: false,
+    invincibilityEnabled: false,
+    fastTrainTimeEnabled: false
+  };
 
   if (profile.hitpointsCurrent !== resolvedCurrentHealth) {
     await prisma.playerProfile.update({
@@ -420,7 +444,13 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     currency: {
       ducats: currency.ducats,
       imperials: currency.imperials
-    }
+    },
+    cheatSettings: playerCheatSettingsSchema.parse({
+      fastTravelEnabled: cheatSettingsRow.fastTravelEnabled,
+      fastContractReplenishEnabled: cheatSettingsRow.fastContractReplenishEnabled,
+      invincibilityEnabled: cheatSettingsRow.invincibilityEnabled,
+      fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled
+    })
   });
 }
 

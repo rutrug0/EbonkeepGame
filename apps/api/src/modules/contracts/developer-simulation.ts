@@ -341,7 +341,13 @@ function createSyntheticPlayerState(args: {
     currency: {
       ducats: 0,
       imperials: 0
-    }
+    },
+      cheatSettings: {
+        fastTravelEnabled: false,
+        fastContractReplenishEnabled: false,
+        invincibilityEnabled: false,
+        fastTrainTimeEnabled: false
+      }
   };
 }
 
