@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { combatActorSnapshotSchema } from "@ebonkeep/shared/combat";
 
-import { simulateCombat } from "../../src/modules/contracts/simulator.js";
+import { rollInventoryItem } from "../../src/modules/inventory/item-service.js";
+import { rollRewardItemSpec, simulateCombat } from "../../src/modules/contracts/simulator.js";
 
 function actor(overrides: Partial<ReturnType<typeof combatActorSnapshotSchema.parse>>) {
   return combatActorSnapshotSchema.parse({
@@ -128,5 +129,118 @@ describe("contracts simulator", () => {
       killed: true
     });
     expect(firstAction?.strikes[1]?.targetId).toBe("enemy-b");
+  });
+
+  it("always deals at least two percent of the rolled damage on a successful hit", () => {
+    const player = actor({
+      id: "player",
+      side: "player",
+      name: "Player",
+      minDamage: 100,
+      maxDamage: 100
+    });
+    const enemy = actor({
+      id: "enemy",
+      side: "enemy",
+      name: "Enemy",
+      encounterOrder: 0,
+      armor: 200,
+      physicalDefense: 200,
+      maxHp: 20,
+      currentHp: 20
+    });
+
+    const events = simulateCombat({
+      player,
+      enemies: [enemy],
+      seed: "minimum-chip-damage"
+    });
+    const firstAction = events.find(
+      (event): event is Extract<(typeof events)[number], { type: "CombatActionResolved" }> => event.type === "CombatActionResolved"
+    );
+
+    expect(firstAction).toBeTruthy();
+    expect(firstAction?.strikes[0]).toMatchObject({
+      rawDamage: 100,
+      mitigatedDamage: 2,
+      targetHpAfter: 18
+    });
+  });
+
+  it("uses CSV drop ranges and shared rarity logic for reward item rolls", () => {
+    const item = rollRewardItemSpec({
+      rng: () => 0,
+      playerClass: "juggernaut",
+      encounterLevel: 80,
+      difficulty: "medium",
+      allowedSlotId: "weapon"
+    });
+
+    expect(item).toBeTruthy();
+    expect(item?.itemLevel).toBe(80);
+    expect(item?.rarity).toBe("epic");
+    expect([
+      "Highguard Claymore",
+      "Stormvale Axe",
+      "Silvermark Longblade",
+      "Dornhal Greataxe"
+    ]).toContain(item?.itemName);
+  });
+
+  it("allows all-class jewelry in reward item rolls", () => {
+    const item = rollRewardItemSpec({
+      rng: () => 0,
+      playerClass: "juggernaut",
+      encounterLevel: 80,
+      difficulty: "easy",
+      allowedSlotId: "necklace"
+    });
+
+    expect(item).toBeTruthy();
+    expect(item?.itemLevel).toBe(80);
+    expect([
+      "Halo Pendant",
+      "Star Amulet",
+      "Thorn Charm"
+    ]).toContain(item?.itemName);
+  });
+
+  it("yields stronger high-level reward items than low-level reward items", () => {
+    const earlySpec = rollRewardItemSpec({
+      rng: () => 0,
+      playerClass: "juggernaut",
+      encounterLevel: 16,
+      difficulty: "medium",
+      allowedSlotId: "weapon"
+    });
+    const lateSpec = rollRewardItemSpec({
+      rng: () => 0,
+      playerClass: "juggernaut",
+      encounterLevel: 80,
+      difficulty: "medium",
+      allowedSlotId: "weapon"
+    });
+
+    expect(earlySpec).toBeTruthy();
+    expect(lateSpec).toBeTruthy();
+
+    const earlyItem = rollInventoryItem({
+      playerId: "player_1",
+      templateId: earlySpec!.templateId,
+      rarity: earlySpec!.rarity,
+      deterministic: true,
+      deterministicCode: "reward_early_weapon",
+      itemLevel: earlySpec!.itemLevel
+    });
+    const lateItem = rollInventoryItem({
+      playerId: "player_1",
+      templateId: lateSpec!.templateId,
+      rarity: lateSpec!.rarity,
+      deterministic: true,
+      deterministicCode: "reward_late_weapon",
+      itemLevel: lateSpec!.itemLevel
+    });
+
+    expect(lateItem.power).toBeGreaterThan(earlyItem.power);
   });
 });

@@ -121,3 +121,43 @@
   letter-spacing: 0.01em;
 }
 
+.developerSimulationChartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.developerSimulationChartCard {
+  min-width: 0;
+}
+
+.developerSimulationChartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.developerSimulationChartHeader h4 {
+  margin: 0 0 var(--space-1);
+}
+
+.developerSimulationChartHeader p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.developerSimulationChartBody {
+  width: 100%;
+  min-height: 320px;
+}
+
+@media (max-width: 1100px) {
+  .developerSimulationChartsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

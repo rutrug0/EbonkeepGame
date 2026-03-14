@@ -15,6 +15,7 @@ import { z } from "zod";
 import type { FastifyPluginAsync } from "fastify";
 
 import { getEnv } from "../../config/env.js";
+import { isDeveloperToolsEnabledForAccount } from "./developer-tools.js";
 import { ensureStarterInventoryItems } from "../inventory/starter-items.js";
 import { ensurePlayerEquipmentSlots } from "../player/state-service.js";
 import { sendPasswordResetEmail, sendVerificationEmail } from "./services/email.js";
@@ -325,12 +326,14 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const profile = account.profiles[0];
+      const developerToolsEnabled = await isDeveloperToolsEnabledForAccount(fastify.prisma, account.id);
 
       const payload = accountOverviewResponseSchema.parse({
         accountId: account.id,
         username: account.username,
         email: account.email,
         emailVerified: account.emailVerified,
+        developerToolsEnabled,
         provider: account.provider,
         createdAt: account.createdAt.toISOString(),
         profile: profile

@@ -420,6 +420,14 @@ export function pickEncounterMembers(rng: () => number, difficulty: ContractDiff
 
 export function buildEncounterDefinition(rng: () => number, context: BoardGenerationContext, slotIndex: number): EncounterDefinition {
   const difficulty = pickDifficultyForSlot(rng, slotIndex);
+  return buildEncounterDefinitionForDifficulty(rng, context, difficulty);
+}
+
+export function buildEncounterDefinitionForDifficulty(
+  rng: () => number,
+  context: BoardGenerationContext,
+  difficulty: ContractDifficulty
+): EncounterDefinition {
   const encounterLevel = pickEncounterLevel(rng, difficulty, context.playerLevel);
   const family = pickFamilyForLevel(rng, encounterLevel);
   const members = pickEncounterMembers(rng, difficulty, family.familyId);

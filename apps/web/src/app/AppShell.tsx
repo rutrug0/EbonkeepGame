@@ -88,6 +88,7 @@ import {
   COMBAT_PLAYBACK_START_DELAY_MS,
   COMBAT_SUMMARY_TYPE_DELAY_MS,
   ContractsPanel,
+  DeveloperContractsSimulationPanel,
   abandonContractsSlot,
   buildOfferFromRun,
   buildResolvedEncounterState,
@@ -4424,6 +4425,11 @@ export function AppShell() {
         localeStatusMessage={localeStatusMessage}
         onResendVerification={handleResendVerification}
         onLocaleChange={(locale) => void handleLocaleChange(locale)}
+        developerToolsPanel={
+          accountInfo?.developerToolsEnabled && token && playerState ? (
+            <DeveloperContractsSimulationPanel token={token} initialPlayerClass={playerState.class} />
+          ) : undefined
+        }
       />
     );
   }

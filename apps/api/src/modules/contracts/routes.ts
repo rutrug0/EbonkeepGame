@@ -1,6 +1,14 @@
 import type { FastifyPluginAsync } from "fastify";
 
+import {
+  developerContractsStaticCurvesResponseSchema,
+  developerContractSimulationJobSchema,
+  runDeveloperContractSimulationBodySchema
+} from "@ebonkeep/shared/combat";
+
 import { abandonContractOffer, claimContractRunResult, getContractBoard, getContractRun, startContractRun } from "./service.js";
+import { getDeveloperContractsStaticCurves } from "./developer-static-curves.js";
+import { createDeveloperContractSimulationJob, getDeveloperContractSimulationJob } from "./developer-simulation.js";
 
 function parseSlotId(raw: string): number | null {
   const slotId = Number.parseInt(raw, 10);
@@ -80,5 +88,28 @@ export const contractRoutes: FastifyPluginAsync = async (fastify) => {
         500;
       return reply.code(statusCode).send({ error: message });
     }
+  });
+
+  fastify.post("/v1/contracts/simulations", { preHandler: fastify.requireDeveloperTools }, async (request, reply) => {
+    try {
+      const body = runDeveloperContractSimulationBodySchema.parse(request.body ?? {});
+      return reply.send(developerContractSimulationJobSchema.parse(createDeveloperContractSimulationJob(body)));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to start contracts simulation.";
+      return reply.code(400).send({ error: message });
+    }
+  });
+
+  fastify.get("/v1/contracts/simulations/:jobId", { preHandler: fastify.requireDeveloperTools }, async (request, reply) => {
+    const job = getDeveloperContractSimulationJob((request.params as { jobId: string }).jobId);
+    if (!job) {
+      return reply.code(404).send({ error: "Contracts simulation job not found." });
+    }
+
+    return reply.send(developerContractSimulationJobSchema.parse(job));
+  });
+
+  fastify.get("/v1/contracts/simulation-curves", { preHandler: fastify.requireDeveloperTools }, async (_request, reply) => {
+    return reply.send(developerContractsStaticCurvesResponseSchema.parse(getDeveloperContractsStaticCurves()));
   });
 };

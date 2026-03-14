@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { AccountOverviewResponse } from "@ebonkeep/shared/auth";
 import type { SupportedLocale } from "@ebonkeep/shared/core";
 
@@ -11,6 +13,7 @@ export type SettingsPanelProps = {
   localeStatusMessage: string | null;
   onResendVerification: () => void;
   onLocaleChange: (locale: SupportedLocale) => void;
+  developerToolsPanel?: ReactNode;
 };
 
 export function SettingsPanel(props: SettingsPanelProps) {
@@ -149,6 +152,7 @@ export function SettingsPanel(props: SettingsPanelProps) {
           {props.isSavingLocale ? <p>{i18n.t("settings.saving")}</p> : null}
           {props.localeStatusMessage ? <p>{props.localeStatusMessage}</p> : null}
         </article>
+        {props.developerToolsPanel}
       </section>
     </section>
   );

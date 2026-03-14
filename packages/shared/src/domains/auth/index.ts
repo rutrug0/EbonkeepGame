@@ -41,6 +41,7 @@ export const accountOverviewResponseSchema = z.object({
   username: z.string().nullable(),
   email: z.string().nullable(),
   emailVerified: z.boolean(),
+  developerToolsEnabled: z.boolean(),
   provider: z.string(),
   createdAt: z.string(),
   profile: z
