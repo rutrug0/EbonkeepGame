@@ -1329,6 +1329,10 @@ function formatPercentRatio(ratio: number): string {
   return `${formatOneDecimal(ratio * 100)}%`;
 }
 
+function formatTwoDecimalPercentRatio(ratio: number): string {
+  return `${(ratio * 100).toFixed(2)}%`;
+}
+
 function formatDerivedFlat(value: number): string {
   return i18n.t("profile.derivedFlat", { value: formatOneDecimal(value) });
 }
@@ -1864,22 +1868,30 @@ export function AppShell() {
   const healthPercent = displayedPlayerHealth
     ? Math.max(0, Math.min(100, Math.round((displayedPlayerHealth.current / Math.max(1, displayedPlayerHealth.max)) * 100)))
     : 0;
+  const healthLabel = displayedPlayerHealth
+    ? `${displayedPlayerHealth.current}/${displayedPlayerHealth.max}`
+    : "0/0";
+  const xpRatio = playerState
+    ? playerState.experienceIntoLevel / Math.max(1, playerState.experienceToNextLevel)
+    : 0;
   const xpPercent = playerState
     ? Math.max(
         0,
         Math.min(
           100,
           Math.round(
-            (playerState.experienceIntoLevel /
-              Math.max(1, playerState.experienceToNextLevel)) *
-              100
+            xpRatio * 100
           )
         )
       )
     : 0;
+  const xpLabel = formatTwoDecimalPercentRatio(Math.max(0, Math.min(1, xpRatio)));
   const staminaPercent = playerState
     ? Math.max(0, Math.min(100, Math.round((playerState.stamina.current / Math.max(1, playerState.stamina.max)) * 100)))
     : 0;
+  const staminaLabel = playerState
+    ? `${playerState.stamina.current}/${playerState.stamina.max}`
+    : "0/0";
   const playerCardScoreSummary = useMemo(() => {
     if (!playerState) {
       return {
@@ -4803,14 +4815,7 @@ export function AppShell() {
                   <HoverTooltip tooltipId="menu-health-bar-tooltip" title={i18n.t("bars.health")} className="barShellTooltipTrigger">
                     <div className="barShell" aria-label={i18n.t("bars.health")}>
                       <div className="barFill healthFill" style={{ width: `${healthPercent}%` }} />
-                    </div>
-                  </HoverTooltip>
-                </div>
-
-                <div className="barBlock">
-                  <HoverTooltip tooltipId="menu-experience-bar-tooltip" title={i18n.t("bars.experience")} className="barShellTooltipTrigger">
-                    <div className="barShell" aria-label={i18n.t("bars.experience")}>
-                      <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
+                      <span className="barValue">{healthLabel}</span>
                     </div>
                   </HoverTooltip>
                 </div>
@@ -4819,6 +4824,16 @@ export function AppShell() {
                   <HoverTooltip tooltipId="menu-stamina-bar-tooltip" title={i18n.t("bars.stamina")} className="barShellTooltipTrigger">
                     <div className="barShell" aria-label={i18n.t("bars.stamina")}>
                       <div className="barFill staminaFill" style={{ width: `${staminaPercent}%` }} />
+                      <span className="barValue">{staminaLabel}</span>
+                    </div>
+                  </HoverTooltip>
+                </div>
+
+                <div className="barBlock">
+                  <HoverTooltip tooltipId="menu-experience-bar-tooltip" title={i18n.t("bars.experience")} className="barShellTooltipTrigger">
+                    <div className="barShell" aria-label={i18n.t("bars.experience")}>
+                      <div className="barFill xpFill" style={{ width: `${xpPercent}%` }} />
+                      <span className="barValue">{xpLabel}</span>
                     </div>
                   </HoverTooltip>
                 </div>
