@@ -6,6 +6,7 @@
   type FormEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type CSSProperties,
   type ReactElement,
   type ReactNode,
   type WheelEvent as ReactWheelEvent
@@ -52,6 +53,7 @@ import {
   type DevWeapon,
   type EquipmentState as SharedEquipmentState,
   type InventoryItem as SharedInventoryItem,
+  type ItemRarity,
   type ItemModifier as SharedItemModifier,
   type ModifierTier,
   type VestigeId,
@@ -70,7 +72,19 @@ import {
   resetPassword,
   verifyEmail
 } from "../features/auth";
-import { devGuestLogin, fetchPlayerState, moveInventoryItem, restPlayer, updatePlayerPreferences, updatePortrait } from "../features/player";
+import {
+  devGuestLogin,
+  fetchPlayerState,
+  generateEquipmentCheats,
+  grantCurrencyCheats,
+  levelUpPlayerCheats,
+  moveInventoryItem,
+  replenishPlayerCheats,
+  restPlayer,
+  updatePlayerCheatSettings,
+  updatePlayerPreferences,
+  updatePortrait
+} from "../features/player";
 import { buyMerchantOffer, fetchMerchantState, restockMerchant, sellMerchantItem } from "../features/economy";
 import {
   AuctionHouse
@@ -295,8 +309,11 @@ type PendingContractResultPlayerState = {
   ducats: number;
 };
 
+type CheatActionKey = "settings" | "replenish" | "levelUp" | "generateEquipment" | "grantCurrency";
+
 const INVENTORY_ITEM_LIMIT = 20;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
+const CHEAT_FAST_TRAVEL_DURATION_MS = 2_000;
 const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
 const TEST_MIN_DUCATS = 0;
 const MAIN_STAT_DEFENSE_RATIO = 0.2;
@@ -1562,8 +1579,13 @@ export function AppShell() {
   const [isResting, setIsResting] = useState(false);
   const [activeStatTraining, setActiveStatTraining] = useState<{
     stat: TrainableStatKey;
+    startedAt: number;
     completesAt: number;
   } | null>(null);
+  const [activeCheatAction, setActiveCheatAction] = useState<CheatActionKey | null>(null);
+  const [cheatStatusMessage, setCheatStatusMessage] = useState<string | null>(null);
+  const [cheatLevelInput, setCheatLevelInput] = useState("");
+  const [cheatEquipmentRarity, setCheatEquipmentRarity] = useState<ItemRarity>("rare");
   const [inventoryStatFlashes, setInventoryStatFlashes] = useState<Partial<Record<InventoryStatFlashKey, InventoryStatFlash>>>({});
   const inventoryStatFlashTimeoutsRef = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
   const inventoryStatFlashFrameRefs = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
@@ -1593,7 +1615,45 @@ export function AppShell() {
 
   const [isSavingLocale, setIsSavingLocale] = useState(false);
   const [localeStatusMessage, setLocaleStatusMessage] = useState<string | null>(null);
+  const cheatSettings = playerState?.cheatSettings ?? {
+    fastTravelEnabled: false,
+    fastContractReplenishEnabled: false,
+    invincibilityEnabled: false,
+    fastTrainTimeEnabled: false
+  };
 
+  function isCheatActionPending(action: CheatActionKey): boolean {
+    return activeCheatAction === action;
+  }
+
+  function getEffectiveTrainingCompletionTime(training: { startedAt: number; completesAt: number } | null): number | null {
+    if (!training) {
+      return null;
+    }
+    return cheatSettings.fastTrainTimeEnabled ? training.startedAt : training.completesAt;
+  }
+
+  function getEffectiveTravelEndsAt(encounter: ActiveContractEncounterState | null): number | null {
+    if (!encounter || encounter.phase !== "travel" || encounter.travelEndsAt === null) {
+      return encounter?.travelEndsAt ?? null;
+    }
+    if (!cheatSettings.fastTravelEnabled) {
+      return encounter.travelEndsAt;
+    }
+    const travelStartedAt = encounter.travelEndsAt - encounter.travelDurationMs;
+    return Math.min(encounter.travelEndsAt, travelStartedAt + CHEAT_FAST_TRAVEL_DURATION_MS);
+  }
+
+  function getEffectiveTravelDurationMs(encounter: ActiveContractEncounterState | null): number {
+    if (!encounter || encounter.phase !== "travel" || encounter.travelEndsAt === null) {
+      return encounter?.travelDurationMs ?? 0;
+    }
+    const effectiveTravelEndsAt = getEffectiveTravelEndsAt(encounter);
+    if (effectiveTravelEndsAt === null) {
+      return encounter.travelDurationMs;
+    }
+    return Math.max(0, effectiveTravelEndsAt - (encounter.travelEndsAt - encounter.travelDurationMs));
+  }
 
   const profileName = accountInfo?.username ?? (playerState ? getDisplayName(playerState) : i18n.t("profile.defaultName"));
   const avatarInitial = profileName.charAt(0);
@@ -1760,6 +1820,24 @@ export function AppShell() {
     setPlayerState(nextState ? applyMockPlayerStateOverrides(nextState) : null);
     setInventoryItems(nextState ? nextState.inventory.map((item) => toLocalInventoryItem(item)) : []);
     setEquippedItems(nextState ? toLocalEquipmentState(nextState.equipment) : createEmptyEquippedItems());
+    setAccountInfo((previous) =>
+      previous && nextState
+        ? {
+            ...previous,
+            profile: previous.profile
+              ? {
+                  ...previous.profile,
+                  level: nextState.level,
+                  gearScore: nextState.gearScore
+                }
+              : previous.profile,
+            currency: {
+              ducats: nextState.currency.ducats,
+              imperials: nextState.currency.imperials
+            }
+          }
+        : previous
+    );
   }
 
   function applyMerchantTransaction(response: MerchantTransactionResponse) {
@@ -2437,6 +2515,8 @@ export function AppShell() {
       setBaseStats(null);
       setCurrencies(null);
       setActiveStatTraining(null);
+      setCheatLevelInput("");
+      setCheatStatusMessage(null);
       return;
     }
 
@@ -2461,6 +2541,8 @@ export function AppShell() {
     setActiveStatTraining(null);
     setActiveContractEncounter(null);
     setActiveContractRunId(null);
+    setCheatLevelInput(String(Math.min(100, playerState.level + 1)));
+    setCheatStatusMessage(null);
   }, [playerState?.playerId]);
 
   useEffect(() => {
@@ -2564,14 +2646,15 @@ export function AppShell() {
 
   useEffect(() => {
     let active = true;
+    const effectiveTravelEndsAt = getEffectiveTravelEndsAt(activeContractEncounter);
 
     if (
       !token ||
       !activeContractRunId ||
       !activeContractEncounter ||
       activeContractEncounter.phase !== "travel" ||
-      activeContractEncounter.travelEndsAt === null ||
-      nowMs < activeContractEncounter.travelEndsAt
+      effectiveTravelEndsAt === null ||
+      nowMs < effectiveTravelEndsAt
     ) {
       return () => {
         active = false;
@@ -2606,7 +2689,7 @@ export function AppShell() {
     return () => {
       active = false;
     };
-  }, [activeCharacterVisualPath, activeContractEncounter, activeContractRunId, nowMs, token]);
+  }, [activeCharacterVisualPath, activeContractEncounter, activeContractRunId, cheatSettings.fastTravelEnabled, nowMs, token]);
 
   useEffect(() => {
     if (!activeContractEncounter || activeContractEncounter.phase !== "combat") {
@@ -2948,7 +3031,9 @@ export function AppShell() {
     if (!activeStatTraining) {
       return;
     }
-    if (nowMs < activeStatTraining.completesAt) {
+    const effectiveTrainingCompletion = getEffectiveTrainingCompletionTime(activeStatTraining);
+    const currentTrainingTime = cheatSettings.fastTrainTimeEnabled ? Date.now() : nowMs;
+    if (effectiveTrainingCompletion === null || currentTrainingTime < effectiveTrainingCompletion) {
       return;
     }
 
@@ -2962,7 +3047,7 @@ export function AppShell() {
       };
     });
     setActiveStatTraining(null);
-  }, [activeStatTraining, nowMs]);
+  }, [activeStatTraining, cheatSettings.fastTrainTimeEnabled, nowMs]);
 
   async function handleGuestLogin() {
     try {
@@ -3156,6 +3241,108 @@ export function AppShell() {
     }
   }
 
+  async function runCheatAction<T>(
+    action: CheatActionKey,
+    callback: () => Promise<T>,
+    onSuccess: (result: T) => void
+  ) {
+    if (!token) {
+      return;
+    }
+
+    try {
+      setActiveCheatAction(action);
+      setCheatStatusMessage(null);
+      setError(null);
+      const result = await callback();
+      onSuccess(result);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : i18n.t("settings.cheats.actionFailed"));
+    } finally {
+      setActiveCheatAction(null);
+    }
+  }
+
+  function handleCheatSettingToggle(setting: keyof PlayerState["cheatSettings"], enabled: boolean) {
+    void runCheatAction(
+      "settings",
+      () =>
+        updatePlayerCheatSettings(token!, {
+          ...cheatSettings,
+          [setting]: enabled
+        }),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatStatusMessage(i18n.t("settings.cheats.settingsSaved"));
+      }
+    );
+  }
+
+  function handleCheatReplenish() {
+    void runCheatAction(
+      "replenish",
+      () => replenishPlayerCheats(token!),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatStatusMessage(i18n.t("settings.cheats.replenished"));
+      }
+    );
+  }
+
+  function handleCheatLevelUp() {
+    const targetLevel = Number.parseInt(cheatLevelInput, 10);
+    if (!playerState || !Number.isFinite(targetLevel) || targetLevel <= playerState.level || targetLevel > 100) {
+      setError(i18n.t("settings.cheats.invalidLevel"));
+      return;
+    }
+
+    void runCheatAction(
+      "levelUp",
+      () => levelUpPlayerCheats(token!, { targetLevel }),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatLevelInput(String(Math.min(100, response.playerState.level + 1)));
+        setCheatStatusMessage(
+          i18n.t("settings.cheats.levelUpSuccess", {
+            level: response.playerState.level
+          })
+        );
+      }
+    );
+  }
+
+  function handleCheatGenerateEquipment() {
+    void runCheatAction(
+      "generateEquipment",
+      () => generateEquipmentCheats(token!, { rarity: cheatEquipmentRarity }),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatStatusMessage(
+          i18n.t("settings.cheats.generateEquipmentSuccess", {
+            count: response.generatedItems.length,
+            rarity: i18n.t(`settings.cheats.rarities.${cheatEquipmentRarity}`)
+          })
+        );
+      }
+    );
+  }
+
+  function handleCheatGrantCurrency() {
+    void runCheatAction(
+      "grantCurrency",
+      () => grantCurrencyCheats(token!),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatStatusMessage(
+          i18n.t("settings.cheats.currencyGranted", {
+            ducats: response.ducatsGranted.toLocaleString(),
+            imperials: response.imperialsGranted.toLocaleString()
+          })
+        );
+      }
+    );
+  }
+
   function startStatTraining(stat: TrainableStatKey) {
     if (!baseStats || !currencies) {
       return;
@@ -3175,9 +3362,25 @@ export function AppShell() {
       ...currencies,
       ducats: currencies.ducats - trainingCost
     });
+    const startedAt = Date.now();
+    if (cheatSettings.fastTrainTimeEnabled) {
+      setBaseStats((previousStats) => {
+        if (!previousStats) {
+          return previousStats;
+        }
+        return {
+          ...previousStats,
+          [stat]: previousStats[stat] + 1
+        };
+      });
+      setActiveStatTraining(null);
+      setError(null);
+      return;
+    }
     setActiveStatTraining({
       stat,
-      completesAt: Date.now() + STAT_TRAIN_DURATION_MS
+      startedAt,
+      completesAt: startedAt + STAT_TRAIN_DURATION_MS
     });
     setError(null);
   }
@@ -4401,11 +4604,20 @@ export function AppShell() {
   }
 
   function renderContractsPanel() {
+    const effectiveContractEncounter =
+      activeContractEncounter?.phase === "travel"
+        ? {
+            ...activeContractEncounter,
+            travelEndsAt: getEffectiveTravelEndsAt(activeContractEncounter),
+            travelDurationMs: getEffectiveTravelDurationMs(activeContractEncounter)
+          }
+        : activeContractEncounter;
+
     return (
       <ContractsPanel
         isLoadingState={isLoadingState}
         hasPlayerState={Boolean(playerState)}
-        activeContractEncounter={activeContractEncounter}
+        activeContractEncounter={effectiveContractEncounter}
         nowMs={nowMs}
         contractSlots={contractSlots}
         availableContractCount={availableContractSlots.length}
@@ -4428,6 +4640,155 @@ export function AppShell() {
     return <PlaceholderPanel title={title} description={description} />;
   }
 
+  function renderCheatsPanel() {
+    const cheatsUnavailable = !token || !playerState;
+    const cheatToggleLabelStyle: CSSProperties = {
+      display: "flex",
+      alignItems: "flex-start",
+      gap: "10px"
+    };
+    const cheatToggleInputStyle: CSSProperties = {
+      width: "24px",
+      height: "24px",
+      margin: "2px 0 0",
+      flex: "0 0 auto"
+    };
+    const cheatFieldStyle: CSSProperties = {
+      minHeight: "52px",
+      padding: "12px 14px",
+      fontSize: "16px"
+    };
+
+    return (
+      <article className="contentCard">
+        <h3 style={{ marginTop: 0 }}>{i18n.t("settings.cheats.title")}</h3>
+        <p style={{ marginTop: 0, color: "var(--text-muted)" }}>{i18n.t("settings.cheats.description")}</p>
+        {cheatsUnavailable ? (
+          <p>{i18n.t("settings.cheats.unavailable")}</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div style={{ display: "grid", gap: "12px" }}>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.fastTravelEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) => handleCheatSettingToggle("fastTravelEnabled", event.currentTarget.checked)}
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.fastTravelLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.fastTravelHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.fastContractReplenishEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) =>
+                    handleCheatSettingToggle("fastContractReplenishEnabled", event.currentTarget.checked)
+                  }
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.fastContractReplenishLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.fastContractReplenishHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.invincibilityEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) => handleCheatSettingToggle("invincibilityEnabled", event.currentTarget.checked)}
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.invincibilityLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.invincibilityHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.fastTrainTimeEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) => handleCheatSettingToggle("fastTrainTimeEnabled", event.currentTarget.checked)}
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.fastTrainTimeLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.fastTrainTimeHelp")}
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "end" }}>
+              <button type="button" onClick={handleCheatReplenish} disabled={isCheatActionPending("replenish")}>
+                {isCheatActionPending("replenish") ? i18n.t("settings.cheats.processing") : i18n.t("settings.cheats.replenishButton")}
+              </button>
+              <div className="settingsRow" style={{ flex: "1 1 220px", margin: 0 }}>
+                <label htmlFor="cheat-level-input">{i18n.t("settings.cheats.levelLabel")}</label>
+                <input
+                  id="cheat-level-input"
+                  type="number"
+                  min={Math.min(100, (playerState?.level ?? 1) + 1)}
+                  max={100}
+                  value={cheatLevelInput}
+                  onChange={(event) => setCheatLevelInput(event.currentTarget.value)}
+                  disabled={isCheatActionPending("levelUp")}
+                  style={cheatFieldStyle}
+                />
+              </div>
+              <button type="button" onClick={handleCheatLevelUp} disabled={isCheatActionPending("levelUp")}>
+                {isCheatActionPending("levelUp") ? i18n.t("settings.cheats.processing") : i18n.t("settings.cheats.levelButton")}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "end" }}>
+              <div className="settingsRow" style={{ flex: "1 1 220px", margin: 0 }}>
+                <label htmlFor="cheat-rarity-select">{i18n.t("settings.cheats.rarityLabel")}</label>
+                <select
+                  id="cheat-rarity-select"
+                  value={cheatEquipmentRarity}
+                  onChange={(event) => setCheatEquipmentRarity(event.currentTarget.value as ItemRarity)}
+                  disabled={isCheatActionPending("generateEquipment")}
+                  style={cheatFieldStyle}
+                >
+                  {(["common", "uncommon", "rare", "epic"] as ItemRarity[]).map((rarity) => (
+                    <option key={rarity} value={rarity}>
+                      {i18n.t(`settings.cheats.rarities.${rarity}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button type="button" onClick={handleCheatGenerateEquipment} disabled={isCheatActionPending("generateEquipment")}>
+                {isCheatActionPending("generateEquipment") ? i18n.t("settings.cheats.processing") : i18n.t("settings.cheats.generateEquipmentButton")}
+              </button>
+              <button type="button" onClick={handleCheatGrantCurrency} disabled={isCheatActionPending("grantCurrency")}>
+                {isCheatActionPending("grantCurrency") ? i18n.t("settings.cheats.processing") : i18n.t("settings.cheats.grantCurrencyButton")}
+              </button>
+            </div>
+
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "14px" }}>
+              {i18n.t("settings.cheats.currencyHelp")}
+            </p>
+            {cheatStatusMessage ? <p style={{ margin: 0 }}>{cheatStatusMessage}</p> : null}
+          </div>
+        )}
+      </article>
+    );
+  }
+
   function renderSettingsPanel() {
     return (
       <SettingsPanel
@@ -4437,6 +4798,7 @@ export function AppShell() {
         localeStatusMessage={localeStatusMessage}
         onResendVerification={handleResendVerification}
         onLocaleChange={(locale) => void handleLocaleChange(locale)}
+        cheatsPanel={renderCheatsPanel()}
         developerToolsPanel={
           accountInfo?.developerToolsEnabled && token && playerState ? (
             <DeveloperContractsSimulationPanel token={token} initialPlayerClass={playerState.class} />

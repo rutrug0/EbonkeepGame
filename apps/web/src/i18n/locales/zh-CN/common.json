@@ -117,8 +117,8 @@
     "gearScore": "装备分数"
   },
   "settings": {
-    "title": "设置",
-    "description": "选择界面语言，变更会立即生效。",
+    "title": "Settings",
+    "description": "Manage your account, interface language, and cheat controls.",
     "languageLabel": "语言",
     "saving": "正在保存语言偏好...",
     "saveFailed": "语言已本地保存，但账号同步失败。",
@@ -204,6 +204,44 @@
       "staticXpPerContractAxis": "Average XP per contract",
       "staticXpRequiredChartTitle": "XP required to reach the next level",
       "staticXpRequiredAxis": "XP required for next level"
+    },
+    "tabs": {
+      "general": "General",
+      "cheats": "Cheats"
+    },
+    "cheats": {
+      "title": "Cheats",
+      "description": "Adjust accelerated progression and debug-style account actions for the current character.",
+      "unavailable": "Cheat controls are unavailable until player state loads.",
+      "actionFailed": "Cheat action failed.",
+      "settingsSaved": "Cheat settings saved.",
+      "fastTravelLabel": "Fast travel",
+      "fastTravelHelp": "After 2 seconds in contract travel, jump to the resolved combat playback.",
+      "fastContractReplenishLabel": "Fast contract replenish",
+      "fastContractReplenishHelp": "Contract slot cooldowns shrink to 3 seconds while enabled.",
+      "invincibilityLabel": "Invincibility",
+      "invincibilityHelp": "Contract enemies can no longer reduce your HP during combat simulation.",
+      "fastTrainTimeLabel": "Fast train time",
+      "fastTrainTimeHelp": "Active stat training finishes after 2 seconds while enabled.",
+      "processing": "Processing...",
+      "replenishButton": "Replenish HP / stamina",
+      "replenished": "Health and stamina fully replenished.",
+      "levelLabel": "Target level",
+      "levelButton": "Level up",
+      "invalidLevel": "Enter a valid target level above your current level.",
+      "levelUpSuccess": "Player level set to {{level}}.",
+      "rarityLabel": "Equipment rarity",
+      "generateEquipmentButton": "Generate equip",
+      "generateEquipmentSuccess": "Generated {{count}} {{rarity}} items.",
+      "grantCurrencyButton": "Grant currencies",
+      "currencyHelp": "Adds 1,000,000 ducats and 10,000 imperials.",
+      "currencyGranted": "Granted {{ducats}} ducats and {{imperials}} imperials.",
+      "rarities": {
+        "common": "Common",
+        "uncommon": "Uncommon",
+        "rare": "Rare",
+        "epic": "Epic"
+      }
     }
   },
   "shop": {

@@ -190,6 +190,68 @@ describe("contracts routes", () => {
     expect(activeRuns).toHaveLength(1);
   });
 
+  it("marks fast-travel runs ready after two seconds even when server travel is longer", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        fastTravelEnabled: true
+      }
+    });
+
+    const boardResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/contracts/board",
+      headers
+    });
+    expect(boardResponse.statusCode).toBe(200);
+
+    const availableSlot = boardResponse.json().slots.find((slot: { state: string }) => slot.state === "available");
+    expect(availableSlot).toBeTruthy();
+
+    const startResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/slots/${availableSlot.slotId}/start`,
+      headers,
+      payload: {}
+    });
+    expect(startResponse.statusCode).toBe(200);
+    const startedRun = startResponse.json() as { runId: string };
+
+    const prematureRun = await context.app.inject({
+      method: "GET",
+      url: `/v1/contracts/runs/${startedRun.runId}`,
+      headers
+    });
+    expect(prematureRun.statusCode).toBe(200);
+    expect(prematureRun.json().state).toBe("traveling");
+
+    await context.prisma.contractRun.update({
+      where: { id: startedRun.runId },
+      data: {
+        createdAt: new Date(Date.now() - 5_000)
+      }
+    });
+
+    const readyRunResponse = await context.app.inject({
+      method: "GET",
+      url: `/v1/contracts/runs/${startedRun.runId}`,
+      headers
+    });
+    expect(readyRunResponse.statusCode).toBe(200);
+    expect(readyRunResponse.json().state).toBe("ready_to_claim");
+
+    const claimResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/runs/${startedRun.runId}/claim-result`,
+      headers,
+      payload: {}
+    });
+    expect(claimResponse.statusCode).toBe(200);
+  });
+
   it("grants rewards only once when claim requests race", async () => {
     const guest = await loginAsGuest(context.app);
     const headers = authHeaders(guest.body.accessToken);
@@ -284,6 +346,68 @@ describe("contracts routes", () => {
     expect(runRecord.rewardsGranted).toBe(runRecord.winnerSide === "player");
   });
 
+  it("keeps the player at full health during invincible contract runs and still grants win rewards", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        level: 25,
+        hitpointsCurrent: 1,
+        invincibilityEnabled: true
+      }
+    });
+    await context.prisma.playerStat.update({
+      where: { playerId: guest.body.playerId },
+      data: {
+        strength: 180,
+        intelligence: 180,
+        dexterity: 180,
+        vitality: 180,
+        initiative: 200,
+        luck: 120
+      }
+    });
+
+    const boardResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/contracts/board",
+      headers
+    });
+    expect(boardResponse.statusCode).toBe(200);
+    const availableSlot = boardResponse.json().slots.find((slot: { state: string }) => slot.state === "available");
+    expect(availableSlot).toBeTruthy();
+
+    const startResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/slots/${availableSlot.slotId}/start`,
+      headers,
+      payload: {}
+    });
+    expect(startResponse.statusCode).toBe(200);
+    const startedRun = startResponse.json() as { runId: string };
+
+    await context.prisma.contractRun.update({
+      where: { id: startedRun.runId },
+      data: {
+        travelEndsAt: new Date(Date.now() - 5_000)
+      }
+    });
+
+    const claimResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/runs/${startedRun.runId}/claim-result`,
+      headers,
+      payload: {}
+    });
+    expect(claimResponse.statusCode).toBe(200);
+    expect(claimResponse.json().winnerSide).toBe("player");
+    expect(claimResponse.json().rewards.experience).toBeGreaterThan(0);
+    expect(claimResponse.json().rewards.ducats).toBeGreaterThan(0);
+    expect(claimResponse.json().playerState.health.current).toBe(claimResponse.json().playerState.health.max);
+  });
+
   it("blocks contract starts while the player is at zero health", async () => {
     const guest = await loginAsGuest(context.app);
     const headers = authHeaders(guest.body.accessToken);
@@ -346,6 +470,47 @@ describe("contracts routes", () => {
     const replenishWindow = getContractReplenishPacingRow(1);
     expect(replenishMs).toBeGreaterThanOrEqual(replenishWindow.replenishMinSeconds * 1000 - 5_000);
     expect(replenishMs).toBeLessThanOrEqual(replenishWindow.replenishMaxSeconds * 1000 + 5_000);
+  });
+
+  it("shortens contract replenish cooldowns to three seconds when the cheat is enabled", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const cheatSettingsResponse = await context.app.inject({
+      method: "PATCH",
+      url: "/v1/player/cheats/settings",
+      headers,
+      payload: {
+        fastContractReplenishEnabled: true
+      }
+    });
+    expect(cheatSettingsResponse.statusCode).toBe(200);
+
+    const boardResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/contracts/board",
+      headers
+    });
+    expect(boardResponse.statusCode).toBe(200);
+
+    const availableSlot = boardResponse.json().slots.find((slot: { state: string }) => slot.state === "available");
+    expect(availableSlot).toBeTruthy();
+
+    const abandonResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/slots/${availableSlot.slotId}/abandon`,
+      headers,
+      payload: {}
+    });
+    expect(abandonResponse.statusCode).toBe(200);
+
+    const abandonedSlot = abandonResponse.json().slots.find((slot: { slotId: number }) => slot.slotId === availableSlot.slotId);
+    expect(abandonedSlot.state).toBe("replenishing");
+    expect(abandonedSlot.replenishAt).toBeTruthy();
+
+    const replenishMs = Date.parse(abandonedSlot.replenishAt) - Date.now();
+    expect(replenishMs).toBeGreaterThanOrEqual(0);
+    expect(replenishMs).toBeLessThanOrEqual(8_000);
   });
 
   it("exposes developer contracts simulation only to developer-enabled accounts", async () => {
