@@ -92,7 +92,8 @@ vi.mock("../src/features/contracts/api", () => ({
               avgCombatSeconds: 7,
               avgInputOverheadSeconds: 5,
               avgPlayerAttackRoll: 31,
-              avgPlayerHpLossPercent: 12
+              avgPlayerHpLossPercent: 12,
+              avgPlayerHpLossPercentByDifficulty: { easy: 5, medium: 12, hard: 19 }
             },
             {
               level: 3,
@@ -114,9 +115,11 @@ vi.mock("../src/features/contracts/api", () => ({
               avgCombatSeconds: 10,
               avgInputOverheadSeconds: 5,
               avgPlayerAttackRoll: 36,
-              avgPlayerHpLossPercent: 18
+              avgPlayerHpLossPercent: 18,
+              avgPlayerHpLossPercentByDifficulty: { easy: 6, medium: 13, hard: 22 }
             }
-          ]
+          ],
+          benchmarkTargetBandHitRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.5 }
         },
         {
           archetype: "average",
@@ -141,7 +144,8 @@ vi.mock("../src/features/contracts/api", () => ({
               avgCombatSeconds: 9,
               avgInputOverheadSeconds: 15,
               avgPlayerAttackRoll: 26,
-              avgPlayerHpLossPercent: 19
+              avgPlayerHpLossPercent: 19,
+              avgPlayerHpLossPercentByDifficulty: { easy: 7, medium: 14, hard: 21 }
             },
             {
               level: 3,
@@ -163,9 +167,11 @@ vi.mock("../src/features/contracts/api", () => ({
               avgCombatSeconds: 13,
               avgInputOverheadSeconds: 15,
               avgPlayerAttackRoll: 28,
-              avgPlayerHpLossPercent: 24
+              avgPlayerHpLossPercent: 24,
+              avgPlayerHpLossPercentByDifficulty: { easy: 8, medium: 15, hard: 24 }
             }
-          ]
+          ],
+          benchmarkTargetBandHitRateByDifficulty: { easy: 0.8, medium: 1, hard: 0.5 }
         },
         {
           archetype: "slow",
@@ -190,7 +196,8 @@ vi.mock("../src/features/contracts/api", () => ({
               avgCombatSeconds: 10,
               avgInputOverheadSeconds: 30,
               avgPlayerAttackRoll: 21,
-              avgPlayerHpLossPercent: 27
+              avgPlayerHpLossPercent: 27,
+              avgPlayerHpLossPercentByDifficulty: { easy: 9, medium: 16, hard: 26 }
             },
             {
               level: 3,
@@ -212,9 +219,11 @@ vi.mock("../src/features/contracts/api", () => ({
               avgCombatSeconds: 14,
               avgInputOverheadSeconds: 30,
               avgPlayerAttackRoll: 22,
-              avgPlayerHpLossPercent: 31
+              avgPlayerHpLossPercent: 31,
+              avgPlayerHpLossPercentByDifficulty: { easy: 10, medium: 18, hard: 28 }
             }
-          ]
+          ],
+          benchmarkTargetBandHitRateByDifficulty: { easy: 0.7, medium: 0.5, hard: 0.2 }
         }
       ]
     }
@@ -275,6 +284,9 @@ describe("settings developer simulation", () => {
       expect(screen.getByTestId("developer-sim-gear-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-sim-player-attack-roll-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-sim-player-hp-loss-chart")).not.toBeNull();
+      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-easy-chart")).not.toBeNull();
+      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-medium-chart")).not.toBeNull();
+      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-hard-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-static-travel-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-static-replenish-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-static-stamina-wait-chart")).not.toBeNull();

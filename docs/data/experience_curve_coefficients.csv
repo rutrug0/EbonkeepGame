@@ -1,2 +1,8 @@
-start_level,max_level,quests_for_first_levelup,avg_quest_minutes,daily_playtime_hours,target_days_to_cap,xp_per_quest
-1,100,5,10,3,365,100
+level,quests_to_next,max_level,avg_quest_minutes,daily_playtime_hours,xp_per_quest
+1,40.45,100,10,3,100
+10,172,100,10,3,100
+15,250,100,10,3,100
+20,300,100,10,3,100
+40,305,100,10,3,100
+90,360,100,10,3,100
+100,430,100,10,3,100

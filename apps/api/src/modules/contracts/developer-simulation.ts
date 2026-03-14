@@ -9,6 +9,7 @@ import {
   type ContractEfficiencyTier,
   type DeveloperContractSimulationArchetype,
   type DeveloperContractSimulationDifficultyAverages,
+  type DeveloperContractSimulationDifficultyHitRate,
   type DeveloperContractSimulationJob,
   type DeveloperContractSimulationLevelSummary,
   type DeveloperContractSimulationResult,
@@ -110,6 +111,8 @@ type LevelAccumulator = {
   playerAttackCountTotal: number;
   playerHpLossPercentTotal: number;
   playerHpLossCountTotal: number;
+  benchmarkPlayerHpLossPercentTotals: Record<ContractDifficulty, number>;
+  benchmarkPlayerHpLossPercentCounts: Record<ContractDifficulty, number>;
 };
 
 type JobRecord = DeveloperContractSimulationJob & {
@@ -118,7 +121,7 @@ type JobRecord = DeveloperContractSimulationJob & {
 };
 
 type SimulationArtifactPayload = {
-  artifactVersion: 1;
+  artifactVersion: 2;
   generatedAt: string;
   jobId: string;
   config: DeveloperContractSimulationJob["config"];
@@ -131,7 +134,17 @@ type SimulationArtifactPayload = {
         cumulativeElapsedDays: number;
       }>
     >;
+    benchmarkTargetBandHitRateByArchetype: Record<
+      DeveloperContractSimulationArchetype,
+      DeveloperContractSimulationDifficultyHitRate
+    >;
   };
+};
+
+const BENCHMARK_HP_LOSS_TARGETS: Record<ContractDifficulty, { min: number; max: number }> = {
+  easy: { min: 3, max: 10 },
+  medium: { min: 10, max: 15 },
+  hard: { min: 15, max: 25 }
 };
 
 const ARCHETYPE_POLICIES: ReadonlyArray<ArchetypePolicy> = [
@@ -190,8 +203,23 @@ function createLevelAccumulator(): LevelAccumulator {
     playerAttackRollTotal: 0,
     playerAttackCountTotal: 0,
     playerHpLossPercentTotal: 0,
-    playerHpLossCountTotal: 0
+    playerHpLossCountTotal: 0,
+    benchmarkPlayerHpLossPercentTotals: { easy: 0, medium: 0, hard: 0 },
+    benchmarkPlayerHpLossPercentCounts: { easy: 0, medium: 0, hard: 0 }
   };
+}
+
+function createZeroDifficultyHitRate(): DeveloperContractSimulationDifficultyHitRate {
+  return {
+    easy: 0,
+    medium: 0,
+    hard: 0
+  };
+}
+
+function isWithinTargetBand(difficulty: ContractDifficulty, value: number): boolean {
+  const band = BENCHMARK_HP_LOSS_TARGETS[difficulty];
+  return value >= band.min && value <= band.max;
 }
 
 function isJobTerminal(job: JobRecord): boolean {
@@ -413,6 +441,15 @@ function getFightPlayerAttackMetrics(args: {
   };
 }
 
+function getFightPlayerHpLossPercent(args: {
+  playerId: string;
+  events: ReturnType<typeof simulateEncounter>["events"];
+  maxHealth: number;
+}): number {
+  const healthAfter = getFightPlayerHealthAfter(args);
+  return ((args.maxHealth - healthAfter) / args.maxHealth) * 100;
+}
+
 function getObservedWinRate(difficulty: ContractDifficulty, stats: DifficultyStats): number {
   const attempts = stats[difficulty].wins + stats[difficulty].losses;
   if (attempts === 0) {
@@ -448,7 +485,7 @@ function getPreferredDifficultiesForPolicy(policy: ArchetypePolicy, stats: Diffi
   return [...unattempted, ...attempted];
 }
 
-function simulateMissingDifficultyBenchmarks(args: {
+function simulateBenchmarkDifficultyMetrics(args: {
   policy: ArchetypePolicy;
   playerClass: PlayerClass;
   playerState: PlayerState;
@@ -457,11 +494,7 @@ function simulateMissingDifficultyBenchmarks(args: {
   stats: DifficultyStats;
   accumulator: LevelAccumulator;
 }): void {
-  for (const difficulty of args.policy.preferredDifficulties) {
-    if (args.stats[difficulty].wins + args.stats[difficulty].losses > 0) {
-      continue;
-    }
-
+  for (const difficulty of ["easy", "medium", "hard"] satisfies ContractDifficulty[]) {
     const rng = createSeededRng(
       `${args.policy.archetype}:${args.playerClass}:benchmark:${args.sampleIndex}:${args.level}:${difficulty}`
     );
@@ -480,6 +513,18 @@ function simulateMissingDifficultyBenchmarks(args: {
       playerName: "Warden",
       runId: `${args.policy.archetype}:${args.playerClass}:benchmark-fight:${args.sampleIndex}:${args.level}:${difficulty}`
     });
+    const benchmarkHpLossPercent = getFightPlayerHpLossPercent({
+      playerId: simulation.player.id,
+      events: simulation.events,
+      maxHealth: args.playerState.health.max
+    });
+
+    args.accumulator.benchmarkPlayerHpLossPercentTotals[difficulty] += benchmarkHpLossPercent;
+    args.accumulator.benchmarkPlayerHpLossPercentCounts[difficulty] += 1;
+
+    if (args.stats[difficulty].wins + args.stats[difficulty].losses > 0) {
+      continue;
+    }
 
     if (simulation.winnerSide === "player") {
       args.stats[difficulty].wins += 1;
@@ -656,6 +701,45 @@ function averageDifficultyValues(values: Record<ContractDifficulty, number>, div
   };
 }
 
+function averageDifficultyPercentages(
+  totals: Record<ContractDifficulty, number>,
+  counts: Record<ContractDifficulty, number>
+): DeveloperContractSimulationLevelSummary["avgPlayerHpLossPercentByDifficulty"] {
+  return {
+    easy: counts.easy > 0 ? roundToTwo(totals.easy / counts.easy) : 0,
+    medium: counts.medium > 0 ? roundToTwo(totals.medium / counts.medium) : 0,
+    hard: counts.hard > 0 ? roundToTwo(totals.hard / counts.hard) : 0
+  };
+}
+
+function buildBenchmarkTargetBandHitRate(
+  levels: DeveloperContractSimulationLevelSummary[]
+): DeveloperContractSimulationDifficultyHitRate {
+  if (levels.length === 0) {
+    return createZeroDifficultyHitRate();
+  }
+
+  const hits = {
+    easy: 0,
+    medium: 0,
+    hard: 0
+  };
+
+  for (const level of levels) {
+    for (const difficulty of ["easy", "medium", "hard"] satisfies ContractDifficulty[]) {
+      if (isWithinTargetBand(difficulty, level.avgPlayerHpLossPercentByDifficulty[difficulty])) {
+        hits[difficulty] += 1;
+      }
+    }
+  }
+
+  return {
+    easy: roundToTwo(hits.easy / levels.length),
+    medium: roundToTwo(hits.medium / levels.length),
+    hard: roundToTwo(hits.hard / levels.length)
+  };
+}
+
 function buildLevelSummary(args: {
   level: number;
   sampleSize: number;
@@ -695,7 +779,11 @@ function buildLevelSummary(args: {
       : 0,
     avgPlayerHpLossPercent: args.accumulator.playerHpLossCountTotal > 0
       ? roundToTwo(args.accumulator.playerHpLossPercentTotal / args.accumulator.playerHpLossCountTotal)
-      : 0
+      : 0,
+    avgPlayerHpLossPercentByDifficulty: averageDifficultyPercentages(
+      args.accumulator.benchmarkPlayerHpLossPercentTotals,
+      args.accumulator.benchmarkPlayerHpLossPercentCounts
+    )
   };
 }
 
@@ -719,15 +807,22 @@ function buildSimulationArtifactPayload(args: {
       ];
     })
   ) as SimulationArtifactPayload["derived"]["cumulativeElapsedDaysByArchetype"];
+  const benchmarkTargetBandHitRateByArchetype = Object.fromEntries(
+    args.result.archetypes.map((archetypeResult) => [
+      archetypeResult.archetype,
+      archetypeResult.benchmarkTargetBandHitRateByDifficulty
+    ])
+  ) as SimulationArtifactPayload["derived"]["benchmarkTargetBandHitRateByArchetype"];
 
   return {
-    artifactVersion: 1,
+    artifactVersion: 2,
     generatedAt: new Date().toISOString(),
     jobId: args.jobId,
     config: args.config,
     result: args.result,
     derived: {
-      cumulativeElapsedDaysByArchetype
+      cumulativeElapsedDaysByArchetype,
+      benchmarkTargetBandHitRateByArchetype
     }
   };
 }
@@ -742,6 +837,42 @@ async function writeSimulationArtifact(args: {
   const payload = buildSimulationArtifactPayload(args);
   await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   return filePath;
+}
+
+function parseSimulationConfig(body: RunDeveloperContractSimulationBody): DeveloperContractSimulationJob["config"] {
+  const parsed = runDeveloperContractSimulationBodySchema.parse(body);
+  const maxLevel = Math.min(parsed.maxLevel ?? playerProgressionConfig.maxLevel, playerProgressionConfig.maxLevel);
+
+  return {
+    playerClass: parsed.playerClass,
+    sampleSize: parsed.sampleSize,
+    maxLevel
+  };
+}
+
+export async function runDeveloperContractSimulationToArtifact(body: RunDeveloperContractSimulationBody): Promise<{
+  artifactPath: string;
+  config: DeveloperContractSimulationJob["config"];
+  jobId: string;
+  result: DeveloperContractSimulationResult;
+}> {
+  const config = parseSimulationConfig(body);
+  const jobId = `ctrsim_${randomUUID().replaceAll("-", "")}`;
+  const result = await simulateDeveloperContractProgression({
+    body: config
+  });
+  const artifactPath = await writeSimulationArtifact({
+    jobId,
+    config,
+    result
+  });
+
+  return {
+    artifactPath,
+    config,
+    jobId,
+    result
+  };
 }
 
 async function yieldToEventLoop(): Promise<void> {
@@ -1020,7 +1151,11 @@ export async function simulateDeveloperContractProgression(args: {
             events: simulation.events,
             maxHealth: playerState.health.max
           });
-          const fightHpLossPercent = ((playerState.health.max - currentHealth) / playerState.health.max) * 100;
+          const fightHpLossPercent = getFightPlayerHpLossPercent({
+            playerId: simulation.player.id,
+            events: simulation.events,
+            maxHealth: playerState.health.max
+          });
           playerAttackRollTotal += playerAttackMetrics.totalRawDamage;
           playerAttackCountTotal += playerAttackMetrics.landedStrikes;
           playerHpLossPercentTotal += fightHpLossPercent;
@@ -1052,7 +1187,7 @@ export async function simulateDeveloperContractProgression(args: {
         }
 
         accumulator.gearScoreTotal += playerState.gearScore;
-        simulateMissingDifficultyBenchmarks({
+        simulateBenchmarkDifficultyMetrics({
           policy,
           playerClass: body.playerClass,
           playerState,
@@ -1094,15 +1229,18 @@ export async function simulateDeveloperContractProgression(args: {
       });
     }
 
+    const levels = Array.from(levelAccumulators.entries())
+      .sort((left, right) => left[0] - right[0])
+      .map(([level, accumulator]) => buildLevelSummary({
+        level,
+        sampleSize,
+        accumulator
+      }));
+
     archetypeResults.push({
       archetype: policy.archetype,
-      levels: Array.from(levelAccumulators.entries())
-        .sort((left, right) => left[0] - right[0])
-        .map(([level, accumulator]) => buildLevelSummary({
-          level,
-          sampleSize,
-          accumulator
-        }))
+      levels,
+      benchmarkTargetBandHitRateByDifficulty: buildBenchmarkTargetBandHitRate(levels)
     });
   }
 
@@ -1117,20 +1255,15 @@ export async function simulateDeveloperContractProgression(args: {
 export function createDeveloperContractSimulationJob(body: RunDeveloperContractSimulationBody): DeveloperContractSimulationJob {
   ensureJobCapacity();
 
-  const parsed = runDeveloperContractSimulationBodySchema.parse(body);
-  const maxLevel = Math.min(parsed.maxLevel ?? playerProgressionConfig.maxLevel, playerProgressionConfig.maxLevel);
+  const config = parseSimulationConfig(body);
   const jobId = `ctrsim_${randomUUID().replaceAll("-", "")}`;
   const now = new Date().toISOString();
   const record = developerContractSimulationJobSchema.parse({
     jobId,
     status: "queued",
-    config: {
-      playerClass: parsed.playerClass,
-      sampleSize: parsed.sampleSize,
-      maxLevel
-    },
+    config,
     progress: {
-      totalSamples: parsed.sampleSize * ARCHETYPE_POLICIES.length,
+      totalSamples: config.sampleSize * ARCHETYPE_POLICIES.length,
       completedSamples: 0,
       currentArchetype: null,
       currentLevel: null,

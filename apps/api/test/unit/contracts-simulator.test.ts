@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { combatActorSnapshotSchema } from "@ebonkeep/shared/combat";
+import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { rollInventoryItem } from "../../src/modules/inventory/item-service.js";
-import { rollRewardItemSpec, simulateCombat } from "../../src/modules/contracts/simulator.js";
+import { createEmptyEquipmentState } from "../../src/modules/player/state-service.js";
+import { getMonsterCombatTuning, toFloat } from "../../src/modules/contracts/data.js";
+import {
+  buildMonsterActorSnapshots,
+  buildPlayerActorSnapshot,
+  rollRewardItemSpec,
+  simulateCombat
+} from "../../src/modules/contracts/simulator.js";
 
 function actor(overrides: Partial<ReturnType<typeof combatActorSnapshotSchema.parse>>) {
   return combatActorSnapshotSchema.parse({
@@ -30,6 +38,67 @@ function actor(overrides: Partial<ReturnType<typeof combatActorSnapshotSchema.pa
     damageKind: "melee",
     ...overrides
   });
+}
+
+function createPlayerState(): PlayerState {
+  return {
+    playerId: "player_1",
+    accountId: "account_1",
+    class: "juggernaut",
+    portraitId: "str_01",
+    backgroundId: "bg_01",
+    preferredLocale: "en",
+    level: 40,
+    experience: 0,
+    experienceIntoLevel: 0,
+    experienceToNextLevel: 1000,
+    gearScore: 200,
+    health: {
+      current: 600,
+      max: 600
+    },
+    stamina: {
+      current: 120,
+      max: 120,
+      nextPointAt: null
+    },
+    stats: {
+      strength: 25,
+      intelligence: 10,
+      dexterity: 14,
+      vitality: 20,
+      initiative: 18,
+      luck: 12
+    },
+    statSnapshot: {
+      total: {
+        strength: 25,
+        intelligence: 10,
+        dexterity: 14,
+        vitality: 20,
+        initiative: 110,
+        luck: 12,
+        damage: 120,
+        maxHitpoints: 600,
+        armor: 20,
+        spellShield: 16,
+        missileResistance: 14,
+        physicalDefense: 18,
+        magicDefense: 15,
+        accuracy: 105,
+        dodgeChance: 600,
+        critChance: 900,
+        critMultiplier: 16500,
+        extraAttackChance: 250
+      }
+    } as PlayerState["statSnapshot"],
+    inventory: [],
+    equipment: createEmptyEquipmentState(),
+    currency: {
+      ducats: 0,
+      imperials: 0
+    }
+  };
 }
 
 describe("contracts simulator", () => {
@@ -242,5 +311,91 @@ describe("contracts simulator", () => {
     });
 
     expect(lateItem.power).toBeGreaterThan(earlyItem.power);
+  });
+
+  it("applies monster tuning multipliers without changing player snapshot generation", () => {
+    const playerState = createPlayerState();
+    const encounterBase = {
+      contractName: "Test Contract",
+      family: {
+        baseLevel: 40,
+        familyId: "temporary_zone_40",
+        familyName: "Temporary Zone 40",
+        locationName: "Test Reach"
+      },
+      members: [
+        {
+          familyId: "temporary_zone_40",
+          sequence: 1,
+          monsterRole: "default",
+          isBoss: false,
+          monsterName: "Temporary Monster 40",
+          mainStat: "strength",
+          damageKind: "melee",
+          healthBias: "medium",
+          damageBias: "medium",
+          armorBias: "medium",
+          spellShieldBias: "medium",
+          missileResistBias: "medium",
+          initiativeBias: "medium",
+          accuracyBias: "medium",
+          critBias: "medium",
+          evasionBias: "medium"
+        }
+      ],
+      encounterLevel: 40,
+      rewardPreview: {
+        experienceMin: 100,
+        experienceMax: 100,
+        ducatsMin: 50,
+        ducatsMax: 50,
+        itemDropChanceBps: 0,
+        staminaCost: 8,
+        efficiencyTier: "standard_cost" as const
+      }
+    };
+
+    const easyPlayer = buildPlayerActorSnapshot({
+      playerState,
+      playerName: "Warden"
+    });
+    const hardPlayer = buildPlayerActorSnapshot({
+      playerState,
+      playerName: "Warden"
+    });
+    const easyMonster = buildMonsterActorSnapshots({
+      playerState,
+      encounter: {
+        ...encounterBase,
+        difficulty: "easy" as const
+      }
+    })[0];
+    const hardMonster = buildMonsterActorSnapshots({
+      playerState,
+      encounter: {
+        ...encounterBase,
+        difficulty: "hard" as const
+      }
+    })[0];
+
+    expect(easyPlayer).toEqual(hardPlayer);
+    const easyTuning = getMonsterCombatTuning(40, "easy");
+    const hardTuning = getMonsterCombatTuning(40, "hard");
+
+    expect(easyTuning.hpMultiplier).toBeCloseTo(1, 2);
+    expect(easyTuning.damageMultiplier).toBeGreaterThan(0.9);
+    expect(easyTuning.defenseMultiplier).toBeCloseTo(1, 2);
+    expect(hardTuning.hpMultiplier).toBeGreaterThan(easyTuning.hpMultiplier);
+    expect(hardTuning.damageMultiplier).toBeGreaterThan(0);
+    expect(hardTuning.defenseMultiplier).toBeGreaterThan(easyTuning.defenseMultiplier);
+    expect(hardMonster?.maxHp ?? 0).toBeGreaterThan(easyMonster?.maxHp ?? 0);
+    expect(hardMonster?.physicalDefense ?? 0).toBeGreaterThan(easyMonster?.physicalDefense ?? 0);
+  });
+
+  it("preserves zero-valued monster tuning multipliers while still defaulting missing values", () => {
+    expect(toFloat("0", 1)).toBe(0);
+    expect(toFloat("0.0", 1)).toBe(0);
+    expect(toFloat(undefined, 1)).toBe(1);
+    expect(toFloat("not-a-number", 1)).toBe(1);
   });
 });

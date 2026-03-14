@@ -16,83 +16,131 @@ function Round-2 {
     return [Math]::Round($Value, 2, [MidpointRounding]::AwayFromZero)
 }
 
-function Geometric-Sum {
+function Get-InterpolatedQuestRequirement {
     param(
-        [double]$A,
-        [double]$R,
-        [int]$N
+        [int]$Level,
+        [object[]]$Anchors
     )
-    if ($N -le 0) {
-        return 0.0
+
+    if ($Anchors.Count -lt 2) {
+        throw "At least two anchor rows are required."
     }
-    if ([Math]::Abs($R - 1.0) -lt 1e-12) {
-        return $A * $N
+
+    for ($index = 0; $index -lt $Anchors.Count - 1; $index += 1) {
+        $start = $Anchors[$index]
+        $end = $Anchors[$index + 1]
+        if ($Level -lt $start.level -or $Level -ge $end.level) {
+            continue
+        }
+
+        $span = $end.level - $start.level
+        if ($span -le 0) {
+            throw "Anchor levels must be strictly increasing."
+        }
+
+        if ($start.quests_to_next -le 0.0 -or $end.quests_to_next -le 0.0) {
+            throw "Anchor quest requirements must be positive."
+        }
+
+        $position = ($Level - $start.level) / $span
+        $startLog = [Math]::Log($start.quests_to_next)
+        $endLog = [Math]::Log($end.quests_to_next)
+        return [Math]::Exp($startLog + (($endLog - $startLog) * $position))
     }
-    return $A * (([Math]::Pow($R, $N) - 1.0) / ($R - 1.0))
+
+    if ($Level -eq $Anchors[$Anchors.Count - 1].level) {
+        return $Anchors[$Anchors.Count - 1].quests_to_next
+    }
+
+    throw "No anchor span found for level $Level."
 }
 
 if (-not (Test-Path $ConfigPath)) {
     throw "Experience config not found: $ConfigPath"
 }
 
-$cfg = Import-Csv -Path $ConfigPath | Select-Object -First 1
+$cfgRows = Import-Csv -Path $ConfigPath
+if ($cfgRows.Count -lt 2) {
+    throw "Experience config requires at least two anchor rows."
+}
 
-$startLevel = [int]$cfg.start_level
-$maxLevel = [int]$cfg.max_level
+$settings = $cfgRows | Select-Object -First 1
+$maxLevel = [int]$settings.max_level
+$startLevel = [int](($cfgRows | Sort-Object { [int]$_.level } | Select-Object -First 1).level)
 $levelsToGain = $maxLevel - $startLevel
 if ($levelsToGain -lt 1) {
     throw "max_level must be greater than start_level."
 }
 
-$firstLevelupQuests = [double]$cfg.quests_for_first_levelup
-$avgQuestMinutes = [double]$cfg.avg_quest_minutes
-$dailyPlayHours = [double]$cfg.daily_playtime_hours
-$targetDays = [double]$cfg.target_days_to_cap
-$xpPerQuest = [double]$cfg.xp_per_quest
+$avgQuestMinutes = [double]$settings.avg_quest_minutes
+$dailyPlayHours = [double]$settings.daily_playtime_hours
+$xpPerQuest = [double]$settings.xp_per_quest
+$anchors = $cfgRows |
+    Sort-Object { [int]$_.level } |
+    ForEach-Object {
+        [PSCustomObject]@{
+            level = [int]$_.level
+            quests_to_next = [double]$_.quests_to_next
+        }
+    }
+
+if ($anchors[0].level -ne $startLevel) {
+    throw "Experience anchors must include the start level."
+}
+
+if ($anchors[$anchors.Count - 1].level -ne $maxLevel) {
+    throw "Experience anchors must include the max level."
+}
+
+for ($index = 1; $index -lt $anchors.Count; $index += 1) {
+    if ($anchors[$index].level -le $anchors[$index - 1].level) {
+        throw "Experience anchor levels must be strictly increasing."
+    }
+    if ($anchors[$index].quests_to_next -lt $anchors[$index - 1].quests_to_next) {
+        throw "Experience anchor quests_to_next must be monotonic non-decreasing."
+    }
+}
 
 $questsPerDayCap = ($dailyPlayHours * 60.0) / $avgQuestMinutes
-$targetTotalQuests = $questsPerDayCap * $targetDays
-
-$ratio = 1.0
-$flatTotal = Geometric-Sum -A $firstLevelupQuests -R 1.0 -N $levelsToGain
-if ($flatTotal -lt $targetTotalQuests) {
-    $low = 1.0
-    $high = 1.05
-    while ((Geometric-Sum -A $firstLevelupQuests -R $high -N $levelsToGain) -lt $targetTotalQuests) {
-        $high = $high + 0.02
-        if ($high -gt 2.0) {
-            throw "Could not bracket geometric ratio within expected bounds."
-        }
-    }
-
-    for ($i = 0; $i -lt 120; $i++) {
-        $mid = ($low + $high) / 2.0
-        $sum = Geometric-Sum -A $firstLevelupQuests -R $mid -N $levelsToGain
-        if ($sum -lt $targetTotalQuests) {
-            $low = $mid
-        }
-        else {
-            $high = $mid
-        }
-    }
-    $ratio = ($low + $high) / 2.0
-}
 
 $rows = New-Object System.Collections.Generic.List[object]
 $cumulativeQuests = 0.0
 $cumulativeXp = 0.0
+$totalQuests = 0.0
+$questsByLevel = @{}
+$previousQuestsToNext = 0.0
+
+for ($level = $startLevel; $level -lt $maxLevel; $level++) {
+    $questsToNext = Get-InterpolatedQuestRequirement -Level $level -Anchors $anchors
+    $questsByLevel[$level] = $questsToNext
+    $totalQuests += $questsToNext
+}
 
 for ($level = $startLevel; $level -le $maxLevel; $level++) {
     $questsToNext = 0.0
     if ($level -lt $maxLevel) {
-        $exponent = $level - $startLevel
-        $questsToNext = $firstLevelupQuests * [Math]::Pow($ratio, $exponent)
+        $questsToNext = $questsByLevel[$level]
     }
 
     $minutesToNext = $questsToNext * $avgQuestMinutes
     $hoursToNext = $minutesToNext / 60.0
     $daysToNextAtCap = if ($dailyPlayHours -gt 0) { $hoursToNext / $dailyPlayHours } else { 0.0 }
     $xpToNext = Round-AwayFromZero ($questsToNext * $xpPerQuest)
+    $effectiveRatio = if ($level -eq $startLevel) {
+        if ($startLevel -lt $maxLevel) {
+            $nextQuests = $questsByLevel[$startLevel + 1]
+            $nextQuests / $questsToNext
+        }
+        else {
+            0.0
+        }
+    }
+    elseif ($previousQuestsToNext -gt 0.0) {
+        $questsToNext / $previousQuestsToNext
+    }
+    else {
+        0.0
+    }
 
     $rows.Add([PSCustomObject]@{
             level = $level
@@ -104,13 +152,14 @@ for ($level = $startLevel; $level -le $maxLevel; $level++) {
             xp_to_next = $xpToNext
             cumulative_quests_to_reach_level = Round-2 $cumulativeQuests
             cumulative_xp_to_reach_level = Round-AwayFromZero $cumulativeXp
-            curve_ratio_per_level = [Math]::Round($ratio, 8)
+            curve_ratio_per_level = [Math]::Round($effectiveRatio, 8)
             quests_per_day_cap = Round-2 $questsPerDayCap
-            target_total_quests = Round-2 $targetTotalQuests
+            target_total_quests = Round-2 $totalQuests
         })
 
     $cumulativeQuests += $questsToNext
     $cumulativeXp += ($questsToNext * $xpPerQuest)
+    $previousQuestsToNext = $questsToNext
 }
 
 $outDir = Split-Path -Parent $OutputPath

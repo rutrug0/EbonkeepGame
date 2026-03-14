@@ -15,6 +15,7 @@ import {
   clampInt,
   createSeededRng,
   getBiasMultiplier,
+  getMonsterCombatTuning,
   getRoleProfile,
   randomChoice,
   randomInt,
@@ -100,6 +101,7 @@ export function buildMonsterActorSnapshots(args: {
     playerName: "Warden"
   });
   const difficultyProfile = DIFFICULTY_PROFILES[args.encounter.difficulty];
+  const tuning = getMonsterCombatTuning(args.encounter.encounterLevel, args.encounter.difficulty);
   const enemyCount = args.encounter.members.length;
   const levelScale = Math.max(0.75, 1 + (args.encounter.encounterLevel - args.playerState.level) * 0.075);
   const totalDamageBudget = Math.max(2, player.maxHp * difficultyProfile.totalDpsFactor * MONSTER_GLOBAL_DAMAGE_MULTIPLIER);
@@ -119,20 +121,33 @@ export function buildMonsterActorSnapshots(args: {
           role.hp *
           getBiasMultiplier(member.healthBias) *
           bossHpMultiplier *
-          levelScale
+          levelScale *
+          tuning.hpMultiplier
       )
     );
     const averageDamage = Math.max(
       1,
       Math.round(
-        (totalDamageBudget / enemyCount) *
+          (totalDamageBudget / enemyCount) *
           role.damage *
           getBiasMultiplier(member.damageBias) *
           bossDamageMultiplier *
-          levelScale
+          levelScale *
+          tuning.damageMultiplier
       )
     );
-    const mitigationBase = Math.max(0, Math.round(player.maxDamage * 0.16 * difficultyProfile.defenseFactor * role.defense * bossDefenseMultiplier * levelScale));
+    const mitigationBase = Math.max(
+      0,
+      Math.round(
+        player.maxDamage *
+          0.16 *
+          difficultyProfile.defenseFactor *
+          role.defense *
+          bossDefenseMultiplier *
+          levelScale *
+          tuning.defenseMultiplier
+      )
+    );
 
     return combatActorSnapshotSchema.parse({
       id: `enemy:${args.encounter.family.familyId}:${member.sequence}:${index}`,
@@ -168,8 +183,14 @@ export function buildMonsterActorSnapshots(args: {
       armor: Math.max(0, Math.round(mitigationBase * getBiasMultiplier(member.armorBias))),
       spellShield: Math.max(0, Math.round(mitigationBase * getBiasMultiplier(member.spellShieldBias))),
       missileResistance: Math.max(0, Math.round(mitigationBase * getBiasMultiplier(member.missileResistBias))),
-      physicalDefense: Math.max(0, Math.round(player.physicalDefense * 0.55 * difficultyProfile.defenseFactor * role.defense)),
-      magicDefense: Math.max(0, Math.round(player.magicDefense * 0.55 * difficultyProfile.defenseFactor * role.defense)),
+      physicalDefense: Math.max(
+        0,
+        Math.round(player.physicalDefense * 0.55 * difficultyProfile.defenseFactor * role.defense * tuning.defenseMultiplier)
+      ),
+      magicDefense: Math.max(
+        0,
+        Math.round(player.magicDefense * 0.55 * difficultyProfile.defenseFactor * role.defense * tuning.defenseMultiplier)
+      ),
       minDamage: Math.max(1, Math.round(averageDamage * 0.82)),
       maxDamage: Math.max(1, Math.round(averageDamage * 1.18)),
       damageKind: member.damageKind

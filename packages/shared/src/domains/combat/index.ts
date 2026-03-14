@@ -258,6 +258,20 @@ export const developerContractSimulationDifficultyAveragesSchema = z.object({
 });
 export type DeveloperContractSimulationDifficultyAverages = z.infer<typeof developerContractSimulationDifficultyAveragesSchema>;
 
+export const developerContractSimulationDifficultyPercentagesSchema = z.object({
+  easy: z.number().min(0).max(100),
+  medium: z.number().min(0).max(100),
+  hard: z.number().min(0).max(100)
+});
+export type DeveloperContractSimulationDifficultyPercentages = z.infer<typeof developerContractSimulationDifficultyPercentagesSchema>;
+
+export const developerContractSimulationDifficultyHitRateSchema = z.object({
+  easy: z.number().min(0).max(1),
+  medium: z.number().min(0).max(1),
+  hard: z.number().min(0).max(1)
+});
+export type DeveloperContractSimulationDifficultyHitRate = z.infer<typeof developerContractSimulationDifficultyHitRateSchema>;
+
 export const runDeveloperContractSimulationBodySchema = z.object({
   playerClass: playerClassSchema,
   sampleSize: z.number().int().min(1).max(1_000).default(200),
@@ -289,12 +303,14 @@ export const developerContractSimulationLevelSummarySchema = z.object({
   avgCombatSeconds: z.number().min(0),
   avgInputOverheadSeconds: z.number().min(0),
   avgPlayerAttackRoll: z.number().min(0),
-  avgPlayerHpLossPercent: z.number().min(0).max(100)
+  avgPlayerHpLossPercent: z.number().min(0).max(100),
+  avgPlayerHpLossPercentByDifficulty: developerContractSimulationDifficultyPercentagesSchema
 });
 export type DeveloperContractSimulationLevelSummary = z.infer<typeof developerContractSimulationLevelSummarySchema>;
 
 export const developerContractSimulationArchetypeResultSchema = z.object({
   archetype: developerContractSimulationArchetypeSchema,
+  benchmarkTargetBandHitRateByDifficulty: developerContractSimulationDifficultyHitRateSchema,
   levels: z.array(developerContractSimulationLevelSummarySchema)
 });
 export type DeveloperContractSimulationArchetypeResult = z.infer<typeof developerContractSimulationArchetypeResultSchema>;

@@ -10,6 +10,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run -c vitest.config.ts test/unit",
     "test:integration": "vitest run -c vitest.config.ts test/integration",
+    "simulate:contracts": "tsx scripts/run-contracts-simulation.ts",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\" \"vitest.config.ts\"",
     "db:migrate": "prisma migrate dev --name init --skip-generate",
     "db:generate": "prisma generate",

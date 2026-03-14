@@ -5,6 +5,7 @@ import {
   Legend,
   Line,
   LineChart as RechartsLineChart,
+  ReferenceArea,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -63,6 +64,12 @@ const DIFFICULTY_COLORS = {
   easy: "#6f8d5f",
   medium: "#c49143",
   hard: "#b85a4e"
+} as const;
+
+const BENCHMARK_HP_LOSS_TARGETS = {
+  easy: { min: 3, max: 10 },
+  medium: { min: 10, max: 15 },
+  hard: { min: 15, max: 25 }
 } as const;
 
 function formatDuration(value: number): string {
@@ -159,7 +166,8 @@ function summarizeArchetype(result: DeveloperContractSimulationArchetypeResult) 
     totalIdleSeconds,
     finalGearScore: finalLevel?.gearScore ?? 0,
     finalHardWinRate: finalLevel?.winRateByDifficulty.hard ?? 0,
-    finalCompletionRate: finalLevel?.completionRate ?? 0
+    finalCompletionRate: finalLevel?.completionRate ?? 0,
+    benchmarkTargetBandHitRateByDifficulty: result.benchmarkTargetBandHitRateByDifficulty
   };
 }
 
@@ -398,6 +406,71 @@ function DifficultyChart(props: {
   );
 }
 
+function BenchmarkDifficultyChart(props: {
+  title: string;
+  description: string;
+  data: LevelChartRow[];
+  difficulty: "easy" | "medium" | "hard";
+  testId: string;
+}) {
+  const { t } = useTranslation();
+  const targetBand = BENCHMARK_HP_LOSS_TARGETS[props.difficulty];
+
+  return (
+    <article className="contentCard developerSimulationChartCard" data-testid={props.testId}>
+      <div className="developerSimulationChartHeader">
+        <div>
+          <h4>{props.title}</h4>
+          <p>{props.description}</p>
+        </div>
+      </div>
+      <div className="developerSimulationChartBody">
+        <ResponsiveContainer width="100%" height={320}>
+          <RechartsLineChart data={props.data} margin={{ top: 16, right: 20, bottom: 8, left: 8 }}>
+            <CartesianGrid stroke="rgba(186, 166, 131, 0.12)" strokeDasharray="4 4" />
+            <ReferenceArea
+              y1={targetBand.min}
+              y2={targetBand.max}
+              fill={DIFFICULTY_COLORS[props.difficulty]}
+              fillOpacity={0.14}
+              ifOverflow="extendDomain"
+            />
+            <XAxis
+              dataKey="level"
+              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
+              label={{ value: t("settings.simulation.levelAxis"), position: "insideBottom", offset: -2, fill: "var(--text-muted)" }}
+            />
+            <YAxis
+              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
+              tickFormatter={(value) => formatMetricValue(Number(value), "percentage")}
+              label={{
+                value: props.description,
+                angle: -90,
+                position: "insideLeft",
+                fill: "var(--text-muted)"
+              }}
+            />
+            <Tooltip
+              formatter={(value, name) => [formatMetricValue(Number(value ?? 0), "percentage"), String(name)]}
+              labelFormatter={(value) => `${t("player.level", { value })}`}
+              contentStyle={{
+                background: "rgba(18, 25, 32, 0.96)",
+                border: "1px solid rgba(186, 166, 131, 0.2)",
+                borderRadius: "10px",
+                color: "var(--text-main)"
+              }}
+            />
+            <Legend />
+            <Line type="monotone" dataKey="active" name={t("settings.simulation.archetypes.active")} stroke={ARCHETYPE_COLORS.active} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="average" name={t("settings.simulation.archetypes.average")} stroke={ARCHETYPE_COLORS.average} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="slow" name={t("settings.simulation.archetypes.slow")} stroke={ARCHETYPE_COLORS.slow} strokeWidth={3} dot={false} />
+          </RechartsLineChart>
+        </ResponsiveContainer>
+      </div>
+    </article>
+  );
+}
+
 export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimulationPanelProps) {
   const { t } = useTranslation();
   const [selectedClass, setSelectedClass] = useState<PlayerClass>(props.initialPlayerClass);
@@ -491,6 +564,18 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
   );
   const playerHpLossRows = useMemo(
     () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercent) : [],
+    [result]
+  );
+  const benchmarkEasyHpLossRows = useMemo(
+    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByDifficulty.easy) : [],
+    [result]
+  );
+  const benchmarkMediumHpLossRows = useMemo(
+    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByDifficulty.medium) : [],
+    [result]
+  );
+  const benchmarkHardHpLossRows = useMemo(
+    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByDifficulty.hard) : [],
     [result]
   );
   const staticTravelRows = useMemo(
@@ -658,12 +743,59 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
                 <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
                   {t("settings.simulation.finalCompletionRate")}: {(entry.metrics.finalCompletionRate * 100).toFixed(0)}%
                 </p>
+                <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
+                  {t("settings.simulation.benchmarkTargetBandHitRateLabel", {
+                    difficulty: t("contracts.difficultyEasy")
+                  })}: {(entry.metrics.benchmarkTargetBandHitRateByDifficulty.easy * 100).toFixed(0)}%
+                </p>
+                <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
+                  {t("settings.simulation.benchmarkTargetBandHitRateLabel", {
+                    difficulty: t("contracts.difficultyMedium")
+                  })}: {(entry.metrics.benchmarkTargetBandHitRateByDifficulty.medium * 100).toFixed(0)}%
+                </p>
+                <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
+                  {t("settings.simulation.benchmarkTargetBandHitRateLabel", {
+                    difficulty: t("contracts.difficultyHard")
+                  })}: {(entry.metrics.benchmarkTargetBandHitRateByDifficulty.hard * 100).toFixed(0)}%
+                </p>
                 <p style={{ margin: 0, fontSize: "13px" }}>
                   {t("settings.simulation.finalHardWinRate")}: {(entry.metrics.finalHardWinRate * 100).toFixed(0)}%
                 </p>
               </article>
             ))}
           </div>
+
+          <section style={{ display: "grid", gap: "12px" }}>
+            <div>
+              <h4 style={{ margin: "0 0 6px" }}>{t("settings.simulation.benchmarkSectionTitle")}</h4>
+              <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "14px" }}>
+                {t("settings.simulation.benchmarkSectionDescription")}
+              </p>
+            </div>
+            <div className="developerSimulationChartsGrid">
+              <BenchmarkDifficultyChart
+                title={t("settings.simulation.benchmarkEasyChartTitle")}
+                description={t("settings.simulation.benchmarkEasyAxis")}
+                data={benchmarkEasyHpLossRows}
+                difficulty="easy"
+                testId="developer-sim-benchmark-hp-loss-easy-chart"
+              />
+              <BenchmarkDifficultyChart
+                title={t("settings.simulation.benchmarkMediumChartTitle")}
+                description={t("settings.simulation.benchmarkMediumAxis")}
+                data={benchmarkMediumHpLossRows}
+                difficulty="medium"
+                testId="developer-sim-benchmark-hp-loss-medium-chart"
+              />
+              <BenchmarkDifficultyChart
+                title={t("settings.simulation.benchmarkHardChartTitle")}
+                description={t("settings.simulation.benchmarkHardAxis")}
+                data={benchmarkHardHpLossRows}
+                difficulty="hard"
+                testId="developer-sim-benchmark-hp-loss-hard-chart"
+              />
+            </div>
+          </section>
 
           <div className="developerSimulationChartsGrid">
             <MetricChart

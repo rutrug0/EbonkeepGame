@@ -1,9 +1,12 @@
+import { readFile, rm } from "node:fs/promises";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createDeveloperContractSimulationJob,
   getDeveloperContractSimulationJob,
   resetDeveloperContractSimulationJobsForTests,
+  runDeveloperContractSimulationToArtifact,
   simulateDeveloperContractProgression
 } from "../../src/modules/contracts/developer-simulation.js";
 
@@ -92,6 +95,28 @@ describe("contracts developer simulation", () => {
     }
   });
 
+  it("populates benchmark HP loss metrics for all three difficulties", async () => {
+    const result = await simulateDeveloperContractProgression({
+      body: {
+        playerClass: "juggernaut",
+        sampleSize: 1,
+        maxLevel: 10
+      }
+    });
+
+    for (const archetype of result.archetypes) {
+      const levelTen = archetype.levels.find((level) => level.level === 10);
+
+      expect(levelTen).toBeTruthy();
+      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.easy).toBeGreaterThanOrEqual(0);
+      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.medium).toBeGreaterThanOrEqual(0);
+      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.hard).toBeGreaterThanOrEqual(0);
+      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.hard ?? 0).toBeGreaterThanOrEqual(
+        levelTen?.avgPlayerHpLossPercentByDifficulty.easy ?? 0
+      );
+    }
+  });
+
   it("gives active archetypes higher-quality synthetic gear than slower archetypes", async () => {
     const result = await simulateDeveloperContractProgression({
       body: {
@@ -147,5 +172,30 @@ describe("contracts developer simulation", () => {
     }
 
     expect(getDeveloperContractSimulationJob(oldJob.jobId)).not.toBeNull();
+  });
+
+  it("can write a local simulation artifact for iterative tuning", async () => {
+    const output = await runDeveloperContractSimulationToArtifact({
+      playerClass: "juggernaut",
+      sampleSize: 1,
+      maxLevel: 3
+    });
+
+    const file = await readFile(output.artifactPath, "utf8");
+    const payload = JSON.parse(file) as {
+      artifactVersion: number;
+      result: {
+        archetypes: Array<{
+          archetype: string;
+          benchmarkTargetBandHitRateByDifficulty: { easy: number; medium: number; hard: number };
+        }>;
+      };
+    };
+
+    expect(payload.artifactVersion).toBe(2);
+    expect(payload.result.archetypes).toHaveLength(3);
+    expect(payload.result.archetypes[1]?.benchmarkTargetBandHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
+
+    await rm(output.artifactPath, { force: true });
   });
 });
