@@ -297,6 +297,8 @@ export const monsterFamilies = parseCsv("monster_families_v1.csv")
   }))
   .filter((family) => family.familyId.length > 0);
 
+export const monsterFamiliesById = new Map(monsterFamilies.map((family) => [family.familyId, family] as const));
+
 export const monsterMembers = parseCsv("monster_family_members_v1.csv")
   .map((row) => ({
     familyId: row.family_id,
@@ -323,6 +325,15 @@ for (const member of monsterMembers) {
   const members = monsterMembersByFamily.get(member.familyId) ?? [];
   members.push(member);
   monsterMembersByFamily.set(member.familyId, members);
+}
+
+export function isKnownMonsterFamily(familyId: string): boolean {
+  return monsterFamiliesById.has(familyId);
+}
+
+export function hasEncounterMembersForFamily(familyId: string): boolean {
+  const familyMembers = monsterMembersByFamily.get(familyId) ?? [];
+  return familyMembers.some((member) => !member.isBoss);
 }
 
 const monsterCombatTuningByLevel = new Map<number, Record<ContractDifficulty, MonsterCombatTuning>>(

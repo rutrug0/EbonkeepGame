@@ -319,17 +319,17 @@ describe("contracts simulator", () => {
       contractName: "Test Contract",
       family: {
         baseLevel: 40,
-        familyId: "temporary_zone_40",
-        familyName: "Temporary Zone 40",
-        locationName: "Test Reach"
+        familyId: "ternfield_hobgoblins_40",
+        familyName: "The Ternfield Hobgoblins III",
+        locationName: "Ternfields III"
       },
       members: [
         {
-          familyId: "temporary_zone_40",
+          familyId: "ternfield_hobgoblins_40",
           sequence: 1,
           monsterRole: "default",
           isBoss: false,
-          monsterName: "Temporary Monster 40",
+          monsterName: "Palisade Whelp III",
           mainStat: "strength",
           damageKind: "melee",
           healthBias: "medium",
