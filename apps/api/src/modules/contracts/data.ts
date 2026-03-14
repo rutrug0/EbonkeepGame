@@ -279,6 +279,11 @@ function toInt(value: string | undefined, fallback = 0): number {
   return Number.isNaN(parsed) ? fallback : parsed;
 }
 
+export function toFloat(value: string | undefined, fallback = 0): number {
+  const parsed = Number.parseFloat(value ?? "");
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
 function toBool(value: string | undefined): boolean {
   return (value ?? "").trim().toUpperCase() === "TRUE";
 }
@@ -325,19 +330,19 @@ const monsterCombatTuningByLevel = new Map<number, Record<ContractDifficulty, Mo
     .map((row) => ({
       level: toInt(row.level, 1),
       easy: {
-        hpMultiplier: Number.parseFloat(row.easy_hp_multiplier ?? "1") || 1,
-        damageMultiplier: Number.parseFloat(row.easy_damage_multiplier ?? "1") || 1,
-        defenseMultiplier: Number.parseFloat(row.easy_defense_multiplier ?? "1") || 1
+        hpMultiplier: toFloat(row.easy_hp_multiplier, 1),
+        damageMultiplier: toFloat(row.easy_damage_multiplier, 1),
+        defenseMultiplier: toFloat(row.easy_defense_multiplier, 1)
       },
       medium: {
-        hpMultiplier: Number.parseFloat(row.medium_hp_multiplier ?? "1") || 1,
-        damageMultiplier: Number.parseFloat(row.medium_damage_multiplier ?? "1") || 1,
-        defenseMultiplier: Number.parseFloat(row.medium_defense_multiplier ?? "1") || 1
+        hpMultiplier: toFloat(row.medium_hp_multiplier, 1),
+        damageMultiplier: toFloat(row.medium_damage_multiplier, 1),
+        defenseMultiplier: toFloat(row.medium_defense_multiplier, 1)
       },
       hard: {
-        hpMultiplier: Number.parseFloat(row.hard_hp_multiplier ?? "1") || 1,
-        damageMultiplier: Number.parseFloat(row.hard_damage_multiplier ?? "1") || 1,
-        defenseMultiplier: Number.parseFloat(row.hard_defense_multiplier ?? "1") || 1
+        hpMultiplier: toFloat(row.hard_hp_multiplier, 1),
+        damageMultiplier: toFloat(row.hard_damage_multiplier, 1),
+        defenseMultiplier: toFloat(row.hard_defense_multiplier, 1)
       }
     }))
     .map((row) => [row.level, { easy: row.easy, medium: row.medium, hard: row.hard }] as const)

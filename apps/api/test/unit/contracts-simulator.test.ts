@@ -5,7 +5,7 @@ import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { rollInventoryItem } from "../../src/modules/inventory/item-service.js";
 import { createEmptyEquipmentState } from "../../src/modules/player/state-service.js";
-import { getMonsterCombatTuning } from "../../src/modules/contracts/data.js";
+import { getMonsterCombatTuning, toFloat } from "../../src/modules/contracts/data.js";
 import {
   buildMonsterActorSnapshots,
   buildPlayerActorSnapshot,
@@ -390,5 +390,12 @@ describe("contracts simulator", () => {
     expect(hardTuning.defenseMultiplier).toBeGreaterThan(easyTuning.defenseMultiplier);
     expect(hardMonster?.maxHp ?? 0).toBeGreaterThan(easyMonster?.maxHp ?? 0);
     expect(hardMonster?.physicalDefense ?? 0).toBeGreaterThan(easyMonster?.physicalDefense ?? 0);
+  });
+
+  it("preserves zero-valued monster tuning multipliers while still defaulting missing values", () => {
+    expect(toFloat("0", 1)).toBe(0);
+    expect(toFloat("0.0", 1)).toBe(0);
+    expect(toFloat(undefined, 1)).toBe(1);
+    expect(toFloat("not-a-number", 1)).toBe(1);
   });
 });
