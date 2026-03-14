@@ -194,10 +194,14 @@ function createLevelAccumulator(): LevelAccumulator {
   };
 }
 
+function isJobTerminal(job: JobRecord): boolean {
+  return job.status === "completed" || job.status === "failed";
+}
+
 function ensureJobCapacity(): void {
   const expiredCutoff = Date.now() - JOB_TTL_MS;
   for (const [jobId, job] of simulationJobs) {
-    if (job.createdAtMs < expiredCutoff) {
+    if (job.createdAtMs < expiredCutoff && isJobTerminal(job)) {
       simulationJobs.delete(jobId);
     }
   }
@@ -206,7 +210,9 @@ function ensureJobCapacity(): void {
     return;
   }
 
-  const oldestJob = [...simulationJobs.values()].sort((left, right) => left.createdAtMs - right.createdAtMs)[0];
+  const oldestJob = [...simulationJobs.values()]
+    .filter(isJobTerminal)
+    .sort((left, right) => left.createdAtMs - right.createdAtMs)[0];
   if (oldestJob) {
     simulationJobs.delete(oldestJob.jobId);
   }
@@ -1147,7 +1153,6 @@ export function createDeveloperContractSimulationJob(body: RunDeveloperContractS
 }
 
 export function getDeveloperContractSimulationJob(jobId: string): DeveloperContractSimulationJob | null {
-  ensureJobCapacity();
   const job = simulationJobs.get(jobId);
   if (!job) {
     return null;

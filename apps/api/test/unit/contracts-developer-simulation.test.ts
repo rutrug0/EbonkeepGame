@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { simulateDeveloperContractProgression } from "../../src/modules/contracts/developer-simulation.js";
+import {
+  createDeveloperContractSimulationJob,
+  getDeveloperContractSimulationJob,
+  resetDeveloperContractSimulationJobsForTests,
+  simulateDeveloperContractProgression
+} from "../../src/modules/contracts/developer-simulation.js";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  resetDeveloperContractSimulationJobsForTests();
+});
 
 describe("contracts developer simulation", () => {
   it("is deterministic for the same input", async () => {
@@ -101,5 +111,41 @@ describe("contracts developer simulation", () => {
 
     expect(activeGear).toBeGreaterThan(averageGear);
     expect(averageGear).toBeGreaterThan(slowGear);
+  });
+
+  it("does not evict existing jobs when reading status at capacity", () => {
+    const jobs = Array.from({ length: 10 }, () =>
+      createDeveloperContractSimulationJob({
+        playerClass: "juggernaut",
+        sampleSize: 1,
+        maxLevel: 2
+      })
+    );
+
+    const oldestJobId = jobs[0]?.jobId;
+    expect(oldestJobId).toBeTruthy();
+    expect(getDeveloperContractSimulationJob(oldestJobId!)).not.toBeNull();
+    expect(getDeveloperContractSimulationJob(oldestJobId!)).not.toBeNull();
+  });
+
+  it("keeps queued or running jobs even when their creation time is older than the TTL", () => {
+    const nowSpy = vi.spyOn(Date, "now");
+    nowSpy.mockReturnValue(0);
+    const oldJob = createDeveloperContractSimulationJob({
+      playerClass: "juggernaut",
+      sampleSize: 1,
+      maxLevel: 100
+    });
+
+    nowSpy.mockReturnValue((31 * 60 * 1000) + 1);
+    for (let index = 0; index < 10; index += 1) {
+      createDeveloperContractSimulationJob({
+        playerClass: "juggernaut",
+        sampleSize: 1,
+        maxLevel: 2
+      });
+    }
+
+    expect(getDeveloperContractSimulationJob(oldJob.jobId)).not.toBeNull();
   });
 });
