@@ -1,16 +1,44 @@
-export {
-  combatPlaybackActionResolvedSchema,
-  combatPlaybackActorSchema,
-  combatPlaybackEncounterSchema,
-  combatPlaybackEndedSchema,
-  combatPlaybackEventSchema,
-  combatPlaybackRollStatsSchema,
-  combatPlaybackStartedSchema,
-  type CombatPlaybackActionResolved,
-  type CombatPlaybackActor,
-  type CombatPlaybackEncounter,
-  type CombatPlaybackEnded,
-  type CombatPlaybackEvent,
-  type CombatPlaybackRollStats,
-  type CombatPlaybackStarted
+import {
+  combatPlaybackActionResolvedSchema as sharedCombatPlaybackActionResolvedSchema,
+  combatPlaybackActorSchema as sharedCombatPlaybackActorSchema,
+  combatPlaybackEncounterSchema as sharedCombatPlaybackEncounterSchema,
+  combatPlaybackEndedSchema as sharedCombatPlaybackEndedSchema,
+  combatPlaybackEventSchema as sharedCombatPlaybackEventSchema,
+  combatPlaybackMitigationStatSchema as sharedCombatPlaybackMitigationStatSchema,
+  combatPlaybackRollBreakdownActorSchema as sharedCombatPlaybackRollBreakdownActorSchema,
+  combatPlaybackRollBreakdownSchema as sharedCombatPlaybackRollBreakdownSchema,
+  combatPlaybackRollStatsSchema as sharedCombatPlaybackRollStatsSchema,
+  combatPlaybackStartedSchema as sharedCombatPlaybackStartedSchema,
+  type CombatPlaybackActionResolved as SharedCombatPlaybackActionResolved,
+  type CombatPlaybackActor as SharedCombatPlaybackActor,
+  type CombatPlaybackEncounter as SharedCombatPlaybackEncounter,
+  type CombatPlaybackEnded as SharedCombatPlaybackEnded,
+  type CombatPlaybackEvent as SharedCombatPlaybackEvent,
+  type CombatPlaybackMitigationStat as SharedCombatPlaybackMitigationStat,
+  type CombatPlaybackRollBreakdown as SharedCombatPlaybackRollBreakdown,
+  type CombatPlaybackRollBreakdownActor as SharedCombatPlaybackRollBreakdownActor,
+  type CombatPlaybackRollStats as SharedCombatPlaybackRollStats,
+  type CombatPlaybackStarted as SharedCombatPlaybackStarted
 } from "@ebonkeep/shared/combat";
+
+export const combatPlaybackActionResolvedSchema = sharedCombatPlaybackActionResolvedSchema;
+export const combatPlaybackActorSchema = sharedCombatPlaybackActorSchema;
+export const combatPlaybackEncounterSchema = sharedCombatPlaybackEncounterSchema;
+export const combatPlaybackEndedSchema = sharedCombatPlaybackEndedSchema;
+export const combatPlaybackEventSchema = sharedCombatPlaybackEventSchema;
+export const combatPlaybackMitigationStatSchema = sharedCombatPlaybackMitigationStatSchema;
+export const combatPlaybackRollBreakdownActorSchema = sharedCombatPlaybackRollBreakdownActorSchema;
+export const combatPlaybackRollBreakdownSchema = sharedCombatPlaybackRollBreakdownSchema;
+export const combatPlaybackRollStatsSchema = sharedCombatPlaybackRollStatsSchema;
+export const combatPlaybackStartedSchema = sharedCombatPlaybackStartedSchema;
+
+export type CombatPlaybackActionResolved = SharedCombatPlaybackActionResolved;
+export type CombatPlaybackActor = SharedCombatPlaybackActor;
+export type CombatPlaybackEncounter = SharedCombatPlaybackEncounter;
+export type CombatPlaybackEnded = SharedCombatPlaybackEnded;
+export type CombatPlaybackEvent = SharedCombatPlaybackEvent;
+export type CombatPlaybackMitigationStat = SharedCombatPlaybackMitigationStat;
+export type CombatPlaybackRollBreakdown = SharedCombatPlaybackRollBreakdown;
+export type CombatPlaybackRollBreakdownActor = SharedCombatPlaybackRollBreakdownActor;
+export type CombatPlaybackRollStats = SharedCombatPlaybackRollStats;
+export type CombatPlaybackStarted = SharedCombatPlaybackStarted;

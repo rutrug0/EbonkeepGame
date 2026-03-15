@@ -855,6 +855,7 @@
 }
 
 .combatLogMessage {
+  position: relative;
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr) 42px;
   align-items: center;
@@ -863,6 +864,27 @@
   border-radius: var(--soft-radius);
   padding: 6px;
   background: linear-gradient(160deg, rgba(24, 32, 41, 0.92), rgba(17, 23, 31, 0.95));
+}
+
+.combatLogMessageTooltipTrigger {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.combatLogMessageTooltipTrigger:hover,
+.combatLogMessageTooltipTrigger:focus-visible,
+.combatLogMessageTooltipTrigger.isTooltipVisible {
+  border-color: rgba(214, 192, 149, 0.56);
+  box-shadow:
+    0 0 0 1px rgba(214, 192, 149, 0.12),
+    0 10px 20px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+
+.combatLogMessageTooltipTrigger:focus-visible {
+  outline: none;
 }
 
 .combatLogPortrait {
@@ -897,6 +919,131 @@
   min-width: 0;
   font-size: 0.9rem;
   line-height: 1.24;
+}
+
+.combatLogRollTooltip {
+  position: fixed;
+  bottom: auto;
+  z-index: 160;
+  left: 0;
+  top: 0;
+  width: clamp(250px, 22vw, 320px);
+  min-width: min(250px, calc(100vw - 24px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  box-sizing: border-box;
+  overflow: hidden auto;
+  transform: none;
+}
+
+.combatLogRollTooltip::after {
+  display: none;
+}
+
+.combatLogRollTooltip .uiHoverTooltipTitle {
+  font-size: 0.88rem;
+}
+
+.combatLogRollTooltipSummary {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.combatLogRollTooltipOutcome {
+  margin: 0;
+  justify-self: start;
+  padding: 0.14rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #f3f6f7;
+  background: rgba(84, 118, 142, 0.62);
+}
+
+.combatLogRollTooltipOutcome.isHit {
+  background: rgba(82, 136, 102, 0.62);
+}
+
+.combatLogRollTooltipOutcome.isCrit {
+  background: rgba(158, 118, 52, 0.76);
+  color: #fff1cf;
+}
+
+.combatLogRollTooltipOutcome.isMiss {
+  background: rgba(91, 98, 108, 0.72);
+  color: rgba(240, 243, 245, 0.92);
+}
+
+.combatLogRollTooltipSubtitle {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.combatLogRollTooltipSteps {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.combatLogRollStep {
+  display: grid;
+  gap: 0.16rem;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid rgba(191, 174, 145, 0.14);
+  border-radius: 6px;
+  background: rgba(18, 23, 29, 0.34);
+}
+
+.combatLogRollStep-hit {
+  border-color: rgba(92, 135, 158, 0.26);
+  background: linear-gradient(180deg, rgba(35, 55, 70, 0.36), rgba(16, 22, 29, 0.28));
+}
+
+.combatLogRollStep-damage {
+  border-color: rgba(162, 126, 62, 0.28);
+  background: linear-gradient(180deg, rgba(63, 48, 24, 0.34), rgba(18, 22, 28, 0.28));
+}
+
+.combatLogRollStep-defense {
+  border-color: rgba(147, 94, 86, 0.26);
+  background: linear-gradient(180deg, rgba(60, 37, 34, 0.34), rgba(18, 22, 28, 0.28));
+}
+
+.combatLogRollStepLabel {
+  margin: 0;
+  color: color-mix(in srgb, var(--accent-info) 34%, var(--text-soft) 66%);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.combatLogRollStepSummary {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.combatLogRollStepDetail {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  line-height: 1.22;
+}
+
+.combatLogRollStepMath {
+  margin: 0;
+  color: rgba(201, 211, 218, 0.72);
+  font-size: 0.64rem;
+  line-height: 1.24;
+  font-family: "Consolas", "SFMono-Regular", "Liberation Mono", monospace;
+  letter-spacing: -0.01em;
+  white-space: normal;
 }
 
 .combatLogEmpty {

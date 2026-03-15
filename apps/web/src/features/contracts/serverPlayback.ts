@@ -12,6 +12,7 @@ import type {
   CombatPlaybackActor,
   CombatPlaybackEncounter,
   CombatPlaybackEvent,
+  CombatPlaybackRollBreakdown,
   CombatPlaybackRollStats
 } from "../combat/playback";
 import {
@@ -22,6 +23,8 @@ import {
   type ContractRoll,
   type ContractSlotState
 } from "./mockData";
+
+const MINIMUM_HIT_DAMAGE_RATIO_BPS = 200;
 
 function toRoll(difficulty: ContractDifficulty): ContractRoll {
   if (difficulty === "hard") return "high";
@@ -52,6 +55,10 @@ function toPlaybackDamageKind(damageKind: CombatDamageKind): CombatPlaybackRollS
   return damageKind;
 }
 
+function clampInt(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function toPlaybackRollStats(actor: CombatActorSnapshot): CombatPlaybackRollStats {
   return {
     level: actor.level,
@@ -69,6 +76,126 @@ function toPlaybackRollStats(actor: CombatActorSnapshot): CombatPlaybackRollStat
     missileResistance: actor.missileResistance,
     physicalDefense: actor.physicalDefense,
     magicDefense: actor.magicDefense
+  };
+}
+
+function inferBaseDamageRoll(args: {
+  crit: boolean;
+  rawDamage: number;
+  minDamage: number;
+  maxDamage: number;
+  critMultiplier: number;
+}): number | null {
+  if (args.rawDamage <= 0) {
+    return null;
+  }
+  if (!args.crit) {
+    return clampInt(args.rawDamage, args.minDamage, args.maxDamage);
+  }
+
+  const candidates: number[] = [];
+  for (let damageRoll = args.minDamage; damageRoll <= args.maxDamage; damageRoll += 1) {
+    if (Math.round((damageRoll * args.critMultiplier) / 10_000) === args.rawDamage) {
+      candidates.push(damageRoll);
+    }
+  }
+
+  if (candidates.length === 0) {
+    return clampInt(Math.round((args.rawDamage * 10_000) / args.critMultiplier), args.minDamage, args.maxDamage);
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0] ?? null;
+  }
+
+  const estimatedRoll = (args.rawDamage * 10_000) / args.critMultiplier;
+  return (
+    candidates.reduce((best, candidate) =>
+      Math.abs(candidate - estimatedRoll) < Math.abs(best - estimatedRoll) ? candidate : best
+    ) ?? null
+  );
+}
+
+function buildRollBreakdown(args: {
+  actor: CombatPlaybackActor;
+  target: CombatPlaybackActor;
+  targetHpBefore: number;
+  strike: Extract<CombatEvent, { type: "CombatActionResolved" }>["strikes"][number];
+}): CombatPlaybackRollBreakdown {
+  const attacker = args.actor.rollStats;
+  const defender = args.target.rollStats;
+
+  if (!attacker || !defender) {
+    throw new Error("Contract playback roll breakdown requires actor roll stats.");
+  }
+
+  const mitigationStatLabel =
+    attacker.damageKind === "melee"
+      ? "armor"
+      : attacker.damageKind === "ranged"
+        ? "missileResistance"
+        : "spellShield";
+  const mitigationResistance =
+    mitigationStatLabel === "armor"
+      ? defender.armor
+      : mitigationStatLabel === "missileResistance"
+        ? defender.missileResistance
+        : defender.spellShield;
+  const mitigationDefense = attacker.damageKind === "spell" ? defender.magicDefense : defender.physicalDefense;
+  const mitigationTotal = mitigationResistance + mitigationDefense;
+
+  return {
+    attacker: {
+      name: args.actor.name,
+      accuracy: attacker.accuracy,
+      dodgeChance: attacker.dodgeChance,
+      critChance: attacker.critChance,
+      critMultiplier: attacker.critMultiplier,
+      minDamage: attacker.minDamage,
+      maxDamage: attacker.maxDamage,
+      armor: attacker.armor,
+      spellShield: attacker.spellShield,
+      missileResistance: attacker.missileResistance,
+      physicalDefense: attacker.physicalDefense,
+      magicDefense: attacker.magicDefense
+    },
+    defender: {
+      name: args.target.name,
+      accuracy: defender.accuracy,
+      dodgeChance: defender.dodgeChance,
+      critChance: defender.critChance,
+      critMultiplier: defender.critMultiplier,
+      minDamage: defender.minDamage,
+      maxDamage: defender.maxDamage,
+      armor: defender.armor,
+      spellShield: defender.spellShield,
+      missileResistance: defender.missileResistance,
+      physicalDefense: defender.physicalDefense,
+      magicDefense: defender.magicDefense
+    },
+    damageKind: attacker.damageKind,
+    hitChanceBps: clampInt(attacker.accuracy * 100 - defender.dodgeChance, 2500, 9750),
+    didHit: args.strike.hit,
+    didCrit: args.strike.crit,
+    baseDamageRoll: args.strike.hit
+      ? inferBaseDamageRoll({
+          crit: args.strike.crit,
+          rawDamage: args.strike.rawDamage,
+          minDamage: attacker.minDamage,
+          maxDamage: attacker.maxDamage,
+          critMultiplier: attacker.critMultiplier
+        })
+      : null,
+    rawDamage: args.strike.rawDamage,
+    mitigationStatLabel,
+    mitigationResistance,
+    mitigationDefense,
+    mitigationTotal,
+    minimumDamage: args.strike.hit ? Math.max(1, Math.floor((args.strike.rawDamage * MINIMUM_HIT_DAMAGE_RATIO_BPS) / 10_000)) : 0,
+    finalDamage: args.strike.mitigatedDamage,
+    targetHpBefore: args.targetHpBefore,
+    targetHpAfter: args.strike.targetHpAfter,
+    killed: args.strike.killed
   };
 }
 
@@ -214,6 +341,10 @@ function buildPlaybackTimeline(run: ContractRunSnapshot, events: CombatEvent[]):
   }];
   let turnIndex = 1;
   let winnerSide: "player" | "enemy" = "enemy";
+  const currentHpByActorId = new Map<string, number>([
+    [run.player.id, run.player.currentHp],
+    ...run.enemies.map((enemy) => [enemy.id, enemy.currentHp] as const)
+  ]);
 
   for (const event of events) {
     if (event.type === "CombatEnded") {
@@ -225,7 +356,11 @@ function buildPlaybackTimeline(run: ContractRunSnapshot, events: CombatEvent[]):
     for (const strike of event.strikes) {
       const actor = actorById.get(event.actorId);
       const target = actorById.get(strike.targetId);
+      const targetHpBefore = currentHpByActorId.get(strike.targetId);
       if (!actor || !target) {
+        continue;
+      }
+      if (typeof targetHpBefore !== "number") {
         continue;
       }
       timeline.push({
@@ -239,8 +374,10 @@ function buildPlaybackTimeline(run: ContractRunSnapshot, events: CombatEvent[]):
         damage: strike.mitigatedDamage,
         targetHpAfter: strike.targetHpAfter,
         attackerLungeDirection: actor.side === "player" ? "left-to-right" : "right-to-left",
-        logLine: buildActionLogLine({ actor, target, strike })
+        logLine: buildActionLogLine({ actor, target, strike }),
+        rollBreakdown: buildRollBreakdown({ actor, target, targetHpBefore, strike })
       });
+      currentHpByActorId.set(strike.targetId, strike.targetHpAfter);
     }
   }
 
