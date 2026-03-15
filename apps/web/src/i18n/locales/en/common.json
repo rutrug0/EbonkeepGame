@@ -205,10 +205,10 @@
       "damageRollCrit": "Critical x{{multiplier}} -> {{raw}}",
       "damageRollNormal": "No critical -> {{raw}}",
       "defenseReduction": "Defense Reduction",
-      "defenseReductionSummary": "-{{reduction}} blocked",
+      "defenseReductionSummary": "{{percent}} reduction from {{effectiveDefense}} defense",
       "defenseReductionNone": "No reduction",
-      "defenseReductionDetail": "{{mitigation}} {{resistance}} + {{defense}} {{defenseValue}}",
-      "minimumFloor": "Minimum floor {{value}}",
+      "defenseReductionDetail": "{{mitigation}} {{resistance}} + {{defense}} {{defenseValue}} = {{effectiveDefense}} total; attacker power {{attackerPower}}, scale {{scale}}",
+      "minimumFloor": "Minimum floor {{value}} ({{percent}} of raw)",
       "math": "Math"
     }
   },

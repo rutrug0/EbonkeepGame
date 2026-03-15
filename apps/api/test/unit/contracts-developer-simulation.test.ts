@@ -195,6 +195,11 @@ describe("contracts developer simulation", () => {
     const file = await readFile(output.artifactPath, "utf8");
     const payload = JSON.parse(file) as {
       artifactVersion: number;
+      mitigation: {
+        floorBps: number;
+        maxMitigationBps: number;
+        scaleMultiplier: number;
+      };
       result: {
         archetypes: Array<{
           archetype: string;
@@ -210,7 +215,10 @@ describe("contracts developer simulation", () => {
       };
     };
 
-    expect(payload.artifactVersion).toBe(4);
+    expect(payload.artifactVersion).toBe(5);
+    expect(payload.mitigation.floorBps).toBe(500);
+    expect(payload.mitigation.maxMitigationBps).toBe(7500);
+    expect(payload.mitigation.scaleMultiplier).toBe(1.5);
     expect(payload.result.archetypes).toHaveLength(3);
     expect(payload.result.archetypes[1]?.benchmarkTargetBandHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
     expect(payload.result.archetypes[1]?.benchmarkTurnTargetHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);

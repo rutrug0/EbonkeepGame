@@ -3,6 +3,9 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
+  COMBAT_MITIGATION_FLOOR_BPS,
+  COMBAT_MITIGATION_MAX_BPS,
+  COMBAT_MITIGATION_SCALE_MULTIPLIER,
   developerContractSimulationJobSchema,
   developerContractSimulationLevelSummarySchema,
   runDeveloperContractSimulationBodySchema,
@@ -132,10 +135,15 @@ type JobRecord = DeveloperContractSimulationJob & {
 };
 
 type SimulationArtifactPayload = {
-  artifactVersion: 4;
+  artifactVersion: 5;
   generatedAt: string;
   jobId: string;
   config: DeveloperContractSimulationJob["config"];
+  mitigation: {
+    floorBps: number;
+    maxMitigationBps: number;
+    scaleMultiplier: number;
+  };
   result: DeveloperContractSimulationResult;
   derived: {
     cumulativeElapsedDaysByArchetype: Record<
@@ -980,10 +988,15 @@ function buildSimulationArtifactPayload(args: {
   ) as SimulationArtifactPayload["derived"]["benchmarkTurnTargetHitRateByArchetype"];
 
   return {
-    artifactVersion: 4,
+    artifactVersion: 5,
     generatedAt: new Date().toISOString(),
     jobId: args.jobId,
     config: args.config,
+    mitigation: {
+      floorBps: COMBAT_MITIGATION_FLOOR_BPS,
+      maxMitigationBps: COMBAT_MITIGATION_MAX_BPS,
+      scaleMultiplier: COMBAT_MITIGATION_SCALE_MULTIPLIER
+    },
     result: args.result,
     derived: {
       cumulativeElapsedDaysByArchetype,

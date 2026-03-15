@@ -17,6 +17,14 @@ function formatBasisPoints(value: number): string {
   return `${(value / 100).toFixed(1)}%`;
 }
 
+function formatMultiplier(value: number): string {
+  return (value / 10_000).toFixed(2);
+}
+
+function formatRatio(value: number): string {
+  return value.toFixed(2);
+}
+
 function getMitigationLabelKey(label: CombatPlaybackRollBreakdown["mitigationStatLabel"]): string {
   switch (label) {
     case "armor":
@@ -34,13 +42,8 @@ function getDefenseLabelKey(damageKind: CombatPlaybackRollBreakdown["damageKind"
   return damageKind === "spell" ? "profile.magicDefense" : "profile.physicalDefense";
 }
 
-function formatMultiplier(value: number): string {
-  return (value / 10_000).toFixed(2);
-}
-
 export function CombatLogRollTooltip({ breakdown, tooltipId, position }: CombatLogRollTooltipProps) {
   const { t } = useTranslation();
-  const rawHitChanceBps = breakdown.attacker.accuracy * 100 - breakdown.defender.dodgeChance;
   const mitigationLabel = t(getMitigationLabelKey(breakdown.mitigationStatLabel));
   const defenseLabel = t(getDefenseLabelKey(breakdown.damageKind));
   const outcomeKey = !breakdown.didHit
@@ -166,7 +169,10 @@ export function CombatLogRollTooltip({ breakdown, tooltipId, position }: CombatL
           <p className="combatLogRollStepLabel">{t("contracts.combatTooltip.defenseReduction")}</p>
           <p className="combatLogRollStepSummary">
             {breakdown.didHit
-              ? t("contracts.combatTooltip.defenseReductionSummary", { reduction: breakdown.mitigationTotal })
+              ? t("contracts.combatTooltip.defenseReductionSummary", {
+                  percent: formatBasisPoints(breakdown.mitigationPercentBps),
+                  effectiveDefense: breakdown.effectiveDefense
+                })
               : t("contracts.combatTooltip.defenseReductionNone")}
           </p>
           <p className="combatLogRollStepDetail">
@@ -174,13 +180,23 @@ export function CombatLogRollTooltip({ breakdown, tooltipId, position }: CombatL
               mitigation: mitigationLabel,
               resistance: breakdown.mitigationResistance,
               defense: defenseLabel,
-              defenseValue: breakdown.mitigationDefense
+              defenseValue: breakdown.mitigationDefense,
+              effectiveDefense: breakdown.effectiveDefense,
+              attackerPower: breakdown.attackerPower,
+              scale: breakdown.mitigationScale
             })}{" "}
-            • {t("contracts.combatTooltip.minimumFloor", { value: breakdown.minimumDamage })}
+            •{" "}
+            {t("contracts.combatTooltip.minimumFloor", {
+              value: breakdown.minimumDamage,
+              percent: formatBasisPoints(breakdown.floorPercentBps)
+            })}
           </p>
           <p className="combatLogRollStepMath">
-            {t("contracts.combatTooltip.math")}: max({breakdown.minimumDamage}, {breakdown.rawDamage} -{" "}
-            {breakdown.mitigationTotal}) = {breakdown.finalDamage}
+            {t("contracts.combatTooltip.math")}: mitigation% = {breakdown.effectiveDefense}/({breakdown.effectiveDefense} +{" "}
+            {breakdown.mitigationScale}) = {formatBasisPoints(breakdown.mitigationPercentBps)}; post = round(
+            {breakdown.rawDamage} * (1 - {formatRatio(breakdown.mitigationPercentBps / 10_000)})) ={" "}
+            {breakdown.postMitigationDamage}; final = max({breakdown.minimumDamage}, {breakdown.postMitigationDamage}) ={" "}
+            {breakdown.finalDamage}
           </p>
         </section>
       </div>

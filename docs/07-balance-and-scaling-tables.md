@@ -92,6 +92,8 @@ Contracts board defaults:
 - Full table: `docs/data/affix_scaling_level_1_100.csv`
 - Coefficients source: `docs/data/affix_scaling_coefficients.csv`
 - Specification and caps: [11-item-affix-scaling-table.md](./11-item-affix-scaling-table.md)
+- Runtime note:
+  - API item generation rolls affix values directly from this generated table.
 
 ## Item Power Score (Level 1-100)
 - Canonical specification owner: [06-progression-itemization-and-economy.md](./06-progression-itemization-and-economy.md) (`Item Power Score Formula` section).
@@ -160,9 +162,14 @@ Contracts board defaults:
   - light uses ranger ranged average actual attack roll
   - robe uses mage arcane average actual attack roll
 - target set totals:
-  - heavy `30%`
-  - light `20%`
-  - robe `10%`
+  - heavy `35%`
+  - light `24%`
+  - robe `14%`
+- runtime note:
+  - these table values are defense ratings, not direct flat damage subtraction
+  - runtime mitigation converts `typed defense + physicalDefense` through the combat mitigation curve
+  - the runtime curve anchors on attacker average hit with `mitigationScale = round(attackerPower * 1.5)`
+  - successful hits still deal at least `5%` of raw damage, rounded down with a minimum of `1`
 - precision:
   - defense target totals and per-slot values are rounded to whole numbers
 - slot weights:
@@ -179,7 +186,9 @@ Contracts board defaults:
 - source anchor:
   - mage arcane average actual attack roll
 - target total:
-  - jewelry set `20%`
+  - jewelry set `25%`
+- runtime note:
+  - jewelry values are magic-defense ratings that feed the same mitigation curve at runtime
 - precision:
   - defense target total and slot values are rounded to whole numbers
 - slot weights:

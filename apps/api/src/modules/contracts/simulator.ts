@@ -1,4 +1,5 @@
 import {
+  calculateCombatMitigation,
   combatActorSnapshotSchema,
   combatEventSchema,
   type ContractDifficulty,
@@ -26,8 +27,7 @@ import {
 const ACTION_COST = 1000;
 const MAX_CHAIN_STRIKES = 5;
 const MAX_SIMULATION_ACTIONS = 300;
-const MONSTER_GLOBAL_DAMAGE_MULTIPLIER = 0.6;
-const MINIMUM_HIT_DAMAGE_RATIO_BPS = 200;
+const MONSTER_GLOBAL_DAMAGE_MULTIPLIER = 0.17;
 
 export type StoredRewardSpec = {
   experience: number;
@@ -324,15 +324,16 @@ function pickTarget(actor: RuntimeActor, actors: RuntimeActor[]): RuntimeActor |
     })[0] ?? null;
 }
 
-function applyMitigation(rawDamage: number, damageKind: CombatDamageKind, target: RuntimeActor): number {
-  const reduction =
-    damageKind === "melee"
-      ? target.armor + target.physicalDefense
-      : damageKind === "ranged"
-        ? target.missileResistance + target.physicalDefense
-        : target.spellShield + target.magicDefense;
-  const minimumDamage = Math.max(1, Math.floor((Math.max(0, rawDamage) * MINIMUM_HIT_DAMAGE_RATIO_BPS) / 10_000));
-  return Math.max(minimumDamage, rawDamage - reduction);
+function applyMitigation(rawDamage: number, actor: RuntimeActor, target: RuntimeActor): number {
+  return calculateCombatMitigation({
+    rawDamage,
+    damageKind: actor.damageKind,
+    attacker: {
+      minDamage: actor.minDamage,
+      maxDamage: actor.maxDamage
+    },
+    defender: target
+  }).finalDamage;
 }
 
 function snapshotActors(actors: RuntimeActor[]): CombatActorSnapshot[] {
@@ -416,7 +417,7 @@ export function simulateCombat(args: {
       const mitigatedDamage = hit
         ? args.playerInvincible && actor.side === "enemy" && target.side === "player"
           ? 0
-          : applyMitigation(rawDamage, actor.damageKind, target)
+          : applyMitigation(rawDamage, actor, target)
         : 0;
 
       target.currentHp = Math.max(0, target.currentHp - mitigatedDamage);

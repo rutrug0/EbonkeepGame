@@ -85,11 +85,20 @@ Damage kinds:
 - `spell`
 
 Mitigation:
-- melee: `raw - armor - physicalDefense`
-- ranged: `raw - missileResistance - physicalDefense`
-- spell: `raw - spellShield - magicDefense`
-- successful hits always deal at least `2%` of the attacker's rolled damage, rounded down with a minimum of `1`
-- final damage is `max(minimumChipDamage, raw - mitigation)`
+- typed defense:
+  - melee uses `armor`
+  - ranged uses `missileResistance`
+  - spell uses `spellShield`
+- bonus defense:
+  - physical attacks add `physicalDefense`
+  - spell attacks add `magicDefense`
+- effective defense = `typedDefense + matchingBonusDefense`
+- attacker power = `round((minDamage + maxDamage) / 2)`
+- mitigation scale = `round(attackerPower * 1.5)`
+- mitigation percent = `clamp(0%, 75%, effectiveDefense / (effectiveDefense + mitigationScale))`
+- post-mitigation damage = `round(raw * (1 - mitigationPercent))`
+- successful hits always deal at least `5%` of raw damage, rounded down with a minimum of `1`
+- final damage is `max(minimumFloorDamage, postMitigationDamage)`
 
 ### Battle End
 - battle ends when one side has no alive actors
@@ -133,7 +142,10 @@ The server derives monster combat stats from a reference player curve using:
 - member `accuracy_bias`
 - member `crit_bias`
 - member `evasion_bias`
-- monster outgoing damage is globally reduced to `60%` of the prior baseline
+- monster outgoing damage is globally reduced to `17%` of the raw reference-player damage budget
+- difficulty presets also bias monster pacing toward longer fights with lower enemy tempo:
+  - higher HP budgets than the previous profile
+  - lower speed and accuracy than the previous profile
 
 ## Rewards
 - stamina is spent on start

@@ -94,10 +94,20 @@ Guardrails:
 * accuracy bonuses come from items; main stat does not add accuracy
 
 Combat mitigation model:
-- melee received damage = `melee damage - armor - physicalDefense`
-- ranged received damage = `ranged damage - missileResistance - physicalDefense`
-- magic received damage = `magic damage - spellShield - magicDefense`
-- final dealt damage is clamped to `0`
+- typed defense:
+  - melee uses `armor`
+  - ranged uses `missileResistance`
+  - spell uses `spellShield`
+- bonus defense:
+  - physical attacks add `physicalDefense`
+  - spell attacks add `magicDefense`
+- effective defense = `typed defense + matching bonus defense`
+- attacker power anchor = `round((minDamage + maxDamage) / 2)`
+- mitigation scale = `round(attackerPower * 1.5)`
+- mitigation percent = `clamp(0%, 75%, effectiveDefense / (effectiveDefense + mitigationScale))`
+- post-mitigation damage = `round(rawDamage * (1 - mitigationPercent))`
+- successful hits always deal at least `5%` of raw damage, rounded down with a minimum of `1`
+- final dealt damage = `max(minimumFloorDamage, postMitigationDamage)`
 
 
 ## Inventory and Equipment
@@ -120,8 +130,8 @@ Combat mitigation model:
   - Jewelry
   - Vestiges
 - Defense contribution rules:
-  - armor contributes only `physicalDefense`
-  - jewelry contributes only `magicDefense`
+  - armor contributes only `physicalDefense` rating
+  - jewelry contributes only `magicDefense` rating
   - these values are fixed by item level and rarity from dedicated ilvl scaling tables
   - these values are rounded to whole numbers
   - they do not roll a min/max range per item
@@ -142,6 +152,7 @@ Combat mitigation model:
 - Suffix pool rolls are uniform: each eligible suffix has equal chance.
 - Affix scaling key tables (level 1-100) are defined in [11-item-affix-scaling-table.md](./11-item-affix-scaling-table.md).
 - Backend-ready generated table lives at `docs/data/affix_scaling_level_1_100.csv`.
+- Runtime item generation rolls prefix/affix values directly from that generated table.
 - Defense ilvl tables:
   - `docs/data/heavy_armor_physical_defense_ilvl_scaling_v1.csv`
   - `docs/data/light_armor_physical_defense_ilvl_scaling_v1.csv`
@@ -149,10 +160,10 @@ Combat mitigation model:
   - `docs/data/jewelry_magic_defense_ilvl_scaling_v1.csv`
 
 Defense scaling targets:
-- heavy armor full set total: `30%` of same-ilvl average actual attack roll
-- light armor full set total: `20%`
-- robe full set total: `10%`
-- jewelry full set total: `20%` of same-ilvl average actual magic attack roll
+- heavy armor full set total: `35%` of same-ilvl average actual attack roll
+- light armor full set total: `24%`
+- robe full set total: `14%`
+- jewelry full set total: `25%` of same-ilvl average actual magic attack roll
 
 Armor slot weights:
 - chest `20`

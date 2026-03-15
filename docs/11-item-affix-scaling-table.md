@@ -46,22 +46,29 @@ Examples:
 - Weapon power scoring uses these roll values by mapping each affix roll to a tier-bounded damage-equivalent contribution (defined in [06-progression-itemization-and-economy.md](./06-progression-itemization-and-economy.md), `Item Power Score Formula`).
 - Tier weights (T1/T2/T3 roll chance) remain unchanged and independent from power coefficient tuning.
 
-## Verified Anchor Example
-At item level `1`, `resistance_primary` rolls:
-- `T1 = 1-2`
-- `T2 = 2-2`
-- `T3 = 2-3`
+## Runtime Usage
+- API item generation reads `docs/data/affix_scaling_level_1_100.csv` directly when rolling prefix/affix values.
+- The generated table is therefore both the balance authoring artifact and the runtime source of truth for affix magnitudes.
 
-At item level `100`, `attr_primary` `T1` rolls:
-- `152-243`
+## Verified Anchor Example
+At item level `1`, `attr_primary` rolls:
+- `T1 = 1-2`
+- `T2 = 2-3`
+- `T3 = 3-4`
+
+At item level `100`, `attr_primary` `T3` rolls:
+- `34-45`
 
 ## Current Growth Controls
-- Flat stat groups (`attr_primary`, `vitality_primary`, `damage_primary`, `resistance_primary`, `max_hitpoints_primary`):
-  - `growth_multiplier = 1.0`
-  - `geometric_growth_per_level = 1.0104` (about +1.04% per level)
+- Primary stat groups (`attr_primary`, `vitality_primary`):
+  - moderate linear slope with light geometric amplification
+  - tuned so high-level T3 rolls land in the `34-51` range depending on group
+- Offensive and defensive flat groups (`damage_primary`, `resistance_primary`, `max_hitpoints_primary`):
+  - faster than primary-stat growth
+  - tuned so high-level T3 rolls are large enough to make rare and epic items visibly stronger
 - Basis-point/chance groups (`crit_chance`, `crit_damage`, `double_attack_chance`):
-  - `growth_multiplier = 0.5` (50% slower growth)
-  - `geometric_growth_per_level = 1.0` (disabled to avoid runaway non-linear chance scaling)
+  - now use stronger per-level scaling than the previous flat model
+  - still rely on runtime caps to prevent runaway aggregate chance stacking
 
 ## Non-Linear Stat Safety (Recommended Global Caps)
 Chance-based stats scale linearly per affix, but combat impact is non-linear in aggregate.  

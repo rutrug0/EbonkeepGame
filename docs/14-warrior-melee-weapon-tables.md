@@ -3,7 +3,7 @@
 ## Purpose
 Define warrior melee weapon progression with:
 - shared `ilvl` scaling independent of weapon name
-- rarity effects (`+5%` damage per rarity step)
+- wider rarity effects so uncommon+ drops feel meaningfully stronger
 - nested roll ranges (template -> item creation rolls -> per-hit attack roll)
 - weapon name table with level availability windows and flavor metadata
 
@@ -67,9 +67,9 @@ This matches examples:
 
 Rarity multipliers:
 - Common: `1.00`
-- Uncommon: `1.05`
-- Rare: `1.10`
-- Epic: `1.15`
+- Uncommon: `1.10`
+- Rare: `1.22`
+- Epic: `1.36`
 
 ## Main Stat Damage Rule (Global, No Cap)
 Main stat contributes linearly to flat damage for all damage archetypes:

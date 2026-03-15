@@ -1,10 +1,13 @@
-import type {
-  CombatActorSnapshot,
-  CombatDamageKind,
-  CombatEvent,
-  ContractBoardSlotView,
-  ContractRunResult,
-  ContractRunSnapshot
+import {
+  COMBAT_MITIGATION_FLOOR_BPS,
+  calculateCombatMitigation,
+  clampCombatChanceBps,
+  type CombatActorSnapshot,
+  type CombatDamageKind,
+  type CombatEvent,
+  type ContractBoardSlotView,
+  type ContractRunResult,
+  type ContractRunSnapshot
 } from "@ebonkeep/shared/combat";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import type {
@@ -23,8 +26,6 @@ import {
   type ContractRoll,
   type ContractSlotState
 } from "./mockData";
-
-const MINIMUM_HIT_DAMAGE_RATIO_BPS = 200;
 
 function toRoll(difficulty: ContractDifficulty): ContractRoll {
   if (difficulty === "hard") return "high";
@@ -135,14 +136,12 @@ function buildRollBreakdown(args: {
       : attacker.damageKind === "ranged"
         ? "missileResistance"
         : "spellShield";
-  const mitigationResistance =
-    mitigationStatLabel === "armor"
-      ? defender.armor
-      : mitigationStatLabel === "missileResistance"
-        ? defender.missileResistance
-        : defender.spellShield;
-  const mitigationDefense = attacker.damageKind === "spell" ? defender.magicDefense : defender.physicalDefense;
-  const mitigationTotal = mitigationResistance + mitigationDefense;
+  const mitigation = calculateCombatMitigation({
+    rawDamage: args.strike.rawDamage,
+    damageKind: attacker.damageKind,
+    attacker,
+    defender
+  });
 
   return {
     attacker: {
@@ -174,7 +173,7 @@ function buildRollBreakdown(args: {
       magicDefense: defender.magicDefense
     },
     damageKind: attacker.damageKind,
-    hitChanceBps: clampInt(attacker.accuracy * 100 - defender.dodgeChance, 2500, 9750),
+    hitChanceBps: clampCombatChanceBps(attacker.accuracy * 100 - defender.dodgeChance, 2500, 9750),
     didHit: args.strike.hit,
     didCrit: args.strike.crit,
     baseDamageRoll: args.strike.hit
@@ -188,10 +187,15 @@ function buildRollBreakdown(args: {
       : null,
     rawDamage: args.strike.rawDamage,
     mitigationStatLabel,
-    mitigationResistance,
-    mitigationDefense,
-    mitigationTotal,
-    minimumDamage: args.strike.hit ? Math.max(1, Math.floor((args.strike.rawDamage * MINIMUM_HIT_DAMAGE_RATIO_BPS) / 10_000)) : 0,
+    mitigationResistance: mitigation.typedDefense,
+    mitigationDefense: mitigation.bonusDefense,
+    effectiveDefense: mitigation.effectiveDefense,
+    attackerPower: mitigation.attackerPower,
+    mitigationScale: mitigation.mitigationScale,
+    mitigationPercentBps: mitigation.mitigationPercentBps,
+    postMitigationDamage: mitigation.postMitigationDamage,
+    floorPercentBps: COMBAT_MITIGATION_FLOOR_BPS,
+    minimumDamage: args.strike.hit ? mitigation.minimumDamage : 0,
     finalDamage: args.strike.mitigatedDamage,
     targetHpBefore: args.targetHpBefore,
     targetHpAfter: args.strike.targetHpAfter,
