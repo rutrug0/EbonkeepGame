@@ -1,5 +1,6 @@
 import type {
   CombatActorSnapshot,
+  CombatDamageKind,
   CombatEvent,
   ContractBoardSlotView,
   ContractRunResult,
@@ -10,7 +11,8 @@ import type {
   CombatPlaybackActionResolved,
   CombatPlaybackActor,
   CombatPlaybackEncounter,
-  CombatPlaybackEvent
+  CombatPlaybackEvent,
+  CombatPlaybackRollStats
 } from "../combat/playback";
 import {
   getEncounterTravelDescription,
@@ -46,6 +48,30 @@ function inferCombatStat(actor: Pick<CombatActorSnapshot, "damageKind">): "stren
   return "strength";
 }
 
+function toPlaybackDamageKind(damageKind: CombatDamageKind): CombatPlaybackRollStats["damageKind"] {
+  return damageKind;
+}
+
+function toPlaybackRollStats(actor: CombatActorSnapshot): CombatPlaybackRollStats {
+  return {
+    level: actor.level,
+    damageKind: toPlaybackDamageKind(actor.damageKind),
+    minDamage: actor.minDamage,
+    maxDamage: actor.maxDamage,
+    combatSpeed: actor.combatSpeed,
+    accuracy: actor.accuracy,
+    dodgeChance: actor.dodgeChance,
+    critChance: actor.critChance,
+    critMultiplier: actor.critMultiplier,
+    extraAttackChance: actor.extraAttackChance,
+    armor: actor.armor,
+    spellShield: actor.spellShield,
+    missileResistance: actor.missileResistance,
+    physicalDefense: actor.physicalDefense,
+    magicDefense: actor.magicDefense
+  };
+}
+
 function toPlaybackActor(
   actor: CombatActorSnapshot,
   overrides?: Partial<CombatPlaybackActor>
@@ -58,6 +84,7 @@ function toPlaybackActor(
     maxHp: actor.maxHp,
     power: Math.max(1, Math.round((actor.minDamage + actor.maxDamage) / 2 + actor.maxHp / 4 + actor.combatSpeed / 3)),
     combatStat: inferCombatStat(actor),
+    rollStats: toPlaybackRollStats(actor),
     avatarPath,
     usesSilhouetteFallback: overrides?.usesSilhouetteFallback ?? !avatarPath
   };

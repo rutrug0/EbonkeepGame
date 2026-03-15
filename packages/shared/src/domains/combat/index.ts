@@ -374,6 +374,25 @@ export const developerContractsStaticCurvesResponseSchema = z.object({
 });
 export type DeveloperContractsStaticCurvesResponse = z.infer<typeof developerContractsStaticCurvesResponseSchema>;
 
+export const combatPlaybackRollStatsSchema = z.object({
+  level: z.number().int().min(1),
+  damageKind: combatDamageKindSchema,
+  minDamage: z.number().int().min(0),
+  maxDamage: z.number().int().min(0),
+  combatSpeed: z.number().int().min(1),
+  accuracy: z.number().int().min(0),
+  dodgeChance: z.number().int().min(0),
+  critChance: z.number().int().min(0),
+  critMultiplier: z.number().int().min(0),
+  extraAttackChance: z.number().int().min(0),
+  armor: z.number().int().min(0),
+  spellShield: z.number().int().min(0),
+  missileResistance: z.number().int().min(0),
+  physicalDefense: z.number().int().min(0),
+  magicDefense: z.number().int().min(0)
+});
+export type CombatPlaybackRollStats = z.infer<typeof combatPlaybackRollStatsSchema>;
+
 export const combatPlaybackActorSchema = z.object({
   id: z.string(),
   side: combatActorSideSchema,
@@ -381,6 +400,7 @@ export const combatPlaybackActorSchema = z.object({
   maxHp: z.number().int().min(1),
   power: z.number().int().min(0).optional(),
   combatStat: z.enum(["strength", "dexterity", "intelligence"]).optional(),
+  rollStats: combatPlaybackRollStatsSchema.optional(),
   avatarPath: z.string().optional(),
   usesSilhouetteFallback: z.boolean().optional()
 });

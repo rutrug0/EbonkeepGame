@@ -214,6 +214,8 @@
     "physicalDefense": "P.Def",
     "magicDefense": "M.Def",
     "maxHitpoints": "Max Hitpoints",
+    "accuracy": "Accuracy",
+    "dodgeChance": "Dodge Chance",
     "critChance": "Crit Chance",
     "critDamage": "Crit Damage",
     "combatSpeed": "Combat Speed",

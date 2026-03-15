@@ -8,7 +8,8 @@ import {
   combatPlaybackEventSchema,
   type CombatPlaybackActionResolved,
   type CombatPlaybackEncounter,
-  type CombatPlaybackEvent
+  type CombatPlaybackEvent,
+  type CombatPlaybackRollStats
 } from "../combat/playback";
 
 export type { ContractEfficiencyTier } from "@ebonkeep/shared/combat";
@@ -116,6 +117,86 @@ function mitigateIncomingDamage(
         : targetStats.spellShield + targetStats.magicDefense;
 
   return Math.max(0, rawDamage - reduction);
+}
+
+function damageKindFromCombatStat(
+  combatStat: "strength" | "dexterity" | "intelligence"
+): CombatPlaybackRollStats["damageKind"] {
+  if (combatStat === "dexterity") {
+    return "ranged";
+  }
+  if (combatStat === "intelligence") {
+    return "spell";
+  }
+  return "melee";
+}
+
+function mockEncounterLevel(difficulty: ContractDifficulty): number {
+  switch (difficulty) {
+    case "medium":
+      return 12;
+    case "hard":
+      return 18;
+    case "easy":
+    default:
+      return 6;
+  }
+}
+
+function buildMockPlayerRollStats(args: {
+  level: number;
+  playerStats: PlayerStatBlock;
+  combatStat: "strength" | "dexterity" | "intelligence";
+}): CombatPlaybackRollStats {
+  const averageDamage = Math.max(1, args.playerStats.damage);
+
+  return {
+    level: args.level,
+    damageKind: damageKindFromCombatStat(args.combatStat),
+    minDamage: Math.max(1, Math.floor(averageDamage * 0.9)),
+    maxDamage: Math.max(1, Math.ceil(averageDamage * 1.1)),
+    combatSpeed: Math.max(1, args.playerStats.initiative),
+    accuracy: Math.max(0, args.playerStats.accuracy),
+    dodgeChance: Math.max(0, args.playerStats.dodgeChance),
+    critChance: Math.max(0, args.playerStats.critChance),
+    critMultiplier: Math.max(0, args.playerStats.critMultiplier),
+    extraAttackChance: Math.max(0, args.playerStats.extraAttackChance),
+    armor: Math.max(0, args.playerStats.armor),
+    spellShield: Math.max(0, args.playerStats.spellShield),
+    missileResistance: Math.max(0, args.playerStats.missileResistance),
+    physicalDefense: Math.max(0, args.playerStats.physicalDefense),
+    magicDefense: Math.max(0, args.playerStats.magicDefense)
+  };
+}
+
+function buildMockEnemyRollStats(args: {
+  level: number;
+  power: number;
+  maxHp: number;
+  combatStat: "strength" | "dexterity" | "intelligence";
+}): CombatPlaybackRollStats {
+  const averageDamage = Math.max(10, Math.round(args.power * 0.11));
+  const mitigationBase = Math.max(2, Math.round(args.maxHp * 0.08));
+  const combatSpeed =
+    args.combatStat === "dexterity" ? 16 : args.combatStat === "intelligence" ? 12 : 10;
+
+  return {
+    level: args.level,
+    damageKind: damageKindFromCombatStat(args.combatStat),
+    minDamage: Math.max(1, Math.floor(averageDamage * 0.84)),
+    maxDamage: Math.max(1, Math.ceil(averageDamage * 1.16)),
+    combatSpeed,
+    accuracy: Math.max(50, 74 + Math.round(args.power * 0.08)),
+    dodgeChance: Math.max(150, Math.round(args.power * (args.combatStat === "dexterity" ? 1.9 : 1.15))),
+    critChance: Math.max(120, Math.round(args.power * (args.combatStat === "intelligence" ? 1.55 : 1.35))),
+    critMultiplier: 15_000 + Math.round(args.power * (args.combatStat === "strength" ? 11 : 8)),
+    extraAttackChance: Math.max(0, Math.round(args.power * (args.combatStat === "dexterity" ? 1.45 : 0.7))),
+    armor: args.combatStat === "strength" ? mitigationBase + 3 : Math.max(0, mitigationBase - 1),
+    spellShield: args.combatStat === "intelligence" ? mitigationBase + 4 : Math.max(0, mitigationBase - 2),
+    missileResistance: args.combatStat === "dexterity" ? mitigationBase + 3 : Math.max(0, mitigationBase - 1),
+    physicalDefense: Math.max(0, Math.round(mitigationBase * 0.6)),
+    magicDefense: Math.max(0, Math.round(mitigationBase * 0.55))
+  };
 }
 
 const CONTRACT_TEMPLATES: ContractTemplate[] = [
@@ -324,6 +405,7 @@ export function buildMockCombatEncounterState(args: {
   const { offer, slotIndex, playerName, playerClass, playerPower, playerStats, playerAvatarPath, nowMs } = args;
   const preset = getEncounterPreset(offer.template.difficulty);
   const playerMaxHp = 100;
+  const encounterLevel = mockEncounterLevel(offer.template.difficulty);
   const playerCombatStat: "strength" | "dexterity" | "intelligence" = classToStatTree(playerClass);
   const playerActor = {
     id: "player-warden",
@@ -332,6 +414,11 @@ export function buildMockCombatEncounterState(args: {
     maxHp: playerMaxHp,
     power: playerPower,
     combatStat: playerCombatStat,
+    rollStats: buildMockPlayerRollStats({
+      level: encounterLevel,
+      playerStats,
+      combatStat: playerCombatStat
+    }),
     avatarPath: playerAvatarPath ?? undefined
   };
   const enemyActor = {
@@ -341,6 +428,12 @@ export function buildMockCombatEncounterState(args: {
     maxHp: preset.enemyMaxHp,
     power: preset.enemyPower,
     combatStat: preset.enemyCombatStat,
+    rollStats: buildMockEnemyRollStats({
+      level: encounterLevel,
+      power: preset.enemyPower,
+      maxHp: preset.enemyMaxHp,
+      combatStat: preset.enemyCombatStat
+    }),
     avatarPath: preset.avatarPath,
     usesSilhouetteFallback: preset.usesSilhouetteFallback
   };

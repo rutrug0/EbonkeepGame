@@ -323,7 +323,6 @@ const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
 const CHAT_DOCK_TOLERANCE_PX = 1;
-const CONTRACT_COMBAT_RETURN_DELAY_MS = 5_000;
 const DEFAULT_INVENTORY_FILTER_STATE: InventoryFilterState = {
   showOnlyWeapons: false,
   showOnlyArmor: false,
@@ -1484,7 +1483,6 @@ export function AppShell() {
   const panelViewportGroupRef = useRef<HTMLDivElement | null>(null);
   const panelViewportMainRef = useRef<HTMLDivElement | null>(null);
   const panelViewportSideRef = useRef<HTMLDivElement | null>(null);
-  const contractAutoReturnTimeoutRef = useRef<number | null>(null);
   const pendingContractResultPlayerStateRef = useRef<PendingContractResultPlayerState | null>(null);
   const renownViewportRef = useRef<HTMLDivElement | null>(null);
   const renownDragStateRef = useRef<{
@@ -2985,33 +2983,6 @@ export function AppShell() {
     activeContractEncounter?.resolutionState,
     activeContractEncounter?.typedSummaryLine
   ]);
-
-  useEffect(() => {
-    if (contractAutoReturnTimeoutRef.current !== null) {
-      window.clearTimeout(contractAutoReturnTimeoutRef.current);
-      contractAutoReturnTimeoutRef.current = null;
-    }
-
-    if (
-      !activeContractEncounter ||
-      activeContractEncounter.phase !== "combat" ||
-      activeContractEncounter.resolutionState !== "awaiting_return"
-    ) {
-      return;
-    }
-
-    contractAutoReturnTimeoutRef.current = window.setTimeout(() => {
-      contractAutoReturnTimeoutRef.current = null;
-      void returnToContractsBoard();
-    }, CONTRACT_COMBAT_RETURN_DELAY_MS);
-
-    return () => {
-      if (contractAutoReturnTimeoutRef.current !== null) {
-        window.clearTimeout(contractAutoReturnTimeoutRef.current);
-        contractAutoReturnTimeoutRef.current = null;
-      }
-    };
-  }, [activeContractEncounter?.phase, activeContractEncounter?.resolutionState]);
 
   useEffect(() => {
     if (
@@ -5344,7 +5315,10 @@ export function AppShell() {
                           playbackRate={getEncounterAnimationRate(activeContractEncounter)}
                           isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
                           hoveredActorId={hoveredCombatActorId}
+                          resolutionState={activeContractEncounter.resolutionState}
                           onToggleFastForward={toggleCombatFastForward}
+                          onReplayCombat={replayContractEncounter}
+                          onBackToBoard={returnToContractsBoard}
                         />
                       </div>
                     </div>
@@ -5386,7 +5360,10 @@ export function AppShell() {
                         playbackRate={getEncounterAnimationRate(activeContractEncounter)}
                         isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
                         hoveredActorId={hoveredCombatActorId}
+                        resolutionState={activeContractEncounter.resolutionState}
                         onToggleFastForward={toggleCombatFastForward}
+                        onReplayCombat={replayContractEncounter}
+                        onBackToBoard={returnToContractsBoard}
                       />
                     </div>
                   </div>
