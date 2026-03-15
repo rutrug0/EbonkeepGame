@@ -3,6 +3,11 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import type { CombatPlaybackActor } from "./playback";
+import {
+  buildTooltipPositionFromElement,
+  buildTooltipPositionFromPointer,
+  type TooltipOverlayPosition
+} from "./tooltipPosition";
 
 type CombatActorFrameProps = {
   actor: CombatPlaybackActor;
@@ -14,15 +19,10 @@ type CombatActorFrameProps = {
   isDead: boolean;
 };
 
-type TooltipOverlayPosition = {
-  left: number;
-  top: number;
-};
-
-const TOOLTIP_WIDTH_PX = 360;
-const TOOLTIP_CURSOR_OFFSET_PX = 18;
-const TOOLTIP_VIEWPORT_PADDING_PX = 16;
-const TOOLTIP_ESTIMATED_HEIGHT_PX = 220;
+const COMBAT_ACTOR_TOOLTIP_SIZING = {
+  width: 360,
+  estimatedHeight: 220
+} as const;
 
 function formatCombatStatLabel(combatStat: "strength" | "dexterity" | "intelligence"): string {
   switch (combatStat) {
@@ -75,39 +75,6 @@ function formatDamageLabel(actor: CombatPlaybackActor, t: (key: string, options?
     return t("profile.spellDamage");
   }
   return t("profile.meleeDamage");
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function buildTooltipPositionFromPointer(clientX: number, clientY: number): TooltipOverlayPosition {
-  const hasRoomOnRight = window.innerWidth - clientX >= TOOLTIP_WIDTH_PX + TOOLTIP_VIEWPORT_PADDING_PX;
-  const left = hasRoomOnRight
-    ? Math.min(window.innerWidth - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_WIDTH_PX, clientX + TOOLTIP_CURSOR_OFFSET_PX)
-    : Math.max(TOOLTIP_VIEWPORT_PADDING_PX, clientX - TOOLTIP_CURSOR_OFFSET_PX - TOOLTIP_WIDTH_PX);
-  const top = clamp(
-    clientY,
-    TOOLTIP_VIEWPORT_PADDING_PX + TOOLTIP_ESTIMATED_HEIGHT_PX / 2,
-    window.innerHeight - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_ESTIMATED_HEIGHT_PX / 2
-  );
-
-  return { left, top };
-}
-
-function buildTooltipPositionFromElement(target: HTMLElement): TooltipOverlayPosition {
-  const rect = target.getBoundingClientRect();
-  const hasRoomOnRight = window.innerWidth - rect.right >= TOOLTIP_WIDTH_PX + TOOLTIP_VIEWPORT_PADDING_PX;
-  const left = hasRoomOnRight
-    ? Math.min(window.innerWidth - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_WIDTH_PX, rect.right + TOOLTIP_CURSOR_OFFSET_PX)
-    : Math.max(TOOLTIP_VIEWPORT_PADDING_PX, rect.left - TOOLTIP_CURSOR_OFFSET_PX - TOOLTIP_WIDTH_PX);
-  const top = clamp(
-    rect.top + rect.height / 2,
-    TOOLTIP_VIEWPORT_PADDING_PX + TOOLTIP_ESTIMATED_HEIGHT_PX / 2,
-    window.innerHeight - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_ESTIMATED_HEIGHT_PX / 2
-  );
-
-  return { left, top };
 }
 
 export function CombatActorFrame({
@@ -172,21 +139,21 @@ export function CombatActorFrame({
     if (!showStatsTooltip) {
       return;
     }
-    setTooltipPosition(buildTooltipPositionFromPointer(event.clientX, event.clientY));
+    setTooltipPosition(buildTooltipPositionFromPointer(event.clientX, event.clientY, COMBAT_ACTOR_TOOLTIP_SIZING));
   }
 
   function updateTooltipFromPointer(event: MouseEvent<HTMLElement>) {
     if (!showStatsTooltip || tooltipPosition === null) {
       return;
     }
-    setTooltipPosition(buildTooltipPositionFromPointer(event.clientX, event.clientY));
+    setTooltipPosition(buildTooltipPositionFromPointer(event.clientX, event.clientY, COMBAT_ACTOR_TOOLTIP_SIZING));
   }
 
   function openTooltipFromFocus(event: FocusEvent<HTMLElement>) {
     if (!showStatsTooltip) {
       return;
     }
-    setTooltipPosition(buildTooltipPositionFromElement(event.currentTarget));
+    setTooltipPosition(buildTooltipPositionFromElement(event.currentTarget, COMBAT_ACTOR_TOOLTIP_SIZING));
   }
 
   function closeTooltip() {

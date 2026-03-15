@@ -9,6 +9,17 @@ import type {
 } from "./playback";
 
 import { CombatActorFrame } from "./CombatActorFrame";
+import { CombatLogRollTooltip } from "./CombatLogRollTooltip";
+import {
+  buildTooltipPositionFromElement,
+  buildTooltipPositionFromPointer,
+  type TooltipOverlayPosition
+} from "./tooltipPosition";
+
+const COMBAT_LOG_TOOLTIP_SIZING = {
+  width: 420,
+  estimatedHeight: 360
+} as const;
 
 export type CombatEncounterPanelProps = {
   phase: "travel" | "combat";
@@ -235,6 +246,10 @@ export function CombatEncounterLogPanel({
 >) {
   const { t } = useTranslation();
   const combatLogBodyRef = useRef<HTMLDivElement>(null);
+  const [activeTooltip, setActiveTooltip] = useState<{
+    eventId: string;
+    position: TooltipOverlayPosition;
+  } | null>(null);
   const isSummaryVisible = resolutionState !== "playing";
   const showSummaryCursor = resolutionState === "summarizing";
   const actorById = new Map<string, CombatPlaybackActor>([
@@ -244,12 +259,59 @@ export function CombatEncounterLogPanel({
   const actionEvents = timeline.filter(
     (event): event is CombatPlaybackActionResolved => event.type === "CombatPlaybackActionResolved"
   );
+  const actionEventsById = new Map(actionEvents.map((event) => [event.eventId, event] as const));
+  const combatLogRows = combatLogEntries.map((entry, index) => {
+    const actionEvent = actionEventsById.get(combatLogEventIds[index] ?? "") ?? null;
+    return {
+      entry,
+      actionEvent,
+      attacker: actionEvent ? actorById.get(actionEvent.actorId) ?? null : null,
+      defender: actionEvent ? actorById.get(actionEvent.targetId) ?? null : null
+    };
+  });
 
   useEffect(() => {
     if (combatLogBodyRef.current) {
       combatLogBodyRef.current.scrollTop = combatLogBodyRef.current.scrollHeight;
     }
   }, [combatLogEntries.length]);
+
+  function openTooltipFromPointer(eventId: string, clientX: number, clientY: number) {
+    setActiveTooltip({
+      eventId,
+      position: buildTooltipPositionFromPointer(clientX, clientY, COMBAT_LOG_TOOLTIP_SIZING)
+    });
+  }
+
+  function updateTooltipFromPointer(eventId: string, clientX: number, clientY: number) {
+    if (activeTooltip?.eventId !== eventId) {
+      return;
+    }
+
+    setActiveTooltip({
+      eventId,
+      position: buildTooltipPositionFromPointer(clientX, clientY, COMBAT_LOG_TOOLTIP_SIZING)
+    });
+  }
+
+  function openTooltipFromFocus(eventId: string, target: HTMLElement) {
+    setActiveTooltip({
+      eventId,
+      position: buildTooltipPositionFromElement(target, COMBAT_LOG_TOOLTIP_SIZING)
+    });
+  }
+
+  function closeTooltip(eventId?: string) {
+    setActiveTooltip((currentTooltip) => {
+      if (!currentTooltip) {
+        return null;
+      }
+      if (eventId && currentTooltip.eventId !== eventId) {
+        return currentTooltip;
+      }
+      return null;
+    });
+  }
 
   return (
     <section className="contentShell combatLogShell">
@@ -281,14 +343,38 @@ export function CombatEncounterLogPanel({
           <div className="combatLogBody" ref={combatLogBodyRef}>
             {combatLogEntries.length > 0 ? (
               <ol className="combatLogList">
-                {combatLogEntries.map((entry, index) => {
-                  const actionEvent =
-                    actionEvents.find((event) => event.eventId === combatLogEventIds[index]) ?? null;
-                  const attacker = actionEvent ? actorById.get(actionEvent.actorId) ?? null : null;
-                  const defender = actionEvent ? actorById.get(actionEvent.targetId) ?? null : null;
+                {combatLogRows.map(({ entry, actionEvent, attacker, defender }, index) => {
+                  const tooltipId = actionEvent ? `combat-log-roll-${actionEvent.eventId}` : undefined;
+                  const hasTooltip = Boolean(actionEvent?.rollBreakdown);
 
                   return (
-                    <li key={actionEvent?.eventId ?? `${index}-${entry}`} className="combatLogMessage">
+                    <li
+                      key={actionEvent?.eventId ?? `${index}-${entry}`}
+                      className={`combatLogMessage${hasTooltip ? " combatLogMessageTooltipTrigger" : ""}${
+                        activeTooltip?.eventId === actionEvent?.eventId ? " isTooltipVisible" : ""
+                      }`}
+                      aria-describedby={hasTooltip && activeTooltip?.eventId === actionEvent?.eventId ? tooltipId : undefined}
+                      tabIndex={hasTooltip ? 0 : undefined}
+                      onMouseEnter={
+                        hasTooltip && actionEvent
+                          ? (mouseEvent) =>
+                              openTooltipFromPointer(actionEvent.eventId, mouseEvent.clientX, mouseEvent.clientY)
+                          : undefined
+                      }
+                      onMouseMove={
+                        hasTooltip && actionEvent
+                          ? (mouseEvent) =>
+                              updateTooltipFromPointer(actionEvent.eventId, mouseEvent.clientX, mouseEvent.clientY)
+                          : undefined
+                      }
+                      onMouseLeave={hasTooltip && actionEvent ? () => closeTooltip(actionEvent.eventId) : undefined}
+                      onFocus={
+                        hasTooltip && actionEvent
+                          ? (focusEvent) => openTooltipFromFocus(actionEvent.eventId, focusEvent.currentTarget)
+                          : undefined
+                      }
+                      onBlur={hasTooltip && actionEvent ? () => closeTooltip(actionEvent.eventId) : undefined}
+                    >
                       <div className="combatLogPortrait combatLogPortrait-attacker" aria-hidden="true">
                         {attacker?.avatarPath && !attacker.usesSilhouetteFallback ? (
                           <img
@@ -314,6 +400,13 @@ export function CombatEncounterLogPanel({
                           <div className="combatActorSilhouette combatLogPortraitFallback" />
                         )}
                       </div>
+                      {hasTooltip && actionEvent?.rollBreakdown && activeTooltip?.eventId === actionEvent.eventId && tooltipId ? (
+                        <CombatLogRollTooltip
+                          tooltipId={tooltipId}
+                          breakdown={actionEvent.rollBreakdown}
+                          position={activeTooltip.position}
+                        />
+                      ) : null}
                     </li>
                   );
                 })}

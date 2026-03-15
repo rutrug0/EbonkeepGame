@@ -3,7 +3,10 @@ export {
   combatPlaybackActorSchema,
   combatPlaybackEncounterSchema,
   combatPlaybackEndedSchema,
+  combatPlaybackRollBreakdownSchema,
+  combatPlaybackRollBreakdownActorSchema,
   combatPlaybackEventSchema,
+  combatPlaybackMitigationStatSchema,
   combatPlaybackRollStatsSchema,
   combatPlaybackStartedSchema,
   type CombatPlaybackActionResolved,
@@ -11,6 +14,9 @@ export {
   type CombatPlaybackEncounter,
   type CombatPlaybackEnded,
   type CombatPlaybackEvent,
+  type CombatPlaybackMitigationStat,
+  type CombatPlaybackRollBreakdown,
+  type CombatPlaybackRollBreakdownActor,
   type CombatPlaybackRollStats,
   type CombatPlaybackStarted
 } from "@ebonkeep/shared/combat";

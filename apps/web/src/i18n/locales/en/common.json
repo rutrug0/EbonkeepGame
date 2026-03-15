@@ -188,7 +188,29 @@
     "efficiencyHighCost": "High Cost",
     "difficultyEasy": "Easy",
     "difficultyMedium": "Medium",
-    "difficultyHard": "Hard"
+    "difficultyHard": "Hard",
+    "combatTooltip": {
+      "hit": "Hit",
+      "criticalHit": "Critical Hit",
+      "missed": "Missed",
+      "finalDamage": "Final {{value}} damage",
+      "noDamage": "No damage dealt",
+      "hpFlow": "HP {{before}} -> {{after}}",
+      "hitCheck": "Hit Check",
+      "hitCheckSummary": "{{chance}} chance",
+      "hitCheckDetail": "{{accuracy}} accuracy vs {{dodge}} dodge",
+      "damageRoll": "Damage Roll",
+      "damageRollSummary": "Rolled {{roll}} from {{min}}-{{max}}",
+      "damageRollMiss": "No damage roll",
+      "damageRollCrit": "Critical x{{multiplier}} -> {{raw}}",
+      "damageRollNormal": "No critical -> {{raw}}",
+      "defenseReduction": "Defense Reduction",
+      "defenseReductionSummary": "-{{reduction}} blocked",
+      "defenseReductionNone": "No reduction",
+      "defenseReductionDetail": "{{mitigation}} {{resistance}} + {{defense}} {{defenseValue}}",
+      "minimumFloor": "Minimum floor {{value}}",
+      "math": "Math"
+    }
   },
   "profile": {
     "defaultName": "Warden",

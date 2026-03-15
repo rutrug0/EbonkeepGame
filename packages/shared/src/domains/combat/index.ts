@@ -393,6 +393,45 @@ export const combatPlaybackRollStatsSchema = z.object({
 });
 export type CombatPlaybackRollStats = z.infer<typeof combatPlaybackRollStatsSchema>;
 
+export const combatPlaybackMitigationStatSchema = z.enum(["armor", "missileResistance", "spellShield"]);
+export type CombatPlaybackMitigationStat = z.infer<typeof combatPlaybackMitigationStatSchema>;
+
+export const combatPlaybackRollBreakdownActorSchema = z.object({
+  name: z.string(),
+  accuracy: z.number().int().min(0),
+  dodgeChance: z.number().int().min(0),
+  critChance: z.number().int().min(0),
+  critMultiplier: z.number().int().min(0),
+  minDamage: z.number().int().min(0),
+  maxDamage: z.number().int().min(0),
+  armor: z.number().int().min(0),
+  spellShield: z.number().int().min(0),
+  missileResistance: z.number().int().min(0),
+  physicalDefense: z.number().int().min(0),
+  magicDefense: z.number().int().min(0)
+});
+export type CombatPlaybackRollBreakdownActor = z.infer<typeof combatPlaybackRollBreakdownActorSchema>;
+
+export const combatPlaybackRollBreakdownSchema = z.object({
+  attacker: combatPlaybackRollBreakdownActorSchema,
+  defender: combatPlaybackRollBreakdownActorSchema,
+  damageKind: combatDamageKindSchema,
+  hitChanceBps: z.number().int().min(0).max(10000),
+  didHit: z.boolean(),
+  didCrit: z.boolean(),
+  baseDamageRoll: z.number().int().min(0).nullable(),
+  rawDamage: z.number().int().min(0),
+  mitigationStatLabel: combatPlaybackMitigationStatSchema,
+  mitigationResistance: z.number().int().min(0),
+  mitigationDefense: z.number().int().min(0),
+  mitigationTotal: z.number().int().min(0),
+  minimumDamage: z.number().int().min(0),
+  finalDamage: z.number().int().min(0),
+  targetHpAfter: z.number().int().min(0),
+  killed: z.boolean()
+});
+export type CombatPlaybackRollBreakdown = z.infer<typeof combatPlaybackRollBreakdownSchema>;
+
 export const combatPlaybackActorSchema = z.object({
   id: z.string(),
   side: combatActorSideSchema,
@@ -438,7 +477,8 @@ export const combatPlaybackActionResolvedSchema = z.object({
   damage: z.number().int().min(0),
   targetHpAfter: z.number().int().min(0),
   attackerLungeDirection: z.enum(["left-to-right", "right-to-left"]),
-  logLine: z.string()
+  logLine: z.string(),
+  rollBreakdown: combatPlaybackRollBreakdownSchema
 });
 export type CombatPlaybackActionResolved = z.infer<typeof combatPlaybackActionResolvedSchema>;
 

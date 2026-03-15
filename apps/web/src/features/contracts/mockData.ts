@@ -7,8 +7,10 @@ import {
   combatPlaybackEncounterSchema,
   combatPlaybackEventSchema,
   type CombatPlaybackActionResolved,
+  type CombatPlaybackActor,
   type CombatPlaybackEncounter,
   type CombatPlaybackEvent,
+  type CombatPlaybackRollBreakdown,
   type CombatPlaybackRollStats
 } from "../combat/playback";
 
@@ -109,6 +111,9 @@ function mitigateIncomingDamage(
   attackType: MockAttackType,
   targetStats: Pick<PlayerStatBlock, "armor" | "missileResistance" | "spellShield" | "physicalDefense" | "magicDefense">
 ): number {
+  if (rawDamage <= 0) {
+    return 0;
+  }
   const reduction =
     attackType === "melee"
       ? targetStats.armor + targetStats.physicalDefense
@@ -116,7 +121,135 @@ function mitigateIncomingDamage(
         ? targetStats.missileResistance + targetStats.physicalDefense
         : targetStats.spellShield + targetStats.magicDefense;
 
-  return Math.max(0, rawDamage - reduction);
+  const minimumDamage = Math.max(1, Math.floor((rawDamage * 200) / 10_000));
+  return Math.max(minimumDamage, rawDamage - reduction);
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function inferBaseDamageRoll(args: {
+  crit: boolean;
+  rawDamage: number;
+  minDamage: number;
+  maxDamage: number;
+  critMultiplier: number;
+}): number | null {
+  if (args.rawDamage <= 0) {
+    return null;
+  }
+  if (!args.crit) {
+    return clampInt(args.rawDamage, args.minDamage, args.maxDamage);
+  }
+
+  const candidates: number[] = [];
+  for (let damageRoll = args.minDamage; damageRoll <= args.maxDamage; damageRoll += 1) {
+    if (Math.round((damageRoll * args.critMultiplier) / 10_000) === args.rawDamage) {
+      candidates.push(damageRoll);
+    }
+  }
+
+  if (candidates.length === 0) {
+    return clampInt(Math.round((args.rawDamage * 10_000) / args.critMultiplier), args.minDamage, args.maxDamage);
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0] ?? null;
+  }
+
+  const estimatedRoll = (args.rawDamage * 10_000) / args.critMultiplier;
+  return (
+    candidates.reduce((best, candidate) =>
+      Math.abs(candidate - estimatedRoll) < Math.abs(best - estimatedRoll) ? candidate : best
+    ) ?? null
+  );
+}
+
+function buildMockRollBreakdown(args: {
+  attacker: CombatPlaybackActor;
+  defender: CombatPlaybackActor;
+  rawDamage: number;
+  finalDamage: number;
+  targetHpAfter: number;
+  didHit?: boolean;
+  didCrit?: boolean;
+  killed?: boolean;
+}): CombatPlaybackRollBreakdown {
+  const attacker = args.attacker.rollStats;
+  const defender = args.defender.rollStats;
+  if (!attacker || !defender) {
+    throw new Error("Mock playback actors require roll stats.");
+  }
+
+  const mitigationStatLabel =
+    attacker.damageKind === "melee"
+      ? "armor"
+      : attacker.damageKind === "ranged"
+        ? "missileResistance"
+        : "spellShield";
+  const mitigationResistance =
+    mitigationStatLabel === "armor"
+      ? defender.armor
+      : mitigationStatLabel === "missileResistance"
+        ? defender.missileResistance
+        : defender.spellShield;
+  const mitigationDefense = attacker.damageKind === "spell" ? defender.magicDefense : defender.physicalDefense;
+  const didHit = args.didHit ?? true;
+  const didCrit = args.didCrit ?? false;
+
+  return {
+    attacker: {
+      name: args.attacker.name,
+      accuracy: attacker.accuracy,
+      dodgeChance: attacker.dodgeChance,
+      critChance: attacker.critChance,
+      critMultiplier: attacker.critMultiplier,
+      minDamage: attacker.minDamage,
+      maxDamage: attacker.maxDamage,
+      armor: attacker.armor,
+      spellShield: attacker.spellShield,
+      missileResistance: attacker.missileResistance,
+      physicalDefense: attacker.physicalDefense,
+      magicDefense: attacker.magicDefense
+    },
+    defender: {
+      name: args.defender.name,
+      accuracy: defender.accuracy,
+      dodgeChance: defender.dodgeChance,
+      critChance: defender.critChance,
+      critMultiplier: defender.critMultiplier,
+      minDamage: defender.minDamage,
+      maxDamage: defender.maxDamage,
+      armor: defender.armor,
+      spellShield: defender.spellShield,
+      missileResistance: defender.missileResistance,
+      physicalDefense: defender.physicalDefense,
+      magicDefense: defender.magicDefense
+    },
+    damageKind: attacker.damageKind,
+    hitChanceBps: clampInt(attacker.accuracy * 100 - defender.dodgeChance, 2500, 9750),
+    didHit,
+    didCrit,
+    baseDamageRoll: didHit
+      ? inferBaseDamageRoll({
+          crit: didCrit,
+          rawDamage: args.rawDamage,
+          minDamage: attacker.minDamage,
+          maxDamage: attacker.maxDamage,
+          critMultiplier: attacker.critMultiplier
+        })
+      : null,
+    rawDamage: didHit ? args.rawDamage : 0,
+    mitigationStatLabel,
+    mitigationResistance,
+    mitigationDefense,
+    mitigationTotal: mitigationResistance + mitigationDefense,
+    minimumDamage: didHit ? Math.max(1, Math.floor((args.rawDamage * 200) / 10_000)) : 0,
+    finalDamage: didHit ? args.finalDamage : 0,
+    targetHpAfter: args.targetHpAfter,
+    killed: args.killed ?? false
+  };
 }
 
 function damageKindFromCombatStat(
@@ -449,6 +582,21 @@ export function buildMockCombatEncounterState(args: {
     player: playerActor,
     enemies: [enemyActor]
   });
+  const playerOpeningDamage = 18;
+  const enemyOpeningRawDamage = Math.max(10, Math.round(enemyActor.power * 0.12));
+  const enemyOpeningDamage = mitigateIncomingDamage(
+    enemyOpeningRawDamage,
+    attackTypeFromCombatStat(enemyActor.combatStat),
+    playerStats
+  );
+  const playerFollowupDamage = 17;
+  const enemyFollowupRawDamage = Math.max(9, Math.round(enemyActor.power * 0.1));
+  const enemyFollowupDamage = mitigateIncomingDamage(
+    enemyFollowupRawDamage,
+    attackTypeFromCombatStat(enemyActor.combatStat),
+    playerStats
+  );
+  const playerFinisherDamage = Math.max(0, enemyActor.maxHp - 35);
   const timeline = combatPlaybackEventSchema.array().parse([
     {
       type: "CombatPlaybackStarted",
@@ -463,10 +611,17 @@ export function buildMockCombatEncounterState(args: {
       actorId: playerActor.id,
       targetId: enemyActor.id,
       actionType: "basic_attack",
-      damage: 18,
-      targetHpAfter: Math.max(0, enemyActor.maxHp - 18),
+      damage: playerOpeningDamage,
+      targetHpAfter: Math.max(0, enemyActor.maxHp - playerOpeningDamage),
       attackerLungeDirection: "left-to-right",
-      logLine: `${playerActor.name} strikes ${enemyActor.name} for 18 damage.`
+      logLine: `${playerActor.name} strikes ${enemyActor.name} for ${playerOpeningDamage} damage.`,
+      rollBreakdown: buildMockRollBreakdown({
+        attacker: playerActor,
+        defender: enemyActor,
+        rawDamage: playerOpeningDamage,
+        finalDamage: playerOpeningDamage,
+        targetHpAfter: Math.max(0, enemyActor.maxHp - playerOpeningDamage)
+      })
     },
     {
       type: "CombatPlaybackActionResolved",
@@ -476,26 +631,20 @@ export function buildMockCombatEncounterState(args: {
       actorId: enemyActor.id,
       targetId: playerActor.id,
       actionType: "basic_attack",
-      damage: mitigateIncomingDamage(
-        Math.max(10, Math.round(enemyActor.power * 0.12)),
-        attackTypeFromCombatStat(enemyActor.combatStat),
-        playerStats
-      ),
+      damage: enemyOpeningDamage,
       targetHpAfter: Math.max(
         0,
-        playerActor.maxHp -
-          mitigateIncomingDamage(
-            Math.max(10, Math.round(enemyActor.power * 0.12)),
-            attackTypeFromCombatStat(enemyActor.combatStat),
-            playerStats
-          )
+        playerActor.maxHp - enemyOpeningDamage
       ),
       attackerLungeDirection: "right-to-left",
-      logLine: `${enemyActor.name} clips ${playerActor.name} for ${mitigateIncomingDamage(
-        Math.max(10, Math.round(enemyActor.power * 0.12)),
-        attackTypeFromCombatStat(enemyActor.combatStat),
-        playerStats
-      )} damage.`
+      logLine: `${enemyActor.name} clips ${playerActor.name} for ${enemyOpeningDamage} damage.`,
+      rollBreakdown: buildMockRollBreakdown({
+        attacker: enemyActor,
+        defender: playerActor,
+        rawDamage: enemyOpeningRawDamage,
+        finalDamage: enemyOpeningDamage,
+        targetHpAfter: Math.max(0, playerActor.maxHp - enemyOpeningDamage)
+      })
     },
     {
       type: "CombatPlaybackActionResolved",
@@ -505,10 +654,17 @@ export function buildMockCombatEncounterState(args: {
       actorId: playerActor.id,
       targetId: enemyActor.id,
       actionType: "basic_attack",
-      damage: 17,
+      damage: playerFollowupDamage,
       targetHpAfter: Math.max(0, enemyActor.maxHp - 35),
       attackerLungeDirection: "left-to-right",
-      logLine: `${playerActor.name} presses forward and deals 17 damage to ${enemyActor.name}.`
+      logLine: `${playerActor.name} presses forward and deals ${playerFollowupDamage} damage to ${enemyActor.name}.`,
+      rollBreakdown: buildMockRollBreakdown({
+        attacker: playerActor,
+        defender: enemyActor,
+        rawDamage: playerFollowupDamage,
+        finalDamage: playerFollowupDamage,
+        targetHpAfter: Math.max(0, enemyActor.maxHp - 35)
+      })
     },
     {
       type: "CombatPlaybackActionResolved",
@@ -518,31 +674,20 @@ export function buildMockCombatEncounterState(args: {
       actorId: enemyActor.id,
       targetId: playerActor.id,
       actionType: "basic_attack",
-      damage: mitigateIncomingDamage(
-        Math.max(9, Math.round(enemyActor.power * 0.1)),
-        attackTypeFromCombatStat(enemyActor.combatStat),
-        playerStats
-      ),
+      damage: enemyFollowupDamage,
       targetHpAfter: Math.max(
         0,
-        playerActor.maxHp -
-          mitigateIncomingDamage(
-            Math.max(10, Math.round(enemyActor.power * 0.12)),
-            attackTypeFromCombatStat(enemyActor.combatStat),
-            playerStats
-          ) -
-          mitigateIncomingDamage(
-            Math.max(9, Math.round(enemyActor.power * 0.1)),
-            attackTypeFromCombatStat(enemyActor.combatStat),
-            playerStats
-          )
+        playerActor.maxHp - enemyOpeningDamage - enemyFollowupDamage
       ),
       attackerLungeDirection: "right-to-left",
-      logLine: `${enemyActor.name} catches ${playerActor.name} for ${mitigateIncomingDamage(
-        Math.max(9, Math.round(enemyActor.power * 0.1)),
-        attackTypeFromCombatStat(enemyActor.combatStat),
-        playerStats
-      )} damage.`
+      logLine: `${enemyActor.name} catches ${playerActor.name} for ${enemyFollowupDamage} damage.`,
+      rollBreakdown: buildMockRollBreakdown({
+        attacker: enemyActor,
+        defender: playerActor,
+        rawDamage: enemyFollowupRawDamage,
+        finalDamage: enemyFollowupDamage,
+        targetHpAfter: Math.max(0, playerActor.maxHp - enemyOpeningDamage - enemyFollowupDamage)
+      })
     },
     {
       type: "CombatPlaybackActionResolved",
@@ -552,10 +697,18 @@ export function buildMockCombatEncounterState(args: {
       actorId: playerActor.id,
       targetId: enemyActor.id,
       actionType: "basic_attack",
-      damage: Math.max(0, enemyActor.maxHp - 35),
+      damage: playerFinisherDamage,
       targetHpAfter: 0,
       attackerLungeDirection: "left-to-right",
-      logLine: `${playerActor.name} finishes ${enemyActor.name} with a final blow.`
+      logLine: `${playerActor.name} finishes ${enemyActor.name} with a final blow.`,
+      rollBreakdown: buildMockRollBreakdown({
+        attacker: playerActor,
+        defender: enemyActor,
+        rawDamage: playerFinisherDamage,
+        finalDamage: playerFinisherDamage,
+        targetHpAfter: 0,
+        killed: true
+      })
     },
     {
       type: "CombatPlaybackEnded",
