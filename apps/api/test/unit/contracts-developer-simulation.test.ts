@@ -111,9 +111,20 @@ describe("contracts developer simulation", () => {
       expect(levelTen?.avgPlayerHpLossPercentByDifficulty.easy).toBeGreaterThanOrEqual(0);
       expect(levelTen?.avgPlayerHpLossPercentByDifficulty.medium).toBeGreaterThanOrEqual(0);
       expect(levelTen?.avgPlayerHpLossPercentByDifficulty.hard).toBeGreaterThanOrEqual(0);
-      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.hard ?? 0).toBeGreaterThanOrEqual(
-        levelTen?.avgPlayerHpLossPercentByDifficulty.easy ?? 0
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.easy).toBeGreaterThan(0);
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.medium).toBeGreaterThan(0);
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.hard).toBeGreaterThan(0);
+      expect(levelTen?.avgPlayerActionTurnsByDifficulty.easy ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgEnemyActionTurnsByDifficulty.medium ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgPlayerStrikesByDifficulty.hard ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgEnemyStrikesByDifficulty.hard ?? 0).toBeGreaterThanOrEqual(
+        levelTen?.avgEnemyActionTurnsByDifficulty.hard ?? 0
       );
+      expect(levelTen?.avgStaminaCostPerFight ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.hard ?? 0).toBeGreaterThanOrEqual(
+        levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.medium ?? 0
+      );
+      expect(archetype.benchmarkTurnTargetHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -188,13 +199,25 @@ describe("contracts developer simulation", () => {
         archetypes: Array<{
           archetype: string;
           benchmarkTargetBandHitRateByDifficulty: { easy: number; medium: number; hard: number };
+          benchmarkTurnTargetHitRateByDifficulty: { easy: number; medium: number; hard: number };
+          levels: Array<{
+            avgStaminaCostPerFight: number;
+            avgPlayerActionTurnsByDifficulty: { easy: number; medium: number; hard: number };
+            avgEnemyActionTurnsByDifficulty: { easy: number; medium: number; hard: number };
+            avgEncounterHpToPlayerHpRatioByDifficulty: { easy: number; medium: number; hard: number };
+          }>;
         }>;
       };
     };
 
-    expect(payload.artifactVersion).toBe(2);
+    expect(payload.artifactVersion).toBe(4);
     expect(payload.result.archetypes).toHaveLength(3);
     expect(payload.result.archetypes[1]?.benchmarkTargetBandHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
+    expect(payload.result.archetypes[1]?.benchmarkTurnTargetHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgStaminaCostPerFight ?? 0).toBeGreaterThan(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgPlayerActionTurnsByDifficulty.medium ?? 0).toBeGreaterThan(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgEnemyActionTurnsByDifficulty.medium ?? 0).toBeGreaterThan(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgEncounterHpToPlayerHpRatioByDifficulty.medium ?? 0).toBeGreaterThan(0);
 
     await rm(output.artifactPath, { force: true });
   });

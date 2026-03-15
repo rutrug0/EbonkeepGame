@@ -298,19 +298,26 @@ export const developerContractSimulationLevelSummarySchema = z.object({
     hard: z.number().min(0).max(1)
   }),
   avgXpPerFight: z.number().min(0),
+  avgStaminaCostPerFight: z.number().min(0),
   avgStaminaSpent: z.number().min(0),
   avgRestCount: z.number().min(0),
   avgCombatSeconds: z.number().min(0),
   avgInputOverheadSeconds: z.number().min(0),
   avgPlayerAttackRoll: z.number().min(0),
   avgPlayerHpLossPercent: z.number().min(0).max(100),
-  avgPlayerHpLossPercentByDifficulty: developerContractSimulationDifficultyPercentagesSchema
+  avgPlayerActionTurnsByDifficulty: developerContractSimulationDifficultyAveragesSchema,
+  avgEnemyActionTurnsByDifficulty: developerContractSimulationDifficultyAveragesSchema,
+  avgPlayerStrikesByDifficulty: developerContractSimulationDifficultyAveragesSchema,
+  avgEnemyStrikesByDifficulty: developerContractSimulationDifficultyAveragesSchema,
+  avgPlayerHpLossPercentByDifficulty: developerContractSimulationDifficultyPercentagesSchema,
+  avgEncounterHpToPlayerHpRatioByDifficulty: developerContractSimulationDifficultyAveragesSchema
 });
 export type DeveloperContractSimulationLevelSummary = z.infer<typeof developerContractSimulationLevelSummarySchema>;
 
 export const developerContractSimulationArchetypeResultSchema = z.object({
   archetype: developerContractSimulationArchetypeSchema,
   benchmarkTargetBandHitRateByDifficulty: developerContractSimulationDifficultyHitRateSchema,
+  benchmarkTurnTargetHitRateByDifficulty: developerContractSimulationDifficultyHitRateSchema,
   levels: z.array(developerContractSimulationLevelSummarySchema)
 });
 export type DeveloperContractSimulationArchetypeResult = z.infer<typeof developerContractSimulationArchetypeResultSchema>;
@@ -354,6 +361,8 @@ export const developerContractsStaticCurvePointSchema = z.object({
   averageTravelSeconds: z.number().min(0),
   averageReplenishSeconds: z.number().min(0),
   averageStaminaWaitSecondsForContract: z.number().min(0),
+  weightedAverageStaminaWaitSecondsForContract: z.number().min(0),
+  weightedAverageStaminaCostPerContract: z.number().min(0),
   averageContractAvailabilityWaitSeconds: z.number().min(0),
   averageExperiencePerContract: developerContractSimulationDifficultyAveragesSchema,
   experienceToNextLevel: z.number().int().min(0)
