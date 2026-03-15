@@ -1,3 +1,7 @@
+import { useState, type FocusEvent, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+
 import type { CombatPlaybackActor } from "./playback";
 
 type CombatActorFrameProps = {
@@ -9,6 +13,16 @@ type CombatActorFrameProps = {
   isReferenced: boolean;
   isDead: boolean;
 };
+
+type TooltipOverlayPosition = {
+  left: number;
+  top: number;
+};
+
+const TOOLTIP_WIDTH_PX = 360;
+const TOOLTIP_CURSOR_OFFSET_PX = 18;
+const TOOLTIP_VIEWPORT_PADDING_PX = 16;
+const TOOLTIP_ESTIMATED_HEIGHT_PX = 220;
 
 function formatCombatStatLabel(combatStat: "strength" | "dexterity" | "intelligence"): string {
   switch (combatStat) {
@@ -48,6 +62,54 @@ function CombatStatIcon({ combatStat }: { combatStat: "strength" | "dexterity" |
   }
 }
 
+function formatBasisPoints(value: number): string {
+  return `${(value / 100).toFixed(1)}%`;
+}
+
+function formatDamageLabel(actor: CombatPlaybackActor, t: (key: string, options?: Record<string, string | number>) => string): string {
+  const damageKind = actor.rollStats?.damageKind;
+  if (damageKind === "ranged") {
+    return t("profile.rangedDamage");
+  }
+  if (damageKind === "spell") {
+    return t("profile.spellDamage");
+  }
+  return t("profile.meleeDamage");
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function buildTooltipPositionFromPointer(clientX: number, clientY: number): TooltipOverlayPosition {
+  const hasRoomOnRight = window.innerWidth - clientX >= TOOLTIP_WIDTH_PX + TOOLTIP_VIEWPORT_PADDING_PX;
+  const left = hasRoomOnRight
+    ? Math.min(window.innerWidth - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_WIDTH_PX, clientX + TOOLTIP_CURSOR_OFFSET_PX)
+    : Math.max(TOOLTIP_VIEWPORT_PADDING_PX, clientX - TOOLTIP_CURSOR_OFFSET_PX - TOOLTIP_WIDTH_PX);
+  const top = clamp(
+    clientY,
+    TOOLTIP_VIEWPORT_PADDING_PX + TOOLTIP_ESTIMATED_HEIGHT_PX / 2,
+    window.innerHeight - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_ESTIMATED_HEIGHT_PX / 2
+  );
+
+  return { left, top };
+}
+
+function buildTooltipPositionFromElement(target: HTMLElement): TooltipOverlayPosition {
+  const rect = target.getBoundingClientRect();
+  const hasRoomOnRight = window.innerWidth - rect.right >= TOOLTIP_WIDTH_PX + TOOLTIP_VIEWPORT_PADDING_PX;
+  const left = hasRoomOnRight
+    ? Math.min(window.innerWidth - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_WIDTH_PX, rect.right + TOOLTIP_CURSOR_OFFSET_PX)
+    : Math.max(TOOLTIP_VIEWPORT_PADDING_PX, rect.left - TOOLTIP_CURSOR_OFFSET_PX - TOOLTIP_WIDTH_PX);
+  const top = clamp(
+    rect.top + rect.height / 2,
+    TOOLTIP_VIEWPORT_PADDING_PX + TOOLTIP_ESTIMATED_HEIGHT_PX / 2,
+    window.innerHeight - TOOLTIP_VIEWPORT_PADDING_PX - TOOLTIP_ESTIMATED_HEIGHT_PX / 2
+  );
+
+  return { left, top };
+}
+
 export function CombatActorFrame({
   actor,
   currentHp,
@@ -57,10 +119,17 @@ export function CombatActorFrame({
   isReferenced,
   isDead
 }: CombatActorFrameProps) {
+  const { t } = useTranslation();
   const hpPercent = Math.max(0, Math.min(100, Math.round((currentHp / actor.maxHp) * 100)));
+  const showStatsTooltip = actor.side === "enemy" && actor.rollStats;
+  const rollStats = actor.rollStats;
+  const tooltipId = showStatsTooltip ? `combat-actor-stats-${actor.id.replace(/[^a-zA-Z0-9_-]/g, "-")}` : undefined;
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipOverlayPosition | null>(null);
   const frameClassName = [
     "combatActorFrame",
     `combatActorFrame-${actor.side}`,
+    showStatsTooltip ? "combatActorFrameTooltipTrigger" : "",
+    tooltipPosition ? "isTooltipVisible" : "",
     isAttacking ? "isAttacking" : "",
     isHit ? "isHit" : "",
     isReferenced ? "isReferenced" : "",
@@ -72,9 +141,70 @@ export function CombatActorFrame({
   const actorCombatStat = actor.combatStat;
   const showActorMeta = typeof actor.power === "number" && actorCombatStat;
   const combatStatLabel = actorCombatStat ? formatCombatStatLabel(actorCombatStat) : "";
+  const tooltipSections = rollStats
+    ? [
+        {
+          title: t("profile.offensive"),
+          rows: [
+            { label: formatDamageLabel(actor, t), value: `${rollStats.minDamage}-${rollStats.maxDamage}` },
+            { label: t("profile.combatSpeed"), value: rollStats.combatSpeed.toString() },
+            { label: t("profile.accuracy"), value: rollStats.accuracy.toString() },
+            { label: t("profile.critChance"), value: formatBasisPoints(rollStats.critChance) },
+            { label: t("profile.critDamage"), value: formatBasisPoints(rollStats.critMultiplier) },
+            { label: t("profile.chanceToExtraAttack"), value: formatBasisPoints(rollStats.extraAttackChance) }
+          ]
+        },
+        {
+          title: t("profile.defensive"),
+          rows: [
+            { label: t("profile.armor"), value: rollStats.armor.toString() },
+            { label: t("profile.spellShield"), value: rollStats.spellShield.toString() },
+            { label: t("profile.missileResistance"), value: rollStats.missileResistance.toString() },
+            { label: t("profile.physicalDefense"), value: rollStats.physicalDefense.toString() },
+            { label: t("profile.magicDefense"), value: rollStats.magicDefense.toString() },
+            { label: t("profile.dodgeChance"), value: formatBasisPoints(rollStats.dodgeChance) }
+          ]
+        }
+      ]
+    : [];
+
+  function openTooltipFromPointer(event: MouseEvent<HTMLElement>) {
+    if (!showStatsTooltip) {
+      return;
+    }
+    setTooltipPosition(buildTooltipPositionFromPointer(event.clientX, event.clientY));
+  }
+
+  function updateTooltipFromPointer(event: MouseEvent<HTMLElement>) {
+    if (!showStatsTooltip || tooltipPosition === null) {
+      return;
+    }
+    setTooltipPosition(buildTooltipPositionFromPointer(event.clientX, event.clientY));
+  }
+
+  function openTooltipFromFocus(event: FocusEvent<HTMLElement>) {
+    if (!showStatsTooltip) {
+      return;
+    }
+    setTooltipPosition(buildTooltipPositionFromElement(event.currentTarget));
+  }
+
+  function closeTooltip() {
+    setTooltipPosition(null);
+  }
 
   return (
-    <article className={frameClassName} aria-label={actorAriaLabel}>
+    <article
+      className={frameClassName}
+      aria-label={actorAriaLabel}
+      aria-describedby={tooltipPosition ? tooltipId : undefined}
+      tabIndex={showStatsTooltip ? 0 : undefined}
+      onMouseEnter={showStatsTooltip ? openTooltipFromPointer : undefined}
+      onMouseMove={showStatsTooltip ? updateTooltipFromPointer : undefined}
+      onMouseLeave={showStatsTooltip ? closeTooltip : undefined}
+      onFocus={showStatsTooltip ? openTooltipFromFocus : undefined}
+      onBlur={showStatsTooltip ? closeTooltip : undefined}
+    >
       <div className="combatActorFrameShell">
         <div className="combatActorPortraitWrap">
           {actor.avatarPath && !actor.usesSilhouetteFallback ? (
@@ -112,6 +242,36 @@ export function CombatActorFrame({
           </span>
         </div>
       </div>
+      {showStatsTooltip && rollStats && tooltipPosition
+        ? createPortal(
+            <div
+              id={tooltipId}
+              className="uiHoverTooltip combatActorStatsTooltip isVisible"
+              role="tooltip"
+              style={{
+                left: `${tooltipPosition.left}px`,
+                top: `${tooltipPosition.top}px`
+              }}
+            >
+              <div className="combatActorStatsTooltipHeader">
+                <p className="uiHoverTooltipTitle">{actor.name}</p>
+                <p className="combatActorStatsTooltipLevel">{t("player.level", { value: rollStats.level })}</p>
+              </div>
+              {tooltipSections.map((section) => (
+                <section key={section.title} className="combatActorStatsTooltipSection" aria-label={section.title}>
+                  <p className="combatActorStatsTooltipSectionTitle">{section.title}</p>
+                  {section.rows.map((row) => (
+                    <p key={row.label} className="combatActorStatsTooltipRow">
+                      <strong>{row.label}</strong>
+                      <span>{row.value}</span>
+                    </p>
+                  ))}
+                </section>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
     </article>
   );
 }

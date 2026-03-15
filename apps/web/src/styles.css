@@ -3446,12 +3446,30 @@ button:focus-visible {
   transform: translate(-50%, 0);
 }
 
+.uiHoverTooltipTrigger:focus-visible .uiHoverTooltip,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 .uiHoverTooltipTrigger:hover .uiHoverTooltipBottom {
+  transform: translate(-50%, 0);
+}
+
+.uiHoverTooltipTrigger:focus-visible .uiHoverTooltipBottom,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom {
   transform: translate(-50%, 0);
 }
 
 .uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
 .uiHoverTooltipTrigger:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
+  transform: translateY(0);
+}
+
+.uiHoverTooltipTrigger:focus-visible .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
+.uiHoverTooltipTrigger:focus-visible .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorStart,
+.uiHoverTooltipTrigger:focus-within .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
   transform: translateY(0);
 }
 
@@ -3468,6 +3486,26 @@ button:focus-visible {
 .inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd,
 .inventoryControlWithTooltip:hover .uiHoverTooltipBottom.uiHoverTooltipAnchorEnd {
   transform: translateY(0);
+}
+
+.uiHoverTooltip.combatActorStatsTooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: auto;
+  z-index: 160;
+  width: clamp(300px, 24vw, 360px);
+  min-width: min(300px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  padding: 0.58rem 0.68rem;
+  gap: 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.uiHoverTooltip.combatActorStatsTooltip.isVisible {
+  opacity: 1;
 }
 
 .equipmentColumn {

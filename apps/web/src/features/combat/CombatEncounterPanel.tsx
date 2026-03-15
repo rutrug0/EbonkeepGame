@@ -107,7 +107,10 @@ export function CombatEncounterArenaPanel({
   playbackRate,
   isFastForwardEnabled,
   hoveredActorId,
-  onToggleFastForward
+  resolutionState,
+  onToggleFastForward,
+  onReplayCombat,
+  onBackToBoard
 }: Pick<
   CombatEncounterPanelProps,
   | "encounter"
@@ -119,7 +122,10 @@ export function CombatEncounterArenaPanel({
   | "playbackRate"
   | "isFastForwardEnabled"
   | "hoveredActorId"
+  | "resolutionState"
   | "onToggleFastForward"
+  | "onReplayCombat"
+  | "onBackToBoard"
 >) {
   const { t } = useTranslation();
   const player = encounter.player;
@@ -152,6 +158,24 @@ export function CombatEncounterArenaPanel({
             >
               &raquo;&raquo;
             </button>
+            {resolutionState === "awaiting_return" ? (
+              <div className="combatArenaResolvedActions">
+                <button
+                  type="button"
+                  className="combatArenaReplayButton combatSpeedToggleOverlay"
+                  onClick={onReplayCombat}
+                >
+                  {t("contracts.replayCombat", { defaultValue: "Replay Combat" })}
+                </button>
+                <button
+                  type="button"
+                  className="combatArenaReturnButton combatSpeedToggleOverlay"
+                  onClick={onBackToBoard}
+                >
+                  {t("contracts.backToBoard")}
+                </button>
+              </div>
+            ) : null}
             <div className="combatLane combatLane-enemy">
               {enemyActors.map((enemy) => (
                 <CombatActorFrame
