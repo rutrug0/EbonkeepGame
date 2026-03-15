@@ -349,4 +349,34 @@ describe("contracts server playback", () => {
     expect(action.rollBreakdown.mitigationTotal).toBe(32);
     expect(action.rollBreakdown.finalDamage).toBe(1);
   });
+
+  it("tracks the target HP before an overkill strike instead of inferring it from final damage", () => {
+    const run = createRunSnapshot();
+    run.enemies[0] = createActorSnapshot({
+      id: "enemy_1",
+      currentHp: 5,
+      maxHp: 88
+    });
+
+    const action = getFirstResolvedAction(
+      createRunResult({
+        run,
+        events: createCombatEvents({
+          run,
+          actorId: run.player.id,
+          targetId: run.enemies[0]!.id,
+          hit: true,
+          crit: false,
+          rawDamage: 20,
+          mitigatedDamage: 20,
+          targetHpAfter: 0,
+          killed: true
+        })
+      })
+    );
+
+    expect(action.rollBreakdown.targetHpBefore).toBe(5);
+    expect(action.rollBreakdown.targetHpAfter).toBe(0);
+    expect(action.rollBreakdown.finalDamage).toBe(20);
+  });
 });

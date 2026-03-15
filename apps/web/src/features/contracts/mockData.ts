@@ -171,6 +171,7 @@ function buildMockRollBreakdown(args: {
   defender: CombatPlaybackActor;
   rawDamage: number;
   finalDamage: number;
+  targetHpBefore: number;
   targetHpAfter: number;
   didHit?: boolean;
   didCrit?: boolean;
@@ -247,6 +248,7 @@ function buildMockRollBreakdown(args: {
     mitigationTotal: mitigationResistance + mitigationDefense,
     minimumDamage: didHit ? Math.max(1, Math.floor((args.rawDamage * 200) / 10_000)) : 0,
     finalDamage: didHit ? args.finalDamage : 0,
+    targetHpBefore: args.targetHpBefore,
     targetHpAfter: args.targetHpAfter,
     killed: args.killed ?? false
   };
@@ -620,6 +622,7 @@ export function buildMockCombatEncounterState(args: {
         defender: enemyActor,
         rawDamage: playerOpeningDamage,
         finalDamage: playerOpeningDamage,
+        targetHpBefore: enemyActor.maxHp,
         targetHpAfter: Math.max(0, enemyActor.maxHp - playerOpeningDamage)
       })
     },
@@ -643,6 +646,7 @@ export function buildMockCombatEncounterState(args: {
         defender: playerActor,
         rawDamage: enemyOpeningRawDamage,
         finalDamage: enemyOpeningDamage,
+        targetHpBefore: playerActor.maxHp,
         targetHpAfter: Math.max(0, playerActor.maxHp - enemyOpeningDamage)
       })
     },
@@ -663,6 +667,7 @@ export function buildMockCombatEncounterState(args: {
         defender: enemyActor,
         rawDamage: playerFollowupDamage,
         finalDamage: playerFollowupDamage,
+        targetHpBefore: enemyActor.maxHp - playerOpeningDamage,
         targetHpAfter: Math.max(0, enemyActor.maxHp - 35)
       })
     },
@@ -686,6 +691,7 @@ export function buildMockCombatEncounterState(args: {
         defender: playerActor,
         rawDamage: enemyFollowupRawDamage,
         finalDamage: enemyFollowupDamage,
+        targetHpBefore: playerActor.maxHp - enemyOpeningDamage,
         targetHpAfter: Math.max(0, playerActor.maxHp - enemyOpeningDamage - enemyFollowupDamage)
       })
     },
@@ -706,6 +712,7 @@ export function buildMockCombatEncounterState(args: {
         defender: enemyActor,
         rawDamage: playerFinisherDamage,
         finalDamage: playerFinisherDamage,
+        targetHpBefore: enemyActor.maxHp - 35,
         targetHpAfter: 0,
         killed: true
       })

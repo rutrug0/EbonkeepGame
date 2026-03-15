@@ -119,6 +119,7 @@ function inferBaseDamageRoll(args: {
 function buildRollBreakdown(args: {
   actor: CombatPlaybackActor;
   target: CombatPlaybackActor;
+  targetHpBefore: number;
   strike: Extract<CombatEvent, { type: "CombatActionResolved" }>["strikes"][number];
 }): CombatPlaybackRollBreakdown {
   const attacker = args.actor.rollStats;
@@ -192,6 +193,7 @@ function buildRollBreakdown(args: {
     mitigationTotal,
     minimumDamage: args.strike.hit ? Math.max(1, Math.floor((args.strike.rawDamage * MINIMUM_HIT_DAMAGE_RATIO_BPS) / 10_000)) : 0,
     finalDamage: args.strike.mitigatedDamage,
+    targetHpBefore: args.targetHpBefore,
     targetHpAfter: args.strike.targetHpAfter,
     killed: args.strike.killed
   };
@@ -339,6 +341,10 @@ function buildPlaybackTimeline(run: ContractRunSnapshot, events: CombatEvent[]):
   }];
   let turnIndex = 1;
   let winnerSide: "player" | "enemy" = "enemy";
+  const currentHpByActorId = new Map<string, number>([
+    [run.player.id, run.player.currentHp],
+    ...run.enemies.map((enemy) => [enemy.id, enemy.currentHp] as const)
+  ]);
 
   for (const event of events) {
     if (event.type === "CombatEnded") {
@@ -350,7 +356,11 @@ function buildPlaybackTimeline(run: ContractRunSnapshot, events: CombatEvent[]):
     for (const strike of event.strikes) {
       const actor = actorById.get(event.actorId);
       const target = actorById.get(strike.targetId);
+      const targetHpBefore = currentHpByActorId.get(strike.targetId);
       if (!actor || !target) {
+        continue;
+      }
+      if (typeof targetHpBefore !== "number") {
         continue;
       }
       timeline.push({
@@ -365,8 +375,9 @@ function buildPlaybackTimeline(run: ContractRunSnapshot, events: CombatEvent[]):
         targetHpAfter: strike.targetHpAfter,
         attackerLungeDirection: actor.side === "player" ? "left-to-right" : "right-to-left",
         logLine: buildActionLogLine({ actor, target, strike }),
-        rollBreakdown: buildRollBreakdown({ actor, target, strike })
+        rollBreakdown: buildRollBreakdown({ actor, target, targetHpBefore, strike })
       });
+      currentHpByActorId.set(strike.targetId, strike.targetHpAfter);
     }
   }
 

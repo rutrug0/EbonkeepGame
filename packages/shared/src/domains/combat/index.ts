@@ -427,6 +427,7 @@ export const combatPlaybackRollBreakdownSchema = z.object({
   mitigationTotal: z.number().int().min(0),
   minimumDamage: z.number().int().min(0),
   finalDamage: z.number().int().min(0),
+  targetHpBefore: z.number().int().min(0),
   targetHpAfter: z.number().int().min(0),
   killed: z.boolean()
 });

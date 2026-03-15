@@ -43,7 +43,6 @@ export function CombatLogRollTooltip({ breakdown, tooltipId, position }: CombatL
   const rawHitChanceBps = breakdown.attacker.accuracy * 100 - breakdown.defender.dodgeChance;
   const mitigationLabel = t(getMitigationLabelKey(breakdown.mitigationStatLabel));
   const defenseLabel = t(getDefenseLabelKey(breakdown.damageKind));
-  const previousHp = breakdown.targetHpAfter + breakdown.finalDamage;
   const outcomeKey = !breakdown.didHit
     ? "contracts.combatTooltip.missed"
     : breakdown.didCrit
@@ -107,7 +106,7 @@ export function CombatLogRollTooltip({ breakdown, tooltipId, position }: CombatL
           <p className="uiHoverTooltipTitle">{t(damageHeadlineKey, { value: breakdown.finalDamage })}</p>
           <p className="combatLogRollTooltipSubtitle">
             {breakdown.attacker.name} vs {breakdown.defender.name} •{" "}
-            {t("contracts.combatTooltip.hpFlow", { before: previousHp, after: breakdown.targetHpAfter })}
+            {t("contracts.combatTooltip.hpFlow", { before: breakdown.targetHpBefore, after: breakdown.targetHpAfter })}
           </p>
         </div>
       </div>
