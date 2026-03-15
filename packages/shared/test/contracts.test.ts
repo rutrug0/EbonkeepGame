@@ -115,16 +115,23 @@ describe("shared contracts", () => {
                   avgLossesByDifficulty: { easy: 0, medium: 0, hard: 1 },
                   winRateByDifficulty: { easy: 1, medium: 1, hard: 0 },
                   avgXpPerFight: 100,
+                  avgStaminaCostPerFight: 4,
                   avgStaminaSpent: 8,
                   avgRestCount: 0,
                   avgCombatSeconds: 5,
                   avgInputOverheadSeconds: 5,
                   avgPlayerAttackRoll: 23,
                   avgPlayerHpLossPercent: 18,
-                  avgPlayerHpLossPercentByDifficulty: { easy: 6, medium: 12, hard: 20 }
+                  avgPlayerActionTurnsByDifficulty: { easy: 4, medium: 6, hard: 7 },
+                  avgEnemyActionTurnsByDifficulty: { easy: 3, medium: 5, hard: 7 },
+                  avgPlayerStrikesByDifficulty: { easy: 4, medium: 6, hard: 8 },
+                  avgEnemyStrikesByDifficulty: { easy: 3, medium: 5, hard: 7 },
+                  avgPlayerHpLossPercentByDifficulty: { easy: 6, medium: 12, hard: 20 },
+                  avgEncounterHpToPlayerHpRatioByDifficulty: { easy: 0.8, medium: 0.95, hard: 1.1 }
                 }
               ],
-              benchmarkTargetBandHitRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.25 }
+              benchmarkTargetBandHitRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.25 },
+              benchmarkTurnTargetHitRateByDifficulty: { easy: 0.9, medium: 0.6, hard: 0.4 }
             },
             {
               archetype: "average",
@@ -144,16 +151,23 @@ describe("shared contracts", () => {
                   avgLossesByDifficulty: { easy: 0, medium: 0, hard: 1 },
                   winRateByDifficulty: { easy: 1, medium: 1, hard: 0 },
                   avgXpPerFight: 100,
+                  avgStaminaCostPerFight: 4.5,
                   avgStaminaSpent: 8,
                   avgRestCount: 0,
                   avgCombatSeconds: 5,
                   avgInputOverheadSeconds: 5,
                   avgPlayerAttackRoll: 23,
                   avgPlayerHpLossPercent: 18,
-                  avgPlayerHpLossPercentByDifficulty: { easy: 7, medium: 13, hard: 21 }
+                  avgPlayerActionTurnsByDifficulty: { easy: 4, medium: 6, hard: 8 },
+                  avgEnemyActionTurnsByDifficulty: { easy: 3, medium: 6, hard: 8 },
+                  avgPlayerStrikesByDifficulty: { easy: 4, medium: 6, hard: 9 },
+                  avgEnemyStrikesByDifficulty: { easy: 3, medium: 6, hard: 8 },
+                  avgPlayerHpLossPercentByDifficulty: { easy: 7, medium: 13, hard: 21 },
+                  avgEncounterHpToPlayerHpRatioByDifficulty: { easy: 0.82, medium: 0.97, hard: 1.12 }
                 }
               ],
-              benchmarkTargetBandHitRateByDifficulty: { easy: 0.8, medium: 0.6, hard: 0.3 }
+              benchmarkTargetBandHitRateByDifficulty: { easy: 0.8, medium: 0.6, hard: 0.3 },
+              benchmarkTurnTargetHitRateByDifficulty: { easy: 0.85, medium: 0.65, hard: 0.45 }
             },
             {
               archetype: "slow",
@@ -173,16 +187,23 @@ describe("shared contracts", () => {
                   avgLossesByDifficulty: { easy: 0, medium: 0, hard: 1 },
                   winRateByDifficulty: { easy: 1, medium: 1, hard: 0 },
                   avgXpPerFight: 100,
+                  avgStaminaCostPerFight: 5,
                   avgStaminaSpent: 8,
                   avgRestCount: 0,
                   avgCombatSeconds: 5,
                   avgInputOverheadSeconds: 5,
                   avgPlayerAttackRoll: 23,
                   avgPlayerHpLossPercent: 18,
-                  avgPlayerHpLossPercentByDifficulty: { easy: 8, medium: 14, hard: 24 }
+                  avgPlayerActionTurnsByDifficulty: { easy: 5, medium: 7, hard: 8 },
+                  avgEnemyActionTurnsByDifficulty: { easy: 4, medium: 6, hard: 8 },
+                  avgPlayerStrikesByDifficulty: { easy: 5, medium: 7, hard: 9 },
+                  avgEnemyStrikesByDifficulty: { easy: 4, medium: 6, hard: 8 },
+                  avgPlayerHpLossPercentByDifficulty: { easy: 8, medium: 14, hard: 24 },
+                  avgEncounterHpToPlayerHpRatioByDifficulty: { easy: 0.85, medium: 1, hard: 1.15 }
                 }
               ],
-              benchmarkTargetBandHitRateByDifficulty: { easy: 0.7, medium: 0.5, hard: 0.4 }
+              benchmarkTargetBandHitRateByDifficulty: { easy: 0.7, medium: 0.5, hard: 0.4 },
+              benchmarkTurnTargetHitRateByDifficulty: { easy: 0.8, medium: 0.55, hard: 0.5 }
             }
           ]
         }
@@ -199,6 +220,8 @@ describe("shared contracts", () => {
             averageTravelSeconds: 30,
             averageReplenishSeconds: 60,
             averageStaminaWaitSecondsForContract: 120,
+            weightedAverageStaminaWaitSecondsForContract: 100,
+            weightedAverageStaminaCostPerContract: 5,
             averageContractAvailabilityWaitSeconds: 20,
             averageExperiencePerContract: {
               easy: 100,
