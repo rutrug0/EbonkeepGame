@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type {
+import {
+  COMBAT_MITIGATION_FLOOR_BPS,
+  calculateCombatMitigation,
   CombatActorSnapshot,
   CombatEvent,
   ContractRunResult,
@@ -189,6 +191,12 @@ describe("contracts server playback", () => {
 
   it("derives hit chance and mitigation details for a normal hit", () => {
     const run = createRunSnapshot();
+    const mitigation = calculateCombatMitigation({
+      rawDamage: 20,
+      damageKind: run.player.damageKind,
+      attacker: run.player,
+      defender: run.enemies[0]!
+    });
     const action = getFirstResolvedAction(
       createRunResult({
         run,
@@ -209,7 +217,12 @@ describe("contracts server playback", () => {
     expect(action.rollBreakdown.mitigationStatLabel).toBe("armor");
     expect(action.rollBreakdown.mitigationResistance).toBe(run.enemies[0]!.armor);
     expect(action.rollBreakdown.mitigationDefense).toBe(run.enemies[0]!.physicalDefense);
-    expect(action.rollBreakdown.mitigationTotal).toBe(run.enemies[0]!.armor + run.enemies[0]!.physicalDefense);
+    expect(action.rollBreakdown.effectiveDefense).toBe(run.enemies[0]!.armor + run.enemies[0]!.physicalDefense);
+    expect(action.rollBreakdown.attackerPower).toBe(mitigation.attackerPower);
+    expect(action.rollBreakdown.mitigationScale).toBe(mitigation.mitigationScale);
+    expect(action.rollBreakdown.mitigationPercentBps).toBe(mitigation.mitigationPercentBps);
+    expect(action.rollBreakdown.postMitigationDamage).toBe(mitigation.postMitigationDamage);
+    expect(action.rollBreakdown.floorPercentBps).toBe(COMBAT_MITIGATION_FLOOR_BPS);
     expect(action.rollBreakdown.finalDamage).toBe(4);
   });
 
@@ -328,6 +341,12 @@ describe("contracts server playback", () => {
       armor: 18,
       physicalDefense: 14
     });
+    const mitigation = calculateCombatMitigation({
+      rawDamage: 9,
+      damageKind: run.player.damageKind,
+      attacker: run.player,
+      defender: run.enemies[0]!
+    });
 
     const action = getFirstResolvedAction(
       createRunResult({
@@ -345,8 +364,9 @@ describe("contracts server playback", () => {
       })
     );
 
-    expect(action.rollBreakdown.minimumDamage).toBe(1);
-    expect(action.rollBreakdown.mitigationTotal).toBe(32);
+    expect(action.rollBreakdown.minimumDamage).toBe(mitigation.minimumDamage);
+    expect(action.rollBreakdown.effectiveDefense).toBe(32);
+    expect(action.rollBreakdown.postMitigationDamage).toBe(mitigation.postMitigationDamage);
     expect(action.rollBreakdown.finalDamage).toBe(1);
   });
 

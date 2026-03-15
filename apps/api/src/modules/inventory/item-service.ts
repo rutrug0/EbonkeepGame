@@ -95,11 +95,27 @@ type ItemTemplate = {
 };
 
 type ItemAffixDefinition = {
+  scaleKey:
+    | "attr_primary"
+    | "vitality_primary"
+    | "damage_primary"
+    | "resistance_primary"
+    | "max_hitpoints_primary"
+    | "crit_chance"
+    | "crit_damage"
+    | "double_attack_chance";
   statKey: PlayerStatKey;
   unit: "flat" | "basis_points";
   prefixNames: readonly [string, string, string];
   affixNames: readonly [string, string, string];
-  valueByTier: (itemLevel: number) => readonly [number, number, number];
+};
+
+type AffixScalingRow = {
+  scaleKey: ItemAffixDefinition["scaleKey"];
+  tier: typeof TIER_ORDER[number];
+  rollMin: number;
+  rollMax: number;
+  unit: ItemModifier["unit"];
 };
 
 type ArmorProfile = Pick<
@@ -189,7 +205,8 @@ const DATA_FILES = {
   heavyArmorDefense: "heavy_armor_physical_defense_ilvl_scaling_v1.csv",
   lightArmorDefense: "light_armor_physical_defense_ilvl_scaling_v1.csv",
   robeArmorDefense: "robe_armor_physical_defense_ilvl_scaling_v1.csv",
-  jewelryDefense: "jewelry_magic_defense_ilvl_scaling_v1.csv"
+  jewelryDefense: "jewelry_magic_defense_ilvl_scaling_v1.csv",
+  affixScaling: "affix_scaling_level_1_100.csv"
 } as const;
 
 const TIER_ORDER = ["T1", "T2", "T3"] as const;
@@ -226,133 +243,123 @@ const STAT_POWER_WEIGHT: Partial<Record<PlayerStatKey, number>> = {
 } as const;
 const WEAPON_RARITY_MULTIPLIER: Record<ItemRarity, number> = {
   common: 1,
-  uncommon: 1.12,
-  rare: 1.26,
-  epic: 1.42
+  uncommon: 1.1,
+  rare: 1.22,
+  epic: 1.36
 };
-
-function flatTierValues(base: number, perLevel: number, itemLevel: number): readonly [number, number, number] {
-  const scaledBase = base + Math.max(0, itemLevel - 1) * perLevel;
-  return [scaledBase, scaledBase + 1, scaledBase + 3];
-}
-
-function basisPointsTierValues(base: number, perLevel: number, itemLevel: number): readonly [number, number, number] {
-  const scaledBase = base + Math.max(0, itemLevel - 1) * perLevel;
-  return [scaledBase, scaledBase + 20, scaledBase + 50];
-}
 
 const ITEM_AFFIX_DEFINITIONS: Partial<Record<PlayerStatKey, ItemAffixDefinition>> = {
   strength: {
+    scaleKey: "attr_primary",
     statKey: "strength",
     unit: "flat",
     prefixNames: ["Forceful", "Brutal", "Worldrend"],
-    affixNames: ["of Striking", "of Cleaving", "of the Warbringer"],
-    valueByTier: (itemLevel) => flatTierValues(1, 0, itemLevel)
+    affixNames: ["of Striking", "of Cleaving", "of the Warbringer"]
   },
   intelligence: {
+    scaleKey: "attr_primary",
     statKey: "intelligence",
     unit: "flat",
     prefixNames: ["Imbued", "Arcane", "Void-touched"],
-    affixNames: ["of Sparks", "of Sorcery", "of Cataclysm"],
-    valueByTier: (itemLevel) => flatTierValues(1, 0, itemLevel)
+    affixNames: ["of Sparks", "of Sorcery", "of Cataclysm"]
   },
   dexterity: {
+    scaleKey: "attr_primary",
     statKey: "dexterity",
     unit: "flat",
     prefixNames: ["Keen", "Deadeye", "Windpiercer"],
-    affixNames: ["of Aim", "of Piercing", "of the Ballista"],
-    valueByTier: (itemLevel) => flatTierValues(1, 0, itemLevel)
+    affixNames: ["of Aim", "of Piercing", "of the Ballista"]
   },
   vitality: {
+    scaleKey: "vitality_primary",
     statKey: "vitality",
     unit: "flat",
     prefixNames: ["Stout", "Vigorous", "Colossal"],
-    affixNames: ["of Endurance", "of Deep Reserves", "of the Undying"],
-    valueByTier: (itemLevel) => flatTierValues(1, 0, itemLevel)
+    affixNames: ["of Endurance", "of Deep Reserves", "of the Undying"]
   },
   initiative: {
+    scaleKey: "attr_primary",
     statKey: "initiative",
     unit: "flat",
     prefixNames: ["Swift", "Quickened", "Lightning-borne"],
-    affixNames: ["of Haste", "of the Tempest", "of Relentless Motion"],
-    valueByTier: (itemLevel) => flatTierValues(1, 0, itemLevel)
+    affixNames: ["of Haste", "of the Tempest", "of Relentless Motion"]
   },
   luck: {
+    scaleKey: "attr_primary",
     statKey: "luck",
     unit: "flat",
     prefixNames: ["Fortunate", "Lucky", "Fatebound"],
-    affixNames: ["of Fortune", "of the Gambler", "of Twisted Fate"],
-    valueByTier: (itemLevel) => flatTierValues(1, 0, itemLevel)
+    affixNames: ["of Fortune", "of the Gambler", "of Twisted Fate"]
   },
   armor: {
+    scaleKey: "resistance_primary",
     statKey: "armor",
     unit: "flat",
     prefixNames: ["Reinforced", "Ironbound", "Bastionforged"],
-    affixNames: ["of Guarding", "of the Bulwark", "of Unyielding Stone"],
-    valueByTier: (itemLevel) => flatTierValues(2, 1, itemLevel)
+    affixNames: ["of Guarding", "of the Bulwark", "of Unyielding Stone"]
   },
   spellShield: {
+    scaleKey: "resistance_primary",
     statKey: "spellShield",
     unit: "flat",
     prefixNames: ["Warded", "Runed", "Nullbound"],
-    affixNames: ["of Warding", "of the Barrier", "of Arcane Silence"],
-    valueByTier: (itemLevel) => flatTierValues(2, 1, itemLevel)
+    affixNames: ["of Warding", "of the Barrier", "of Arcane Silence"]
   },
   missileResistance: {
+    scaleKey: "resistance_primary",
     statKey: "missileResistance",
     unit: "flat",
     prefixNames: ["Deflecting", "Arrowproof", "Stormguard"],
-    affixNames: ["of Deflection", "of the Iron Screen", "of the Unerring Wall"],
-    valueByTier: (itemLevel) => flatTierValues(2, 1, itemLevel)
+    affixNames: ["of Deflection", "of the Iron Screen", "of the Unerring Wall"]
   },
   maxHitpoints: {
+    scaleKey: "max_hitpoints_primary",
     statKey: "maxHitpoints",
     unit: "flat",
     prefixNames: ["Stout", "Vigorous", "Colossal"],
-    affixNames: ["of Endurance", "of Deep Reserves", "of the Undying"],
-    valueByTier: (itemLevel) => flatTierValues(6, 2, itemLevel)
+    affixNames: ["of Endurance", "of Deep Reserves", "of the Undying"]
   },
   dodgeChance: {
+    scaleKey: "double_attack_chance",
     statKey: "dodgeChance",
     unit: "basis_points",
     prefixNames: ["Evasive", "Elusive", "Ghoststride"],
-    affixNames: ["of Evasion", "of Sidestepping", "of Vanishing"],
-    valueByTier: (itemLevel) => basisPointsTierValues(20, 2, itemLevel)
+    affixNames: ["of Evasion", "of Sidestepping", "of Vanishing"]
   },
   damage: {
+    scaleKey: "damage_primary",
     statKey: "damage",
     unit: "flat",
     prefixNames: ["Sharpened", "Deadly", "Kingslayer's"],
-    affixNames: ["of Force", "of Slaying", "of Ruin"],
-    valueByTier: (itemLevel) => flatTierValues(1, 1, itemLevel)
+    affixNames: ["of Force", "of Slaying", "of Ruin"]
   },
   critChance: {
+    scaleKey: "crit_chance",
     statKey: "critChance",
     unit: "basis_points",
     prefixNames: ["Fortunate", "Lucky", "Fatebound"],
-    affixNames: ["of Fortune", "of the Gambler", "of Twisted Fate"],
-    valueByTier: (itemLevel) => basisPointsTierValues(25, 3, itemLevel)
+    affixNames: ["of Fortune", "of the Gambler", "of Twisted Fate"]
   },
   critMultiplier: {
+    scaleKey: "crit_damage",
     statKey: "critMultiplier",
     unit: "basis_points",
     prefixNames: ["Punishing", "Devastating", "Doom-marked"],
-    affixNames: ["of Impact", "of Ruin", "of Final Judgment"],
-    valueByTier: (itemLevel) => basisPointsTierValues(40, 4, itemLevel)
+    affixNames: ["of Impact", "of Ruin", "of Final Judgment"]
   },
   accuracy: {
+    scaleKey: "damage_primary",
     statKey: "accuracy",
     unit: "flat",
     prefixNames: ["True", "Sure", "Unerring"],
-    affixNames: ["of Focus", "of Precision", "of Perfect Aim"],
-    valueByTier: (itemLevel) => flatTierValues(1, 1, itemLevel)
+    affixNames: ["of Focus", "of Precision", "of Perfect Aim"]
   },
   extraAttackChance: {
+    scaleKey: "double_attack_chance",
     statKey: "extraAttackChance",
     unit: "basis_points",
     prefixNames: ["Opportunistic", "Relentless", "Frenzied"],
-    affixNames: ["of Momentum", "of the Second Strike", "of Endless Assault"],
-    valueByTier: (itemLevel) => basisPointsTierValues(20, 2, itemLevel)
+    affixNames: ["of Momentum", "of the Second Strike", "of Endless Assault"]
   }
 };
 
@@ -660,6 +667,23 @@ function parseCsv(fileName: string): Record<string, string>[] {
 function toInt(value: string): number {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function buildAffixScalingLookup(fileName: string): Map<string, AffixScalingRow> {
+  const lookup = new Map<string, AffixScalingRow>();
+
+  for (const row of parseCsv(fileName)) {
+    const tier = row.tier as typeof TIER_ORDER[number];
+    lookup.set(`${toInt(row.level)}:${row.scale_key}:${tier}`, {
+      scaleKey: row.scale_key as AffixScalingRow["scaleKey"],
+      tier,
+      rollMin: toInt(row.roll_min),
+      rollMax: toInt(row.roll_max),
+      unit: row.unit as ItemModifier["unit"]
+    });
+  }
+
+  return lookup;
 }
 
 function normalizeIdentifier(value: string): string {
@@ -1016,6 +1040,8 @@ const WEAPON_DAMAGE_LOOKUPS = {
   arcaneWeapon: buildWeaponDamageLookup(DATA_FILES.arcaneWeaponScaling)
 } as const;
 
+const AFFIX_SCALING_LOOKUP = buildAffixScalingLookup(DATA_FILES.affixScaling);
+
 function pickStarterTemplateId(playerClass: PlayerClass, predicate: (template: ItemTemplate) => boolean): string {
   // Item templates still use the legacy equipment-group keys ("warrior"|"mage"|"ranger").
   const group = classToEquipmentGroup(playerClass);
@@ -1167,14 +1193,18 @@ function buildModifier(
   tier: typeof TIER_ORDER[number]
 ): ItemModifier {
   const tierIndex = TIER_ORDER.indexOf(tier);
-  const tierValues = definition.valueByTier(itemLevel);
+  const scalingRow = AFFIX_SCALING_LOOKUP.get(`${itemLevel}:${definition.scaleKey}:${tier}`);
+  if (!scalingRow) {
+    throw new Error(`Missing affix scaling row for ${definition.scaleKey} at level ${itemLevel} (${tier}).`);
+  }
+
   return {
     kind,
     tier,
     name: kind === "prefix" ? definition.prefixNames[tierIndex] : definition.affixNames[tierIndex],
     statKey: definition.statKey,
-    value: tierValues[tierIndex],
-    unit: definition.unit
+    value: randomInt(scalingRow.rollMin, scalingRow.rollMax),
+    unit: scalingRow.unit
   };
 }
 

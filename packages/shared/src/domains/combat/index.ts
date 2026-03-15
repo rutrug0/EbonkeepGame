@@ -78,6 +78,88 @@ export type CombatActorSide = z.infer<typeof combatActorSideSchema>;
 export const combatDamageKindSchema = z.enum(["melee", "ranged", "spell"]);
 export type CombatDamageKind = z.infer<typeof combatDamageKindSchema>;
 
+export const COMBAT_MITIGATION_FLOOR_BPS = 500;
+export const COMBAT_MITIGATION_MAX_BPS = 7500;
+export const COMBAT_MITIGATION_SCALE_MULTIPLIER = 1.5;
+
+export type CombatMitigationInput = {
+  rawDamage: number;
+  damageKind: CombatDamageKind;
+  attacker: Pick<CombatActorSnapshot, "minDamage" | "maxDamage">;
+  defender: Pick<CombatActorSnapshot, "armor" | "missileResistance" | "spellShield" | "physicalDefense" | "magicDefense">;
+};
+
+export type CombatMitigationResult = {
+  typedDefense: number;
+  bonusDefense: number;
+  effectiveDefense: number;
+  attackerPower: number;
+  mitigationScale: number;
+  mitigationPercentBps: number;
+  postMitigationDamage: number;
+  minimumDamage: number;
+  finalDamage: number;
+};
+
+export function clampCombatChanceBps(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+export function getCombatMitigationStats(args: {
+  damageKind: CombatDamageKind;
+  defender: Pick<CombatActorSnapshot, "armor" | "missileResistance" | "spellShield" | "physicalDefense" | "magicDefense">;
+}): Pick<CombatMitigationResult, "typedDefense" | "bonusDefense" | "effectiveDefense"> {
+  const typedDefense =
+    args.damageKind === "melee"
+      ? args.defender.armor
+      : args.damageKind === "ranged"
+        ? args.defender.missileResistance
+        : args.defender.spellShield;
+  const bonusDefense = args.damageKind === "spell" ? args.defender.magicDefense : args.defender.physicalDefense;
+  const effectiveDefense = Math.max(0, typedDefense + bonusDefense);
+
+  return {
+    typedDefense: Math.max(0, typedDefense),
+    bonusDefense: Math.max(0, bonusDefense),
+    effectiveDefense
+  };
+}
+
+export function calculateCombatAttackerPower(attacker: Pick<CombatActorSnapshot, "minDamage" | "maxDamage">): number {
+  return Math.max(1, Math.round((Math.max(0, attacker.minDamage) + Math.max(0, attacker.maxDamage)) / 2));
+}
+
+export function calculateCombatMitigation(input: CombatMitigationInput): CombatMitigationResult {
+  const rawDamage = Math.max(0, input.rawDamage);
+  const { typedDefense, bonusDefense, effectiveDefense } = getCombatMitigationStats({
+    damageKind: input.damageKind,
+    defender: input.defender
+  });
+  const attackerPower = calculateCombatAttackerPower(input.attacker);
+  const mitigationScale = Math.max(1, Math.round(attackerPower * COMBAT_MITIGATION_SCALE_MULTIPLIER));
+  const rawMitigationBps =
+    effectiveDefense <= 0
+      ? 0
+      : Math.round((effectiveDefense / (effectiveDefense + mitigationScale)) * 10_000);
+  const mitigationPercentBps = clampCombatChanceBps(rawMitigationBps, 0, COMBAT_MITIGATION_MAX_BPS);
+  const postMitigationDamage = Math.max(0, Math.round((rawDamage * (10_000 - mitigationPercentBps)) / 10_000));
+  const minimumDamage = rawDamage > 0
+    ? Math.max(1, Math.floor((rawDamage * COMBAT_MITIGATION_FLOOR_BPS) / 10_000))
+    : 0;
+
+  return {
+    typedDefense,
+    bonusDefense,
+    effectiveDefense,
+    attackerPower,
+    mitigationScale,
+    mitigationPercentBps,
+    postMitigationDamage,
+    minimumDamage,
+    finalDamage: rawDamage > 0 ? Math.max(minimumDamage, postMitigationDamage) : 0
+  };
+}
+
 export const combatActorSnapshotSchema = z.object({
   id: z.string(),
   side: combatActorSideSchema,
@@ -424,7 +506,12 @@ export const combatPlaybackRollBreakdownSchema = z.object({
   mitigationStatLabel: combatPlaybackMitigationStatSchema,
   mitigationResistance: z.number().int().min(0),
   mitigationDefense: z.number().int().min(0),
-  mitigationTotal: z.number().int().min(0),
+  effectiveDefense: z.number().int().min(0),
+  attackerPower: z.number().int().min(1),
+  mitigationScale: z.number().int().min(1),
+  mitigationPercentBps: z.number().int().min(0).max(10000),
+  postMitigationDamage: z.number().int().min(0),
+  floorPercentBps: z.number().int().min(0).max(10000),
   minimumDamage: z.number().int().min(0),
   finalDamage: z.number().int().min(0),
   targetHpBefore: z.number().int().min(0),

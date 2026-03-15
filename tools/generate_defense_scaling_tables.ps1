@@ -1,8 +1,18 @@
 param(
-    [string]$DataDir = ".\docs\data"
+    [string]$DataDir = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+$heavyTargetPct = 0.35
+$lightTargetPct = 0.24
+$robeTargetPct = 0.14
+$jewelryTargetPct = 0.25
+
+if ([string]::IsNullOrWhiteSpace($DataDir)) {
+    $repoRoot = Split-Path -Parent $PSScriptRoot
+    $DataDir = Join-Path $repoRoot "docs\data"
+}
 
 function Get-CsvPath {
     param([string]$FileName)
@@ -16,7 +26,7 @@ function Get-WeaponRows {
         [pscustomobject]@{
             ilvl = [int]$_.ilvl
             rarity = [string]$_.rarity
-            average_attack_roll = ([double]$_.possible_attack_roll_low + [double]$_.possible_attack_roll_high) / 2.0
+            average_attack_roll = (([double]$_.possible_attack_roll_low + [double]$_.possible_attack_roll_high) / 2.0)
         }
     }
 }
@@ -128,16 +138,16 @@ $lightRows = Get-WeaponRows -FileName "ranger_ranged_weapon_ilvl_scaling_v1.csv"
 $robeRows = Get-WeaponRows -FileName "mage_arcane_weapon_ilvl_scaling_v1.csv"
 $jewelryRows = $robeRows
 
-Build-ArmorDefenseRows -WeaponRows $heavyRows -TargetPct 0.30 |
+Build-ArmorDefenseRows -WeaponRows $heavyRows -TargetPct $heavyTargetPct |
     Export-Csv -Path (Get-CsvPath "heavy_armor_physical_defense_ilvl_scaling_v1.csv") -NoTypeInformation
 
-Build-ArmorDefenseRows -WeaponRows $lightRows -TargetPct 0.20 |
+Build-ArmorDefenseRows -WeaponRows $lightRows -TargetPct $lightTargetPct |
     Export-Csv -Path (Get-CsvPath "light_armor_physical_defense_ilvl_scaling_v1.csv") -NoTypeInformation
 
-Build-ArmorDefenseRows -WeaponRows $robeRows -TargetPct 0.10 |
+Build-ArmorDefenseRows -WeaponRows $robeRows -TargetPct $robeTargetPct |
     Export-Csv -Path (Get-CsvPath "robe_armor_physical_defense_ilvl_scaling_v1.csv") -NoTypeInformation
 
-Build-JewelryDefenseRows -WeaponRows $jewelryRows -TargetPct 0.20 |
+Build-JewelryDefenseRows -WeaponRows $jewelryRows -TargetPct $jewelryTargetPct |
     Export-Csv -Path (Get-CsvPath "jewelry_magic_defense_ilvl_scaling_v1.csv") -NoTypeInformation
 
 Write-Output "Wrote defense scaling tables to $DataDir"

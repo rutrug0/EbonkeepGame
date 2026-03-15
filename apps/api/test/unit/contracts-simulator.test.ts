@@ -200,7 +200,7 @@ describe("contracts simulator", () => {
     expect(firstAction?.strikes[1]?.targetId).toBe("enemy-b");
   });
 
-  it("always deals at least two percent of the rolled damage on a successful hit", () => {
+  it("uses the mitigation curve and a five percent minimum-hit floor", () => {
     const player = actor({
       id: "player",
       side: "player",
@@ -231,8 +231,8 @@ describe("contracts simulator", () => {
     expect(firstAction).toBeTruthy();
     expect(firstAction?.strikes[0]).toMatchObject({
       rawDamage: 100,
-      mitigatedDamage: 2,
-      targetHpAfter: 18
+      mitigatedDamage: 27,
+      targetHpAfter: 0
     });
   });
 

@@ -1,4 +1,9 @@
-import type { ContractEfficiencyTier } from "@ebonkeep/shared/combat";
+import {
+  COMBAT_MITIGATION_FLOOR_BPS,
+  calculateCombatMitigation,
+  clampCombatChanceBps,
+  type ContractEfficiencyTier
+} from "@ebonkeep/shared/combat";
 import type { PlayerClass, PlayerStatBlock } from "@ebonkeep/shared/core";
 import { classToStatTree } from "@ebonkeep/shared/core";
 
@@ -94,14 +99,14 @@ export const COMBAT_PLAYBACK_BEAT_MS = 1470;
 export const COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
 export const COMBAT_FAST_FORWARD_ANIMATION_RATE = 8;
 
-type MockAttackType = "melee" | "ranged" | "magic";
+type MockAttackType = CombatPlaybackRollStats["damageKind"];
 
 function attackTypeFromCombatStat(combatStat: "strength" | "dexterity" | "intelligence"): MockAttackType {
   if (combatStat === "dexterity") {
     return "ranged";
   }
   if (combatStat === "intelligence") {
-    return "magic";
+    return "spell";
   }
   return "melee";
 }
@@ -109,20 +114,18 @@ function attackTypeFromCombatStat(combatStat: "strength" | "dexterity" | "intell
 function mitigateIncomingDamage(
   rawDamage: number,
   attackType: MockAttackType,
-  targetStats: Pick<PlayerStatBlock, "armor" | "missileResistance" | "spellShield" | "physicalDefense" | "magicDefense">
+  targetStats: Pick<PlayerStatBlock, "armor" | "missileResistance" | "spellShield" | "physicalDefense" | "magicDefense">,
+  attackerStats: Pick<CombatPlaybackRollStats, "minDamage" | "maxDamage">
 ): number {
   if (rawDamage <= 0) {
     return 0;
   }
-  const reduction =
-    attackType === "melee"
-      ? targetStats.armor + targetStats.physicalDefense
-      : attackType === "ranged"
-        ? targetStats.missileResistance + targetStats.physicalDefense
-        : targetStats.spellShield + targetStats.magicDefense;
-
-  const minimumDamage = Math.max(1, Math.floor((rawDamage * 200) / 10_000));
-  return Math.max(minimumDamage, rawDamage - reduction);
+  return calculateCombatMitigation({
+    rawDamage,
+    damageKind: attackType,
+    attacker: attackerStats,
+    defender: targetStats
+  }).finalDamage;
 }
 
 function clampInt(value: number, min: number, max: number): number {
@@ -198,6 +201,14 @@ function buildMockRollBreakdown(args: {
   const mitigationDefense = attacker.damageKind === "spell" ? defender.magicDefense : defender.physicalDefense;
   const didHit = args.didHit ?? true;
   const didCrit = args.didCrit ?? false;
+  const mitigation = didHit
+    ? calculateCombatMitigation({
+        rawDamage: args.rawDamage,
+        damageKind: attacker.damageKind,
+        attacker,
+        defender
+      })
+    : null;
 
   return {
     attacker: {
@@ -229,7 +240,7 @@ function buildMockRollBreakdown(args: {
       magicDefense: defender.magicDefense
     },
     damageKind: attacker.damageKind,
-    hitChanceBps: clampInt(attacker.accuracy * 100 - defender.dodgeChance, 2500, 9750),
+    hitChanceBps: clampCombatChanceBps(attacker.accuracy * 100 - defender.dodgeChance, 2500, 9750),
     didHit,
     didCrit,
     baseDamageRoll: didHit
@@ -245,8 +256,13 @@ function buildMockRollBreakdown(args: {
     mitigationStatLabel,
     mitigationResistance,
     mitigationDefense,
-    mitigationTotal: mitigationResistance + mitigationDefense,
-    minimumDamage: didHit ? Math.max(1, Math.floor((args.rawDamage * 200) / 10_000)) : 0,
+    effectiveDefense: mitigation?.effectiveDefense ?? mitigationResistance + mitigationDefense,
+    attackerPower: mitigation?.attackerPower ?? Math.max(1, Math.round((attacker.minDamage + attacker.maxDamage) / 2)),
+    mitigationScale: mitigation?.mitigationScale ?? 1,
+    mitigationPercentBps: mitigation?.mitigationPercentBps ?? 0,
+    postMitigationDamage: mitigation?.postMitigationDamage ?? 0,
+    floorPercentBps: COMBAT_MITIGATION_FLOOR_BPS,
+    minimumDamage: mitigation?.minimumDamage ?? 0,
     finalDamage: didHit ? args.finalDamage : 0,
     targetHpBefore: args.targetHpBefore,
     targetHpAfter: args.targetHpAfter,
@@ -589,14 +605,16 @@ export function buildMockCombatEncounterState(args: {
   const enemyOpeningDamage = mitigateIncomingDamage(
     enemyOpeningRawDamage,
     attackTypeFromCombatStat(enemyActor.combatStat),
-    playerStats
+    playerStats,
+    enemyActor.rollStats
   );
   const playerFollowupDamage = 17;
   const enemyFollowupRawDamage = Math.max(9, Math.round(enemyActor.power * 0.1));
   const enemyFollowupDamage = mitigateIncomingDamage(
     enemyFollowupRawDamage,
     attackTypeFromCombatStat(enemyActor.combatStat),
-    playerStats
+    playerStats,
+    enemyActor.rollStats
   );
   const playerFinisherDamage = Math.max(0, enemyActor.maxHp - 35);
   const timeline = combatPlaybackEventSchema.array().parse([

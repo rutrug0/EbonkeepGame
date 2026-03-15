@@ -48,11 +48,11 @@ export const DIFFICULTY_PROFILES: Record<
   }
 > = {
   easy: {
-    totalHpFactor: 1.85,
+    totalHpFactor: 3.5,
     totalDpsFactor: 0.65,
     defenseFactor: 0.85,
-    speedFactor: 0.95,
-    accuracyFactor: 0.95,
+    speedFactor: 0.73,
+    accuracyFactor: 0.87,
     critFactor: 0.85,
     dodgeFactor: 0.9,
     itemDropChanceBps: 1200,
@@ -60,11 +60,11 @@ export const DIFFICULTY_PROFILES: Record<
     staminaBase: 8
   },
   medium: {
-    totalHpFactor: 2.4,
+    totalHpFactor: 5.8,
     totalDpsFactor: 0.8,
     defenseFactor: 1,
-    speedFactor: 1,
-    accuracyFactor: 1,
+    speedFactor: 0.7,
+    accuracyFactor: 0.86,
     critFactor: 1,
     dodgeFactor: 1,
     itemDropChanceBps: 2000,
@@ -72,11 +72,11 @@ export const DIFFICULTY_PROFILES: Record<
     staminaBase: 12
   },
   hard: {
-    totalHpFactor: 3.1,
+    totalHpFactor: 7.2,
     totalDpsFactor: 0.95,
     defenseFactor: 1.15,
-    speedFactor: 1.05,
-    accuracyFactor: 1.05,
+    speedFactor: 0.75,
+    accuracyFactor: 0.89,
     critFactor: 1.1,
     dodgeFactor: 1.08,
     itemDropChanceBps: 3000,
