@@ -43,6 +43,7 @@ describe("player state service", () => {
 
     const snapshot = buildPlayerStatSnapshot({
       playerClass: "juggernaut",
+      level: 1,
       baseStats: {
         strength: 10,
         intelligence: 8,
@@ -62,6 +63,44 @@ describe("player state service", () => {
     expect(snapshot.total.accuracy).toBe(81);
     expect(snapshot.base.critChance).toBe(550);
     expect(snapshot.total.critChance).toBe(675);
+  });
+
+  it("applies derived level-based combat growth without mutating base stats", () => {
+    const equipment = createEmptyEquipmentState();
+
+    const levelOne = buildPlayerStatSnapshot({
+      playerClass: "juggernaut",
+      level: 1,
+      baseStats: {
+        strength: 10,
+        intelligence: 8,
+        dexterity: 7,
+        vitality: 9,
+        initiative: 6,
+        luck: 5
+      },
+      equipment
+    });
+    const levelTen = buildPlayerStatSnapshot({
+      playerClass: "juggernaut",
+      level: 10,
+      baseStats: {
+        strength: 10,
+        intelligence: 8,
+        dexterity: 7,
+        vitality: 9,
+        initiative: 6,
+        luck: 5
+      },
+      equipment
+    });
+
+    expect(levelTen.total.strength).toBe(levelOne.total.strength);
+    expect(levelTen.total.maxHitpoints).toBe(189);
+    expect(levelTen.total.damage).toBe(21);
+    expect(levelTen.total.armor).toBe(23);
+    expect(levelTen.total.initiative).toBe(14);
+    expect(levelTen.total.extraAttackChance).toBe(141);
   });
 
   it("computes gear score from equipped item power", () => {

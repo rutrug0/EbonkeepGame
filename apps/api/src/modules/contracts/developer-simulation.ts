@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 import {
   developerContractSimulationJobSchema,
+  developerContractSimulationLevelSummarySchema,
   runDeveloperContractSimulationBodySchema,
   type ContractDifficulty,
   type ContractEfficiencyTier,
@@ -111,8 +112,18 @@ type LevelAccumulator = {
   playerAttackCountTotal: number;
   playerHpLossPercentTotal: number;
   playerHpLossCountTotal: number;
+  benchmarkPlayerActionTurnTotals: Record<ContractDifficulty, number>;
+  benchmarkPlayerActionTurnCounts: Record<ContractDifficulty, number>;
+  benchmarkEnemyActionTurnTotals: Record<ContractDifficulty, number>;
+  benchmarkEnemyActionTurnCounts: Record<ContractDifficulty, number>;
+  benchmarkPlayerStrikeTotals: Record<ContractDifficulty, number>;
+  benchmarkPlayerStrikeCounts: Record<ContractDifficulty, number>;
+  benchmarkEnemyStrikeTotals: Record<ContractDifficulty, number>;
+  benchmarkEnemyStrikeCounts: Record<ContractDifficulty, number>;
   benchmarkPlayerHpLossPercentTotals: Record<ContractDifficulty, number>;
   benchmarkPlayerHpLossPercentCounts: Record<ContractDifficulty, number>;
+  benchmarkEncounterHpRatioTotals: Record<ContractDifficulty, number>;
+  benchmarkEncounterHpRatioCounts: Record<ContractDifficulty, number>;
 };
 
 type JobRecord = DeveloperContractSimulationJob & {
@@ -121,7 +132,7 @@ type JobRecord = DeveloperContractSimulationJob & {
 };
 
 type SimulationArtifactPayload = {
-  artifactVersion: 2;
+  artifactVersion: 4;
   generatedAt: string;
   jobId: string;
   config: DeveloperContractSimulationJob["config"];
@@ -138,6 +149,10 @@ type SimulationArtifactPayload = {
       DeveloperContractSimulationArchetype,
       DeveloperContractSimulationDifficultyHitRate
     >;
+    benchmarkTurnTargetHitRateByArchetype: Record<
+      DeveloperContractSimulationArchetype,
+      DeveloperContractSimulationDifficultyHitRate
+    >;
   };
 };
 
@@ -145,6 +160,11 @@ const BENCHMARK_HP_LOSS_TARGETS: Record<ContractDifficulty, { min: number; max: 
   easy: { min: 3, max: 10 },
   medium: { min: 10, max: 15 },
   hard: { min: 15, max: 25 }
+};
+const BENCHMARK_ACTION_TURN_TARGETS: Record<ContractDifficulty, { min: number; max: number }> = {
+  easy: { min: 4, max: 6 },
+  medium: { min: 7, max: 9 },
+  hard: { min: 8, max: 12 }
 };
 
 const ARCHETYPE_POLICIES: ReadonlyArray<ArchetypePolicy> = [
@@ -204,8 +224,18 @@ function createLevelAccumulator(): LevelAccumulator {
     playerAttackCountTotal: 0,
     playerHpLossPercentTotal: 0,
     playerHpLossCountTotal: 0,
+    benchmarkPlayerActionTurnTotals: { easy: 0, medium: 0, hard: 0 },
+    benchmarkPlayerActionTurnCounts: { easy: 0, medium: 0, hard: 0 },
+    benchmarkEnemyActionTurnTotals: { easy: 0, medium: 0, hard: 0 },
+    benchmarkEnemyActionTurnCounts: { easy: 0, medium: 0, hard: 0 },
+    benchmarkPlayerStrikeTotals: { easy: 0, medium: 0, hard: 0 },
+    benchmarkPlayerStrikeCounts: { easy: 0, medium: 0, hard: 0 },
+    benchmarkEnemyStrikeTotals: { easy: 0, medium: 0, hard: 0 },
+    benchmarkEnemyStrikeCounts: { easy: 0, medium: 0, hard: 0 },
     benchmarkPlayerHpLossPercentTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkPlayerHpLossPercentCounts: { easy: 0, medium: 0, hard: 0 }
+    benchmarkPlayerHpLossPercentCounts: { easy: 0, medium: 0, hard: 0 },
+    benchmarkEncounterHpRatioTotals: { easy: 0, medium: 0, hard: 0 },
+    benchmarkEncounterHpRatioCounts: { easy: 0, medium: 0, hard: 0 }
   };
 }
 
@@ -219,6 +249,11 @@ function createZeroDifficultyHitRate(): DeveloperContractSimulationDifficultyHit
 
 function isWithinTargetBand(difficulty: ContractDifficulty, value: number): boolean {
   const band = BENCHMARK_HP_LOSS_TARGETS[difficulty];
+  return value >= band.min && value <= band.max;
+}
+
+function isWithinActionTurnTargetBand(difficulty: ContractDifficulty, value: number): boolean {
+  const band = BENCHMARK_ACTION_TURN_TARGETS[difficulty];
   return value >= band.min && value <= band.max;
 }
 
@@ -300,6 +335,7 @@ function createSyntheticPlayerState(args: {
 }): PlayerState {
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: args.playerClass,
+    level: args.level,
     baseStats: { ...SIMULATION_BASE_STATS },
     equipment: args.equipment
   });
@@ -447,6 +483,43 @@ function getFightPlayerAttackMetrics(args: {
   };
 }
 
+function getFightActionMetrics(args: {
+  playerId: string;
+  events: ReturnType<typeof simulateEncounter>["events"];
+}): {
+  playerActionTurns: number;
+  enemyActionTurns: number;
+  playerStrikes: number;
+  enemyStrikes: number;
+} {
+  let playerActionTurns = 0;
+  let enemyActionTurns = 0;
+  let playerStrikes = 0;
+  let enemyStrikes = 0;
+
+  for (const event of args.events) {
+    if (event.type !== "CombatActionResolved") {
+      continue;
+    }
+
+    if (event.actorId === args.playerId) {
+      playerActionTurns += 1;
+      playerStrikes += event.strikes.length;
+      continue;
+    }
+
+    enemyActionTurns += 1;
+    enemyStrikes += event.strikes.length;
+  }
+
+  return {
+    playerActionTurns,
+    enemyActionTurns,
+    playerStrikes,
+    enemyStrikes
+  };
+}
+
 function getFightPlayerHpLossPercent(args: {
   playerId: string;
   events: ReturnType<typeof simulateEncounter>["events"];
@@ -524,9 +597,26 @@ function simulateBenchmarkDifficultyMetrics(args: {
       events: simulation.events,
       maxHealth: args.playerState.health.max
     });
+    const benchmarkActionMetrics = getFightActionMetrics({
+      playerId: simulation.player.id,
+      events: simulation.events
+    });
+    const benchmarkEncounterHpRatio = simulation.player.maxHp > 0
+      ? simulation.enemies.reduce((sum, enemy) => sum + enemy.maxHp, 0) / simulation.player.maxHp
+      : 0;
 
+    args.accumulator.benchmarkPlayerActionTurnTotals[difficulty] += benchmarkActionMetrics.playerActionTurns;
+    args.accumulator.benchmarkPlayerActionTurnCounts[difficulty] += 1;
+    args.accumulator.benchmarkEnemyActionTurnTotals[difficulty] += benchmarkActionMetrics.enemyActionTurns;
+    args.accumulator.benchmarkEnemyActionTurnCounts[difficulty] += 1;
+    args.accumulator.benchmarkPlayerStrikeTotals[difficulty] += benchmarkActionMetrics.playerStrikes;
+    args.accumulator.benchmarkPlayerStrikeCounts[difficulty] += 1;
+    args.accumulator.benchmarkEnemyStrikeTotals[difficulty] += benchmarkActionMetrics.enemyStrikes;
+    args.accumulator.benchmarkEnemyStrikeCounts[difficulty] += 1;
     args.accumulator.benchmarkPlayerHpLossPercentTotals[difficulty] += benchmarkHpLossPercent;
     args.accumulator.benchmarkPlayerHpLossPercentCounts[difficulty] += 1;
+    args.accumulator.benchmarkEncounterHpRatioTotals[difficulty] += benchmarkEncounterHpRatio;
+    args.accumulator.benchmarkEncounterHpRatioCounts[difficulty] += 1;
 
     if (args.stats[difficulty].wins + args.stats[difficulty].losses > 0) {
       continue;
@@ -707,6 +797,17 @@ function averageDifficultyValues(values: Record<ContractDifficulty, number>, div
   };
 }
 
+function averageDifficultyValuesByCounts(
+  totals: Record<ContractDifficulty, number>,
+  counts: Record<ContractDifficulty, number>
+): DeveloperContractSimulationDifficultyAverages {
+  return {
+    easy: counts.easy > 0 ? roundToTwo(totals.easy / counts.easy) : 0,
+    medium: counts.medium > 0 ? roundToTwo(totals.medium / counts.medium) : 0,
+    hard: counts.hard > 0 ? roundToTwo(totals.hard / counts.hard) : 0
+  };
+}
+
 function averageDifficultyPercentages(
   totals: Record<ContractDifficulty, number>,
   counts: Record<ContractDifficulty, number>
@@ -746,6 +847,37 @@ function buildBenchmarkTargetBandHitRate(
   };
 }
 
+function buildBenchmarkTurnTargetHitRate(
+  levels: DeveloperContractSimulationLevelSummary[]
+): DeveloperContractSimulationDifficultyHitRate {
+  if (levels.length === 0) {
+    return createZeroDifficultyHitRate();
+  }
+
+  const hits = {
+    easy: 0,
+    medium: 0,
+    hard: 0
+  };
+
+  for (const level of levels) {
+    for (const difficulty of ["easy", "medium", "hard"] satisfies ContractDifficulty[]) {
+      if (
+        isWithinActionTurnTargetBand(difficulty, level.avgPlayerActionTurnsByDifficulty[difficulty]) &&
+        isWithinActionTurnTargetBand(difficulty, level.avgEnemyActionTurnsByDifficulty[difficulty])
+      ) {
+        hits[difficulty] += 1;
+      }
+    }
+  }
+
+  return {
+    easy: roundToTwo(hits.easy / levels.length),
+    medium: roundToTwo(hits.medium / levels.length),
+    hard: roundToTwo(hits.hard / levels.length)
+  };
+}
+
 function buildLevelSummary(args: {
   level: number;
   sampleSize: number;
@@ -755,7 +887,7 @@ function buildLevelSummary(args: {
   const totalMediumAttempts = args.accumulator.wins.medium + args.accumulator.losses.medium;
   const totalHardAttempts = args.accumulator.wins.hard + args.accumulator.losses.hard;
 
-  return {
+  return developerContractSimulationLevelSummarySchema.parse({
     level: args.level,
     gearScore: Math.round(args.accumulator.gearScoreTotal / args.sampleSize),
     completedSamples: args.accumulator.completedSamples,
@@ -776,6 +908,7 @@ function buildLevelSummary(args: {
       hard: totalHardAttempts > 0 ? roundToTwo(args.accumulator.wins.hard / totalHardAttempts) : 0
     },
     avgXpPerFight: args.accumulator.fightsTotal > 0 ? roundToTwo(args.accumulator.experienceTotal / args.accumulator.fightsTotal) : 0,
+    avgStaminaCostPerFight: args.accumulator.fightsTotal > 0 ? roundToTwo(args.accumulator.staminaSpentTotal / args.accumulator.fightsTotal) : 0,
     avgStaminaSpent: roundToTwo(args.accumulator.staminaSpentTotal / Math.max(1, args.accumulator.completedSamples)),
     avgRestCount: roundToTwo(args.accumulator.restCountTotal / Math.max(1, args.accumulator.completedSamples)),
     avgCombatSeconds: roundToTwo(args.accumulator.combatSecondsTotal / Math.max(1, args.accumulator.completedSamples)),
@@ -786,11 +919,31 @@ function buildLevelSummary(args: {
     avgPlayerHpLossPercent: args.accumulator.playerHpLossCountTotal > 0
       ? roundToTwo(args.accumulator.playerHpLossPercentTotal / args.accumulator.playerHpLossCountTotal)
       : 0,
+    avgPlayerActionTurnsByDifficulty: averageDifficultyValuesByCounts(
+      args.accumulator.benchmarkPlayerActionTurnTotals,
+      args.accumulator.benchmarkPlayerActionTurnCounts
+    ),
+    avgEnemyActionTurnsByDifficulty: averageDifficultyValuesByCounts(
+      args.accumulator.benchmarkEnemyActionTurnTotals,
+      args.accumulator.benchmarkEnemyActionTurnCounts
+    ),
+    avgPlayerStrikesByDifficulty: averageDifficultyValuesByCounts(
+      args.accumulator.benchmarkPlayerStrikeTotals,
+      args.accumulator.benchmarkPlayerStrikeCounts
+    ),
+    avgEnemyStrikesByDifficulty: averageDifficultyValuesByCounts(
+      args.accumulator.benchmarkEnemyStrikeTotals,
+      args.accumulator.benchmarkEnemyStrikeCounts
+    ),
     avgPlayerHpLossPercentByDifficulty: averageDifficultyPercentages(
       args.accumulator.benchmarkPlayerHpLossPercentTotals,
       args.accumulator.benchmarkPlayerHpLossPercentCounts
+    ),
+    avgEncounterHpToPlayerHpRatioByDifficulty: averageDifficultyValuesByCounts(
+      args.accumulator.benchmarkEncounterHpRatioTotals,
+      args.accumulator.benchmarkEncounterHpRatioCounts
     )
-  };
+  });
 }
 
 function buildSimulationArtifactPayload(args: {
@@ -819,16 +972,23 @@ function buildSimulationArtifactPayload(args: {
       archetypeResult.benchmarkTargetBandHitRateByDifficulty
     ])
   ) as SimulationArtifactPayload["derived"]["benchmarkTargetBandHitRateByArchetype"];
+  const benchmarkTurnTargetHitRateByArchetype = Object.fromEntries(
+    args.result.archetypes.map((archetypeResult) => [
+      archetypeResult.archetype,
+      archetypeResult.benchmarkTurnTargetHitRateByDifficulty
+    ])
+  ) as SimulationArtifactPayload["derived"]["benchmarkTurnTargetHitRateByArchetype"];
 
   return {
-    artifactVersion: 2,
+    artifactVersion: 4,
     generatedAt: new Date().toISOString(),
     jobId: args.jobId,
     config: args.config,
     result: args.result,
     derived: {
       cumulativeElapsedDaysByArchetype,
-      benchmarkTargetBandHitRateByArchetype
+      benchmarkTargetBandHitRateByArchetype,
+      benchmarkTurnTargetHitRateByArchetype
     }
   };
 }
@@ -1246,7 +1406,8 @@ export async function simulateDeveloperContractProgression(args: {
     archetypeResults.push({
       archetype: policy.archetype,
       levels,
-      benchmarkTargetBandHitRateByDifficulty: buildBenchmarkTargetBandHitRate(levels)
+      benchmarkTargetBandHitRateByDifficulty: buildBenchmarkTargetBandHitRate(levels),
+      benchmarkTurnTargetHitRateByDifficulty: buildBenchmarkTurnTargetHitRate(levels)
     });
   }
 

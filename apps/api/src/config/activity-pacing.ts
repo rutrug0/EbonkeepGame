@@ -75,6 +75,11 @@ function parseCsv(fileName: string): Record<string, string>[] {
   });
 }
 
+function toNumber(value: string | undefined, fallback = 0): number {
+  const parsed = Number.parseFloat(value ?? "");
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function toInt(value: string | undefined, fallback = 0): number {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -87,7 +92,7 @@ function clampLevel(level: number): number {
 const ACTIVITY_PACING_ROWS = parseCsv("activity_pacing_level_1_100.csv").map((row) => ({
   level: toInt(row.level, 1),
   travelSecondsBase: toInt(row.travel_seconds_base, 5),
-  staminaRegenPercentPerHour: toInt(row.stamina_regen_percent_per_hour, 25),
+  staminaRegenPercentPerHour: toNumber(row.stamina_regen_percent_per_hour, 25),
   contractStaminaCostLow: toInt(row.contract_stamina_cost_low, 5),
   contractStaminaCostStandard: toInt(row.contract_stamina_cost_standard, 7),
   contractStaminaCostHigh: toInt(row.contract_stamina_cost_high, 9),

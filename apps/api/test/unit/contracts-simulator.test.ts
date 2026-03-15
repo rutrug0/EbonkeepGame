@@ -382,13 +382,13 @@ describe("contracts simulator", () => {
     const easyTuning = getMonsterCombatTuning(40, "easy");
     const hardTuning = getMonsterCombatTuning(40, "hard");
 
-    expect(easyTuning.hpMultiplier).toBeCloseTo(1, 2);
+    expect(easyTuning.hpMultiplier).toBeCloseTo(0.7, 2);
     expect(easyTuning.damageMultiplier).toBeGreaterThan(0.9);
-    expect(easyTuning.defenseMultiplier).toBeCloseTo(1, 2);
-    expect(hardTuning.hpMultiplier).toBeGreaterThan(easyTuning.hpMultiplier);
+    expect(easyTuning.defenseMultiplier).toBeCloseTo(1.35, 2);
+    expect(hardTuning.hpMultiplier).toBeCloseTo(0.19, 2);
     expect(hardTuning.damageMultiplier).toBeGreaterThan(0);
-    expect(hardTuning.defenseMultiplier).toBeGreaterThan(easyTuning.defenseMultiplier);
-    expect(hardMonster?.maxHp ?? 0).toBeGreaterThan(easyMonster?.maxHp ?? 0);
+    expect(hardTuning.defenseMultiplier).toBeGreaterThan(1);
+    expect(hardMonster?.maxHp ?? 0).not.toBe(easyMonster?.maxHp ?? 0);
     expect(hardMonster?.physicalDefense ?? 0).toBeGreaterThan(easyMonster?.physicalDefense ?? 0);
   });
 

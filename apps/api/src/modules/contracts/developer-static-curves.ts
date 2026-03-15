@@ -7,7 +7,12 @@ import {
   resolveContractTravelDurationSeconds
 } from "../../config/activity-pacing.js";
 import { getExperienceToNextLevel } from "../player/progression-service.js";
-import { CONTRACT_DIFFICULTY_OFFSETS, CONTRACT_SLOT_COUNT, buildRewardPreview } from "./data.js";
+import {
+  CONTRACT_DIFFICULTY_OFFSETS,
+  CONTRACT_EFFICIENCY_TIER_WEIGHTS,
+  CONTRACT_SLOT_COUNT,
+  buildRewardPreview
+} from "./data.js";
 
 const CONTRACT_EFFICIENCY_TIERS = ["low_cost", "standard_cost", "high_cost"] as const;
 
@@ -32,6 +37,16 @@ function getAverageReplenishSeconds(level: number): number {
 }
 
 function getAverageStaminaWaitSecondsForContract(level: number): number {
+  return getWeightedAverageStaminaWaitSecondsForContract(level);
+}
+
+function getWeightedAverageStaminaCostPerContract(level: number): number {
+  return roundToTwo(CONTRACT_EFFICIENCY_TIERS.reduce((total, tier) => {
+    return total + (resolveContractStaminaCost(level, tier) * CONTRACT_EFFICIENCY_TIER_WEIGHTS[tier]);
+  }, 0));
+}
+
+function getWeightedAverageStaminaWaitSecondsForContract(level: number): number {
   const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(level));
   const maxStamina = 120;
   const regenPerHour = (maxStamina * regenPercentPerHour) / 100;
@@ -39,12 +54,10 @@ function getAverageStaminaWaitSecondsForContract(level: number): number {
     return 0;
   }
 
-  const waits = CONTRACT_EFFICIENCY_TIERS.map((tier) => {
+  return roundToTwo(CONTRACT_EFFICIENCY_TIERS.reduce((total, tier) => {
     const requiredStamina = resolveContractStaminaCost(level, tier);
-    return requiredStamina * (3600 / regenPerHour);
-  });
-
-  return roundToTwo(average(waits));
+    return total + ((requiredStamina * (3600 / regenPerHour)) * CONTRACT_EFFICIENCY_TIER_WEIGHTS[tier]);
+  }, 0));
 }
 
 function getAverageContractAvailabilityWaitSeconds(level: number): number {
@@ -78,6 +91,8 @@ export function getDeveloperContractsStaticCurves() {
         averageTravelSeconds: getAverageTravelSeconds(level),
         averageReplenishSeconds: getAverageReplenishSeconds(level),
         averageStaminaWaitSecondsForContract: getAverageStaminaWaitSecondsForContract(level),
+        weightedAverageStaminaWaitSecondsForContract: getWeightedAverageStaminaWaitSecondsForContract(level),
+        weightedAverageStaminaCostPerContract: getWeightedAverageStaminaCostPerContract(level),
         averageContractAvailabilityWaitSeconds: getAverageContractAvailabilityWaitSeconds(level),
         averageExperiencePerContract: {
           easy: getAverageExperiencePerContract(level, "easy"),

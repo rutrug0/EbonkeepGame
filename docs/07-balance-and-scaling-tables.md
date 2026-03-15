@@ -50,9 +50,9 @@ Sample table:
 | Parameter | Value |
 |---|---:|
 | Max stamina | 120 |
-| Regen rate | 25% of max stamina per hour |
+| Regen rate | 12.5% of max stamina per hour |
 | PvE mission cost | level-table driven |
-| Daily refill if empty all day | 720 regained |
+| Daily refill if empty all day | 360 regained |
 
 ## Contracts Board (Timed Activities)
 | Job Tier | Duration | Reward Profile |

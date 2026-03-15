@@ -6,6 +6,7 @@ import {
   resolveContractTravelDurationSeconds,
   resolveStaminaRegenPercentPerHour
 } from "../../src/config/activity-pacing.js";
+import { getDeveloperContractsStaticCurves } from "../../src/modules/contracts/developer-static-curves.js";
 import { resolveStaminaState } from "../../src/modules/player/progression-service.js";
 
 describe("activity pacing tables", () => {
@@ -50,12 +51,31 @@ describe("activity pacing tables", () => {
     expect(resolveContractTravelDurationSeconds(10, "standard_cost")).toBe(60);
     expect(resolveContractTravelDurationSeconds(10, "high_cost")).toBe(78);
   });
+
+  it("reports weighted stamina metrics in developer static curves", () => {
+    const rows = getDeveloperContractsStaticCurves().levels;
+    const levelSixty = rows.find((row) => row.level === 60);
+    const levelEighty = rows.find((row) => row.level === 80);
+    const levelHundred = rows.find((row) => row.level === 100);
+
+    expect(levelSixty).toMatchObject({
+      averageStaminaWaitSecondsForContract: 3876,
+      weightedAverageStaminaWaitSecondsForContract: 3876,
+      weightedAverageStaminaCostPerContract: 16.15
+    });
+    expect(levelEighty).toMatchObject({
+      weightedAverageStaminaCostPerContract: 19.3
+    });
+    expect(levelHundred).toMatchObject({
+      weightedAverageStaminaCostPerContract: 23.15
+    });
+  });
 });
 
 describe("stamina regeneration", () => {
   it("uses a fixed percent-per-hour model based on max stamina", () => {
-    expect(resolveStaminaRegenPercentPerHour(1)).toBe(25);
-    expect(resolveStaminaRegenPercentPerHour(60)).toBe(25);
+    expect(resolveStaminaRegenPercentPerHour(1)).toBe(12.5);
+    expect(resolveStaminaRegenPercentPerHour(60)).toBe(12.5);
 
     const now = new Date("2026-03-13T12:00:00.000Z");
     const stamina = resolveStaminaState({
@@ -66,8 +86,23 @@ describe("stamina regeneration", () => {
       now
     });
 
-    expect(stamina.current).toBe(40);
+    expect(stamina.current).toBe(25);
     expect(stamina.updatedAt.toISOString()).toBe(now.toISOString());
-    expect(stamina.nextPointAt).toBe("2026-03-13T12:02:00.000Z");
+    expect(stamina.nextPointAt).toBe("2026-03-13T12:04:00.000Z");
+  });
+
+  it("fully restores depleted 120-stamina bars in eight hours", () => {
+    const now = new Date("2026-03-13T08:00:00.000Z");
+    const stamina = resolveStaminaState({
+      current: 0,
+      max: 120,
+      updatedAt: new Date("2026-03-13T00:00:00.000Z"),
+      level: 1,
+      now
+    });
+
+    expect(stamina.current).toBe(120);
+    expect(stamina.updatedAt.toISOString()).toBe(now.toISOString());
+    expect(stamina.nextPointAt).toBeNull();
   });
 });

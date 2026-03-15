@@ -12,11 +12,21 @@ function Round-AwayFromZero {
     return [long][Math]::Round($Value, 0, [MidpointRounding]::AwayFromZero)
 }
 
+function Round-ToDecimalsAwayFromZero {
+    param(
+        [double]$Value,
+        [int]$Decimals
+    )
+
+    return [Math]::Round($Value, $Decimals, [MidpointRounding]::AwayFromZero)
+}
+
 function Get-SeriesValue {
     param(
         [System.Collections.Generic.Dictionary[string, object[]]]$AnchorsBySeries,
         [string]$Series,
-        [int]$Level
+        [int]$Level,
+        [int]$Decimals = 0
     )
 
     $anchors = $AnchorsBySeries[$Series]
@@ -26,16 +36,25 @@ function Get-SeriesValue {
 
     foreach ($anchor in $anchors) {
         if ([int]$anchor.level -eq $Level) {
+            if ($Decimals -gt 0) {
+                return Round-ToDecimalsAwayFromZero -Value ([double]$anchor.value) -Decimals $Decimals
+            }
             return Round-AwayFromZero ([double]$anchor.value)
         }
     }
 
     if ($Level -le [int]$anchors[0].level) {
+        if ($Decimals -gt 0) {
+            return Round-ToDecimalsAwayFromZero -Value ([double]$anchors[0].value) -Decimals $Decimals
+        }
         return Round-AwayFromZero ([double]$anchors[0].value)
     }
 
     $lastAnchor = $anchors[$anchors.Count - 1]
     if ($Level -ge [int]$lastAnchor.level) {
+        if ($Decimals -gt 0) {
+            return Round-ToDecimalsAwayFromZero -Value ([double]$lastAnchor.value) -Decimals $Decimals
+        }
         return Round-AwayFromZero ([double]$lastAnchor.value)
     }
 
@@ -51,11 +70,17 @@ function Get-SeriesValue {
 
         $span = [double]($rightLevel - $leftLevel)
         if ($span -le 0) {
+            if ($Decimals -gt 0) {
+                return Round-ToDecimalsAwayFromZero -Value ([double]$left.value) -Decimals $Decimals
+            }
             return Round-AwayFromZero ([double]$left.value)
         }
 
         $progress = ([double]($Level - $leftLevel)) / $span
         $value = ([double]$left.value) + ((([double]$right.value) - ([double]$left.value)) * $progress)
+        if ($Decimals -gt 0) {
+            return Round-ToDecimalsAwayFromZero -Value $value -Decimals $Decimals
+        }
         return Round-AwayFromZero $value
     }
 
@@ -88,7 +113,7 @@ $replenishRows = New-Object System.Collections.Generic.List[object]
 
 for ($level = 1; $level -le 100; $level++) {
     $travelSecondsBase = Get-SeriesValue -AnchorsBySeries $anchorsBySeries -Series "travel_seconds_base" -Level $level
-    $staminaRegenPercentPerHour = Get-SeriesValue -AnchorsBySeries $anchorsBySeries -Series "stamina_regen_percent_per_hour" -Level $level
+    $staminaRegenPercentPerHour = Get-SeriesValue -AnchorsBySeries $anchorsBySeries -Series "stamina_regen_percent_per_hour" -Level $level -Decimals 1
     $contractStaminaCostLow = Get-SeriesValue -AnchorsBySeries $anchorsBySeries -Series "contract_stamina_cost_low" -Level $level
     $contractStaminaCostStandard = Get-SeriesValue -AnchorsBySeries $anchorsBySeries -Series "contract_stamina_cost_standard" -Level $level
     $contractStaminaCostHigh = Get-SeriesValue -AnchorsBySeries $anchorsBySeries -Series "contract_stamina_cost_high" -Level $level

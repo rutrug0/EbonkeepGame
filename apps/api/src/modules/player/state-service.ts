@@ -36,6 +36,10 @@ const CRIT_CHANCE_CAP = 6000;
 const CRIT_MULTIPLIER_CAP = 45000;
 const DODGE_CHANCE_CAP = 3500;
 const EXTRA_ATTACK_CHANCE_CAP = 3500;
+const LEVEL_HP_BONUS = 11;
+const LEVEL_DAMAGE_BONUS = 2.2;
+const LEVEL_ARMOR_BONUS = 1.4;
+const LEVEL_INITIATIVE_BONUS = 0.9;
 
 type EquipmentSlotWithItem = {
   slotType: string;
@@ -147,8 +151,17 @@ function sumEquipmentBonuses(equipment: InventoryEquipmentState): PlayerStatBonu
   return totals;
 }
 
+function getLevelGrowthMultiplier(level: number): number {
+  return Math.max(0, Math.floor(level) - 1);
+}
+
+function roundStat(value: number): number {
+  return Math.round(value);
+}
+
 function resolveStatBlock(
   playerClass: PlayerClass,
+  level: number,
   coreStats: StatBlock,
   bonuses: PlayerStatBonuses,
   equipment?: InventoryEquipmentState
@@ -156,24 +169,31 @@ function resolveStatBlock(
   const mainOffenseStatKey = getMainOffenseStatKey(playerClass);
   const mainOffenseStat = coreStats[mainOffenseStatKey];
   const weaponAverageDamage = Math.round(equipment?.weapon?.damageRoll?.averageDamage ?? 0);
+  const levelGrowth = getLevelGrowthMultiplier(level);
+  const resolvedInitiative = coreStats.initiative + (levelGrowth * LEVEL_INITIATIVE_BONUS);
 
   return {
     strength: coreStats.strength,
     intelligence: coreStats.intelligence,
     dexterity: coreStats.dexterity,
     vitality: coreStats.vitality,
-    initiative: coreStats.initiative,
+    initiative: roundStat(resolvedInitiative),
     luck: coreStats.luck,
-    armor: coreStats.strength + (bonuses.armor ?? 0),
+    armor: roundStat(coreStats.strength + (bonuses.armor ?? 0) + (levelGrowth * LEVEL_ARMOR_BONUS)),
     spellShield: coreStats.intelligence + (bonuses.spellShield ?? 0),
     missileResistance: coreStats.dexterity + (bonuses.missileResistance ?? 0),
     physicalDefense: Math.max(0, bonuses.physicalDefense ?? 0),
     magicDefense: Math.max(0, bonuses.magicDefense ?? 0),
-    maxHitpoints: Math.max(0, coreStats.vitality * HP_PER_VITALITY + (bonuses.maxHitpoints ?? 0)),
+    maxHitpoints: Math.max(0, roundStat((coreStats.vitality * HP_PER_VITALITY) + (bonuses.maxHitpoints ?? 0) + (levelGrowth * LEVEL_HP_BONUS))),
     dodgeChance: clampInt(coreStats.dexterity * CHANCE_PER_STAT + (bonuses.dodgeChance ?? 0), DODGE_CHANCE_CAP),
     damage: Math.max(
       0,
-      weaponAverageDamage + Math.floor(mainOffenseStat * mainStatToFlatDamageRatio) + (bonuses.damage ?? 0)
+      roundStat(
+        weaponAverageDamage +
+        (mainOffenseStat * mainStatToFlatDamageRatio) +
+        (bonuses.damage ?? 0) +
+        (levelGrowth * LEVEL_DAMAGE_BONUS)
+      )
     ),
     critChance: clampInt(BASE_CRIT_CHANCE + coreStats.luck * CHANCE_PER_STAT + (bonuses.critChance ?? 0), CRIT_CHANCE_CAP),
     critMultiplier: clampInt(
@@ -182,7 +202,7 @@ function resolveStatBlock(
     ),
     accuracy: Math.max(0, BASE_ACCURACY + (bonuses.accuracy ?? 0)),
     extraAttackChance: clampInt(
-      coreStats.initiative * CHANCE_PER_STAT + (bonuses.extraAttackChance ?? 0),
+      resolvedInitiative * CHANCE_PER_STAT + (bonuses.extraAttackChance ?? 0),
       EXTRA_ATTACK_CHANCE_CAP
     )
   };
@@ -213,13 +233,15 @@ function diffResolvedStats(total: PlayerStatBlock, base: PlayerStatBlock): Playe
 
 export function buildPlayerStatSnapshot(args: {
   playerClass: PlayerClass;
+  level?: number;
   baseStats: StatBlock;
   equipment: InventoryEquipmentState;
 }): PlayerStatSnapshot {
   const equipmentBonuses = sumEquipmentBonuses(args.equipment);
   const totalCoreStats = addCoreStatBonuses(args.baseStats, equipmentBonuses);
-  const base = resolveStatBlock(args.playerClass, args.baseStats, {});
-  const total = resolveStatBlock(args.playerClass, totalCoreStats, equipmentBonuses, args.equipment);
+  const level = args.level ?? 1;
+  const base = resolveStatBlock(args.playerClass, level, args.baseStats, {});
+  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, equipmentBonuses, args.equipment);
 
   return {
     base,
@@ -365,6 +387,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     .filter((item): item is NonNullable<typeof item> => item !== null);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: profile.class as PlayerClass,
+    level: progress.experience.level,
     baseStats: {
       strength: stats.strength,
       intelligence: stats.intelligence,
@@ -485,6 +508,7 @@ export async function getPublicPlayerProfile(
   const equipment = buildEquipmentState(profile.equipmentSlots);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: profile.class as PlayerClass,
+    level: profile.level,
     baseStats: {
       strength: stats.strength,
       intelligence: stats.intelligence,
