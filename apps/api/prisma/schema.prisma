@@ -204,6 +204,7 @@ model CurrencyBalance {
   playerId  String        @unique
   ducats    Int           @default(0)
   imperials Int           @default(0)
+  renown    Int           @default(0)
   player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("currencies")
