@@ -97,17 +97,14 @@ Contracts board defaults:
 
 ## Item Power Score (Level 1-100)
 - Canonical specification owner: [06-progression-itemization-and-economy.md](./06-progression-itemization-and-economy.md) (`Item Power Score Formula` section).
-- Weapon power (current model):
-  - API-authoritative, damage-index based.
-  - Baseline comes from post-rarity expected weapon damage after base-level influence.
-  - Each affix/suffix is mapped to damage-equivalent contribution by tier range:
-    - T1 `4%-8%`, T2 `10%-14%`, T3 `16%-20%`.
-  - T3 per-affix contribution cap is `20%` of post-rarity expected damage.
-  - Final weapon power: `round(expected_final_damage * weapon_power_scale_factor)`.
-- Weapon power coefficients:
-  - `docs/data/weapon_power_coefficients_v1.csv`
-- Non-weapon items:
-  - Armor and jewelry remain on the legacy level/rarity/tier scoring model in this pass.
+- Runtime inventory model:
+  - weapon power: `round(weapon_average_damage * 0.35 + weighted_bonus_power)`
+  - armor/jewelry power: `round(fixed_defense_value * 2.2 + weighted_bonus_power)`
+  - rarity and modifier tiers contribute through stronger rolled damage/defense values and stronger rolled stat bonuses
+- Runtime weighting note:
+  - direct `damage` bonuses use the weapon scale `0.35`
+  - defense bonuses (`armor`, `spellShield`, `missileResistance`, `physicalDefense`, `magicDefense`) use the defense scale `2.2`
+  - other explicit stat weights remain defined in `apps/api/src/modules/inventory/item-service.ts`
 
 ## Passive Training and Ducat Rewards (Level 1-100)
 - Passive training table: `docs/data/passive_training_scaling_level_1_100.csv`

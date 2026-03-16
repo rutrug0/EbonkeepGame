@@ -8,6 +8,21 @@ import {
 } from "../../src/modules/inventory/item-service.js";
 
 describe("item service weapon bonuses", () => {
+  it("derives starter weapon power directly from rolled weapon damage", () => {
+    const [, starterWeaponTemplateId] = getStarterTemplateIdsForClass("juggernaut");
+    const weapon = rollInventoryItem({
+      playerId: "player_1",
+      templateId: starterWeaponTemplateId,
+      rarity: "common",
+      deterministic: true,
+      deterministicCode: "starter_weapon_power",
+      itemLevel: 1
+    });
+
+    expect(weapon.damageRoll).toBeDefined();
+    expect(weapon.power).toBe(Math.round((weapon.damageRoll?.averageDamage ?? 0) * 0.35));
+  });
+
   it("does not add hidden stat bonuses to newly rolled starter weapons", () => {
     const [, starterWeaponTemplateId] = getStarterTemplateIdsForClass("juggernaut");
     const weapon = rollInventoryItem({
@@ -22,6 +37,21 @@ describe("item service weapon bonuses", () => {
     expect(weapon.archetype.majorCategory).toBe("weapon");
     expect(weapon.statBonuses).toEqual({});
     expect(weapon.damageRoll).toBeDefined();
+  });
+
+  it("derives starter armor power directly from fixed defense", () => {
+    const [starterArmorTemplateId] = getStarterTemplateIdsForClass("juggernaut");
+    const armor = rollInventoryItem({
+      playerId: "player_1",
+      templateId: starterArmorTemplateId,
+      rarity: "common",
+      deterministic: true,
+      deterministicCode: "starter_armor_power",
+      itemLevel: 1
+    });
+
+    expect(armor.statBonuses.physicalDefense).toBeGreaterThan(0);
+    expect(armor.power).toBe(Math.round((armor.statBonuses.physicalDefense ?? 0) * 2.2));
   });
 
   it("does not add hidden stat bonuses to newly rolled starter armor", () => {
@@ -155,6 +185,12 @@ describe("item service weapon bonuses", () => {
 
     expect(lateTemplate.baseLevel).toBeGreaterThan(earlyTemplate.baseLevel);
     expect(lateWeapon.power).toBeGreaterThan(earlyWeapon.power);
+    expect(lateWeapon.damageRoll).toBeDefined();
+    expect(earlyWeapon.damageRoll).toBeDefined();
+    expect(lateWeapon.power / earlyWeapon.power).toBeCloseTo(
+      (lateWeapon.damageRoll?.averageDamage ?? 0) / (earlyWeapon.damageRoll?.averageDamage ?? 1),
+      1
+    );
   });
 
   it("gives later armor templates a higher baseline power at their native level", () => {
@@ -179,5 +215,10 @@ describe("item service weapon bonuses", () => {
 
     expect(lateTemplate.baseLevel).toBeGreaterThan(earlyTemplate.baseLevel);
     expect(lateArmor.power).toBeGreaterThan(earlyArmor.power);
+    expect(lateArmor.statBonuses.physicalDefense).toBeGreaterThan(earlyArmor.statBonuses.physicalDefense ?? 0);
+    expect(lateArmor.power / earlyArmor.power).toBeCloseTo(
+      (lateArmor.statBonuses.physicalDefense ?? 0) / (earlyArmor.statBonuses.physicalDefense ?? 1),
+      1
+    );
   });
 });
