@@ -466,8 +466,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     equipment,
     currency: {
       ducats: currency.ducats,
-      imperials: currency.imperials,
-      renown: currency.renown
+      imperials: currency.imperials
     },
     cheatSettings: playerCheatSettingsSchema.parse({
       fastTravelEnabled: cheatSettingsRow.fastTravelEnabled,

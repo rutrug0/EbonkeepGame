@@ -72,8 +72,6 @@ model PlayerProfile {
   guildActivityAsActor GuildActivity[]     @relation("GuildActivityActor")
   guildActivityAsTarget GuildActivity[]    @relation("GuildActivityTarget")
   academyDonations     GuildAcademyDonation[] @relation("GuildAcademyDonations")
-  renownNodes          PlayerRenownNode[]
-  academyDonationCharges PlayerAcademyDonationCharges?
 
   @@index([accountId])
   @@map("player_profiles")
@@ -206,22 +204,9 @@ model CurrencyBalance {
   playerId  String        @unique
   ducats    Int           @default(0)
   imperials Int           @default(0)
-  renown    Int           @default(0)
   player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("currencies")
-}
-
-model PlayerRenownNode {
-  id         String        @id @default(cuid())
-  playerId   String
-  nodeId     String
-  unlockedAt DateTime      @default(now())
-  player     PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-  @@unique([playerId, nodeId])
-  @@index([playerId])
-  @@map("player_renown_nodes")
 }
 
 model Transaction {
@@ -555,16 +540,6 @@ model GuildAcademyNode {
   @@unique([guildId, nodeId])
   @@index([guildId])
   @@map("guild_academy_nodes")
-}
-
-model PlayerAcademyDonationCharges {
-  id             String        @id @default(cuid())
-  playerId       String        @unique
-  charges        Int           @default(20)
-  lastRechargeAt DateTime      @default(now())
-  player         PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-
-  @@map("player_academy_donation_charges")
 }
 
 model GuildAcademyDonation {

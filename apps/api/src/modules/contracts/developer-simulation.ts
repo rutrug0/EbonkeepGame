@@ -327,6 +327,7 @@ function evictExpiredJobs(nowMs = Date.now()): void {
   }
 }
 
+<<<<<<< HEAD
 function withScopedMathRandom<T>(rng: () => number, callback: () => T): T {
   const originalRandom = Math.random;
   Math.random = rng;
@@ -425,13 +426,17 @@ function createSyntheticPlayerState(args: {
       imperials: 0,
       renown: 0
     },
-    cheatSettings: {
-      fastTravelEnabled: false,
-      fastContractReplenishEnabled: false,
-      invincibilityEnabled: false,
-      fastTrainTimeEnabled: false
-    }
+      cheatSettings: {
+        fastTravelEnabled: false,
+        fastContractReplenishEnabled: false,
+        invincibilityEnabled: false,
+        fastTrainTimeEnabled: false
+      }
   };
+}
+
+function formatSeedTime(seconds: number): string {
+  return seconds.toFixed(2);
 }
 
 function calculateStaminaWaitSeconds(args: {
@@ -455,6 +460,26 @@ function calculateStaminaWaitSeconds(args: {
   return missingStamina * (3600 / regenPerHour);
 }
 
+function calculateStaminaRegenForSeconds(args: {
+  level: number;
+  elapsedSeconds: number;
+  maxStamina: number;
+}): number {
+  if (args.elapsedSeconds <= 0) {
+    return 0;
+  }
+
+  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
+  const regenPerHour = (args.maxStamina * regenPercentPerHour) / 100;
+  if (regenPerHour <= 0) {
+    return 0;
+  }
+
+  return (regenPerHour / 3600) * args.elapsedSeconds;
+}
+
+=======
+>>>>>>> origin/main
 function getFightCombatSeconds(events: ReturnType<typeof simulateEncounter>["events"]): number {
   return events.length * 2.5;
 }
