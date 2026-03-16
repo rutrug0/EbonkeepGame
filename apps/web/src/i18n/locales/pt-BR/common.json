@@ -1,4 +1,4 @@
-{
+﻿{
   "loading": "Carregando...",
   "cancel": "Cancelar",
   "ok": "OK",
@@ -716,6 +716,9 @@
     "toNextLevel": "Para o próximo nível",
     "nextLevel": "Progresso para o próximo nível",
     "resetView": "Redefinir",
+    "description": "Descrição",
+    "prerequisites": "Pré-requisitos",
+    "selectNode": "Selecione um nó de pesquisa para ver os detalhes.",
     "views": {
       "tree": "Árvore de pesquisa",
       "history": "Histórico de doações",
@@ -733,6 +736,12 @@
       "title": "Recompensas",
       "completion": "Conclusão"
     },
+    "charges": {
+      "label": "Cargas",
+      "nextIn": "Próxima em: {{time}}",
+      "full": "Cheio",
+      "perCharge": "{{amount}} por carga"
+    },
     "donate": {
       "button": "Doar Ducados",
       "title": "Doar para pesquisa",
@@ -742,7 +751,9 @@
       "confirm": "Doar",
       "donating": "Doando...",
       "success": "Doou {{amount}} Ducados com sucesso!",
-      "levelsGained": "(+{{count}} nível)"
+      "levelsGained": "(+{{count}} nível)",
+      "donate1": "Doar (×1)",
+      "donateAll": "Doar Tudo (×{{count}})"
     },
     "history": {
       "empty": "Nenhuma doação registrada ainda."
@@ -754,6 +765,7 @@
       "loadFailed": "Falha ao carregar a Academia.",
       "invalidAmount": "Por favor, insira um valor válido.",
       "insufficientDucats": "Ducados insuficientes.",
+      "insufficientCharges": "Cargas insuficientes.",
       "donateFailed": "Doação falhou. Tente novamente."
     }
   },
@@ -770,5 +782,6 @@
     "runecaster": "Runista",
     "chronomancer": "Cronomante",
     "arcanist": "Arcanista"
-  }
+  },
+  "renown": { "unlock": "Desbloquear", "balance": "Saldo", "insufficientRenown": "Renome insuficiente" }
 }

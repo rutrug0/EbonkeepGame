@@ -1,4 +1,4 @@
-{
+﻿{
   "loading": "Naglo-load...",
   "cancel": "Kanselahin",
   "ok": "OK",
@@ -751,6 +751,9 @@
     "toNextLevel": "Sa Susunod na Antas",
     "nextLevel": "Pag-unlad sa Susunod na Antas",
     "resetView": "I-reset",
+    "description": "Paglalarawan",
+    "prerequisites": "Mga Kinakailangan",
+    "selectNode": "Pumili ng isang research node para makita ang mga detalye.",
     "views": {
       "tree": "Research Tree",
       "history": "Kasaysayan ng Donasyon",
@@ -768,6 +771,12 @@
       "title": "Mga Gantimpala",
       "completion": "Pagkumpleto"
     },
+    "charges": {
+      "label": "Mga Charge",
+      "nextIn": "Susunod sa: {{time}}",
+      "full": "Puno",
+      "perCharge": "{{amount}} bawat charge"
+    },
     "donate": {
       "button": "Mag-donate ng Ducats",
       "title": "Mag-donate sa Research",
@@ -777,7 +786,9 @@
       "confirm": "I-donate",
       "donating": "Nagdo-donate...",
       "success": "Matagumpay na nai-donate ang {{amount}} Ducats!",
-      "levelsGained": "(+{{count}} antas)"
+      "levelsGained": "(+{{count}} antas)",
+      "donate1": "Mag-donate (×1)",
+      "donateAll": "I-donate Lahat (×{{count}})"
     },
     "history": {
       "empty": "Wala pang naitalagang donasyon."
@@ -789,6 +800,7 @@
       "loadFailed": "Nabigo ang pag-load ng Akademya.",
       "invalidAmount": "Mangyaring maglagay ng wastong halaga.",
       "insufficientDucats": "Hindi sapat ang Ducats.",
+      "insufficientCharges": "Hindi sapat ang mga charge.",
       "donateFailed": "Nabigo ang donasyon. Subukang muli."
     }
   },
@@ -805,5 +817,6 @@
     "runecaster": "Rune Caster",
     "chronomancer": "Chronomancer",
     "arcanist": "Arcanist"
-  }
+  },
+  "renown": { "unlock": "I-unlock", "balance": "Balanse", "insufficientRenown": "Hindi sapat ang Renown" }
 }

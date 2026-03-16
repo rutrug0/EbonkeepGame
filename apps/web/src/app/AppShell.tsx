@@ -147,6 +147,8 @@ import {
   RENOWN_SCENE_HEIGHT,
   RENOWN_SCENE_WIDTH,
   RenownPanel,
+  getMyRenownState,
+  unlockRenownNodeApi,
   WEAPON_BASE_LEVEL_POWER_WEIGHT,
   WEAPON_POWER_MULTIPLIER,
   normalizeEncyclopediaItems,
@@ -156,6 +158,7 @@ import {
   type MockInventoryItemSeed,
   type RenownViewState
 } from "../features/profile";
+import type { RenownState } from "@ebonkeep/shared/player";
 import { DUCATS_ICON_PATH, IMPERIALS_ICON_PATH } from "../constants/uiAssets";
 import { DEFAULT_PORTRAIT_ID, PORTRAIT_POOL, PORTRAIT_POOL_BY_TREE, getPortraitPath, getDefaultPortraitId, BACKGROUND_POOL, getBackgroundPath, DEFAULT_BACKGROUND_ID } from "../constants/portraits";
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
@@ -1504,6 +1507,8 @@ export function AppShell() {
   const [selectedRenownNodeId, setSelectedRenownNodeId] = useState<string>(DEFAULT_RENOWN_NODE_ID);
   const [renownView, setRenownView] = useState<RenownViewState>(RENOWN_INITIAL_VIEW);
   const [isRenownDragging, setIsRenownDragging] = useState(false);
+  const [renownState, setRenownState] = useState<RenownState | null>(null);
+  const [isUnlockingRenown, setIsUnlockingRenown] = useState(false);
   const [selectedLedgerZoneId, setSelectedLedgerZoneId] = useState<string>(LEDGER_MOCK_DISCOVERED_ZONE_IDS[0]);
   const [encyclopediaCategory, setEncyclopediaCategory] = useState<EncyclopediaCategory>("armor");
   const [encyclopediaArmorArchetype, setEncyclopediaArmorArchetype] = useState<EncyclopediaArmorArchetype>("heavy");
@@ -2229,6 +2234,19 @@ export function AppShell() {
     setIsRenownDragging(true);
   }
 
+  async function handleUnlockRenownNode(nodeId: string) {
+    if (!token || isUnlockingRenown) return;
+    setIsUnlockingRenown(true);
+    try {
+      const updated = await unlockRenownNodeApi(token, nodeId);
+      setRenownState(updated);
+    } catch (err) {
+      console.error("Failed to unlock renown node:", err);
+    } finally {
+      setIsUnlockingRenown(false);
+    }
+  }
+
   function handleRenownViewportWheel(event: ReactWheelEvent<HTMLDivElement>) {
     event.preventDefault();
     const viewport = renownViewportRef.current;
@@ -2403,6 +2421,7 @@ export function AppShell() {
     if (!token) {
       applyAuthoritativePlayerState(null);
       setMerchantState(null);
+      setRenownState(null);
       setIsLoadingState(false);
       return () => {
         active = false;
@@ -2444,6 +2463,19 @@ export function AppShell() {
       .catch((err: unknown) => {
         if (active) {
           console.error("Failed to fetch account info:", err);
+        }
+      });
+
+    // Fetch renown state
+    void getMyRenownState(token)
+      .then((state) => {
+        if (active) {
+          setRenownState(state);
+        }
+      })
+      .catch((err: unknown) => {
+        if (active) {
+          console.error("Failed to fetch renown state:", err);
         }
       });
 
@@ -3995,6 +4027,9 @@ export function AppShell() {
         onViewportWheel={handleRenownViewportWheel}
         onSelectNode={setSelectedRenownNodeId}
         renderCharacterHubTabs={renderCharacterHubTabs}
+        renownState={renownState}
+        isUnlocking={isUnlockingRenown}
+        onUnlockNode={(nodeId) => { void handleUnlockRenownNode(nodeId); }}
       />
     );
   }

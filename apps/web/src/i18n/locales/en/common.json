@@ -1016,6 +1016,9 @@
     "toNextLevel": "To Next Level",
     "nextLevel": "Progress to Next Level",
     "resetView": "Reset",
+    "description": "Description",
+    "prerequisites": "Requirements",
+    "selectNode": "Select a research node to view details.",
     "views": {
       "tree": "Research Tree",
       "history": "Donation History",
@@ -1033,6 +1036,12 @@
       "title": "Rewards",
       "completion": "Completion"
     },
+    "charges": {
+      "label": "Charges",
+      "nextIn": "Next in: {{time}}",
+      "full": "Full",
+      "perCharge": "{{amount}} per charge"
+    },
     "donate": {
       "button": "Donate Ducats",
       "title": "Donate to Research",
@@ -1042,7 +1051,9 @@
       "confirm": "Donate",
       "donating": "Donating...",
       "success": "Successfully donated {{amount}} Ducats!",
-      "levelsGained": "(+{{count}} level)"
+      "levelsGained": "(+{{count}} level)",
+      "donate1": "Donate (\u00d71)",
+      "donateAll": "Donate All (\u00d7{{count}})"
     },
     "history": {
       "empty": "No donations recorded yet."
@@ -1054,7 +1065,13 @@
       "loadFailed": "Failed to load Academy.",
       "invalidAmount": "Please enter a valid amount.",
       "insufficientDucats": "Not enough Ducats.",
+      "insufficientCharges": "Not enough charges.",
       "donateFailed": "Donation failed. Please try again."
     }
+  },
+  "renown": {
+    "unlock": "Unlock",
+    "balance": "Balance",
+    "insufficientRenown": "Insufficient Renown"
   }
 }

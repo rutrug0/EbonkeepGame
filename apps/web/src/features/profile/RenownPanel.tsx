@@ -1,4 +1,7 @@
 import type { MouseEventHandler, ReactElement, RefObject, WheelEventHandler } from "react";
+import { useTranslation } from "react-i18next";
+
+import type { RenownState } from "@ebonkeep/shared/player";
 
 type RenownNodeStatus = "unlocked" | "available" | "locked";
 type RenownBranchTone = "root" | "ledger" | "garden" | "campaign" | "industry";
@@ -331,6 +334,19 @@ const RENOWN_EDGES: RenownEdge[] = [
 ];
 
 const RENOWN_NODE_BY_ID = new Map<string, RenownNode>(RENOWN_NODES.map((node) => [node.id, node]));
+const RENOWN_NODE_LABEL_TO_ID = new Map<string, string>(RENOWN_NODES.map((node) => [node.label, node.id]));
+
+function computeRenownNodeStatus(
+  node: RenownNode,
+  unlockedSet: ReadonlySet<string>
+): RenownNodeStatus {
+  if (unlockedSet.has(node.id)) return "unlocked";
+  const prereqsMet = node.requirements.every((label) => {
+    const prereqId = RENOWN_NODE_LABEL_TO_ID.get(label);
+    return prereqId ? unlockedSet.has(prereqId) : false;
+  });
+  return prereqsMet ? "available" : "locked";
+}
 
 function buildRenownEdgePath(source: RenownNode, target: RenownNode): string {
   const controlYOffset = Math.max(54, Math.abs(source.y - target.y) * 0.38);
@@ -447,11 +463,25 @@ export type RenownPanelProps = {
   onViewportWheel: WheelEventHandler<HTMLDivElement>;
   onSelectNode: (nodeId: string) => void;
   renderCharacterHubTabs: () => ReactElement;
+  renownState: RenownState | null;
+  isUnlocking: boolean;
+  onUnlockNode: (nodeId: string) => void;
 };
 
 export function RenownPanel(props: RenownPanelProps): ReactElement {
+  const { t } = useTranslation("common");
   const selectedNode = RENOWN_NODE_BY_ID.get(props.selectedRenownNodeId) ?? RENOWN_NODES[0];
-  const unlockedCount = RENOWN_NODES.filter((node) => node.status === "unlocked").length;
+
+  const unlockedSet: ReadonlySet<string> = props.renownState
+    ? new Set(props.renownState.unlockedNodeIds)
+    : new Set(RENOWN_NODES.filter((n) => n.status === "unlocked").map((n) => n.id));
+
+  const nodeStatusMap = new Map<string, RenownNodeStatus>(
+    RENOWN_NODES.map((n) => [n.id, computeRenownNodeStatus(n, unlockedSet)])
+  );
+
+  const selectedStatus = nodeStatusMap.get(selectedNode.id) ?? "locked";
+  const renownBalance = props.renownState?.renownBalance ?? 0;
 
   return (
     <section className="contentShell">
@@ -485,8 +515,10 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
                     if (!source || !target) {
                       return null;
                     }
+                    const srcStatus = nodeStatusMap.get(source.id) ?? "locked";
+                    const tgtStatus = nodeStatusMap.get(target.id) ?? "locked";
                     const isUnlocked =
-                      source.status === "unlocked" && (target.status === "unlocked" || target.status === "available");
+                      srcStatus === "unlocked" && (tgtStatus === "unlocked" || tgtStatus === "available");
                     return (
                       <path
                         key={`${edge.from}-${edge.to}`}
@@ -509,11 +541,13 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
                     }}
                   />
                 ))}
-                {RENOWN_NODES.map((node) => (
+                {RENOWN_NODES.map((node) => {
+                  const computedStatus = nodeStatusMap.get(node.id) ?? "locked";
+                  return (
                   <button
                     key={node.id}
                     type="button"
-                    className={`renownNode renownNode-${node.status} tone-${node.tone}${
+                    className={`renownNode renownNode-${computedStatus} tone-${node.tone}${
                       selectedNode.id === node.id ? " isSelected" : ""
                     }${node.tier === 0 ? " isRoot" : ""}`}
                     style={{ left: `${node.x}px`, top: `${node.y}px` }}
@@ -526,7 +560,8 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
                       {renderRenownNodeGlyph(node.icon)}
                     </span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
             <aside className="renownDetailPanel">
@@ -535,7 +570,7 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
                   <p className="renownDetailEyebrow">{selectedNode.branch}</p>
                   <h3>{selectedNode.label}</h3>
                 </div>
-                <span className={`renownStatusBadge status-${selectedNode.status}`}>{selectedNode.status}</span>
+                <span className={`renownStatusBadge status-${selectedStatus}`}>{selectedStatus}</span>
               </div>
               <div className="renownDetailStats">
                 <div>
@@ -547,10 +582,24 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
                   <strong>{selectedNode.branch}</strong>
                 </div>
                 <div>
-                  <span>Unlocked</span>
-                  <strong>{unlockedCount} nodes</strong>
+                  <span>{t("renown.balance")}</span>
+                  <strong>{renownBalance}</strong>
                 </div>
               </div>
+              {selectedStatus === "available" && (
+                <button
+                  type="button"
+                  className="renownUnlockButton"
+                  disabled={props.isUnlocking || renownBalance < selectedNode.cost}
+                  onClick={() => props.onUnlockNode(selectedNode.id)}
+                >
+                  {props.isUnlocking
+                    ? "…"
+                    : renownBalance < selectedNode.cost
+                      ? t("renown.insufficientRenown")
+                      : `${t("renown.unlock")} (${selectedNode.cost})`}
+                </button>
+              )}
               <article className="renownDetailSection">
                 <h4>Doctrine</h4>
                 <p>{selectedNode.description}</p>

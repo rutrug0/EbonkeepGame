@@ -229,7 +229,8 @@ export type PlayerStatSnapshot = z.infer<typeof playerStatSnapshotSchema>;
 
 export const currencyBalanceSchema = z.object({
   ducats: z.number().int().min(0),
-  imperials: z.number().int().min(0)
+  imperials: z.number().int().min(0),
+  renown: z.number().int().min(0)
 });
 export type CurrencyBalance = z.infer<typeof currencyBalanceSchema>;
 

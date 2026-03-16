@@ -31,3 +31,4 @@ export {
   RenownPanel,
   type RenownViewState
 } from "./RenownPanel";
+export { getMyRenownState, unlockRenownNode as unlockRenownNodeApi } from "./renown-api";

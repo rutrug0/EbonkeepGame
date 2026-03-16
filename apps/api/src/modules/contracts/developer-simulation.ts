@@ -384,7 +384,8 @@ function createSyntheticPlayerState(args: {
     equipment: args.equipment,
     currency: {
       ducats: 0,
-      imperials: 0
+      imperials: 0,
+      renown: 0
     },
       cheatSettings: {
         fastTravelEnabled: false,

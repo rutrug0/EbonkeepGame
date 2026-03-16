@@ -1,4 +1,4 @@
-{
+﻿{
   "loading": "加载中...",
   "cancel": "取消",
   "ok": "确定",
@@ -714,6 +714,9 @@
     "toNextLevel": "距下一级",
     "nextLevel": "升级进度",
     "resetView": "重置",
+    "description": "描述",
+    "prerequisites": "前置要求",
+    "selectNode": "选择一个研究节点以查看详情。",
     "views": {
       "tree": "研究树",
       "history": "捐献历史",
@@ -731,6 +734,12 @@
       "title": "奖励",
       "completion": "完成奖励"
     },
+    "charges": {
+      "label": "充能",
+      "nextIn": "下次充能：{{time}}",
+      "full": "已满",
+      "perCharge": "每次 {{amount}}"
+    },
     "donate": {
       "button": "捐献金币",
       "title": "捐献给研究项目",
@@ -740,7 +749,9 @@
       "confirm": "捐献",
       "donating": "捐献中...",
       "success": "成功捐献 {{amount}} 金币！",
-      "levelsGained": "(+{{count}} 级)"
+      "levelsGained": "(+{{count}} 级)",
+      "donate1": "捐献（×1）",
+      "donateAll": "全部捐献（×{{count}}）"
     },
     "history": {
       "empty": "暂无捐献记录。"
@@ -752,6 +763,7 @@
       "loadFailed": "加载学院失败。",
       "invalidAmount": "请输入有效金额。",
       "insufficientDucats": "金币不足。",
+      "insufficientCharges": "充能不足。",
       "donateFailed": "捐献失败，请重试。"
     }
   },
@@ -768,5 +780,6 @@
     "runecaster": "符文师",
     "chronomancer": "时间法师",
     "arcanist": "奥法师"
-  }
+  },
+  "renown": { "unlock": "解锁", "balance": "余额", "insufficientRenown": "声望不足" }
 }

@@ -118,3 +118,14 @@ export const publicPlayerProfileSchema = z.object({
   statSnapshot: playerStatSnapshotSchema
 });
 export type PublicPlayerProfile = z.infer<typeof publicPlayerProfileSchema>;
+
+export const renownStateSchema = z.object({
+  unlockedNodeIds: z.array(z.string()),
+  renownBalance: z.number().int().min(0)
+});
+export type RenownState = z.infer<typeof renownStateSchema>;
+
+export const renownUnlockBodySchema = z.object({
+  nodeId: z.string().min(1)
+});
+export type RenownUnlockBody = z.infer<typeof renownUnlockBodySchema>;

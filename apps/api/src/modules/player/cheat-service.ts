@@ -27,6 +27,7 @@ export const CHEAT_FAST_TRAVEL_DURATION_MS = 2_000;
 export const CHEAT_FAST_CONTRACT_REPLENISH_DURATION_MS = 3_000;
 export const CHEAT_DUCATS_GRANT = 1_000_000;
 export const CHEAT_IMPERIALS_GRANT = 10_000;
+export const CHEAT_RENOWN_GRANT = 20;
 
 async function loadRequiredPlayerState(prisma: PlayerDbClient, playerId: string): Promise<PlayerState> {
   const playerState = await loadPlayerState(prisma, playerId);
@@ -183,12 +184,14 @@ export async function grantCurrencyForCheats(
     where: { playerId },
     update: {
       ducats: { increment: CHEAT_DUCATS_GRANT },
-      imperials: { increment: CHEAT_IMPERIALS_GRANT }
+      imperials: { increment: CHEAT_IMPERIALS_GRANT },
+      renown: { increment: CHEAT_RENOWN_GRANT }
     },
     create: {
       playerId,
       ducats: CHEAT_DUCATS_GRANT,
-      imperials: CHEAT_IMPERIALS_GRANT
+      imperials: CHEAT_IMPERIALS_GRANT,
+      renown: CHEAT_RENOWN_GRANT
     }
   });
 

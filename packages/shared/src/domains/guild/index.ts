@@ -22,7 +22,8 @@ export const guildActivityTypeSchema = z.enum([
   "disbanded",
   "crest_changed",
   "description_changed",
-  "recruiting_toggled"
+  "recruiting_toggled",
+  "academy_donated"
 ]);
 export type GuildActivityType = z.infer<typeof guildActivityTypeSchema>;
 
@@ -347,13 +348,29 @@ export const academyTreeStateSchema = z.object({
   guildId: z.string(),
   config: academyTreeConfigSchema,
   nodes: z.record(z.string(), academyNodeStateSchema),
-  totalDonated: z.number().int()
+  totalDonated: z.number().int(),
+  chargesState: z.object({
+    charges: z.number().int().min(0).max(20),
+    maxCharges: z.literal(20),
+    nextChargeAt: z.string().datetime().nullable(),
+    secondsUntilNext: z.number().int().nullable(),
+    ducatsPerCharge: z.number().int()
+  })
 });
 export type AcademyTreeState = z.infer<typeof academyTreeStateSchema>;
 
+export const academyDonationChargesStateSchema = z.object({
+  charges: z.number().int().min(0).max(20),
+  maxCharges: z.literal(20),
+  nextChargeAt: z.string().datetime().nullable(),
+  secondsUntilNext: z.number().int().nullable(),
+  ducatsPerCharge: z.number().int()
+});
+export type AcademyDonationChargesState = z.infer<typeof academyDonationChargesStateSchema>;
+
 export const donateToNodeRequestSchema = z.object({
-  nodeId: z.string(),
-  amount: z.number().int().min(1).max(500000)
+  nodeId: z.string().min(1),
+  chargesSpent: z.number().int().min(1).max(20)
 });
 export type DonateToNodeRequest = z.infer<typeof donateToNodeRequestSchema>;
 
@@ -364,7 +381,8 @@ export const donateToNodeResponseSchema = z.object({
   ducatsToNextLevel: z.number().int().nullable(),
   status: academyNodeStatusSchema,
   levelsGained: z.number().int(),
-  remainingDucats: z.number().int()
+  remainingDucats: z.number().int(),
+  chargesState: academyDonationChargesStateSchema
 });
 export type DonateToNodeResponse = z.infer<typeof donateToNodeResponseSchema>;
 

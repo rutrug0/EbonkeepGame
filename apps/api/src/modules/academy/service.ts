@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 
 import type {
+  AcademyDonationChargesState,
   AcademyNodeState,
   AcademyNodeStatus,
   AcademyTreeState,
@@ -90,6 +91,45 @@ function computeNodeStatus(
   return "available";
 }
 
+// ── Donation charge helpers ────────────────────────────────────────────────
+
+const MAX_ACADEMY_DONATION_CHARGES = 20;
+const CHARGE_REGEN_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+export const DUCATS_PER_CHARGE = 200;
+
+function resolveChargeState(
+  storedCharges: number,
+  lastRechargeAt: Date
+): { current: number; lastRechargeAtAdvanced: Date } {
+  const elapsed = Date.now() - lastRechargeAt.getTime();
+  const regenCount = Math.floor(elapsed / CHARGE_REGEN_INTERVAL_MS);
+  const current = Math.min(MAX_ACADEMY_DONATION_CHARGES, storedCharges + regenCount);
+  const advancedMs = lastRechargeAt.getTime() + regenCount * CHARGE_REGEN_INTERVAL_MS;
+  return { current, lastRechargeAtAdvanced: new Date(advancedMs) };
+}
+
+function buildChargesStateResponse(
+  storedCharges: number,
+  lastRechargeAt: Date
+): AcademyDonationChargesState {
+  const { current, lastRechargeAtAdvanced } = resolveChargeState(storedCharges, lastRechargeAt);
+  const isFull = current >= MAX_ACADEMY_DONATION_CHARGES;
+  let nextChargeAt: string | null = null;
+  let secondsUntilNext: number | null = null;
+  if (!isFull) {
+    const nextMs = lastRechargeAtAdvanced.getTime() + CHARGE_REGEN_INTERVAL_MS;
+    nextChargeAt = new Date(nextMs).toISOString();
+    secondsUntilNext = Math.max(0, Math.floor((nextMs - Date.now()) / 1000));
+  }
+  return {
+    charges: current,
+    maxCharges: 20,
+    nextChargeAt,
+    secondsUntilNext,
+    ducatsPerCharge: DUCATS_PER_CHARGE
+  };
+}
+
 // ── Public service functions ───────────────────────────────────────────────
 
 /**
@@ -112,6 +152,15 @@ export async function getAcademyTreeState(
   const dbNodes = await prisma.guildAcademyNode.findMany({
     where: { guildId }
   });
+
+  // Fetch player's donation charge state
+  const chargeRow = await prisma.playerAcademyDonationCharges.findUnique({
+    where: { playerId }
+  });
+  const chargesState = buildChargesStateResponse(
+    chargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES,
+    chargeRow?.lastRechargeAt ?? new Date()
+  );
 
   // Build lookup for status computation
   const guildNodeMap = new Map<string, { currentLevel: number; ducatsInvested: number }>();
@@ -146,14 +195,15 @@ export async function getAcademyTreeState(
     guildId,
     config: ACADEMY_TREE_CONFIG,
     nodes,
-    totalDonated
+    totalDonated,
+    chargesState
   };
 }
 
 /**
- * Donate ducats to a specific academy node.
- * Any guild member can donate. The donation is capped so the node is never
- * over-funded (excess ducats not taken from the player).
+ * Donate using player's regenerating charges to a specific academy node.
+ * Each charge costs DUCATS_PER_CHARGE from the player's balance.
+ * Players can spend 1 or more charges at once; charges regenerate 1 per 30 min up to 20 max.
  */
 export async function donateToNode(
   prisma: PrismaClient,
@@ -161,11 +211,7 @@ export async function donateToNode(
   guildId: string,
   body: DonateToNodeRequest
 ): Promise<DonateToNodeResponse> {
-  const { nodeId, amount } = body;
-
-  if (amount < 1) {
-    throw new AcademyError("INVALID_AMOUNT", 400);
-  }
+  const { nodeId, chargesSpent } = body;
 
   // Verify membership
   const membership = await prisma.guildMember.findFirst({
@@ -181,7 +227,7 @@ export async function donateToNode(
     throw new AcademyError("INVALID_NODE", 404);
   }
 
-  // Load current node state + prerequisite states in one query
+  // Load current node state + prerequisite states outside tx for prereq check
   const allNodeRows = await prisma.guildAcademyNode.findMany({
     where: { guildId }
   });
@@ -189,14 +235,14 @@ export async function donateToNode(
     allNodeRows.map((r) => [r.nodeId, { currentLevel: r.currentLevel, ducatsInvested: r.ducatsInvested }])
   );
 
-  const dbNode = guildNodeMap.get(nodeId) ?? { currentLevel: 0, ducatsInvested: 0 };
+  const dbNodeOuter = guildNodeMap.get(nodeId) ?? { currentLevel: 0, ducatsInvested: 0 };
 
   // Must not be maxed
-  if (dbNode.currentLevel >= nodeConfig.maxLevel) {
+  if (dbNodeOuter.currentLevel >= nodeConfig.maxLevel) {
     throw new AcademyError("NODE_ALREADY_MAXED", 400);
   }
 
-  // Check prerequisites
+  // Check prerequisites (safe outside tx: levels only ever increase)
   for (const prereq of nodeConfig.prerequisites) {
     const prereqState = guildNodeMap.get(prereq.nodeId);
     if (!prereqState || prereqState.currentLevel < prereq.minLevel) {
@@ -204,49 +250,97 @@ export async function donateToNode(
     }
   }
 
-  // Calculate total cost to fully max the node
-  const totalCostToMax = cumulativeCost(nodeId, nodeConfig.maxLevel);
-  const remaining = totalCostToMax - dbNode.ducatsInvested;
-
-  // Cap donation at what is actually needed (prevent over-donation)
-  const effectiveAmount = Math.min(amount, remaining);
-  if (effectiveAmount <= 0) {
-    throw new AcademyError("NODE_ALREADY_MAXED", 400);
-  }
-
-  // Load player currency
-  const currency = await prisma.currencyBalance.findUnique({
-    where: { playerId }
-  });
-  if (!currency || currency.ducats < effectiveAmount) {
-    throw new AcademyError("INSUFFICIENT_DUCATS", 400);
-  }
-
-  // Execute transaction: deduct ducats, update node, log donation + activity
-  const newInvested = dbNode.ducatsInvested + effectiveAmount;
-  const newLevel = computeLevel(nodeId, newInvested);
-  const levelsGained = newLevel - dbNode.currentLevel;
-  const isNowMaxed = newLevel >= nodeConfig.maxLevel;
-  const toNext = ducatsToNextLevel(nodeId, newInvested, newLevel);
-
+  // Execute transaction: all writes + authoritative state reads inside tx
   let remainingDucats = 0;
+  let txNodeId = nodeId;
+  let txNewLevel = 0;
+  let txNewInvested = 0;
+  let txLevelsGained = 0;
+  let txToNext: number | null = null;
+  let txIsNowMaxed = false;
+  let txStoredCharges = 0;
+  let txLastRechargeAt = new Date();
 
   await prisma.$transaction(async (tx) => {
-    // 1. Deduct ducats from player
-    const updated = await tx.currencyBalance.update({
-      where: { playerId },
+    // 1. Re-read node state inside tx (authoritative, prevents lost-update)
+    const txNodeRow = await tx.guildAcademyNode.findUnique({
+      where: { guildId_nodeId: { guildId, nodeId } }
+    });
+    const txInvested = txNodeRow?.ducatsInvested ?? 0;
+    const txCurrentLevel = txNodeRow?.currentLevel ?? 0;
+
+    if (txCurrentLevel >= nodeConfig.maxLevel) {
+      throw new AcademyError("NODE_ALREADY_MAXED", 400);
+    }
+
+    // 2. Resolve player's authoritative charge state inside tx
+    const txChargeRow = await tx.playerAcademyDonationCharges.findUnique({
+      where: { playerId }
+    });
+    const storedCharges = txChargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES;
+    const lastRechargeAt = txChargeRow?.lastRechargeAt ?? new Date();
+    const { current: currentCharges, lastRechargeAtAdvanced } = resolveChargeState(storedCharges, lastRechargeAt);
+
+    if (chargesSpent > currentCharges) {
+      throw new AcademyError("INSUFFICIENT_CHARGES", 400);
+    }
+
+    // 3. Compute ducat amount from charges, capped to what node still needs
+    const totalCostToMax = cumulativeCost(nodeId, nodeConfig.maxLevel);
+    const stillNeeded = totalCostToMax - txInvested;
+    const requestedDucats = chargesSpent * DUCATS_PER_CHARGE;
+    const effectiveAmount = Math.min(requestedDucats, stillNeeded);
+    if (effectiveAmount <= 0) {
+      throw new AcademyError("NODE_ALREADY_MAXED", 400);
+    }
+
+    // Compute actual charges consumed (may be fewer if the node is nearly full)
+    const effectiveChargesConsumed = Math.ceil(effectiveAmount / DUCATS_PER_CHARGE);
+    const actualChargesConsumed = Math.min(chargesSpent, effectiveChargesConsumed);
+
+    // 4. Atomic balance check + deduct
+    const currencyUpdate = await tx.currencyBalance.updateMany({
+      where: { playerId, ducats: { gte: effectiveAmount } },
       data: { ducats: { decrement: effectiveAmount } }
     });
-    remainingDucats = updated.ducats;
+    if (currencyUpdate.count === 0) {
+      throw new AcademyError("INSUFFICIENT_DUCATS", 400);
+    }
+    const updatedCurrency = await tx.currencyBalance.findUnique({ where: { playerId } });
+    remainingDucats = updatedCurrency?.ducats ?? 0;
 
-    // 2. Upsert academy node progress
+    // 5. Deduct charges (upsert charge row with depleted count + advanced base time)
+    const newStoredCharges = currentCharges - actualChargesConsumed;
+    const upsertedChargeRow = await tx.playerAcademyDonationCharges.upsert({
+      where: { playerId },
+      create: {
+        playerId,
+        charges: newStoredCharges,
+        lastRechargeAt: lastRechargeAtAdvanced
+      },
+      update: {
+        charges: newStoredCharges,
+        lastRechargeAt: lastRechargeAtAdvanced
+      }
+    });
+    txStoredCharges = upsertedChargeRow.charges;
+    txLastRechargeAt = upsertedChargeRow.lastRechargeAt;
+
+    // 6. Compute new node state
+    const newInvested = txInvested + effectiveAmount;
+    const newLevel = computeLevel(nodeId, newInvested);
+    const levelsGained = newLevel - txCurrentLevel;
+    const isNowMaxed = newLevel >= nodeConfig.maxLevel;
+    const toNext = ducatsToNextLevel(nodeId, newInvested, newLevel);
+
+    // 7. Upsert academy node progress
     await tx.guildAcademyNode.upsert({
       where: { guildId_nodeId: { guildId, nodeId } },
       create: {
         guildId,
         nodeId,
         currentLevel: newLevel,
-        ducatsInvested: effectiveAmount,
+        ducatsInvested: newInvested,
         completedAt: isNowMaxed ? new Date() : null
       },
       update: {
@@ -256,7 +350,7 @@ export async function donateToNode(
       }
     });
 
-    // 3. Record individual donation
+    // 8. Record individual donation
     await tx.guildAcademyDonation.create({
       data: {
         guildId,
@@ -266,7 +360,7 @@ export async function donateToNode(
       }
     });
 
-    // 4. Log guild activity
+    // 9. Log guild activity
     await tx.guildActivity.create({
       data: {
         guildId,
@@ -275,28 +369,35 @@ export async function donateToNode(
         metadata: {
           nodeId,
           amount: effectiveAmount,
+          chargesSpent: actualChargesConsumed,
           levelsGained,
           newLevel
         }
       }
     });
+
+    txNodeId = nodeId;
+    txNewLevel = newLevel;
+    txNewInvested = newInvested;
+    txLevelsGained = levelsGained;
+    txToNext = toNext;
+    txIsNowMaxed = isNowMaxed;
   });
 
   let status: AcademyNodeStatus = "in_progress";
-  if (isNowMaxed) status = "maxed";
-  else if (newLevel > 0) status = "in_progress";
+  if (txIsNowMaxed) status = "maxed";
 
   return {
-    nodeId,
-    newLevel,
-    ducatsInvested: newInvested,
-    ducatsToNextLevel: toNext,
+    nodeId: txNodeId,
+    newLevel: txNewLevel,
+    ducatsInvested: txNewInvested,
+    ducatsToNextLevel: txToNext,
     status,
-    levelsGained,
-    remainingDucats
+    levelsGained: txLevelsGained,
+    remainingDucats,
+    chargesState: buildChargesStateResponse(txStoredCharges, txLastRechargeAt)
   };
 }
-
 /**
  * Get donation history for a guild (any member can view).
  */
