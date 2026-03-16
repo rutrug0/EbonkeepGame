@@ -327,7 +327,6 @@ function evictExpiredJobs(nowMs = Date.now()): void {
   }
 }
 
-<<<<<<< HEAD
 function withScopedMathRandom<T>(rng: () => number, callback: () => T): T {
   const originalRandom = Math.random;
   Math.random = rng;
@@ -478,8 +477,6 @@ function calculateStaminaRegenForSeconds(args: {
   return (regenPerHour / 3600) * args.elapsedSeconds;
 }
 
-=======
->>>>>>> origin/main
 function getFightCombatSeconds(events: ReturnType<typeof simulateEncounter>["events"]): number {
   return events.length * 2.5;
 }
