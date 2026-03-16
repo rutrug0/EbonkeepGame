@@ -181,40 +181,20 @@ Jewelry slot weights:
 ### Item Power Score Formula (Level 1-100)
 - Goal: a single quick-glance number should track real weapon strength from item level, base-level range identity, rarity, and affix/suffix quality.
 - Current ownership:
-  - Weapon power: API-authoritative, damage-index based.
-  - Armor/jewelry power: legacy level/rarity/tier formula (unchanged in this pass).
+  - Runtime inventory items: API-authoritative, intrinsic-stat based for weapons, armor, and jewelry.
+  - Dev weapon preview data may still use a separate experimental damage-index formula.
 
-Weapon power model (damage-index based):
-- Build post-rarity expected damage from weapon roll windows after base-level influence:
-  - `expected_post_rarity = avg(avg(min_low, min_high), avg(max_low, max_high))`
-- For each present affix/suffix, convert the rolled value to a damage-equivalent percent using tier ranges:
-  - T1: `4%-8%`
-  - T2: `10%-14%`
-  - T3: `16%-20%`
-  - `progress = clamp01((roll_value - roll_min) / (roll_max - roll_min))`
-  - `affix_pct = tier_min + progress * (tier_max - tier_min)`
-  - `affix_damage_equivalent = expected_post_rarity * affix_pct`
-- Direct damage affixes (`melee_damage`, `ranged_damage`, `spell_damage`) add their damage-equivalent to rolled min/max:
-  - `direct_delta = round(sum(direct_affix_damage_equivalent))`
-  - `rolled_min += direct_delta`
-  - `rolled_max += direct_delta`
-- Final expected damage index:
-  - `expected_final_damage = expected_post_rarity + sum(all_affix_damage_equivalent)`
-- Final weapon power:
-  - `weapon_power = round(expected_final_damage * weapon_power_scale_factor)`
-
-Weapon power coefficients:
-- Source: `docs/data/weapon_power_coefficients_v1.csv`
-- Fields:
-  - `weapon_power_scale_factor`
-  - `t1_pct_min`, `t1_pct_max`
-  - `t2_pct_min`, `t2_pct_max`
-  - `t3_pct_min`, `t3_pct_max`
-
-Affix cap semantics (weapon power and weapon roll contribution):
-- Cap anchor: post-rarity expected damage baseline.
-- Cap scope: per affix roll.
-- T3 per-affix contribution maximum: `20%` of post-rarity expected damage.
+Runtime inventory power model:
+- Weapon items:
+  - `weapon_power = round(weapon_average_damage * 0.35 + weighted_bonus_power)`
+- Armor and jewelry:
+  - `defense_item_power = round(fixed_defense_value * 2.2 + weighted_bonus_power)`
+- Weighted bonus power uses runtime stat weights in `apps/api/src/modules/inventory/item-service.ts`.
+- Bonus weighting highlights:
+  - direct `damage` bonuses use the same `0.35` scale as weapon average damage
+  - defense bonuses (`armor`, `spellShield`, `missileResistance`, `physicalDefense`, `magicDefense`) use the same `2.2` scale as fixed defense
+  - other stats continue to use their explicit runtime weights
+- Rarity and affix tiers affect power through the stronger rolled damage/defense rows and rolled stat bonuses they produce, rather than through separate flat power adders.
 
 Data contract (documentation-level, for backend/frontend alignment):
 - `item_level`: integer in `[1, 100]`

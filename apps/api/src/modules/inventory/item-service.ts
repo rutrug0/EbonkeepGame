@@ -210,17 +210,8 @@ const DATA_FILES = {
 } as const;
 
 const TIER_ORDER = ["T1", "T2", "T3"] as const;
-const RARITY_BONUS: Record<ItemRarity, number> = {
-  common: 0,
-  uncommon: 3,
-  rare: 7,
-  epic: 12
-};
-const TIER_POWER_BONUS = {
-  T1: 2,
-  T2: 4,
-  T3: 7
-} as const;
+const WEAPON_DAMAGE_POWER_SCALE = 0.35;
+const DEFENSE_POWER_SCALE = 2.2;
 const STAT_POWER_WEIGHT: Partial<Record<PlayerStatKey, number>> = {
   strength: 1,
   intelligence: 1,
@@ -228,13 +219,13 @@ const STAT_POWER_WEIGHT: Partial<Record<PlayerStatKey, number>> = {
   vitality: 1,
   initiative: 1,
   luck: 1,
-  armor: 0.5,
-  spellShield: 0.5,
-  missileResistance: 0.5,
-  physicalDefense: 0.5,
-  magicDefense: 0.5,
+  armor: DEFENSE_POWER_SCALE,
+  spellShield: DEFENSE_POWER_SCALE,
+  missileResistance: DEFENSE_POWER_SCALE,
+  physicalDefense: DEFENSE_POWER_SCALE,
+  magicDefense: DEFENSE_POWER_SCALE,
   maxHitpoints: 0.1,
-  damage: 1.5,
+  damage: WEAPON_DAMAGE_POWER_SCALE,
   accuracy: 0.75,
   critChance: 0.02,
   critMultiplier: 0.01,
@@ -711,6 +702,22 @@ function getStatBonusPower(statBonuses: PlayerStatBonuses): number {
       return sum + value * (STAT_POWER_WEIGHT[statKey as PlayerStatKey] ?? 0);
     }, 0)
   );
+}
+
+function getFixedDefenseValue(
+  template: ItemTemplate,
+  rarity: ItemRarity,
+  itemLevel: number
+): number {
+  if (!template.fixedDefenseProfile) {
+    return 0;
+  }
+
+  const row = FIXED_DEFENSE_LOOKUPS[template.fixedDefenseProfile.tableId].get(`${itemLevel}:${rarity}`);
+  const rawValue = row?.[template.fixedDefenseProfile.rowSlot] ?? 0;
+  return template.fixedDefenseProfile.tableId === "jewelry" && template.fixedDefenseProfile.rowSlot === "ring"
+    ? Math.floor(rawValue / 2)
+    : rawValue;
 }
 
 function isEquipmentGroup(value: string): value is EquipmentGroup {
@@ -1254,15 +1261,28 @@ function buildPower(
   prefix?: ItemModifier,
   affix?: ItemModifier
 ): number {
-  return (
-    template.basePower +
-    getLevelDelta(template, itemLevel) * (template.powerPerLevel ?? 2) +
-    getStatBonusPower(statBonuses) +
-    Math.floor((damageRoll?.averageDamage ?? 0) / 12) +
-    RARITY_BONUS[rarity] +
-    (prefix ? TIER_POWER_BONUS[prefix.tier] : 0) +
-    (affix ? TIER_POWER_BONUS[affix.tier] : 0)
-  );
+  const bonusPowerStats: PlayerStatBonuses = { ...statBonuses };
+  const fixedDefenseValue = getFixedDefenseValue(template, rarity, itemLevel);
+
+  if (fixedDefenseValue > 0) {
+    const statKey = template.fixedDefenseProfile?.statKey;
+    if (statKey) {
+      const current = bonusPowerStats[statKey] ?? 0;
+      const remainder = current - fixedDefenseValue;
+      if (remainder > 0) {
+        bonusPowerStats[statKey] = remainder;
+      } else {
+        delete bonusPowerStats[statKey];
+      }
+    }
+  }
+
+  const intrinsicPower =
+    template.archetype.majorCategory === "weapon"
+      ? (damageRoll?.averageDamage ?? 0) * WEAPON_DAMAGE_POWER_SCALE
+      : fixedDefenseValue * DEFENSE_POWER_SCALE;
+
+  return Math.max(0, Math.round(intrinsicPower + getStatBonusPower(bonusPowerStats)));
 }
 
 function buildStatBonuses(
