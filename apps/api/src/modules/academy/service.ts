@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { PrismaClient } from "@prisma/client";
 
 import type {
@@ -309,13 +310,17 @@ export async function donateToNode(
     const updatedCurrency = await tx.currencyBalance.findUnique({ where: { playerId } });
     remainingDucats = updatedCurrency?.ducats ?? 0;
 
-    // 5. Deduct charges atomically — only proceeds if the row still has enough charges,
-    // preventing a race where two concurrent requests both pass the earlier check.
+    // 5. Deduct charges atomically.
+    // For existing rows: use lastRechargeAt as an optimistic lock and write the
+    // computed effective balance (which includes time-based regeneration) directly.
+    // This prevents races and correctly persists regenerated charges.
+    // For first-time rows: create the row; catch P2002 (concurrent insert) and
+    // surface as INSUFFICIENT_CHARGES since the competing request already consumed.
     if (txChargeRow) {
       const chargeUpdate = await tx.playerAcademyDonationCharges.updateMany({
-        where: { playerId, charges: { gte: actualChargesConsumed } },
+        where: { playerId, lastRechargeAt: txChargeRow.lastRechargeAt },
         data: {
-          charges: { decrement: actualChargesConsumed },
+          charges: currentCharges - actualChargesConsumed,
           lastRechargeAt: lastRechargeAtAdvanced
         }
       });
@@ -323,15 +328,21 @@ export async function donateToNode(
         throw new AcademyError("INSUFFICIENT_CHARGES", 400);
       }
     } else {
-      // First-time charge row — create with fully decremented balance.
-      // No race risk here since there is nothing to contend with yet.
-      await tx.playerAcademyDonationCharges.create({
-        data: {
-          playerId,
-          charges: MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed,
-          lastRechargeAt: lastRechargeAtAdvanced
+      try {
+        await tx.playerAcademyDonationCharges.create({
+          data: {
+            playerId,
+            charges: MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed,
+            lastRechargeAt: lastRechargeAtAdvanced
+          }
+        });
+      } catch (err) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+          // A concurrent request created the row and spent charges first.
+          throw new AcademyError("INSUFFICIENT_CHARGES", 400);
         }
-      });
+        throw err;
+      }
     }
     const updatedChargeRow = await tx.playerAcademyDonationCharges.findUnique({ where: { playerId } });
     txStoredCharges = updatedChargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed;
