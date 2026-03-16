@@ -309,22 +309,33 @@ export async function donateToNode(
     const updatedCurrency = await tx.currencyBalance.findUnique({ where: { playerId } });
     remainingDucats = updatedCurrency?.ducats ?? 0;
 
-    // 5. Deduct charges (upsert charge row with depleted count + advanced base time)
-    const newStoredCharges = currentCharges - actualChargesConsumed;
-    const upsertedChargeRow = await tx.playerAcademyDonationCharges.upsert({
-      where: { playerId },
-      create: {
-        playerId,
-        charges: newStoredCharges,
-        lastRechargeAt: lastRechargeAtAdvanced
-      },
-      update: {
-        charges: newStoredCharges,
-        lastRechargeAt: lastRechargeAtAdvanced
+    // 5. Deduct charges atomically — only proceeds if the row still has enough charges,
+    // preventing a race where two concurrent requests both pass the earlier check.
+    if (txChargeRow) {
+      const chargeUpdate = await tx.playerAcademyDonationCharges.updateMany({
+        where: { playerId, charges: { gte: actualChargesConsumed } },
+        data: {
+          charges: { decrement: actualChargesConsumed },
+          lastRechargeAt: lastRechargeAtAdvanced
+        }
+      });
+      if (chargeUpdate.count === 0) {
+        throw new AcademyError("INSUFFICIENT_CHARGES", 400);
       }
-    });
-    txStoredCharges = upsertedChargeRow.charges;
-    txLastRechargeAt = upsertedChargeRow.lastRechargeAt;
+    } else {
+      // First-time charge row — create with fully decremented balance.
+      // No race risk here since there is nothing to contend with yet.
+      await tx.playerAcademyDonationCharges.create({
+        data: {
+          playerId,
+          charges: MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed,
+          lastRechargeAt: lastRechargeAtAdvanced
+        }
+      });
+    }
+    const updatedChargeRow = await tx.playerAcademyDonationCharges.findUnique({ where: { playerId } });
+    txStoredCharges = updatedChargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed;
+    txLastRechargeAt = updatedChargeRow?.lastRechargeAt ?? lastRechargeAtAdvanced;
 
     // 6. Compute new node state
     const newInvested = txInvested + effectiveAmount;

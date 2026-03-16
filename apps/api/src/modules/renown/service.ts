@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { PrismaClient } from "@prisma/client";
 
 import type { RenownState } from "@ebonkeep/shared/player";
@@ -147,9 +148,16 @@ export async function unlockRenownNode(
       }
     }
 
-    await tx.playerRenownNode.create({
-      data: { playerId, nodeId }
-    });
+    try {
+      await tx.playerRenownNode.create({
+        data: { playerId, nodeId }
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new RenownError("ALREADY_UNLOCKED", 409, `Node ${nodeId} is already unlocked`);
+      }
+      throw err;
+    }
   });
 
   return getRenownState(playerId, prisma);
