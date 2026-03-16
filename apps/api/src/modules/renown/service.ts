@@ -103,6 +103,14 @@ export async function unlockRenownNode(
   }
 
   await prisma.$transaction(async (tx) => {
+    // Ensure root node exists before any checks — makes unlock independent of
+    // whether /v1/renown/state has been called first.
+    await tx.playerRenownNode.upsert({
+      where: { playerId_nodeId: { playerId, nodeId: "first_charter" } },
+      update: {},
+      create: { playerId, nodeId: "first_charter" }
+    });
+
     // Re-read current state inside transaction to prevent races
     const [unlockedRows, currency] = await Promise.all([
       tx.playerRenownNode.findMany({

@@ -318,7 +318,7 @@ export async function donateToNode(
     // surface as INSUFFICIENT_CHARGES since the competing request already consumed.
     if (txChargeRow) {
       const chargeUpdate = await tx.playerAcademyDonationCharges.updateMany({
-        where: { playerId, lastRechargeAt: txChargeRow.lastRechargeAt },
+        where: { playerId, lastRechargeAt: txChargeRow.lastRechargeAt, charges: txChargeRow.charges },
         data: {
           charges: currentCharges - actualChargesConsumed,
           lastRechargeAt: lastRechargeAtAdvanced
