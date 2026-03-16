@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
 
-import { combatActorSnapshotSchema } from "@ebonkeep/shared/combat";
+import { combatActorSnapshotSchema, getPveLevelDeltaModifier } from "@ebonkeep/shared/combat";
 import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { rollInventoryItem } from "../../src/modules/inventory/item-service.js";
 import { createEmptyEquipmentState } from "../../src/modules/player/state-service.js";
-import { getMonsterCombatTuning, toFloat } from "../../src/modules/contracts/data.js";
+import {
+  buildRewardPreview,
+  getMonsterLevelCurve,
+  pickEncounterMembers,
+  resolveContractLevelBand,
+  resolveContractLevelWindow,
+  resolveEncounterLevelRange,
+  resolveZoneBaseLevelForEncounterLevel,
+  rollContractEncounterLevel
+} from "../../src/modules/contracts/data.js";
 import {
   buildMonsterActorSnapshots,
-  buildPlayerActorSnapshot,
   rollRewardItemSpec,
   simulateCombat
 } from "../../src/modules/contracts/simulator.js";
@@ -97,6 +105,12 @@ function createPlayerState(): PlayerState {
     currency: {
       ducats: 0,
       imperials: 0
+    },
+    cheatSettings: {
+      invincibilityEnabled: false,
+      fastTravelEnabled: false,
+      fastContractReplenishEnabled: false,
+      fastTrainTimeEnabled: false
     }
   };
 }
@@ -224,12 +238,13 @@ describe("contracts simulator", () => {
       enemies: [enemy],
       seed: "minimum-chip-damage"
     });
-    const firstAction = events.find(
-      (event): event is Extract<(typeof events)[number], { type: "CombatActionResolved" }> => event.type === "CombatActionResolved"
+    const playerAction = events.find(
+      (event): event is Extract<(typeof events)[number], { type: "CombatActionResolved" }> =>
+        event.type === "CombatActionResolved" && event.actorId === "player"
     );
 
-    expect(firstAction).toBeTruthy();
-    expect(firstAction?.strikes[0]).toMatchObject({
+    expect(playerAction).toBeTruthy();
+    expect(playerAction?.strikes[0]).toMatchObject({
       rawDamage: 100,
       mitigatedDamage: 27,
       targetHpAfter: 0
@@ -241,7 +256,6 @@ describe("contracts simulator", () => {
       rng: () => 0,
       playerClass: "juggernaut",
       encounterLevel: 80,
-      difficulty: "medium",
       allowedSlotId: "weapon"
     });
 
@@ -261,7 +275,6 @@ describe("contracts simulator", () => {
       rng: () => 0,
       playerClass: "juggernaut",
       encounterLevel: 80,
-      difficulty: "easy",
       allowedSlotId: "necklace"
     });
 
@@ -279,14 +292,12 @@ describe("contracts simulator", () => {
       rng: () => 0,
       playerClass: "juggernaut",
       encounterLevel: 16,
-      difficulty: "medium",
       allowedSlotId: "weapon"
     });
     const lateSpec = rollRewardItemSpec({
       rng: () => 0,
       playerClass: "juggernaut",
       encounterLevel: 80,
-      difficulty: "medium",
       allowedSlotId: "weapon"
     });
 
@@ -313,10 +324,286 @@ describe("contracts simulator", () => {
     expect(lateItem.power).toBeGreaterThan(earlyItem.power);
   });
 
-  it("applies monster tuning multipliers without changing player snapshot generation", () => {
+  it("uses adjacent zones for under-level, on-level, and over-level contracts", () => {
+    expect(resolveEncounterLevelRange(25, "under_level")).toEqual({ min: 19, max: 21 });
+    expect(resolveEncounterLevelRange(25, "on_level")).toEqual({ min: 22, max: 28 });
+    expect(resolveEncounterLevelRange(25, "over_level")).toEqual({ min: 29, max: 31 });
+    expect(resolveZoneBaseLevelForEncounterLevel(19)).toBe(20);
+    expect(resolveZoneBaseLevelForEncounterLevel(25)).toBe(24);
+    expect(resolveZoneBaseLevelForEncounterLevel(31)).toBe(32);
+  });
+
+  it("does not include bosses in generated encounter members for this balance pass", () => {
+    const members = Array.from({ length: 20 }, (_, index) =>
+      pickEncounterMembers(() => ((index * 997) % 10_000) / 10_000, "ternfield_hobgoblins_40")
+    ).flat();
+
+    expect(members.length).toBeGreaterThan(0);
+    expect(members.every((member) => member.isBoss === false)).toBe(true);
+  });
+
+  it("clamps zone bands near the bottom and top of the ladder", () => {
+    expect(resolveContractLevelWindow(1)).toEqual({ min: 1, max: 7 });
+    expect(resolveEncounterLevelRange(1, "under_level")).toEqual({ min: 1, max: 1 });
+    expect(resolveContractLevelWindow(100)).toEqual({ min: 94, max: 100 });
+    expect(resolveEncounterLevelRange(100, "over_level")).toEqual({ min: 100, max: 100 });
+  });
+
+  it("classifies level bands from exact encounter deltas", () => {
+    expect(resolveContractLevelBand(25, 19)).toBe("under_level");
+    expect(resolveContractLevelBand(25, 21)).toBe("under_level");
+    expect(resolveContractLevelBand(25, 22)).toBe("on_level");
+    expect(resolveContractLevelBand(25, 28)).toBe("on_level");
+    expect(resolveContractLevelBand(25, 29)).toBe("over_level");
+    expect(resolveContractLevelBand(25, 31)).toBe("over_level");
+  });
+
+  it("rolls centered encounter levels inside the +/- six window", () => {
+    let state = 0x12345678;
+    const rng = () => {
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 0x1_0000_0000;
+    };
+    const samples = Array.from({ length: 5000 }, () => {
+      return rollContractEncounterLevel(rng, 25);
+    });
+
+    const counts = samples.reduce((accumulator, encounterLevel) => {
+      accumulator[encounterLevel] = (accumulator[encounterLevel] ?? 0) + 1;
+      return accumulator;
+    }, {} as Record<number, number>);
+
+    expect(Math.min(...samples)).toBeGreaterThanOrEqual(19);
+    expect(Math.max(...samples)).toBeLessThanOrEqual(31);
+    expect((counts[25] ?? 0) + (counts[24] ?? 0) + (counts[26] ?? 0)).toBeGreaterThan(
+      (counts[19] ?? 0) + (counts[31] ?? 0)
+    );
+  });
+
+  it("applies symmetric PvE level-delta bonuses and penalties at the threshold", () => {
+    expect(getPveLevelDeltaModifier(25, 21)).toEqual({
+      accuracyMultiplierBps: 11_000,
+      damageMultiplierBps: 11_000
+    });
+    expect(getPveLevelDeltaModifier(25, 22)).toEqual({
+      accuracyMultiplierBps: 10_000,
+      damageMultiplierBps: 10_000
+    });
+    expect(getPveLevelDeltaModifier(21, 25)).toEqual({
+      accuracyMultiplierBps: 9_000,
+      damageMultiplierBps: 9_000
+    });
+  });
+
+  it("makes higher-level monsters strictly stronger on the shared level curve", () => {
+    const earlyCurve = getMonsterLevelCurve(16);
+    const lateCurve = getMonsterLevelCurve(40);
+
+    expect(lateCurve.maxHp).toBeGreaterThan(earlyCurve.maxHp);
+    expect(lateCurve.averageDamage).toBeGreaterThan(earlyCurve.averageDamage);
+    expect(lateCurve.typedDefense).toBeGreaterThan(earlyCurve.typedDefense);
+    expect(lateCurve.bonusDefense).toBeGreaterThan(earlyCurve.bonusDefense);
+  });
+
+  it("adds extra late-game monster pressure after level 80", () => {
+    const levelEightyCurve = getMonsterLevelCurve(80);
+    const levelNinetyCurve = getMonsterLevelCurve(90);
+
+    expect(levelNinetyCurve.combatSpeed - levelEightyCurve.combatSpeed).toBeGreaterThanOrEqual(4);
+    expect(levelNinetyCurve.averageDamage - levelEightyCurve.averageDamage).toBeGreaterThanOrEqual(30);
+    expect(levelNinetyCurve.dodgeChance - levelEightyCurve.dodgeChance).toBeGreaterThanOrEqual(70);
+    expect(levelNinetyCurve.critChance - levelEightyCurve.critChance).toBeGreaterThanOrEqual(40);
+  });
+
+  it("keeps fast-role monsters quicker but lighter than slow roles at the same level", () => {
+    const playerState = createPlayerState();
+    const encounterBase = {
+      contractName: "Role Contract",
+      levelBand: "on_level" as const,
+      family: {
+        baseLevel: 40,
+        familyId: "ternfield_hobgoblins_40",
+        familyName: "The Ternfield Hobgoblins III",
+        locationName: "Ternfields III"
+      },
+      encounterLevel: 40,
+      rewardPreview: {
+        experienceMin: 100,
+        experienceMax: 100,
+        ducatsMin: 50,
+        ducatsMax: 50,
+        itemDropChanceBps: 0,
+        staminaCost: 8,
+        efficiencyTier: "standard_cost" as const
+      }
+    };
+
+    const fastMonster = buildMonsterActorSnapshots({
+      playerState,
+      encounter: {
+        ...encounterBase,
+        members: [
+          {
+            familyId: "ternfield_hobgoblins_40",
+            sequence: 1,
+            monsterRole: "skirmisher",
+            isBoss: false,
+            monsterName: "Fast Monster",
+            mainStat: "dexterity",
+            damageKind: "melee",
+            healthBias: "medium",
+            damageBias: "medium",
+            armorBias: "medium",
+            spellShieldBias: "medium",
+            missileResistBias: "medium",
+            initiativeBias: "medium",
+            accuracyBias: "medium",
+            critBias: "medium",
+            evasionBias: "medium"
+          }
+        ]
+      }
+    })[0];
+    const slowMonster = buildMonsterActorSnapshots({
+      playerState,
+      encounter: {
+        ...encounterBase,
+        members: [
+          {
+            familyId: "ternfield_hobgoblins_40",
+            sequence: 2,
+            monsterRole: "bruiser",
+            isBoss: false,
+            monsterName: "Slow Monster",
+            mainStat: "strength",
+            damageKind: "melee",
+            healthBias: "medium",
+            damageBias: "medium",
+            armorBias: "medium",
+            spellShieldBias: "medium",
+            missileResistBias: "medium",
+            initiativeBias: "medium",
+            accuracyBias: "medium",
+            critBias: "medium",
+            evasionBias: "medium"
+          }
+        ]
+      }
+    })[0];
+
+    expect(fastMonster?.combatSpeed ?? 0).toBeGreaterThan(slowMonster?.combatSpeed ?? 0);
+    expect(fastMonster?.maxDamage ?? 0).toBeLessThan(slowMonster?.maxDamage ?? 0);
+    expect(fastMonster?.extraAttackChance ?? 0).toBeGreaterThan(slowMonster?.extraAttackChance ?? 0);
+  });
+
+  it("keeps multi-enemy packs from scaling total HP linearly while retaining meaningful hit size", () => {
+    const playerState = createPlayerState();
+    const encounterBase = {
+      contractName: "Pack Contract",
+      levelBand: "on_level" as const,
+      family: {
+        baseLevel: 40,
+        familyId: "ternfield_hobgoblins_40",
+        familyName: "The Ternfield Hobgoblins III",
+        locationName: "Ternfields III"
+      },
+      encounterLevel: 40,
+      rewardPreview: {
+        experienceMin: 100,
+        experienceMax: 100,
+        ducatsMin: 50,
+        ducatsMax: 50,
+        itemDropChanceBps: 0,
+        staminaCost: 8,
+        efficiencyTier: "standard_cost" as const
+      }
+    };
+
+    const singleEnemy = buildMonsterActorSnapshots({
+      playerState,
+      encounter: {
+        ...encounterBase,
+        members: [
+          {
+            familyId: "ternfield_hobgoblins_40",
+            sequence: 1,
+            monsterRole: "default",
+            isBoss: false,
+            monsterName: "Single Enemy",
+            mainStat: "strength",
+            damageKind: "melee",
+            healthBias: "medium",
+            damageBias: "medium",
+            armorBias: "medium",
+            spellShieldBias: "medium",
+            missileResistBias: "medium",
+            initiativeBias: "medium",
+            accuracyBias: "medium",
+            critBias: "medium",
+            evasionBias: "medium"
+          }
+        ]
+      }
+    });
+    const doubleEnemy = buildMonsterActorSnapshots({
+      playerState,
+      encounter: {
+        ...encounterBase,
+        members: [
+          {
+            familyId: "ternfield_hobgoblins_40",
+            sequence: 1,
+            monsterRole: "default",
+            isBoss: false,
+            monsterName: "Enemy A",
+            mainStat: "strength",
+            damageKind: "melee",
+            healthBias: "medium",
+            damageBias: "medium",
+            armorBias: "medium",
+            spellShieldBias: "medium",
+            missileResistBias: "medium",
+            initiativeBias: "medium",
+            accuracyBias: "medium",
+            critBias: "medium",
+            evasionBias: "medium"
+          },
+          {
+            familyId: "ternfield_hobgoblins_40",
+            sequence: 2,
+            monsterRole: "default",
+            isBoss: false,
+            monsterName: "Enemy B",
+            mainStat: "strength",
+            damageKind: "melee",
+            healthBias: "medium",
+            damageBias: "medium",
+            armorBias: "medium",
+            spellShieldBias: "medium",
+            missileResistBias: "medium",
+            initiativeBias: "medium",
+            accuracyBias: "medium",
+            critBias: "medium",
+            evasionBias: "medium"
+          }
+        ]
+      }
+    });
+
+    const singleTotalHp = singleEnemy.reduce((sum, enemy) => sum + enemy.maxHp, 0);
+    const doubleTotalHp = doubleEnemy.reduce((sum, enemy) => sum + enemy.maxHp, 0);
+    const singleAverageHit = singleEnemy.reduce((sum, enemy) => sum + ((enemy.minDamage + enemy.maxDamage) / 2), 0);
+    const doubleAverageHit = doubleEnemy.reduce((sum, enemy) => sum + ((enemy.minDamage + enemy.maxDamage) / 2), 0) / Math.max(1, doubleEnemy.length);
+
+    expect(doubleTotalHp).toBeLessThan(singleTotalHp * 1.9);
+    expect(doubleAverageHit).toBeGreaterThan(singleAverageHit * 0.8);
+  });
+
+  it("scales monster actor stats upward with encounter level", () => {
     const playerState = createPlayerState();
     const encounterBase = {
       contractName: "Test Contract",
+      levelBand: "on_level" as const,
       family: {
         baseLevel: 40,
         familyId: "ternfield_hobgoblins_40",
@@ -355,47 +642,32 @@ describe("contracts simulator", () => {
       }
     };
 
-    const easyPlayer = buildPlayerActorSnapshot({
-      playerState,
-      playerName: "Warden"
-    });
-    const hardPlayer = buildPlayerActorSnapshot({
-      playerState,
-      playerName: "Warden"
-    });
-    const easyMonster = buildMonsterActorSnapshots({
+    const lowerMonster = buildMonsterActorSnapshots({
       playerState,
       encounter: {
         ...encounterBase,
-        difficulty: "easy" as const
+        encounterLevel: 24
       }
     })[0];
-    const hardMonster = buildMonsterActorSnapshots({
+    const higherMonster = buildMonsterActorSnapshots({
       playerState,
       encounter: {
         ...encounterBase,
-        difficulty: "hard" as const
+        encounterLevel: 40
       }
     })[0];
 
-    expect(easyPlayer).toEqual(hardPlayer);
-    const easyTuning = getMonsterCombatTuning(40, "easy");
-    const hardTuning = getMonsterCombatTuning(40, "hard");
-
-    expect(easyTuning.hpMultiplier).toBeCloseTo(0.7, 2);
-    expect(easyTuning.damageMultiplier).toBeGreaterThan(0.9);
-    expect(easyTuning.defenseMultiplier).toBeCloseTo(1.35, 2);
-    expect(hardTuning.hpMultiplier).toBeCloseTo(0.19, 2);
-    expect(hardTuning.damageMultiplier).toBeGreaterThan(0);
-    expect(hardTuning.defenseMultiplier).toBeGreaterThan(1);
-    expect(hardMonster?.maxHp ?? 0).not.toBe(easyMonster?.maxHp ?? 0);
-    expect(hardMonster?.physicalDefense ?? 0).toBeGreaterThan(easyMonster?.physicalDefense ?? 0);
+    expect(higherMonster?.maxHp ?? 0).toBeGreaterThan(lowerMonster?.maxHp ?? 0);
+    expect(higherMonster?.minDamage ?? 0).toBeGreaterThan(lowerMonster?.minDamage ?? 0);
+    expect(higherMonster?.physicalDefense ?? 0).toBeGreaterThan(lowerMonster?.physicalDefense ?? 0);
   });
 
-  it("preserves zero-valued monster tuning multipliers while still defaulting missing values", () => {
-    expect(toFloat("0", 1)).toBe(0);
-    expect(toFloat("0.0", 1)).toBe(0);
-    expect(toFloat(undefined, 1)).toBe(1);
-    expect(toFloat("not-a-number", 1)).toBe(1);
+  it("raises reward previews with encounter level independently of level band", () => {
+    const lowerPreview = buildRewardPreview(16, 20, "standard_cost");
+    const higherPreview = buildRewardPreview(24, 20, "standard_cost");
+
+    expect(higherPreview.experienceMin).toBeGreaterThan(lowerPreview.experienceMin);
+    expect(higherPreview.ducatsMin).toBeGreaterThan(lowerPreview.ducatsMin);
+    expect(higherPreview.itemDropChanceBps).toBeGreaterThan(lowerPreview.itemDropChanceBps);
   });
 });

@@ -27,7 +27,7 @@ export {
   resetCombatEncounterPlayback,
   snapshotEncounterPlayback,
   type ActiveContractEncounterState,
-  type ContractDifficulty,
+  type ContractLevelBand,
   type ContractEfficiencyTier,
   type ContractOffer,
   type ContractRoll,

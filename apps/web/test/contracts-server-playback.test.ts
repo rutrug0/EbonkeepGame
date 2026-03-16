@@ -54,7 +54,7 @@ function createRunSnapshot(): ContractRunSnapshot {
     slotId: 2,
     state: "traveling",
     contractName: "Bogwatch Recon Sweep",
-    difficulty: "medium",
+    levelBand: "on_level",
     familyId: "mirepool_boglings_04",
     familyName: "Mirepool Boglings",
     locationName: "Mirepool Grotto",

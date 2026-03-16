@@ -29,8 +29,8 @@ export const combatActionResponseSchema = z.object({
 });
 export type CombatActionResponse = z.infer<typeof combatActionResponseSchema>;
 
-export const contractDifficultySchema = z.enum(["easy", "medium", "hard"]);
-export type ContractDifficulty = z.infer<typeof contractDifficultySchema>;
+export const contractLevelBandSchema = z.enum(["under_level", "on_level", "over_level"]);
+export type ContractLevelBand = z.infer<typeof contractLevelBandSchema>;
 
 export const contractEfficiencyTierSchema = z.enum(["low_cost", "standard_cost", "high_cost"]);
 export type ContractEfficiencyTier = z.infer<typeof contractEfficiencyTierSchema>;
@@ -52,7 +52,7 @@ export type ContractRewardPreview = z.infer<typeof contractRewardPreviewSchema>;
 export const contractBoardSlotViewSchema = z.object({
   slotId: z.number().int().min(1),
   state: contractBoardSlotStateSchema,
-  difficulty: contractDifficultySchema.nullable(),
+  levelBand: contractLevelBandSchema.nullable(),
   familyId: z.string().nullable(),
   familyName: z.string().nullable(),
   contractName: z.string().nullable(),
@@ -81,6 +81,8 @@ export type CombatDamageKind = z.infer<typeof combatDamageKindSchema>;
 export const COMBAT_MITIGATION_FLOOR_BPS = 500;
 export const COMBAT_MITIGATION_MAX_BPS = 7500;
 export const COMBAT_MITIGATION_SCALE_MULTIPLIER = 1.5;
+export const PVE_LEVEL_DELTA_THRESHOLD = 4;
+export const PVE_LEVEL_DELTA_MODIFIER_BPS = 1000;
 
 export type CombatMitigationInput = {
   rawDamage: number;
@@ -99,6 +101,11 @@ export type CombatMitigationResult = {
   postMitigationDamage: number;
   minimumDamage: number;
   finalDamage: number;
+};
+
+export type PveLevelDeltaModifier = {
+  damageMultiplierBps: number;
+  accuracyMultiplierBps: number;
 };
 
 export function clampCombatChanceBps(value: number, min: number, max: number): number {
@@ -157,6 +164,29 @@ export function calculateCombatMitigation(input: CombatMitigationInput): CombatM
     postMitigationDamage,
     minimumDamage,
     finalDamage: rawDamage > 0 ? Math.max(minimumDamage, postMitigationDamage) : 0
+  };
+}
+
+export function getPveLevelDeltaModifier(attackerLevel: number, defenderLevel: number): PveLevelDeltaModifier {
+  const levelDelta = Math.round(attackerLevel) - Math.round(defenderLevel);
+
+  if (levelDelta >= PVE_LEVEL_DELTA_THRESHOLD) {
+    return {
+      accuracyMultiplierBps: 10_000 + PVE_LEVEL_DELTA_MODIFIER_BPS,
+      damageMultiplierBps: 10_000 + PVE_LEVEL_DELTA_MODIFIER_BPS
+    };
+  }
+
+  if (levelDelta <= -PVE_LEVEL_DELTA_THRESHOLD) {
+    return {
+      accuracyMultiplierBps: 10_000 - PVE_LEVEL_DELTA_MODIFIER_BPS,
+      damageMultiplierBps: 10_000 - PVE_LEVEL_DELTA_MODIFIER_BPS
+    };
+  }
+
+  return {
+    accuracyMultiplierBps: 10_000,
+    damageMultiplierBps: 10_000
   };
 }
 
@@ -272,7 +302,7 @@ export const contractRunSnapshotSchema = z.object({
   slotId: z.number().int().min(1),
   state: contractRunStateSchema,
   contractName: z.string(),
-  difficulty: contractDifficultySchema,
+  levelBand: contractLevelBandSchema,
   familyId: z.string(),
   familyName: z.string(),
   locationName: z.string(),
@@ -333,26 +363,26 @@ export type DeveloperContractSimulationArchetype = z.infer<typeof developerContr
 export const developerContractSimulationJobStatusSchema = z.enum(["queued", "running", "completed", "failed"]);
 export type DeveloperContractSimulationJobStatus = z.infer<typeof developerContractSimulationJobStatusSchema>;
 
-export const developerContractSimulationDifficultyAveragesSchema = z.object({
-  easy: z.number().min(0),
-  medium: z.number().min(0),
-  hard: z.number().min(0)
+export const developerContractSimulationBandAveragesSchema = z.object({
+  under_level: z.number().min(0),
+  on_level: z.number().min(0),
+  over_level: z.number().min(0)
 });
-export type DeveloperContractSimulationDifficultyAverages = z.infer<typeof developerContractSimulationDifficultyAveragesSchema>;
+export type DeveloperContractSimulationBandAverages = z.infer<typeof developerContractSimulationBandAveragesSchema>;
 
-export const developerContractSimulationDifficultyPercentagesSchema = z.object({
-  easy: z.number().min(0).max(100),
-  medium: z.number().min(0).max(100),
-  hard: z.number().min(0).max(100)
+export const developerContractSimulationBandPercentagesSchema = z.object({
+  under_level: z.number().min(0).max(100),
+  on_level: z.number().min(0).max(100),
+  over_level: z.number().min(0).max(100)
 });
-export type DeveloperContractSimulationDifficultyPercentages = z.infer<typeof developerContractSimulationDifficultyPercentagesSchema>;
+export type DeveloperContractSimulationBandPercentages = z.infer<typeof developerContractSimulationBandPercentagesSchema>;
 
-export const developerContractSimulationDifficultyHitRateSchema = z.object({
-  easy: z.number().min(0).max(1),
-  medium: z.number().min(0).max(1),
-  hard: z.number().min(0).max(1)
+export const developerContractSimulationBandHitRateSchema = z.object({
+  under_level: z.number().min(0).max(1),
+  on_level: z.number().min(0).max(1),
+  over_level: z.number().min(0).max(1)
 });
-export type DeveloperContractSimulationDifficultyHitRate = z.infer<typeof developerContractSimulationDifficultyHitRateSchema>;
+export type DeveloperContractSimulationBandHitRate = z.infer<typeof developerContractSimulationBandHitRateSchema>;
 
 export const runDeveloperContractSimulationBodySchema = z.object({
   playerClass: playerClassSchema,
@@ -372,12 +402,12 @@ export const developerContractSimulationLevelSummarySchema = z.object({
   avgStaminaWaitSecondsToClearLevel: z.number().min(0),
   avgContractAvailabilityWaitSecondsToClearLevel: z.number().min(0),
   avgFightsToClearLevel: z.number().min(0),
-  avgWinsByDifficulty: developerContractSimulationDifficultyAveragesSchema,
-  avgLossesByDifficulty: developerContractSimulationDifficultyAveragesSchema,
-  winRateByDifficulty: z.object({
-    easy: z.number().min(0).max(1),
-    medium: z.number().min(0).max(1),
-    hard: z.number().min(0).max(1)
+  avgWinsByBand: developerContractSimulationBandAveragesSchema,
+  avgLossesByBand: developerContractSimulationBandAveragesSchema,
+  winRateByBand: z.object({
+    under_level: z.number().min(0).max(1),
+    on_level: z.number().min(0).max(1),
+    over_level: z.number().min(0).max(1)
   }),
   avgXpPerFight: z.number().min(0),
   avgStaminaCostPerFight: z.number().min(0),
@@ -387,19 +417,19 @@ export const developerContractSimulationLevelSummarySchema = z.object({
   avgInputOverheadSeconds: z.number().min(0),
   avgPlayerAttackRoll: z.number().min(0),
   avgPlayerHpLossPercent: z.number().min(0).max(100),
-  avgPlayerActionTurnsByDifficulty: developerContractSimulationDifficultyAveragesSchema,
-  avgEnemyActionTurnsByDifficulty: developerContractSimulationDifficultyAveragesSchema,
-  avgPlayerStrikesByDifficulty: developerContractSimulationDifficultyAveragesSchema,
-  avgEnemyStrikesByDifficulty: developerContractSimulationDifficultyAveragesSchema,
-  avgPlayerHpLossPercentByDifficulty: developerContractSimulationDifficultyPercentagesSchema,
-  avgEncounterHpToPlayerHpRatioByDifficulty: developerContractSimulationDifficultyAveragesSchema
+  avgPlayerActionTurnsByBand: developerContractSimulationBandAveragesSchema,
+  avgEnemyActionTurnsByBand: developerContractSimulationBandAveragesSchema,
+  avgPlayerStrikesByBand: developerContractSimulationBandAveragesSchema,
+  avgEnemyStrikesByBand: developerContractSimulationBandAveragesSchema,
+  avgPlayerHpLossPercentByBand: developerContractSimulationBandPercentagesSchema,
+  avgEncounterHpToPlayerHpRatioByBand: developerContractSimulationBandAveragesSchema
 });
 export type DeveloperContractSimulationLevelSummary = z.infer<typeof developerContractSimulationLevelSummarySchema>;
 
 export const developerContractSimulationArchetypeResultSchema = z.object({
   archetype: developerContractSimulationArchetypeSchema,
-  benchmarkTargetBandHitRateByDifficulty: developerContractSimulationDifficultyHitRateSchema,
-  benchmarkTurnTargetHitRateByDifficulty: developerContractSimulationDifficultyHitRateSchema,
+  benchmarkTargetBandHitRateByBand: developerContractSimulationBandHitRateSchema,
+  benchmarkTurnTargetHitRateByBand: developerContractSimulationBandHitRateSchema,
   levels: z.array(developerContractSimulationLevelSummarySchema)
 });
 export type DeveloperContractSimulationArchetypeResult = z.infer<typeof developerContractSimulationArchetypeResultSchema>;
@@ -446,7 +476,7 @@ export const developerContractsStaticCurvePointSchema = z.object({
   weightedAverageStaminaWaitSecondsForContract: z.number().min(0),
   weightedAverageStaminaCostPerContract: z.number().min(0),
   averageContractAvailabilityWaitSeconds: z.number().min(0),
-  averageExperiencePerContract: developerContractSimulationDifficultyAveragesSchema,
+  averageExperiencePerContract: developerContractSimulationBandAveragesSchema,
   experienceToNextLevel: z.number().int().min(0)
 });
 export type DeveloperContractsStaticCurvePoint = z.infer<typeof developerContractsStaticCurvePointSchema>;
@@ -537,7 +567,8 @@ export const combatPlaybackEncounterSchema = z.object({
   encounterId: z.string(),
   contractInstanceId: z.string(),
   contractName: z.string(),
-  difficulty: contractDifficultySchema,
+  contractLevel: z.number().int().min(1),
+  levelBand: contractLevelBandSchema,
   locationName: z.string(),
   travelImagePath: z.string().optional(),
   combatBackgroundPath: z.string().optional(),

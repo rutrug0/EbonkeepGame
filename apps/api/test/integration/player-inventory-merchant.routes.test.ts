@@ -156,17 +156,29 @@ describe("player, inventory, and merchant routes", () => {
     expect(levelUpResponse.json().playerState.level).toBe(7);
     expect(levelUpResponse.json().playerState.experience).toBe(getCumulativeExperienceToReachLevel(7));
 
+    const levelDownResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/player/cheats/level-up",
+      headers,
+      payload: {
+        targetLevel: 3
+      }
+    });
+    expect(levelDownResponse.statusCode).toBe(200);
+    expect(levelDownResponse.json().playerState.level).toBe(3);
+    expect(levelDownResponse.json().playerState.experience).toBe(getCumulativeExperienceToReachLevel(3));
+
     const rejectLevelResponse = await context.app.inject({
       method: "POST",
       url: "/v1/player/cheats/level-up",
       headers,
       payload: {
-        targetLevel: 7
+        targetLevel: 3
       }
     });
     expect(rejectLevelResponse.statusCode).toBe(400);
 
-    const inventoryCountBefore = levelUpResponse.json().playerState.inventory.length;
+    const inventoryCountBefore = levelDownResponse.json().playerState.inventory.length;
     const generateEquipmentResponse = await context.app.inject({
       method: "POST",
       url: "/v1/player/cheats/generate-equipment",

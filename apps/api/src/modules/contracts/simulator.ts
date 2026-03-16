@@ -2,7 +2,7 @@ import {
   calculateCombatMitigation,
   combatActorSnapshotSchema,
   combatEventSchema,
-  type ContractDifficulty,
+  getPveLevelDeltaModifier,
   type CombatActorSnapshot,
   type CombatDamageKind,
   type CombatEvent
@@ -12,11 +12,10 @@ import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { allDefinedItemTemplates } from "../inventory/item-service.js";
 import {
-  DIFFICULTY_PROFILES,
   clampInt,
   createSeededRng,
   getBiasMultiplier,
-  getMonsterCombatTuning,
+  getMonsterLevelCurve,
   getRoleProfile,
   randomChoice,
   randomInt,
@@ -27,7 +26,6 @@ import {
 const ACTION_COST = 1000;
 const MAX_CHAIN_STRIKES = 5;
 const MAX_SIMULATION_ACTIONS = 300;
-const MONSTER_GLOBAL_DAMAGE_MULTIPLIER = 0.17;
 
 export type StoredRewardSpec = {
   experience: number;
@@ -47,6 +45,7 @@ type RuntimeActor = CombatActorSnapshot & {
   currentHp: number;
   nextActionAt: number;
   defeated: boolean;
+  tieBreaker: number;
 };
 
 export function getWeaponDamageKind(playerState: PlayerState): CombatDamageKind {
@@ -96,57 +95,52 @@ export function buildMonsterActorSnapshots(args: {
   playerState: PlayerState;
   encounter: EncounterDefinition;
 }): CombatActorSnapshot[] {
-  const player = buildPlayerActorSnapshot({
-    playerState: args.playerState,
-    playerName: "Warden"
-  });
-  const difficultyProfile = DIFFICULTY_PROFILES[args.encounter.difficulty];
-  const tuning = getMonsterCombatTuning(args.encounter.encounterLevel, args.encounter.difficulty);
+  const curve = getMonsterLevelCurve(args.encounter.encounterLevel);
   const enemyCount = args.encounter.members.length;
-  const levelScale = Math.max(0.75, 1 + (args.encounter.encounterLevel - args.playerState.level) * 0.075);
-  const totalDamageBudget = Math.max(2, player.maxHp * difficultyProfile.totalDpsFactor * MONSTER_GLOBAL_DAMAGE_MULTIPLIER);
-  const totalHpBudget = Math.max(12, player.maxDamage * difficultyProfile.totalHpFactor);
-  const sharedCountPenalty = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.72 : 0.58;
+  const hpShare = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.88 : 0.7;
+  const damageShare = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.93 : 0.82;
+  const defenseShare = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.98 : 0.92;
+  const speedShare = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.8 : 0.64;
+  const chainShare = enemyCount === 1 ? 1 : enemyCount === 2 ? 0.97 : 0.92;
 
   return args.encounter.members.map((member, index) => {
     const role = getRoleProfile(member.monsterRole, member.isBoss);
-    const bossHpMultiplier = member.isBoss ? 1.75 : 1;
-    const bossDamageMultiplier = member.isBoss ? 1.2 : 1;
-    const bossDefenseMultiplier = member.isBoss ? 1.2 : 1;
+    const bossHpMultiplier = member.isBoss ? 1.8 : 1;
+    const bossDamageMultiplier = member.isBoss ? 1.25 : 1;
+    const bossDefenseMultiplier = member.isBoss ? 1.25 : 1;
+
     const maxHp = Math.max(
       1,
       Math.round(
-        totalHpBudget *
-          sharedCountPenalty *
+        curve.maxHp *
+          hpShare *
           role.hp *
           getBiasMultiplier(member.healthBias) *
-          bossHpMultiplier *
-          levelScale *
-          tuning.hpMultiplier
+          bossHpMultiplier
       )
     );
     const averageDamage = Math.max(
       1,
       Math.round(
-          (totalDamageBudget / enemyCount) *
+        curve.averageDamage *
+          damageShare *
           role.damage *
           getBiasMultiplier(member.damageBias) *
-          bossDamageMultiplier *
-          levelScale *
-          tuning.damageMultiplier
+          bossDamageMultiplier
       )
     );
-    const mitigationBase = Math.max(
+    const typedDefense = Math.max(
       0,
       Math.round(
-        player.maxDamage *
-          0.16 *
-          difficultyProfile.defenseFactor *
+        curve.typedDefense *
+          defenseShare *
           role.defense *
-          bossDefenseMultiplier *
-          levelScale *
-          tuning.defenseMultiplier
+          bossDefenseMultiplier
       )
+    );
+    const bonusDefense = Math.max(
+      0,
+      Math.round(curve.bonusDefense * defenseShare * role.defense * bossDefenseMultiplier)
     );
 
     return combatActorSnapshotSchema.parse({
@@ -159,40 +153,23 @@ export function buildMonsterActorSnapshots(args: {
       level: Math.max(1, args.encounter.encounterLevel),
       maxHp,
       currentHp: maxHp,
-      combatSpeed: Math.max(
-        1,
-        Math.round(
-          player.combatSpeed *
-            difficultyProfile.speedFactor *
-            role.speed *
-            getBiasMultiplier(member.initiativeBias) *
-            Math.sqrt(levelScale)
-        )
-      ),
-      accuracy: Math.max(
+      combatSpeed: Math.max(1, Math.round(curve.combatSpeed * speedShare * role.speed * getBiasMultiplier(member.initiativeBias))),
+      accuracy: Math.max(0, Math.round(curve.accuracy * role.accuracy * getBiasMultiplier(member.accuracyBias))),
+      dodgeChance: Math.max(0, Math.round(curve.dodgeChance * role.evasion * getBiasMultiplier(member.evasionBias))),
+      critChance: Math.max(0, Math.round(curve.critChance * role.crit * getBiasMultiplier(member.critBias))),
+      critMultiplier: Math.max(15_000, Math.round(curve.critMultiplier * role.crit * getBiasMultiplier(member.critBias))),
+      extraAttackChance: clampInt(
+        curve.extraAttackChance * chainShare * role.chain * getBiasMultiplier(member.initiativeBias),
         0,
-        Math.round(player.accuracy * difficultyProfile.accuracyFactor * role.accuracy * getBiasMultiplier(member.accuracyBias))
+        3_200
       ),
-      dodgeChance: Math.max(
-        0,
-        Math.round(player.dodgeChance * difficultyProfile.dodgeFactor * role.evasion * getBiasMultiplier(member.evasionBias))
-      ),
-      critChance: Math.max(0, Math.round(player.critChance * difficultyProfile.critFactor * role.crit * getBiasMultiplier(member.critBias))),
-      critMultiplier: Math.max(15_000, Math.round(15_000 + (player.critMultiplier - 15_000) * role.crit * getBiasMultiplier(member.critBias))),
-      extraAttackChance: clampInt(player.extraAttackChance * 0.42 * role.chain * getBiasMultiplier(member.initiativeBias), 0, 2_500),
-      armor: Math.max(0, Math.round(mitigationBase * getBiasMultiplier(member.armorBias))),
-      spellShield: Math.max(0, Math.round(mitigationBase * getBiasMultiplier(member.spellShieldBias))),
-      missileResistance: Math.max(0, Math.round(mitigationBase * getBiasMultiplier(member.missileResistBias))),
-      physicalDefense: Math.max(
-        0,
-        Math.round(player.physicalDefense * 0.55 * difficultyProfile.defenseFactor * role.defense * tuning.defenseMultiplier)
-      ),
-      magicDefense: Math.max(
-        0,
-        Math.round(player.magicDefense * 0.55 * difficultyProfile.defenseFactor * role.defense * tuning.defenseMultiplier)
-      ),
-      minDamage: Math.max(1, Math.round(averageDamage * 0.82)),
-      maxDamage: Math.max(1, Math.round(averageDamage * 1.18)),
+      armor: Math.max(0, Math.round(typedDefense * getBiasMultiplier(member.armorBias))),
+      spellShield: Math.max(0, Math.round(typedDefense * getBiasMultiplier(member.spellShieldBias))),
+      missileResistance: Math.max(0, Math.round(typedDefense * getBiasMultiplier(member.missileResistBias))),
+      physicalDefense: bonusDefense,
+      magicDefense: bonusDefense,
+      minDamage: Math.max(1, Math.round(averageDamage * 0.85)),
+      maxDamage: Math.max(1, Math.round(averageDamage * 1.15)),
       damageKind: member.damageKind
     });
   });
@@ -210,8 +187,7 @@ export function buildStoredRewards(args: {
     ? rollRewardItemSpec({
         rng: args.rng,
         playerClass: args.playerState.class as PlayerClass,
-        encounterLevel: args.encounter.encounterLevel,
-        difficulty: args.encounter.difficulty
+        encounterLevel: args.encounter.encounterLevel
       })
     : null;
 
@@ -261,12 +237,16 @@ function pickRewardItemTemplates(args: {
   return allDefinedItemTemplates.filter((template) => matchesOwnership(template) && matchesSlot(template));
 }
 
-export function rollRewardItemRarity(rng: () => number, difficulty: ContractDifficulty): RewardItemRollSpec["rarity"] {
-  return rollBps(rng, difficulty === "hard" ? 1400 : difficulty === "medium" ? 700 : 250)
+export function rollRewardItemRarity(rng: () => number, encounterLevel: number): RewardItemRollSpec["rarity"] {
+  const epicChanceBps = clampInt(100 + (encounterLevel * 10), 100, 1_400);
+  const rareChanceBps = clampInt(850 + (encounterLevel * 18), 850, 3_200);
+  const uncommonChanceBps = clampInt(2_400 + (encounterLevel * 10), 2_400, 4_000);
+
+  return rollBps(rng, epicChanceBps)
     ? "epic"
-    : rollBps(rng, difficulty === "hard" ? 3200 : 1800)
+    : rollBps(rng, rareChanceBps)
       ? "rare"
-      : rollBps(rng, 3600)
+      : rollBps(rng, uncommonChanceBps)
         ? "uncommon"
         : "common";
 }
@@ -275,7 +255,6 @@ export function rollRewardItemSpec(args: {
   rng: () => number;
   playerClass: PlayerClass;
   encounterLevel: number;
-  difficulty: ContractDifficulty;
   allowedSlotId?: EquipmentSlotId;
 }): RewardItemRollSpec | null {
   const templates = pickRewardItemTemplates({
@@ -290,25 +269,26 @@ export function rollRewardItemSpec(args: {
 
   return {
     templateId: template.id,
-    rarity: rollRewardItemRarity(args.rng, args.difficulty),
+    rarity: rollRewardItemRarity(args.rng, args.encounterLevel),
     itemLevel: Math.max(1, args.encounterLevel),
     itemName: template.itemName
   };
 }
 
-function createRuntimeActor(snapshot: CombatActorSnapshot): RuntimeActor {
+function createRuntimeActor(snapshot: CombatActorSnapshot, rng: () => number): RuntimeActor {
   return {
     ...snapshot,
     currentHp: snapshot.currentHp,
     nextActionAt: ACTION_COST / snapshot.combatSpeed,
-    defeated: false
+    defeated: false,
+    tieBreaker: rng()
   };
 }
 
 function sortForTurn(left: RuntimeActor, right: RuntimeActor): number {
   if (left.nextActionAt !== right.nextActionAt) return left.nextActionAt - right.nextActionAt;
   if (left.combatSpeed !== right.combatSpeed) return right.combatSpeed - left.combatSpeed;
-  if (left.side !== right.side) return left.side === "player" ? -1 : 1;
+  if (left.tieBreaker !== right.tieBreaker) return left.tieBreaker - right.tieBreaker;
   if (left.encounterOrder !== right.encounterOrder) return left.encounterOrder - right.encounterOrder;
   return left.id.localeCompare(right.id);
 }
@@ -347,7 +327,7 @@ export function simulateCombat(args: {
   playerInvincible?: boolean;
 }): CombatEvent[] {
   const rng = createSeededRng(args.seed);
-  const actors = [createRuntimeActor(args.player), ...args.enemies.map(createRuntimeActor)];
+  const actors = [createRuntimeActor(args.player, rng), ...args.enemies.map((enemy) => createRuntimeActor(enemy, rng))];
   const events: CombatEvent[] = [];
   let sequence = 1;
 
@@ -409,11 +389,22 @@ export function simulateCombat(args: {
         if (!target) break;
       }
 
-      const hitChanceBps = clampInt(actor.accuracy * 100 - target.dodgeChance, 2500, 9750);
+      const levelDeltaModifier = getPveLevelDeltaModifier(actor.level, target.level);
+      const adjustedAccuracy = Math.max(
+        0,
+        Math.round((actor.accuracy * levelDeltaModifier.accuracyMultiplierBps) / 10_000)
+      );
+      const hitChanceBps = clampInt(adjustedAccuracy * 100 - target.dodgeChance, 2500, 9750);
       const hit = rollBps(rng, hitChanceBps);
       const crit = hit ? rollBps(rng, actor.critChance) : false;
       const rawBaseDamage = hit ? randomInt(rng, actor.minDamage, actor.maxDamage) : 0;
-      const rawDamage = crit ? Math.max(0, Math.round((rawBaseDamage * actor.critMultiplier) / 10_000)) : rawBaseDamage;
+      const critAdjustedDamage = crit
+        ? Math.max(0, Math.round((rawBaseDamage * actor.critMultiplier) / 10_000))
+        : rawBaseDamage;
+      const rawDamage = Math.max(
+        0,
+        Math.round((critAdjustedDamage * levelDeltaModifier.damageMultiplierBps) / 10_000)
+      );
       const mitigatedDamage = hit
         ? args.playerInvincible && actor.side === "enemy" && target.side === "player"
           ? 0
