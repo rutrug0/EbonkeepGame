@@ -602,9 +602,10 @@ export function buildEncounterDefinition(rng: () => number, context: BoardGenera
 export function buildEncounterDefinitionForLevel(
   rng: () => number,
   context: BoardGenerationContext,
-  encounterLevel: number
+  encounterLevel: number,
+  requestedLevelBand?: ContractLevelBand
 ): EncounterDefinition {
-  const levelBand = resolveContractLevelBand(context.playerLevel, encounterLevel);
+  const levelBand = requestedLevelBand ?? resolveContractLevelBand(context.playerLevel, encounterLevel);
   const family = pickFamilyForZoneBase(rng, resolveZoneBaseLevelForEncounterLevel(encounterLevel));
   const members = pickEncounterMembers(rng, family.familyId);
   const efficiencyTier = pickContractEfficiencyTier(rng);
@@ -624,5 +625,10 @@ export function buildEncounterDefinitionForBand(
   context: BoardGenerationContext,
   levelBand: ContractLevelBand
 ): EncounterDefinition {
-  return buildEncounterDefinitionForLevel(rng, context, pickEncounterLevel(rng, levelBand, context.playerLevel));
+  return buildEncounterDefinitionForLevel(
+    rng,
+    context,
+    pickEncounterLevel(rng, levelBand, context.playerLevel),
+    levelBand
+  );
 }

@@ -6,6 +6,7 @@ import type { PlayerState } from "@ebonkeep/shared/player";
 import { rollInventoryItem } from "../../src/modules/inventory/item-service.js";
 import { createEmptyEquipmentState } from "../../src/modules/player/state-service.js";
 import {
+  buildEncounterDefinitionForBand,
   buildRewardPreview,
   getMonsterLevelCurve,
   pickEncounterMembers,
@@ -347,6 +348,32 @@ describe("contracts simulator", () => {
     expect(resolveEncounterLevelRange(1, "under_level")).toEqual({ min: 1, max: 1 });
     expect(resolveContractLevelWindow(100)).toEqual({ min: 94, max: 100 });
     expect(resolveEncounterLevelRange(100, "over_level")).toEqual({ min: 100, max: 100 });
+  });
+
+  it("preserves requested contract bands at the level-window edges", () => {
+    const underAtFloor = buildEncounterDefinitionForBand(
+      () => 0,
+      {
+        playerId: "player_floor",
+        playerLevel: 1,
+        playerClass: "juggernaut"
+      },
+      "under_level"
+    );
+    const overAtCap = buildEncounterDefinitionForBand(
+      () => 0,
+      {
+        playerId: "player_cap",
+        playerLevel: 100,
+        playerClass: "juggernaut"
+      },
+      "over_level"
+    );
+
+    expect(underAtFloor.encounterLevel).toBe(1);
+    expect(underAtFloor.levelBand).toBe("under_level");
+    expect(overAtCap.encounterLevel).toBe(100);
+    expect(overAtCap.levelBand).toBe("over_level");
   });
 
   it("classifies level bands from exact encounter deltas", () => {
