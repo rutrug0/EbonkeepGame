@@ -118,7 +118,6 @@ import {
   snapshotEncounterPlayback,
   startContractsRun,
   type ActiveContractEncounterState,
-  type ContractDifficulty,
   type ContractEfficiencyTier,
   type ContractOffer,
   type ContractRoll,
@@ -2539,7 +2538,7 @@ export function AppShell() {
     setActiveStatTraining(null);
     setActiveContractEncounter(null);
     setActiveContractRunId(null);
-    setCheatLevelInput(String(Math.min(100, playerState.level + 1)));
+    setCheatLevelInput(String(playerState.level));
     setCheatStatusMessage(null);
   }, [playerState?.playerId]);
 
@@ -3262,7 +3261,7 @@ export function AppShell() {
 
   function handleCheatLevelUp() {
     const targetLevel = Number.parseInt(cheatLevelInput, 10);
-    if (!playerState || !Number.isFinite(targetLevel) || targetLevel <= playerState.level || targetLevel > 100) {
+    if (!playerState || !Number.isFinite(targetLevel) || targetLevel < 1 || targetLevel > 100 || targetLevel === playerState.level) {
       setError(i18n.t("settings.cheats.invalidLevel"));
       return;
     }
@@ -3272,7 +3271,7 @@ export function AppShell() {
       () => levelUpPlayerCheats(token!, { targetLevel }),
       (response) => {
         applyAuthoritativePlayerState(response.playerState);
-        setCheatLevelInput(String(Math.min(100, response.playerState.level + 1)));
+        setCheatLevelInput(String(response.playerState.level));
         setCheatStatusMessage(
           i18n.t("settings.cheats.levelUpSuccess", {
             level: response.playerState.level
@@ -3719,10 +3718,6 @@ export function AppShell() {
         </div>
       </div>
     );
-  }
-
-  function formatContractDifficulty(difficulty: ContractDifficulty): string {
-    return i18n.t(`contracts.difficulty${difficulty.charAt(0).toUpperCase()}${difficulty.slice(1)}`);
   }
 
   function formatContractEfficiencyTier(tier: ContractEfficiencyTier): string {
@@ -4599,7 +4594,6 @@ export function AppShell() {
         onStartContractEncounter={startContractEncounter}
         onContractRowKeyDown={handleContractRowKeyDown}
         onAbandonContractSlot={abandonContractSlot}
-        formatContractDifficulty={formatContractDifficulty}
         formatContractEfficiencyTier={formatContractEfficiencyTier}
         formatContractRoll={formatContractRoll}
         formatDurationFromMs={formatDurationFromMs}
@@ -4712,7 +4706,7 @@ export function AppShell() {
                 <input
                   id="cheat-level-input"
                   type="number"
-                  min={Math.min(100, (playerState?.level ?? 1) + 1)}
+                  min={1}
                   max={100}
                   value={cheatLevelInput}
                   onChange={(event) => setCheatLevelInput(event.currentTarget.value)}

@@ -16,7 +16,7 @@ import {
   type ContractBoardResponse,
   type ContractBoardSlotState,
   type ContractBoardSlotView,
-  type ContractDifficulty,
+  type ContractLevelBand,
   type ContractRunResult,
   type ContractRunSnapshot,
   type ContractRunState,
@@ -28,13 +28,14 @@ import { rollInventoryItem } from "../inventory/item-service.js";
 import { grantPlayerExperience, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
-  CONTRACT_DIFFICULTY_WINDOWS,
+  CONTRACT_AVAILABILITY_WINDOW,
   CONTRACT_SLOT_COUNT,
   buildEncounterDefinition,
   buildRewardPreview,
   createSeededRng,
   hasEncounterMembersForFamily,
   isKnownMonsterFamily,
+  normalizeContractLevelBand,
   pickEncounterMembers,
   randomInt,
   type BoardGenerationContext,
@@ -103,7 +104,7 @@ function mapBoardSlot(slot: BoardSlotRecord): ContractBoardSlotView {
   return contractBoardSlotViewSchema.parse({
     slotId: slot.slotIndex,
     state: slot.state as ContractBoardSlotState,
-    difficulty: slot.difficulty as ContractDifficulty | null,
+    levelBand: normalizeContractLevelBand(slot.difficulty),
     familyId: slot.familyId,
     familyName: slot.familyName,
     contractName: slot.contractName,
@@ -117,9 +118,8 @@ function mapBoardSlot(slot: BoardSlotRecord): ContractBoardSlotView {
   });
 }
 
-function buildAvailabilityExpiry(rng: () => number, difficulty: ContractDifficulty, now: Date): Date {
-  const window = CONTRACT_DIFFICULTY_WINDOWS[difficulty];
-  return new Date(now.getTime() + randomInt(rng, window.minMs, window.maxMs));
+function buildAvailabilityExpiry(rng: () => number, now: Date): Date {
+  return new Date(now.getTime() + randomInt(rng, CONTRACT_AVAILABILITY_WINDOW.minMs, CONTRACT_AVAILABILITY_WINDOW.maxMs));
 }
 
 function buildReplenishAt(
@@ -156,13 +156,13 @@ async function repopulateAvailableSlot(
     data: {
       state: "available",
       contractName: encounter.contractName,
-      difficulty: encounter.difficulty,
+      difficulty: encounter.levelBand,
       familyId: encounter.family.familyId,
       familyName: encounter.family.familyName,
       locationName: encounter.family.locationName,
       encounterLevel: encounter.encounterLevel,
       enemyCount: encounter.members.length,
-      expiresAt: buildAvailabilityExpiry(rng, encounter.difficulty, now),
+      expiresAt: buildAvailabilityExpiry(rng, now),
       replenishAt: null,
       rewardsPreview: json(encounter.rewardPreview)
     }
@@ -352,7 +352,7 @@ async function loadRunSnapshotFromRecord(run: {
     slotId: run.slotIndex,
     state: run.state as ContractRunState,
     contractName: run.contractName,
-    difficulty: run.difficulty as ContractDifficulty,
+    levelBand: normalizeContractLevelBand(run.difficulty) ?? "on_level",
     familyId: run.familyId,
     familyName: run.familyName,
     locationName: run.locationName,
@@ -391,22 +391,22 @@ function resolvePlayerCurrentHpFromEvents(run: {
 function coerceEncounterForRun(slot: BoardSlotRecord, playerLevel: number): EncounterDefinition {
   const rng = createSeededRng(`${slot.familyId}:${slot.slotIndex}:${slot.encounterLevel}`);
   const storedRewardPreview = parseRewardPreview(slot.rewardsPreview);
+  const levelBand = normalizeContractLevelBand(slot.difficulty) ?? "on_level";
   return {
     contractName: slot.contractName ?? "Contract",
-    difficulty: (slot.difficulty ?? "easy") as ContractDifficulty,
+    levelBand,
     family: {
       baseLevel: Math.max(0, (slot.encounterLevel ?? playerLevel) - 1),
       familyId: slot.familyId ?? "unknown",
       familyName: slot.familyName ?? "Unknown Threat",
       locationName: slot.locationName ?? "Unknown"
     },
-    members: pickEncounterMembers(rng, (slot.difficulty ?? "easy") as ContractDifficulty, slot.familyId ?? "")
+    members: pickEncounterMembers(rng, slot.familyId ?? "")
       .slice(0, slot.enemyCount ?? undefined),
     encounterLevel: slot.encounterLevel ?? playerLevel,
     rewardPreview:
       storedRewardPreview ??
       buildRewardPreview(
-        (slot.difficulty ?? "easy") as ContractDifficulty,
         slot.encounterLevel ?? playerLevel,
         playerLevel,
         "standard_cost"
@@ -475,7 +475,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
         }
       }
     });
-    if (!slot || slot.state !== "available" || !slot.difficulty || !slot.familyId || !slot.contractName || !slot.familyName || !slot.locationName || !slot.encounterLevel) {
+    if (!slot || slot.state !== "available" || !slot.familyId || !slot.contractName || !slot.familyName || !slot.locationName || !slot.encounterLevel) {
       throw new Error("Contract slot is not available.");
     }
     if (slot.expiresAt && slot.expiresAt <= now) {
@@ -511,7 +511,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
         slotIndex: slotId,
         state: "traveling",
         contractName: encounter.contractName,
-        difficulty: encounter.difficulty,
+        difficulty: encounter.levelBand,
         familyId: encounter.family.familyId,
         familyName: encounter.family.familyName,
         locationName: encounter.family.locationName,

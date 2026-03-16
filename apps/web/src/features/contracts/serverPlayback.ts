@@ -21,15 +21,15 @@ import type {
 import {
   getEncounterTravelDescription,
   type ActiveContractEncounterState,
-  type ContractDifficulty,
+  type ContractLevelBand,
   type ContractOffer,
   type ContractRoll,
   type ContractSlotState
 } from "./mockData";
 
-function toRoll(difficulty: ContractDifficulty): ContractRoll {
-  if (difficulty === "hard") return "high";
-  if (difficulty === "medium") return "medium";
+function toRoll(levelBand: ContractLevelBand): ContractRoll {
+  if (levelBand === "over_level") return "high";
+  if (levelBand === "on_level") return "medium";
   return "low";
 }
 
@@ -222,11 +222,11 @@ function toPlaybackActor(
 }
 
 function toOfferFromSlot(slot: ContractBoardSlotView): ContractOffer | null {
-  if (slot.state !== "available" || !slot.contractName || !slot.difficulty || !slot.expiresAt) {
+  if (slot.state !== "available" || !slot.contractName || !slot.levelBand || !slot.encounterLevel || !slot.expiresAt) {
     return null;
   }
 
-  const cue = toRoll(slot.difficulty);
+  const cue = toRoll(slot.levelBand);
   const staminaCost = slot.rewardsPreview?.staminaCost ?? 0;
   const efficiencyTier = slot.rewardsPreview?.efficiencyTier ?? "standard_cost";
   return {
@@ -234,7 +234,8 @@ function toOfferFromSlot(slot: ContractBoardSlotView): ContractOffer | null {
     template: {
       id: slot.familyId ?? `slot-${slot.slotId}`,
       name: slot.contractName,
-      difficulty: slot.difficulty,
+      levelBand: slot.levelBand,
+      contractLevel: slot.encounterLevel,
       experience: { low: slot.rewardsPreview?.experienceMin ?? 0, medium: slot.rewardsPreview?.experienceMin ?? 0, high: slot.rewardsPreview?.experienceMax ?? 0 },
       ducats: { low: slot.rewardsPreview?.ducatsMin ?? 0, medium: slot.rewardsPreview?.ducatsMin ?? 0, high: slot.rewardsPreview?.ducatsMax ?? 0 },
       materials: { low: 0, medium: 0, high: 0 },
@@ -267,13 +268,14 @@ export function mapBoardSlotsToUi(slots: ContractBoardSlotView[]): ContractSlotS
 }
 
 export function buildOfferFromRun(run: ContractRunSnapshot): ContractOffer {
-  const cue = toRoll(run.difficulty);
+  const cue = toRoll(run.levelBand);
   return {
     instanceId: run.runId,
     template: {
       id: run.familyId,
       name: run.contractName,
-      difficulty: run.difficulty,
+      levelBand: run.levelBand,
+      contractLevel: run.encounterLevel,
       experience: { low: 0, medium: 0, high: 0 },
       ducats: { low: 0, medium: 0, high: 0 },
       materials: { low: 0, medium: 0, high: 0 },
@@ -303,7 +305,8 @@ function buildEncounter(args: {
     encounterId: `${args.run.runId}-encounter`,
     contractInstanceId: args.run.runId,
     contractName: args.run.contractName,
-    difficulty: args.run.difficulty,
+    contractLevel: args.run.encounterLevel,
+    levelBand: args.run.levelBand,
     locationName: args.run.locationName,
     travelImagePath,
     combatBackgroundPath: enemyBackdrop,
@@ -423,7 +426,7 @@ export function buildTravelEncounterState(args: {
     phase: "travel",
     travelEndsAt: Date.parse(args.run.travelEndsAt),
     travelDurationMs: args.run.travelDurationSeconds * 1000,
-    travelDescription: getEncounterTravelDescription(args.run.difficulty),
+    travelDescription: getEncounterTravelDescription(args.run.levelBand),
     encounter,
     timeline: [],
     currentEventIndex: 0,
@@ -458,7 +461,7 @@ export function buildResolvedEncounterState(args: {
     phase: "combat",
     travelEndsAt: null,
     travelDurationMs: args.result.run.travelDurationSeconds * 1000,
-    travelDescription: getEncounterTravelDescription(args.result.run.difficulty),
+    travelDescription: getEncounterTravelDescription(args.result.run.levelBand),
     encounter,
     timeline: buildPlaybackTimeline(args.result.run, args.result.events),
     currentEventIndex: 0,

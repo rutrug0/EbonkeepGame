@@ -1,88 +1,44 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import {
-  resolveContractStaminaCost
-} from "../../config/activity-pacing.js";
+import { resolveContractStaminaCost } from "../../config/activity-pacing.js";
 import type {
-  ContractDifficulty,
+  CombatDamageKind,
   ContractEfficiencyTier,
-  ContractRewardPreview,
-  CombatDamageKind
+  ContractLevelBand,
+  ContractRewardPreview
 } from "@ebonkeep/shared/combat";
 import type { PlayerClass } from "@ebonkeep/shared/core";
+import { getExpectedPlayerCombatMetrics } from "./balance-model.js";
 
 export const CONTRACT_SLOT_COUNT = 6;
-
-export const CONTRACT_DIFFICULTY_OFFSETS: Record<ContractDifficulty, readonly [number, number]> = {
-  easy: [-1, 0],
-  medium: [1, 2],
-  hard: [3, 4]
+export const CONTRACT_LEVEL_BANDS: readonly ContractLevelBand[] = ["under_level", "on_level", "over_level"] as const;
+export const CONTRACT_AVAILABILITY_WINDOW = {
+  minMs: 25 * 60 * 1000,
+  maxMs: 75 * 60 * 1000
+} as const;
+export const CONTRACT_LEVEL_WINDOW_RADIUS = 6;
+export const CONTRACT_LEVEL_NORMAL_RANGE = {
+  minDelta: -3,
+  maxDelta: 3
+} as const;
+const CONTRACT_LEVEL_DISTRIBUTION_SIGMA = 4.2;
+const CONTRACT_LEVEL_DELTA_RANGES: Record<ContractLevelBand, { minDelta: number; maxDelta: number }> = {
+  under_level: { minDelta: -6, maxDelta: -4 },
+  on_level: CONTRACT_LEVEL_NORMAL_RANGE,
+  over_level: { minDelta: 4, maxDelta: 6 }
 };
 
-export const CONTRACT_DIFFICULTY_WINDOWS: Record<ContractDifficulty, { minMs: number; maxMs: number }> = {
-  easy: { minMs: 35 * 60 * 1000, maxMs: 90 * 60 * 1000 },
-  medium: { minMs: 25 * 60 * 1000, maxMs: 75 * 60 * 1000 },
-  hard: { minMs: 20 * 60 * 1000, maxMs: 60 * 60 * 1000 }
+const EFFICIENCY_REWARD_FACTORS: Record<ContractEfficiencyTier, number> = {
+  low_cost: 0.92,
+  standard_cost: 1,
+  high_cost: 1.08
 };
 
-export const CONTRACT_ACTION_NAMES: Record<ContractDifficulty, readonly string[]> = {
-  easy: ["Recon Sweep", "Caravan Escort", "Pest Culling", "Tunnel Sweep"],
-  medium: ["Camp Break", "Supply Recovery", "Warden Relief", "Marsh Hunt"],
-  hard: ["Siege Break", "Nightfall Hunt", "Warband Cleanse", "Frontier Purge"]
-};
-
-export const DIFFICULTY_PROFILES: Record<
-  ContractDifficulty,
-  {
-    totalHpFactor: number;
-    totalDpsFactor: number;
-    defenseFactor: number;
-    speedFactor: number;
-    accuracyFactor: number;
-    critFactor: number;
-    dodgeFactor: number;
-    itemDropChanceBps: number;
-    rewardFactor: number;
-    staminaBase: number;
-  }
-> = {
-  easy: {
-    totalHpFactor: 3.5,
-    totalDpsFactor: 0.65,
-    defenseFactor: 0.85,
-    speedFactor: 0.73,
-    accuracyFactor: 0.87,
-    critFactor: 0.85,
-    dodgeFactor: 0.9,
-    itemDropChanceBps: 1200,
-    rewardFactor: 1,
-    staminaBase: 8
-  },
-  medium: {
-    totalHpFactor: 5.8,
-    totalDpsFactor: 0.8,
-    defenseFactor: 1,
-    speedFactor: 0.7,
-    accuracyFactor: 0.86,
-    critFactor: 1,
-    dodgeFactor: 1,
-    itemDropChanceBps: 2000,
-    rewardFactor: 1.35,
-    staminaBase: 12
-  },
-  hard: {
-    totalHpFactor: 7.2,
-    totalDpsFactor: 0.95,
-    defenseFactor: 1.15,
-    speedFactor: 0.75,
-    accuracyFactor: 0.89,
-    critFactor: 1.1,
-    dodgeFactor: 1.08,
-    itemDropChanceBps: 3000,
-    rewardFactor: 1.8,
-    staminaBase: 16
-  }
+export const CONTRACT_ACTION_NAMES: Record<ContractLevelBand, readonly string[]> = {
+  under_level: ["Recon Sweep", "Caravan Escort", "Pest Culling", "Tunnel Sweep"],
+  on_level: ["Camp Break", "Supply Recovery", "Warden Relief", "Marsh Hunt"],
+  over_level: ["Siege Break", "Nightfall Hunt", "Warband Cleanse", "Frontier Purge"]
 };
 
 export const BIAS_MULTIPLIERS = {
@@ -105,15 +61,15 @@ export const ROLE_PROFILES: Record<
   }
 > = {
   default: { hp: 1, damage: 1, defense: 1, speed: 1, accuracy: 1, crit: 1, evasion: 1, chain: 1 },
-  skirmisher: { hp: 0.92, damage: 0.98, defense: 0.9, speed: 1.16, accuracy: 1.02, crit: 1.02, evasion: 1.15, chain: 1.05 },
-  ambusher: { hp: 0.9, damage: 1.02, defense: 0.92, speed: 1.08, accuracy: 1.04, crit: 1.08, evasion: 1.12, chain: 1.1 },
-  harrier: { hp: 0.9, damage: 0.98, defense: 0.9, speed: 1.14, accuracy: 1, crit: 0.98, evasion: 1.12, chain: 1.1 },
-  bruiser: { hp: 1.12, damage: 1.08, defense: 1.04, speed: 0.92, accuracy: 1, crit: 1, evasion: 0.9, chain: 0.95 },
-  runner: { hp: 0.88, damage: 0.96, defense: 0.88, speed: 1.18, accuracy: 0.98, crit: 0.95, evasion: 1.18, chain: 1.05 },
-  ranged: { hp: 0.86, damage: 1, defense: 0.86, speed: 1.02, accuracy: 1.16, crit: 1.02, evasion: 1.08, chain: 1.02 },
-  caster: { hp: 0.84, damage: 1.04, defense: 0.88, speed: 0.96, accuracy: 1.08, crit: 1.04, evasion: 0.96, chain: 0.95 },
-  mender: { hp: 0.9, damage: 0.88, defense: 0.94, speed: 0.94, accuracy: 1, crit: 0.92, evasion: 0.95, chain: 0.9 },
-  tank: { hp: 1.35, damage: 0.88, defense: 1.28, speed: 0.82, accuracy: 0.96, crit: 0.9, evasion: 0.8, chain: 0.85 },
+  skirmisher: { hp: 0.92, damage: 0.9, defense: 0.9, speed: 1.09, accuracy: 1.02, crit: 1.02, evasion: 1.12, chain: 1.03 },
+  ambusher: { hp: 0.9, damage: 0.92, defense: 0.92, speed: 1.07, accuracy: 1.03, crit: 1.04, evasion: 1.08, chain: 1.06 },
+  harrier: { hp: 0.9, damage: 0.89, defense: 0.9, speed: 1.08, accuracy: 1, crit: 0.99, evasion: 1.1, chain: 1.05 },
+  bruiser: { hp: 1.12, damage: 1.14, defense: 1.04, speed: 0.96, accuracy: 1, crit: 1, evasion: 0.92, chain: 0.91 },
+  runner: { hp: 0.88, damage: 0.87, defense: 0.88, speed: 1.1, accuracy: 0.99, crit: 0.96, evasion: 1.15, chain: 1.02 },
+  ranged: { hp: 0.86, damage: 0.91, defense: 0.86, speed: 1.05, accuracy: 1.12, crit: 1.01, evasion: 1.05, chain: 1.02 },
+  caster: { hp: 0.84, damage: 1.01, defense: 0.88, speed: 1, accuracy: 1.06, crit: 1.03, evasion: 0.98, chain: 0.97 },
+  mender: { hp: 0.9, damage: 0.9, defense: 0.94, speed: 0.99, accuracy: 1, crit: 0.92, evasion: 0.97, chain: 0.9 },
+  tank: { hp: 1.35, damage: 1.12, defense: 1.28, speed: 0.93, accuracy: 0.96, crit: 0.92, evasion: 0.84, chain: 0.82 },
   boss: { hp: 1.5, damage: 1.14, defense: 1.18, speed: 0.98, accuracy: 1.06, crit: 1.08, evasion: 0.94, chain: 1.08 }
 };
 
@@ -153,17 +109,29 @@ export type BoardGenerationContext = {
 
 export type EncounterDefinition = {
   contractName: string;
-  difficulty: ContractDifficulty;
+  levelBand: ContractLevelBand;
   family: MonsterFamily;
   members: MonsterMember[];
   encounterLevel: number;
   rewardPreview: ContractRewardPreview;
 };
 
-export type MonsterCombatTuning = {
-  hpMultiplier: number;
-  damageMultiplier: number;
-  defenseMultiplier: number;
+export type MonsterLevelCurve = {
+  maxHp: number;
+  averageDamage: number;
+  typedDefense: number;
+  bonusDefense: number;
+  combatSpeed: number;
+  accuracy: number;
+  dodgeChance: number;
+  critChance: number;
+  critMultiplier: number;
+  extraAttackChance: number;
+};
+
+type LevelRange = {
+  min: number;
+  max: number;
 };
 
 export const CONTRACT_EFFICIENCY_TIER_WEIGHTS: Record<ContractEfficiencyTier, number> = {
@@ -279,11 +247,6 @@ function toInt(value: string | undefined, fallback = 0): number {
   return Number.isNaN(parsed) ? fallback : parsed;
 }
 
-export function toFloat(value: string | undefined, fallback = 0): number {
-  const parsed = Number.parseFloat(value ?? "");
-  return Number.isNaN(parsed) ? fallback : parsed;
-}
-
 function toBool(value: string | undefined): boolean {
   return (value ?? "").trim().toUpperCase() === "TRUE";
 }
@@ -297,6 +260,7 @@ export const monsterFamilies = parseCsv("monster_families_v1.csv")
   }))
   .filter((family) => family.familyId.length > 0);
 
+export const zoneBaseLevels = [...new Set(monsterFamilies.map((family) => family.baseLevel))].sort((left, right) => left - right);
 export const monsterFamiliesById = new Map(monsterFamilies.map((family) => [family.familyId, family] as const));
 
 export const monsterMembers = parseCsv("monster_family_members_v1.csv")
@@ -336,28 +300,74 @@ export function hasEncounterMembersForFamily(familyId: string): boolean {
   return familyMembers.some((member) => !member.isBoss);
 }
 
-const monsterCombatTuningByLevel = new Map<number, Record<ContractDifficulty, MonsterCombatTuning>>(
-  parseCsv("contracts_monster_combat_tuning_level_1_100.csv")
-    .map((row) => ({
-      level: toInt(row.level, 1),
-      easy: {
-        hpMultiplier: toFloat(row.easy_hp_multiplier, 1),
-        damageMultiplier: toFloat(row.easy_damage_multiplier, 1),
-        defenseMultiplier: toFloat(row.easy_defense_multiplier, 1)
-      },
-      medium: {
-        hpMultiplier: toFloat(row.medium_hp_multiplier, 1),
-        damageMultiplier: toFloat(row.medium_damage_multiplier, 1),
-        defenseMultiplier: toFloat(row.medium_defense_multiplier, 1)
-      },
-      hard: {
-        hpMultiplier: toFloat(row.hard_hp_multiplier, 1),
-        damageMultiplier: toFloat(row.hard_damage_multiplier, 1),
-        defenseMultiplier: toFloat(row.hard_defense_multiplier, 1)
+function createLevelRange(min: number, max: number): LevelRange {
+  const boundedMin = clampInt(min, 1, 100);
+  const boundedMax = clampInt(max, 1, 100);
+  return boundedMax >= boundedMin
+    ? { min: boundedMin, max: boundedMax }
+    : { min: boundedMin, max: boundedMin };
+}
+
+export function resolveContractLevelWindow(playerLevel: number): LevelRange {
+  return createLevelRange(playerLevel - CONTRACT_LEVEL_WINDOW_RADIUS, playerLevel + CONTRACT_LEVEL_WINDOW_RADIUS);
+}
+
+export function resolveAnchorZoneBaseLevel(playerLevel: number): number {
+  return [...zoneBaseLevels]
+    .sort((left, right) => {
+      const leftDelta = Math.abs(left - playerLevel);
+      const rightDelta = Math.abs(right - playerLevel);
+      if (leftDelta !== rightDelta) {
+        return leftDelta - rightDelta;
       }
-    }))
-    .map((row) => [row.level, { easy: row.easy, medium: row.medium, hard: row.hard }] as const)
-);
+      return right - left;
+    })[0] ?? 0;
+}
+
+export function resolveZoneBaseLevelForEncounterLevel(encounterLevel: number): number {
+  return resolveAnchorZoneBaseLevel(encounterLevel);
+}
+
+export function resolveZoneBaseLevelForBand(playerLevel: number, levelBand: ContractLevelBand): number {
+  const range = resolveEncounterLevelRange(playerLevel, levelBand);
+  const midpoint = Math.round((range.min + range.max) / 2);
+  return resolveZoneBaseLevelForEncounterLevel(midpoint);
+}
+
+export function resolveEncounterLevelRange(playerLevel: number, levelBand: ContractLevelBand): LevelRange {
+  const deltaRange = CONTRACT_LEVEL_DELTA_RANGES[levelBand];
+  return createLevelRange(playerLevel + deltaRange.minDelta, playerLevel + deltaRange.maxDelta);
+}
+
+export function normalizeContractLevelBand(value: string | null | undefined): ContractLevelBand | null {
+  if (!value) {
+    return null;
+  }
+  if (value === "under_level" || value === "on_level" || value === "over_level") {
+    return value;
+  }
+  if (value === "easy") {
+    return "under_level";
+  }
+  if (value === "hard") {
+    return "over_level";
+  }
+  if (value === "medium") {
+    return "on_level";
+  }
+  return null;
+}
+
+export function resolveContractLevelBand(playerLevel: number, encounterLevel: number): ContractLevelBand {
+  const levelDelta = encounterLevel - playerLevel;
+  if (levelDelta <= CONTRACT_LEVEL_DELTA_RANGES.under_level.maxDelta) {
+    return "under_level";
+  }
+  if (levelDelta >= CONTRACT_LEVEL_DELTA_RANGES.over_level.minDelta) {
+    return "over_level";
+  }
+  return "on_level";
+}
 
 export function getBiasMultiplier(value: MonsterBias): number {
   return BIAS_MULTIPLIERS[value] ?? 1;
@@ -370,13 +380,106 @@ export function getRoleProfile(role: string, isBoss: boolean) {
   return ROLE_PROFILES[role] ?? ROLE_PROFILES.default;
 }
 
-export function getMonsterCombatTuning(level: number, difficulty: ContractDifficulty): MonsterCombatTuning {
+export function getMonsterLevelCurve(level: number): MonsterLevelCurve {
   const clampedLevel = clampInt(level, 1, 100);
-  const tuningRow = monsterCombatTuningByLevel.get(clampedLevel);
-  return tuningRow?.[difficulty] ?? {
-    hpMultiplier: 1,
-    damageMultiplier: 1,
-    defenseMultiplier: 1
+  const metrics = getExpectedPlayerCombatMetrics({
+    playerClass: "juggernaut",
+    level: clampedLevel
+  });
+  const playerStats = metrics.playerState.statSnapshot.total;
+  const outputPressure = metrics.dps * Math.max(1, metrics.tempo / 100);
+  const ehpDamageDivisor = 24 + (Math.max(0, clampedLevel - 35) * 0.12);
+  const lateLevelPressure = Math.max(0, clampedLevel - 80);
+  const earlyLevelPressure = Math.max(0, 75 - clampedLevel);
+  const midgamePressure = Math.max(0, Math.min(clampedLevel, 80) - 45);
+  const midgameThreatPressure = Math.max(0, 20 - Math.abs(clampedLevel - 65));
+  const focusedMidgamePressure = Math.max(0, 12 - Math.abs(clampedLevel - 72));
+  const noviceAttenuation = clampedLevel <= 15 ? Math.min(1, 0.35 + (clampedLevel * 0.04)) : 1;
+  const targetCadencePressure = Math.max(0, 16 - Math.abs(clampedLevel - 60));
+
+  return {
+    maxHp: Math.max(1, Math.round(((outputPressure * 2.7) + (clampedLevel * 5.4) + (earlyLevelPressure * 4.9)) * noviceAttenuation)),
+    averageDamage: Math.max(
+      1,
+      Math.round(
+        (
+          (metrics.ehp / ehpDamageDivisor) +
+          (clampedLevel * 0.7) +
+          (lateLevelPressure * 0.52) +
+          (earlyLevelPressure * 0.74) +
+          (midgamePressure * 0.9) +
+          (midgameThreatPressure * 1.04) +
+          (focusedMidgamePressure * 0.72) +
+          (targetCadencePressure * 0.31)
+        ) *
+        noviceAttenuation
+      )
+    ),
+    typedDefense: Math.max(0, Math.round(((metrics.dps * 0.64) + (clampedLevel * 0.24)) * noviceAttenuation)),
+    bonusDefense: Math.max(0, Math.round(((metrics.dps * 0.26) + (clampedLevel * 0.08)) * noviceAttenuation)),
+    combatSpeed: Math.max(
+      1,
+      Math.round(
+        (
+          (playerStats.initiative * 0.82) +
+          (clampedLevel * 0.06) +
+          (lateLevelPressure * 0.14) +
+          (earlyLevelPressure * 0.08) +
+          (midgamePressure * 0.06) +
+          (midgameThreatPressure * 0.08) +
+          (focusedMidgamePressure * 0.11) +
+          (targetCadencePressure * 0.13)
+        ) *
+        noviceAttenuation
+      )
+    ),
+    accuracy: Math.max(
+      0,
+      Math.round(
+        (
+          (playerStats.accuracy * 0.9) +
+          (clampedLevel * 0.18) +
+          (lateLevelPressure * 0.12) +
+          (midgamePressure * 0.14) +
+          (midgameThreatPressure * 0.55) +
+          (focusedMidgamePressure * 0.65)
+        ) *
+        noviceAttenuation
+      )
+    ),
+    dodgeChance: Math.max(
+      0,
+      Math.round(((playerStats.dodgeChance * 0.6) + (clampedLevel * 4.8) + (lateLevelPressure * 2.5)) * noviceAttenuation)
+    ),
+    critChance: Math.max(
+      0,
+      Math.round(
+        (
+          (playerStats.critChance * 0.38) +
+          140 +
+          (clampedLevel * 3.8) +
+          (lateLevelPressure * 1.5) +
+          (midgameThreatPressure * 4.5) +
+          (focusedMidgamePressure * 6)
+        ) *
+        noviceAttenuation
+      )
+    ),
+    critMultiplier: Math.max(15_000, Math.round(15_100 + (clampedLevel * 22))),
+    extraAttackChance: Math.max(
+      0,
+      Math.round(
+        (
+          (playerStats.extraAttackChance * 0.18) +
+          (clampedLevel * 2.2) +
+          (lateLevelPressure * 0.7) +
+          (midgamePressure * 0.75) +
+          (midgameThreatPressure * 4.5) +
+          (focusedMidgamePressure * 5)
+        ) *
+        noviceAttenuation
+      )
+    )
   };
 }
 
@@ -391,76 +494,94 @@ export function pickContractEfficiencyTier(rng: () => number): ContractEfficienc
   return "high_cost";
 }
 
+function getItemDropChanceBps(encounterLevel: number): number {
+  return clampInt(1_150 + (encounterLevel * 22), 900, 3_600);
+}
+
 export function buildRewardPreview(
-  difficulty: ContractDifficulty,
   encounterLevel: number,
   playerLevel: number,
   efficiencyTier: ContractEfficiencyTier
 ): ContractRewardPreview {
-  const profile = DIFFICULTY_PROFILES[difficulty];
-  const experienceBase = Math.round((110 + encounterLevel * 26) * profile.rewardFactor);
-  const ducatsBase = Math.round((65 + encounterLevel * 18) * profile.rewardFactor);
+  const efficiencyFactor = EFFICIENCY_REWARD_FACTORS[efficiencyTier] ?? 1;
+  const experienceBase = Math.round((115 + (encounterLevel * 30) + (encounterLevel * encounterLevel * 1.35)) * efficiencyFactor);
+  const ducatsBase = Math.round((68 + (encounterLevel * 18) + (encounterLevel * encounterLevel * 0.72)) * efficiencyFactor);
 
   return {
     experienceMin: Math.max(20, Math.round(experienceBase * 0.85)),
     experienceMax: Math.max(25, Math.round(experienceBase * 1.15)),
     ducatsMin: Math.max(10, Math.round(ducatsBase * 0.85)),
     ducatsMax: Math.max(12, Math.round(ducatsBase * 1.15)),
-    itemDropChanceBps: profile.itemDropChanceBps,
+    itemDropChanceBps: getItemDropChanceBps(encounterLevel),
     staminaCost: resolveContractStaminaCost(playerLevel, efficiencyTier),
     efficiencyTier
   };
 }
 
-export function buildContractName(rng: () => number, family: MonsterFamily, difficulty: ContractDifficulty): string {
-  const action = randomChoice(rng, CONTRACT_ACTION_NAMES[difficulty]);
+export function buildContractName(rng: () => number, family: MonsterFamily, levelBand: ContractLevelBand): string {
+  const action = randomChoice(rng, CONTRACT_ACTION_NAMES[levelBand]);
   const locationNoun = family.locationName.split(" ")[0] || family.familyName;
   return `${locationNoun} ${action}`;
 }
 
-export function pickDifficultyForSlot(rng: () => number, slotIndex: number): ContractDifficulty {
-  const roll = rng();
-  if (slotIndex >= 5) {
-    return roll < 0.3 ? "medium" : "hard";
+function sampleStandardNormal(rng: () => number): number {
+  const first = Math.max(rng(), Number.EPSILON);
+  const second = rng();
+  return Math.sqrt(-2 * Math.log(first)) * Math.cos(2 * Math.PI * second);
+}
+
+export function rollContractEncounterLevel(rng: () => number, playerLevel: number): number {
+  const levelWindow = resolveContractLevelWindow(playerLevel);
+  let lastCandidate = playerLevel;
+
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    const candidate = Math.round(playerLevel + (sampleStandardNormal(rng) * CONTRACT_LEVEL_DISTRIBUTION_SIGMA));
+    lastCandidate = candidate;
+    if (candidate >= levelWindow.min && candidate <= levelWindow.max) {
+      return clampInt(candidate, levelWindow.min, levelWindow.max);
+    }
   }
-  if (slotIndex <= 2) {
-    return roll < 0.65 ? "easy" : "medium";
+
+  return clampInt(lastCandidate, levelWindow.min, levelWindow.max);
+}
+
+export function pickEncounterLevel(rng: () => number, levelBand: ContractLevelBand, playerLevel: number): number {
+  const range = resolveEncounterLevelRange(playerLevel, levelBand);
+  return randomInt(rng, range.min, range.max);
+}
+
+export function pickFamilyForZoneBase(rng: () => number, zoneBaseLevel: number): MonsterFamily {
+  const exactMatches = monsterFamilies.filter((family) => family.baseLevel === zoneBaseLevel);
+  if (exactMatches.length > 0) {
+    return randomChoice(rng, exactMatches);
   }
-  if (roll < 0.35) return "easy";
-  if (roll < 0.8) return "medium";
-  return "hard";
+
+  const nearest = [...monsterFamilies]
+    .sort((left, right) => {
+      const leftDelta = Math.abs(left.baseLevel - zoneBaseLevel);
+      const rightDelta = Math.abs(right.baseLevel - zoneBaseLevel);
+      if (leftDelta !== rightDelta) {
+        return leftDelta - rightDelta;
+      }
+      return right.baseLevel - left.baseLevel;
+    })
+    .slice(0, 5);
+
+  return randomChoice(rng, nearest);
 }
 
-export function pickEncounterLevel(rng: () => number, difficulty: ContractDifficulty, playerLevel: number): number {
-  const [minOffset, maxOffset] = CONTRACT_DIFFICULTY_OFFSETS[difficulty];
-  return Math.max(1, playerLevel + randomInt(rng, minOffset, maxOffset));
-}
-
-export function pickFamilyForLevel(rng: () => number, encounterLevel: number): MonsterFamily {
-  const candidates = monsterFamilies
-    .map((family) => ({ family, delta: Math.abs(family.baseLevel - encounterLevel) }))
-    .sort((left, right) => left.delta - right.delta)
-    .filter((entry, index) => entry.delta <= 5 || index < 5);
-  const weighted = candidates.flatMap((entry) => Array.from({ length: Math.max(1, 6 - Math.min(5, entry.delta)) }, () => entry.family));
-  return randomChoice(rng, weighted);
-}
-
-export function pickEncounterMembers(rng: () => number, difficulty: ContractDifficulty, familyId: string): MonsterMember[] {
+export function pickEncounterMembers(rng: () => number, familyId: string): MonsterMember[] {
   const familyMembers = monsterMembersByFamily.get(familyId) ?? [];
   const nonBossMembers = familyMembers.filter((member) => !member.isBoss).sort((left, right) => left.sequence - right.sequence);
-  const bossMembers = familyMembers.filter((member) => member.isBoss).sort((left, right) => left.sequence - right.sequence);
 
   if (nonBossMembers.length === 0) {
     throw new Error(`No non-boss monsters for family '${familyId}'.`);
   }
 
-  const enemyCount = difficulty === "easy" ? randomInt(rng, 1, 2) : difficulty === "medium" ? 2 : randomInt(rng, 2, 3);
-  const pool = shuffle(rng, nonBossMembers);
+  const enemyCountRoll = rng();
+  const enemyCount = enemyCountRoll < 0.25 ? 1 : enemyCountRoll < 0.75 ? 2 : 3;
   const chosen: MonsterMember[] = [];
-
-  if (difficulty === "hard" && bossMembers.length > 0 && rollBps(rng, 5500)) {
-    chosen.push(randomChoice(rng, bossMembers));
-  }
+  const pool = shuffle(rng, nonBossMembers);
 
   while (chosen.length < enemyCount) {
     const member = pool[(chosen.length + randomInt(rng, 0, pool.length - 1)) % pool.length] ?? pool[0];
@@ -474,26 +595,40 @@ export function pickEncounterMembers(rng: () => number, difficulty: ContractDiff
 }
 
 export function buildEncounterDefinition(rng: () => number, context: BoardGenerationContext, slotIndex: number): EncounterDefinition {
-  const difficulty = pickDifficultyForSlot(rng, slotIndex);
-  return buildEncounterDefinitionForDifficulty(rng, context, difficulty);
+  void slotIndex;
+  return buildEncounterDefinitionForLevel(rng, context, rollContractEncounterLevel(rng, context.playerLevel));
 }
 
-export function buildEncounterDefinitionForDifficulty(
+export function buildEncounterDefinitionForLevel(
   rng: () => number,
   context: BoardGenerationContext,
-  difficulty: ContractDifficulty
+  encounterLevel: number,
+  requestedLevelBand?: ContractLevelBand
 ): EncounterDefinition {
-  const encounterLevel = pickEncounterLevel(rng, difficulty, context.playerLevel);
-  const family = pickFamilyForLevel(rng, encounterLevel);
-  const members = pickEncounterMembers(rng, difficulty, family.familyId);
+  const levelBand = requestedLevelBand ?? resolveContractLevelBand(context.playerLevel, encounterLevel);
+  const family = pickFamilyForZoneBase(rng, resolveZoneBaseLevelForEncounterLevel(encounterLevel));
+  const members = pickEncounterMembers(rng, family.familyId);
   const efficiencyTier = pickContractEfficiencyTier(rng);
 
   return {
-    contractName: buildContractName(rng, family, difficulty),
-    difficulty,
+    contractName: buildContractName(rng, family, levelBand),
+    levelBand,
     family,
     members,
     encounterLevel,
-    rewardPreview: buildRewardPreview(difficulty, encounterLevel, context.playerLevel, efficiencyTier)
+    rewardPreview: buildRewardPreview(encounterLevel, context.playerLevel, efficiencyTier)
   };
+}
+
+export function buildEncounterDefinitionForBand(
+  rng: () => number,
+  context: BoardGenerationContext,
+  levelBand: ContractLevelBand
+): EncounterDefinition {
+  return buildEncounterDefinitionForLevel(
+    rng,
+    context,
+    pickEncounterLevel(rng, levelBand, context.playerLevel),
+    levelBand
+  );
 }

@@ -24,9 +24,9 @@ vi.mock("../src/features/contracts/api", () => ({
         averageStaminaWaitSecondsForContract: 120,
         averageContractAvailabilityWaitSeconds: 18,
         averageExperiencePerContract: {
-          easy: 100,
-          medium: 120,
-          hard: 140
+          under_level: 100,
+          on_level: 120,
+          over_level: 140
         },
         experienceToNextLevel: 250
       },
@@ -37,9 +37,9 @@ vi.mock("../src/features/contracts/api", () => ({
         averageStaminaWaitSecondsForContract: 132,
         averageContractAvailabilityWaitSeconds: 19,
         averageExperiencePerContract: {
-          easy: 110,
-          medium: 130,
-          hard: 155
+          under_level: 110,
+          on_level: 130,
+          over_level: 155
         },
         experienceToNextLevel: 300
       }
@@ -83,9 +83,9 @@ vi.mock("../src/features/contracts/api", () => ({
               avgStaminaWaitSecondsToClearLevel: 4800,
               avgContractAvailabilityWaitSecondsToClearLevel: 1800,
               avgFightsToClearLevel: 2,
-              avgWinsByDifficulty: { easy: 1, medium: 0.5, hard: 0.25 },
-              avgLossesByDifficulty: { easy: 0, medium: 0.5, hard: 0.75 },
-              winRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.25 },
+              avgWinsByBand: { under_level: 1, on_level: 0.5, over_level: 0.25 },
+              avgLossesByBand: { under_level: 0, on_level: 0.5, over_level: 0.75 },
+              winRateByBand: { under_level: 1, on_level: 0.5, over_level: 0.25 },
               avgXpPerFight: 100,
               avgStaminaSpent: 8,
               avgRestCount: 0,
@@ -93,7 +93,7 @@ vi.mock("../src/features/contracts/api", () => ({
               avgInputOverheadSeconds: 5,
               avgPlayerAttackRoll: 31,
               avgPlayerHpLossPercent: 12,
-              avgPlayerHpLossPercentByDifficulty: { easy: 5, medium: 12, hard: 19 }
+              avgPlayerHpLossPercentByBand: { under_level: 5, on_level: 12, over_level: 19 }
             },
             {
               level: 3,
@@ -106,9 +106,9 @@ vi.mock("../src/features/contracts/api", () => ({
               avgStaminaWaitSecondsToClearLevel: 7200,
               avgContractAvailabilityWaitSecondsToClearLevel: 2100,
               avgFightsToClearLevel: 3,
-              avgWinsByDifficulty: { easy: 1, medium: 0.5, hard: 0.5 },
-              avgLossesByDifficulty: { easy: 0, medium: 0.5, hard: 0.5 },
-              winRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.5 },
+              avgWinsByBand: { under_level: 1, on_level: 0.5, over_level: 0.5 },
+              avgLossesByBand: { under_level: 0, on_level: 0.5, over_level: 0.5 },
+              winRateByBand: { under_level: 1, on_level: 0.5, over_level: 0.5 },
               avgXpPerFight: 120,
               avgStaminaSpent: 10,
               avgRestCount: 1,
@@ -116,10 +116,10 @@ vi.mock("../src/features/contracts/api", () => ({
               avgInputOverheadSeconds: 5,
               avgPlayerAttackRoll: 36,
               avgPlayerHpLossPercent: 18,
-              avgPlayerHpLossPercentByDifficulty: { easy: 6, medium: 13, hard: 22 }
+              avgPlayerHpLossPercentByBand: { under_level: 6, on_level: 13, over_level: 22 }
             }
           ],
-          benchmarkTargetBandHitRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.5 }
+          benchmarkTargetBandHitRateByBand: { under_level: 1, on_level: 0.5, over_level: 0.5 }
         },
         {
           archetype: "average",
@@ -135,9 +135,9 @@ vi.mock("../src/features/contracts/api", () => ({
               avgStaminaWaitSecondsToClearLevel: 4200,
               avgContractAvailabilityWaitSecondsToClearLevel: 2600,
               avgFightsToClearLevel: 3,
-              avgWinsByDifficulty: { easy: 1, medium: 0.5, hard: 0 },
-              avgLossesByDifficulty: { easy: 0, medium: 0.5, hard: 1 },
-              winRateByDifficulty: { easy: 1, medium: 0.5, hard: 0 },
+              avgWinsByBand: { under_level: 1, on_level: 0.5, over_level: 0 },
+              avgLossesByBand: { under_level: 0, on_level: 0.5, over_level: 1 },
+              winRateByBand: { under_level: 1, on_level: 0.5, over_level: 0 },
               avgXpPerFight: 80,
               avgStaminaSpent: 8,
               avgRestCount: 1,
@@ -145,7 +145,7 @@ vi.mock("../src/features/contracts/api", () => ({
               avgInputOverheadSeconds: 15,
               avgPlayerAttackRoll: 26,
               avgPlayerHpLossPercent: 19,
-              avgPlayerHpLossPercentByDifficulty: { easy: 7, medium: 14, hard: 21 }
+              avgPlayerHpLossPercentByBand: { under_level: 7, on_level: 14, over_level: 21 }
             },
             {
               level: 3,
@@ -158,9 +158,9 @@ vi.mock("../src/features/contracts/api", () => ({
               avgStaminaWaitSecondsToClearLevel: 6300,
               avgContractAvailabilityWaitSecondsToClearLevel: 3400,
               avgFightsToClearLevel: 4,
-              avgWinsByDifficulty: { easy: 1, medium: 0.5, hard: 0.1 },
-              avgLossesByDifficulty: { easy: 0, medium: 0.5, hard: 0.9 },
-              winRateByDifficulty: { easy: 1, medium: 0.5, hard: 0.1 },
+              avgWinsByBand: { under_level: 1, on_level: 0.5, over_level: 0.1 },
+              avgLossesByBand: { under_level: 0, on_level: 0.5, over_level: 0.9 },
+              winRateByBand: { under_level: 1, on_level: 0.5, over_level: 0.1 },
               avgXpPerFight: 90,
               avgStaminaSpent: 10,
               avgRestCount: 1,
@@ -168,10 +168,10 @@ vi.mock("../src/features/contracts/api", () => ({
               avgInputOverheadSeconds: 15,
               avgPlayerAttackRoll: 28,
               avgPlayerHpLossPercent: 24,
-              avgPlayerHpLossPercentByDifficulty: { easy: 8, medium: 15, hard: 24 }
+              avgPlayerHpLossPercentByBand: { under_level: 8, on_level: 15, over_level: 24 }
             }
           ],
-          benchmarkTargetBandHitRateByDifficulty: { easy: 0.8, medium: 1, hard: 0.5 }
+          benchmarkTargetBandHitRateByBand: { under_level: 0.8, on_level: 1, over_level: 0.5 }
         },
         {
           archetype: "slow",
@@ -187,9 +187,9 @@ vi.mock("../src/features/contracts/api", () => ({
               avgStaminaWaitSecondsToClearLevel: 3100,
               avgContractAvailabilityWaitSecondsToClearLevel: 4700,
               avgFightsToClearLevel: 4,
-              avgWinsByDifficulty: { easy: 1, medium: 0.2, hard: 0 },
-              avgLossesByDifficulty: { easy: 0, medium: 0.8, hard: 1 },
-              winRateByDifficulty: { easy: 1, medium: 0.2, hard: 0 },
+              avgWinsByBand: { under_level: 1, on_level: 0.2, over_level: 0 },
+              avgLossesByBand: { under_level: 0, on_level: 0.8, over_level: 1 },
+              winRateByBand: { under_level: 1, on_level: 0.2, over_level: 0 },
               avgXpPerFight: 70,
               avgStaminaSpent: 8,
               avgRestCount: 1,
@@ -197,7 +197,7 @@ vi.mock("../src/features/contracts/api", () => ({
               avgInputOverheadSeconds: 30,
               avgPlayerAttackRoll: 21,
               avgPlayerHpLossPercent: 27,
-              avgPlayerHpLossPercentByDifficulty: { easy: 9, medium: 16, hard: 26 }
+              avgPlayerHpLossPercentByBand: { under_level: 9, on_level: 16, over_level: 26 }
             },
             {
               level: 3,
@@ -210,9 +210,9 @@ vi.mock("../src/features/contracts/api", () => ({
               avgStaminaWaitSecondsToClearLevel: 4600,
               avgContractAvailabilityWaitSecondsToClearLevel: 6900,
               avgFightsToClearLevel: 5,
-              avgWinsByDifficulty: { easy: 1, medium: 0.25, hard: 0 },
-              avgLossesByDifficulty: { easy: 0, medium: 0.75, hard: 1 },
-              winRateByDifficulty: { easy: 1, medium: 0.25, hard: 0 },
+              avgWinsByBand: { under_level: 1, on_level: 0.25, over_level: 0 },
+              avgLossesByBand: { under_level: 0, on_level: 0.75, over_level: 1 },
+              winRateByBand: { under_level: 1, on_level: 0.25, over_level: 0 },
               avgXpPerFight: 75,
               avgStaminaSpent: 10,
               avgRestCount: 2,
@@ -220,10 +220,10 @@ vi.mock("../src/features/contracts/api", () => ({
               avgInputOverheadSeconds: 30,
               avgPlayerAttackRoll: 22,
               avgPlayerHpLossPercent: 31,
-              avgPlayerHpLossPercentByDifficulty: { easy: 10, medium: 18, hard: 28 }
+              avgPlayerHpLossPercentByBand: { under_level: 10, on_level: 18, over_level: 28 }
             }
           ],
-          benchmarkTargetBandHitRateByDifficulty: { easy: 0.7, medium: 0.5, hard: 0.2 }
+          benchmarkTargetBandHitRateByBand: { under_level: 0.7, on_level: 0.5, over_level: 0.2 }
         }
       ]
     }
@@ -284,9 +284,9 @@ describe("settings developer simulation", () => {
       expect(screen.getByTestId("developer-sim-gear-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-sim-player-attack-roll-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-sim-player-hp-loss-chart")).not.toBeNull();
-      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-easy-chart")).not.toBeNull();
-      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-medium-chart")).not.toBeNull();
-      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-hard-chart")).not.toBeNull();
+      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-under-level-chart")).not.toBeNull();
+      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-on-level-chart")).not.toBeNull();
+      expect(screen.getByTestId("developer-sim-benchmark-hp-loss-over-level-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-static-travel-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-static-replenish-chart")).not.toBeNull();
       expect(screen.getByTestId("developer-static-stamina-wait-chart")).not.toBeNull();

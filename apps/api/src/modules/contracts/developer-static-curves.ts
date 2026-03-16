@@ -1,4 +1,4 @@
-import { developerContractsStaticCurvesResponseSchema, type ContractDifficulty } from "@ebonkeep/shared/combat";
+import { developerContractsStaticCurvesResponseSchema, type ContractLevelBand } from "@ebonkeep/shared/combat";
 
 import {
   getContractReplenishPacingRow,
@@ -8,10 +8,11 @@ import {
 } from "../../config/activity-pacing.js";
 import { getExperienceToNextLevel } from "../player/progression-service.js";
 import {
-  CONTRACT_DIFFICULTY_OFFSETS,
   CONTRACT_EFFICIENCY_TIER_WEIGHTS,
   CONTRACT_SLOT_COUNT,
-  buildRewardPreview
+  CONTRACT_LEVEL_BANDS,
+  buildRewardPreview,
+  resolveEncounterLevelRange
 } from "./data.js";
 
 const CONTRACT_EFFICIENCY_TIERS = ["low_cost", "standard_cost", "high_cost"] as const;
@@ -34,10 +35,6 @@ function getAverageTravelSeconds(level: number): number {
 function getAverageReplenishSeconds(level: number): number {
   const row = getContractReplenishPacingRow(level);
   return roundToTwo((row.replenishMinSeconds + row.replenishMaxSeconds) / 2);
-}
-
-function getAverageStaminaWaitSecondsForContract(level: number): number {
-  return getWeightedAverageStaminaWaitSecondsForContract(level);
 }
 
 function getWeightedAverageStaminaCostPerContract(level: number): number {
@@ -71,12 +68,11 @@ function getAverageContractAvailabilityWaitSeconds(level: number): number {
   return roundToTwo(min + ((max - min) / (CONTRACT_SLOT_COUNT + 1)));
 }
 
-function getAverageExperiencePerContract(level: number, difficulty: ContractDifficulty): number {
-  const [minOffset, maxOffset] = CONTRACT_DIFFICULTY_OFFSETS[difficulty];
+function getAverageExperiencePerContract(level: number, levelBand: ContractLevelBand): number {
+  const range = resolveEncounterLevelRange(level, levelBand);
   const values: number[] = [];
-  for (let offset = minOffset; offset <= maxOffset; offset += 1) {
-    const encounterLevel = Math.max(1, level + offset);
-    const rewardPreview = buildRewardPreview(difficulty, encounterLevel, level, "standard_cost");
+  for (let encounterLevel = range.min; encounterLevel <= range.max; encounterLevel += 1) {
+    const rewardPreview = buildRewardPreview(encounterLevel, level, "standard_cost");
     values.push((rewardPreview.experienceMin + rewardPreview.experienceMax) / 2);
   }
   return roundToTwo(average(values));
@@ -90,15 +86,13 @@ export function getDeveloperContractsStaticCurves() {
         level,
         averageTravelSeconds: getAverageTravelSeconds(level),
         averageReplenishSeconds: getAverageReplenishSeconds(level),
-        averageStaminaWaitSecondsForContract: getAverageStaminaWaitSecondsForContract(level),
+        averageStaminaWaitSecondsForContract: getWeightedAverageStaminaWaitSecondsForContract(level),
         weightedAverageStaminaWaitSecondsForContract: getWeightedAverageStaminaWaitSecondsForContract(level),
         weightedAverageStaminaCostPerContract: getWeightedAverageStaminaCostPerContract(level),
         averageContractAvailabilityWaitSeconds: getAverageContractAvailabilityWaitSeconds(level),
-        averageExperiencePerContract: {
-          easy: getAverageExperiencePerContract(level, "easy"),
-          medium: getAverageExperiencePerContract(level, "medium"),
-          hard: getAverageExperiencePerContract(level, "hard")
-        },
+        averageExperiencePerContract: Object.fromEntries(
+          CONTRACT_LEVEL_BANDS.map((levelBand) => [levelBand, getAverageExperiencePerContract(level, levelBand)])
+        ),
         experienceToNextLevel: getExperienceToNextLevel(level)
       };
     })

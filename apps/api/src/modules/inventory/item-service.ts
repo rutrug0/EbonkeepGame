@@ -1215,6 +1215,74 @@ function buildModifier(
   };
 }
 
+function getModifierTierWeights(): Record<typeof TIER_ORDER[number], number> {
+  return {
+    T1: 0.6,
+    T2: 0.3,
+    T3: 0.1
+  };
+}
+
+function getExpectedScalingValue(scaleKey: ItemAffixDefinition["scaleKey"], itemLevel: number): number {
+  const tierWeights = getModifierTierWeights();
+  let total = 0;
+
+  for (const tier of TIER_ORDER) {
+    const row = AFFIX_SCALING_LOOKUP.get(`${itemLevel}:${scaleKey}:${tier}`);
+    if (!row) {
+      continue;
+    }
+    total += (((row.rollMin + row.rollMax) / 2) * tierWeights[tier]);
+  }
+
+  return total;
+}
+
+function buildExpectedModifierBonuses(
+  template: ItemTemplate,
+  itemLevel: number,
+  rarity: ItemRarity
+): PlayerStatBonuses {
+  if (rarity === "common") {
+    return {};
+  }
+
+  const eligibleDefinitions = pickEligibleAffixDefinitions(template);
+  if (eligibleDefinitions.length === 0) {
+    return {};
+  }
+
+  const totals: PlayerStatBonuses = {};
+  const addExpectedDefinitionValue = (definition: ItemAffixDefinition, weight: number) => {
+    addStatBonus(
+      totals,
+      definition.statKey,
+      getExpectedScalingValue(definition.scaleKey, itemLevel) * weight
+    );
+  };
+
+  if (rarity === "uncommon") {
+    const definitionWeight = 1 / eligibleDefinitions.length;
+    for (const definition of eligibleDefinitions) {
+      addExpectedDefinitionValue(definition, definitionWeight);
+    }
+    return totals;
+  }
+
+  const definitionWeight = 1 / eligibleDefinitions.length;
+  for (const prefixDefinition of eligibleDefinitions) {
+    addExpectedDefinitionValue(prefixDefinition, definitionWeight);
+    const affixPool = eligibleDefinitions.filter((definition) => definition.statKey !== prefixDefinition.statKey);
+    const normalizedAffixPool = affixPool.length > 0 ? affixPool : [eligibleDefinitions[0]!];
+    const affixWeight = definitionWeight / normalizedAffixPool.length;
+    for (const affixDefinition of normalizedAffixPool) {
+      addExpectedDefinitionValue(affixDefinition, affixWeight);
+    }
+  }
+
+  return totals;
+}
+
 function rollModifiers(
   template: ItemTemplate,
   itemLevel: number,
@@ -1308,6 +1376,83 @@ function buildStatBonuses(
   if (affix) {
     addStatBonus(totals, affix.statKey, affix.value);
   }
+  return totals;
+}
+
+function buildExpectedWeaponDamage(
+  template: ItemTemplate,
+  rarity: ItemRarity,
+  itemLevel: number
+): WeaponDamageRoll | undefined {
+  const lookupRow = template.weaponDamageTableId
+    ? WEAPON_DAMAGE_LOOKUPS[template.weaponDamageTableId].get(`${itemLevel}:${rarity}`)
+    : undefined;
+
+  if (lookupRow) {
+    const [minLow, minHigh] = lookupRow.minRollRange;
+    const [maxLow, maxHigh] = lookupRow.maxRollRange;
+    const rolledMin = (minLow + minHigh) / 2;
+    const rolledMax = (maxLow + maxHigh) / 2;
+
+    return {
+      minRollRange: [minLow, minHigh],
+      rolledMin: Math.round(rolledMin),
+      rolledMax: Math.round(Math.max(rolledMin, rolledMax)),
+      maxRollRange: [maxLow, maxHigh],
+      averageDamage: (rolledMin + rolledMax) / 2
+    };
+  }
+
+  if (!template.weaponDamageProfile) {
+    return undefined;
+  }
+
+  const levelDelta = getLevelDelta(template, itemLevel);
+  const minGrowth = template.weaponDamageProfile.minGrowthPerLevel ?? 0;
+  const maxGrowth = template.weaponDamageProfile.maxGrowthPerLevel ?? 0;
+  const rarityMultiplier = WEAPON_RARITY_MULTIPLIER[rarity];
+  const [baseMinLow, baseMinHigh] = template.weaponDamageProfile.minRollRange;
+  const [baseMaxLow, baseMaxHigh] = template.weaponDamageProfile.maxRollRange;
+  const minLow = (baseMinLow + (levelDelta * minGrowth)) * rarityMultiplier;
+  const minHigh = Math.max(minLow, (baseMinHigh + (levelDelta * minGrowth)) * rarityMultiplier);
+  const maxLow = Math.max(minHigh, (baseMaxLow + (levelDelta * maxGrowth)) * rarityMultiplier);
+  const maxHigh = Math.max(maxLow, (baseMaxHigh + (levelDelta * maxGrowth)) * rarityMultiplier);
+  const rolledMin = (minLow + minHigh) / 2;
+  const rolledMax = (maxLow + maxHigh) / 2;
+
+  return {
+    minRollRange: [Math.round(minLow), Math.round(minHigh)],
+    rolledMin: Math.round(rolledMin),
+    rolledMax: Math.round(Math.max(rolledMin, rolledMax)),
+    maxRollRange: [Math.round(maxLow), Math.round(maxHigh)],
+    averageDamage: (rolledMin + rolledMax) / 2
+  };
+}
+
+function buildExpectedStatBonuses(
+  template: ItemTemplate,
+  itemLevel: number,
+  rarity: ItemRarity
+): PlayerStatBonuses {
+  const totals = scaleBaseStatBonuses(template, itemLevel);
+  if (template.fixedDefenseProfile) {
+    const row = FIXED_DEFENSE_LOOKUPS[template.fixedDefenseProfile.tableId].get(`${itemLevel}:${rarity}`);
+    const rawValue = row?.[template.fixedDefenseProfile.rowSlot] ?? 0;
+    const value =
+      template.fixedDefenseProfile.tableId === "jewelry" && template.fixedDefenseProfile.rowSlot === "ring"
+        ? Math.floor(rawValue / 2)
+        : rawValue;
+    addStatBonus(totals, template.fixedDefenseProfile.statKey, value);
+  }
+
+  const expectedModifierBonuses = buildExpectedModifierBonuses(template, itemLevel, rarity);
+  for (const [statKey, value] of Object.entries(expectedModifierBonuses)) {
+    if (typeof value !== "number" || value === 0) {
+      continue;
+    }
+    addStatBonus(totals, statKey as PlayerStatKey, value);
+  }
+
   return totals;
 }
 
@@ -1472,6 +1617,42 @@ export function rollInventoryItem(args: {
     damageRoll,
     prefix: modifiers.prefix,
     affix: modifiers.affix,
+    description: template.description
+  });
+}
+
+export function buildExpectedInventoryItem(args: {
+  playerId: string;
+  templateId: string;
+  rarity?: ItemRarity;
+  itemLevel?: number;
+  explicitId?: string;
+}): InventoryItem {
+  const template = getItemTemplate(args.templateId);
+  const rarity = args.rarity ?? template.rarity;
+  const itemLevel = getItemLevel(template, args.itemLevel);
+  const damageRoll = buildExpectedWeaponDamage(template, rarity, itemLevel);
+  const statBonuses = Object.fromEntries(
+    Object.entries(buildExpectedStatBonuses(template, itemLevel, rarity))
+      .filter(([, value]) => typeof value === "number" && Math.round(value) !== 0)
+      .map(([statKey, value]) => [statKey, Math.round(value)])
+  ) as PlayerStatBonuses;
+  const itemCode = `expected_${template.itemCode}_lvl${itemLevel}_${rarity}`;
+
+  return inventoryItemSchema.parse({
+    id: args.explicitId ?? `itm_expected_${args.playerId}_${template.id}_${itemLevel}_${rarity}`,
+    itemCode,
+    itemName: template.itemName,
+    rarity,
+    category: template.category || capitalizeCategory(template.archetype.majorCategory),
+    equipable: true,
+    levelRequirement: itemLevel,
+    allowedSlotIds: [...template.allowedSlotIds],
+    baseLevel: itemLevel,
+    power: buildPower(template, rarity, itemLevel, statBonuses, damageRoll),
+    archetype: template.archetype,
+    statBonuses,
+    damageRoll,
     description: template.description
   });
 }

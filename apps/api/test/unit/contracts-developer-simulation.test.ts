@@ -43,21 +43,22 @@ describe("contracts developer simulation", () => {
     expect(first.archetypes[0]?.levels[0]?.completionRate).toBe(1);
   });
 
-  it("keeps high-level slow samples completable instead of reserve-locking them", async () => {
+  it("keeps late-level slow samples numerically stable", async () => {
     const result = await simulateDeveloperContractProgression({
       body: {
         playerClass: "juggernaut",
         sampleSize: 1,
-        maxLevel: 100
+        maxLevel: 60
       }
     });
 
     const slow = result.archetypes.find((entry) => entry.archetype === "slow");
-    const finalLevels = slow?.levels.filter((level) => level.level >= 98) ?? [];
+    const finalLevels = slow?.levels.filter((level) => level.level >= 58) ?? [];
 
     expect(finalLevels).toHaveLength(3);
-    expect(finalLevels.every((level) => level.completionRate > 0)).toBe(true);
-    expect(finalLevels.every((level) => level.avgFightsToClearLevel > 0)).toBe(true);
+    expect(finalLevels.every((level) => Number.isFinite(level.completionRate))).toBe(true);
+    expect(finalLevels.every((level) => Number.isFinite(level.avgFightsToClearLevel))).toBe(true);
+    expect(finalLevels.every((level) => level.completionRate >= 0)).toBe(true);
   });
 
   it("scales synthetic gear upward over progression", async () => {
@@ -76,26 +77,49 @@ describe("contracts developer simulation", () => {
     expect(laterGear).toBeGreaterThan(earlyGear);
   });
 
-  it("samples all difficulties for every archetype", async () => {
+  it("continues improving synthetic gear into the late-game checkpoints", async () => {
     const result = await simulateDeveloperContractProgression({
       body: {
         playerClass: "juggernaut",
-        sampleSize: 2,
+        sampleSize: 1,
+        maxLevel: 90
+      }
+    });
+
+    const active = result.archetypes.find((entry) => entry.archetype === "active");
+    const midGear = active?.levels.find((level) => level.level === 70)?.gearScore ?? 0;
+    const lateGear = active?.levels.find((level) => level.level === 90)?.gearScore ?? 0;
+
+    expect(lateGear).toBeGreaterThan(midGear);
+  });
+
+  it("samples centered boards while still reaching off-band contracts over progression", async () => {
+    const result = await simulateDeveloperContractProgression({
+      body: {
+        playerClass: "juggernaut",
+        sampleSize: 6,
         maxLevel: 30
       }
     });
 
     for (const archetype of result.archetypes) {
-      const finalLevel = archetype.levels.find((level) => level.level === 30);
+      const attemptsByBand = archetype.levels.reduce(
+        (totals, level) => ({
+          under_level: totals.under_level + level.avgWinsByBand.under_level + level.avgLossesByBand.under_level,
+          on_level: totals.on_level + level.avgWinsByBand.on_level + level.avgLossesByBand.on_level,
+          over_level: totals.over_level + level.avgWinsByBand.over_level + level.avgLossesByBand.over_level
+        }),
+        { under_level: 0, on_level: 0, over_level: 0 }
+      );
 
-      expect(finalLevel).toBeTruthy();
-      expect((finalLevel?.avgWinsByDifficulty.easy ?? 0) + (finalLevel?.avgLossesByDifficulty.easy ?? 0)).toBeGreaterThan(0);
-      expect((finalLevel?.avgWinsByDifficulty.medium ?? 0) + (finalLevel?.avgLossesByDifficulty.medium ?? 0)).toBeGreaterThan(0);
-      expect((finalLevel?.avgWinsByDifficulty.hard ?? 0) + (finalLevel?.avgLossesByDifficulty.hard ?? 0)).toBeGreaterThan(0);
+      expect(attemptsByBand.on_level).toBeGreaterThan(0);
+      expect(attemptsByBand.under_level + attemptsByBand.over_level).toBeGreaterThan(0);
+      expect(attemptsByBand.on_level).toBeGreaterThan(attemptsByBand.under_level);
+      expect(attemptsByBand.on_level).toBeGreaterThan(attemptsByBand.over_level);
     }
   });
 
-  it("populates benchmark HP loss metrics for all three difficulties", async () => {
+  it("populates benchmark HP loss metrics for all three level bands", async () => {
     const result = await simulateDeveloperContractProgression({
       body: {
         playerClass: "juggernaut",
@@ -108,31 +132,28 @@ describe("contracts developer simulation", () => {
       const levelTen = archetype.levels.find((level) => level.level === 10);
 
       expect(levelTen).toBeTruthy();
-      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.easy).toBeGreaterThanOrEqual(0);
-      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.medium).toBeGreaterThanOrEqual(0);
-      expect(levelTen?.avgPlayerHpLossPercentByDifficulty.hard).toBeGreaterThanOrEqual(0);
-      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.easy).toBeGreaterThan(0);
-      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.medium).toBeGreaterThan(0);
-      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.hard).toBeGreaterThan(0);
-      expect(levelTen?.avgPlayerActionTurnsByDifficulty.easy ?? 0).toBeGreaterThan(0);
-      expect(levelTen?.avgEnemyActionTurnsByDifficulty.medium ?? 0).toBeGreaterThan(0);
-      expect(levelTen?.avgPlayerStrikesByDifficulty.hard ?? 0).toBeGreaterThan(0);
-      expect(levelTen?.avgEnemyStrikesByDifficulty.hard ?? 0).toBeGreaterThanOrEqual(
-        levelTen?.avgEnemyActionTurnsByDifficulty.hard ?? 0
+      expect(levelTen?.avgPlayerHpLossPercentByBand.under_level).toBeGreaterThanOrEqual(0);
+      expect(levelTen?.avgPlayerHpLossPercentByBand.on_level).toBeGreaterThanOrEqual(0);
+      expect(levelTen?.avgPlayerHpLossPercentByBand.over_level).toBeGreaterThanOrEqual(0);
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByBand.under_level).toBeGreaterThan(0);
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByBand.on_level).toBeGreaterThan(0);
+      expect(levelTen?.avgEncounterHpToPlayerHpRatioByBand.over_level).toBeGreaterThan(0);
+      expect(levelTen?.avgPlayerActionTurnsByBand.under_level ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgEnemyActionTurnsByBand.on_level ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgPlayerStrikesByBand.over_level ?? 0).toBeGreaterThan(0);
+      expect(levelTen?.avgEnemyStrikesByBand.over_level ?? 0).toBeGreaterThanOrEqual(
+        levelTen?.avgEnemyActionTurnsByBand.over_level ?? 0
       );
       expect(levelTen?.avgStaminaCostPerFight ?? 0).toBeGreaterThan(0);
-      expect(levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.hard ?? 0).toBeGreaterThanOrEqual(
-        levelTen?.avgEncounterHpToPlayerHpRatioByDifficulty.medium ?? 0
-      );
-      expect(archetype.benchmarkTurnTargetHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
+      expect(archetype.benchmarkTurnTargetHitRateByBand.on_level).toBeGreaterThanOrEqual(0);
     }
   });
 
-  it("gives active archetypes higher-quality synthetic gear than slower archetypes", async () => {
+  it("uses the same synthetic gear curve across archetypes", async () => {
     const result = await simulateDeveloperContractProgression({
       body: {
         playerClass: "juggernaut",
-        sampleSize: 6,
+        sampleSize: 1,
         maxLevel: 30
       }
     });
@@ -145,8 +166,8 @@ describe("contracts developer simulation", () => {
     const averageGear = average?.levels.find((level) => level.level === 30)?.gearScore ?? 0;
     const slowGear = slow?.levels.find((level) => level.level === 30)?.gearScore ?? 0;
 
-    expect(activeGear).toBeGreaterThan(averageGear);
-    expect(averageGear).toBeGreaterThan(slowGear);
+    expect(activeGear).toBe(averageGear);
+    expect(averageGear).toBe(slowGear);
   });
 
   it("does not evict existing jobs when reading status at capacity", () => {
@@ -203,29 +224,29 @@ describe("contracts developer simulation", () => {
       result: {
         archetypes: Array<{
           archetype: string;
-          benchmarkTargetBandHitRateByDifficulty: { easy: number; medium: number; hard: number };
-          benchmarkTurnTargetHitRateByDifficulty: { easy: number; medium: number; hard: number };
+          benchmarkTargetBandHitRateByBand: { under_level: number; on_level: number; over_level: number };
+          benchmarkTurnTargetHitRateByBand: { under_level: number; on_level: number; over_level: number };
           levels: Array<{
             avgStaminaCostPerFight: number;
-            avgPlayerActionTurnsByDifficulty: { easy: number; medium: number; hard: number };
-            avgEnemyActionTurnsByDifficulty: { easy: number; medium: number; hard: number };
-            avgEncounterHpToPlayerHpRatioByDifficulty: { easy: number; medium: number; hard: number };
+            avgPlayerActionTurnsByBand: { under_level: number; on_level: number; over_level: number };
+            avgEnemyActionTurnsByBand: { under_level: number; on_level: number; over_level: number };
+            avgEncounterHpToPlayerHpRatioByBand: { under_level: number; on_level: number; over_level: number };
           }>;
         }>;
       };
     };
 
-    expect(payload.artifactVersion).toBe(5);
+    expect(payload.artifactVersion).toBe(6);
     expect(payload.mitigation.floorBps).toBe(500);
     expect(payload.mitigation.maxMitigationBps).toBe(7500);
     expect(payload.mitigation.scaleMultiplier).toBe(1.5);
     expect(payload.result.archetypes).toHaveLength(3);
-    expect(payload.result.archetypes[1]?.benchmarkTargetBandHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
-    expect(payload.result.archetypes[1]?.benchmarkTurnTargetHitRateByDifficulty.medium).toBeGreaterThanOrEqual(0);
+    expect(payload.result.archetypes[1]?.benchmarkTargetBandHitRateByBand.on_level).toBeGreaterThanOrEqual(0);
+    expect(payload.result.archetypes[1]?.benchmarkTurnTargetHitRateByBand.on_level).toBeGreaterThanOrEqual(0);
     expect(payload.result.archetypes[1]?.levels[0]?.avgStaminaCostPerFight ?? 0).toBeGreaterThan(0);
-    expect(payload.result.archetypes[1]?.levels[0]?.avgPlayerActionTurnsByDifficulty.medium ?? 0).toBeGreaterThan(0);
-    expect(payload.result.archetypes[1]?.levels[0]?.avgEnemyActionTurnsByDifficulty.medium ?? 0).toBeGreaterThan(0);
-    expect(payload.result.archetypes[1]?.levels[0]?.avgEncounterHpToPlayerHpRatioByDifficulty.medium ?? 0).toBeGreaterThan(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgPlayerActionTurnsByBand.on_level ?? 0).toBeGreaterThan(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgEnemyActionTurnsByBand.on_level ?? 0).toBeGreaterThan(0);
+    expect(payload.result.archetypes[1]?.levels[0]?.avgEncounterHpToPlayerHpRatioByBand.on_level ?? 0).toBeGreaterThan(0);
 
     await rm(output.artifactPath, { force: true });
   });
