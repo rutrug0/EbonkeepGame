@@ -1601,8 +1601,11 @@
 .guildHeroBanner {
   display: grid;
   grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
   align-items: start;
-  gap: var(--space-4);
+  gap: var(--space-3) var(--space-4);
+  /* override contentCard gap so rows can be spaced differently */
+  padding-bottom: 0;
   background: linear-gradient(135deg, rgba(190, 150, 81, 0.08) 0%, var(--bg-card) 60%);
   border-left: 3px solid var(--accent-warn);
 }
@@ -1754,29 +1757,6 @@
 
 .guildInnerNav::-webkit-scrollbar {
   display: none;
-}
-
-.guildInnerNavTab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  padding: var(--space-3) var(--space-4);
-  transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.guildInnerNavTab:hover {
-  color: var(--text-soft);
-}
-
-.guildInnerNavTab.active {
-  border-bottom-color: var(--accent-warn);
-  color: var(--accent-warn);
 }
 
 /* â”€â”€ Guild Role Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -2474,13 +2454,18 @@
 @media (max-width: 768px) {
   .guildHeroBanner {
     grid-template-columns: auto 1fr;
-    gap: var(--space-3);
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .guildHeroTabRow {
+    margin: var(--space-1) calc(-1 * var(--space-3)) 0;
   }
 
   .guildHeroStats {
     flex-direction: row;
     gap: var(--space-4);
     justify-content: flex-start;
+    grid-column: 1 / -1;
   }
 
   .guildHeroStatusBadge {
@@ -2756,536 +2741,9 @@
 }
 
 /* ============================================================
-   ACADEMY
+   ACADEMY  — donate-panel overrides only
+   (main academy CSS lives in styles.css)
    ============================================================ */
-
-.academyContainer {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
-.academyTopBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0 12px;
-  flex-shrink: 0;
-}
-
-.academyTopBarLeft {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.academyTopBarRight {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.academyTitle {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  color: var(--accent-warn);
-  margin: 0;
-}
-
-.academyTotalDonated {
-  font-size: 0.8rem;
-  color: var(--text-soft);
-  padding: 3px 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-}
-
-.academyViewNav {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-  margin-bottom: 10px;
-}
-
-.academyViewTab {
-  padding: 5px 14px;
-  font-size: 0.82rem;
-  font-family: inherit;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  color: var(--text-soft);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.academyViewTab:hover {
-  background: rgba(255,255,255,0.08);
-}
-
-.academyViewTab.active {
-  background: rgba(190,150,81,0.15);
-  border-color: rgba(190,150,81,0.5);
-  color: var(--accent-warn);
-}
-
-/* ---- Tree canvas ---- */
-
-.academyTreeWrapper {
-  flex: 1;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  background: rgba(10, 14, 20, 0.9);
-  position: relative;
-  cursor: grab;
-  user-select: none;
-}
-
-.academyTreeWrapper:active {
-  cursor: grabbing;
-}
-
-.academyCanvas {
-  width: 1000px;
-  height: 1000px;
-  position: relative;
-}
-
-.academyTransform {
-  width: 100%;
-  height: 100%;
-  transform-origin: top left;
-}
-
-.academyConnectors {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 1000px;
-  height: 1000px;
-  pointer-events: none;
-  overflow: visible;
-}
-
-/* ---- Nodes ---- */
-
-.academyNode {
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.15);
-  background: rgba(17,22,28,0.92);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-  overflow: hidden;
-}
-
-.academyNode:hover {
-  border-color: rgba(255,255,255,0.4);
-  box-shadow: 0 0 12px rgba(255,255,255,0.1);
-}
-
-.academyNode.selected {
-  box-shadow: 0 0 0 3px rgba(190,150,81,0.6);
-}
-
-.academyNode.locked {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.academyNodeStripe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  border-radius: 50% 50% 0 0;
-}
-
-.academyNodeLabel {
-  font-family: var(--font-display);
-  font-size: 0.55rem;
-  color: var(--text-main);
-  text-align: center;
-  line-height: 1.2;
-  padding: 0 4px;
-  z-index: 1;
-  max-width: 72px;
-  word-break: break-word;
-}
-
-.academyNodeLevel {
-  font-size: 0.65rem;
-  color: var(--text-soft);
-  margin-top: 2px;
-  z-index: 1;
-}
-
-.academyNodeProgress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.academyNodeMaxed {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 0.7rem;
-  line-height: 1;
-  z-index: 2;
-}
-
-/* ---- Zoom controls ---- */
-
-.academyZoomControls {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  z-index: 10;
-}
-
-.academyZoomBtn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  font-family: inherit;
-  background: rgba(17,22,28,0.9);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  color: var(--text-soft);
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-}
-
-.academyZoomBtn:hover {
-  background: rgba(255,255,255,0.08);
-  color: var(--text-main);
-}
-
-/* ---- Legend ---- */
-
-.academyLegend {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  display: flex;
-  gap: 10px;
-  background: rgba(10,14,20,0.85);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  padding: 6px 10px;
-  z-index: 10;
-}
-
-.academyLegendItem {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.7rem;
-  color: var(--text-soft);
-}
-
-.academyLegendDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-/* ---- Side panel ---- */
-
-.academyNodePanel {
-  margin-top: 10px;
-  background: rgba(17,22,28,0.9);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  padding: 14px 16px;
-  flex-shrink: 0;
-}
-
-.academyNodePanelTitle {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  color: var(--accent-warn);
-  margin: 0 0 4px;
-}
-
-.academyNodePanelDesc {
-  font-size: 0.82rem;
-  color: var(--text-soft);
-  margin: 0 0 10px;
-}
-
-.academyNodeMeta {
-  display: flex;
-  gap: 12px;
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-.academyNodeMetaItem {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.academyNodeMetaLabel {
-  opacity: 0.7;
-}
-
-.academyNodeMetaValue {
-  color: var(--text-main);
-}
-
-/* ---- Progress bar ---- */
-
-.academyNodeProgressBar {
-  margin-bottom: 10px;
-}
-
-.academyNodeProgressBarLabel {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.72rem;
-  color: var(--text-soft);
-  margin-bottom: 4px;
-}
-
-.academyNodeProgressBarOuter {
-  height: 6px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.academyNodeProgressBarInner {
-  height: 100%;
-  background: var(--accent-warn);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-/* ---- Rewards ---- */
-
-.academyNodeRewards {
-  margin-top: 8px;
-}
-
-.academyNodeRewardsTitle {
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  margin: 0 0 6px;
-  font-family: var(--font-display);
-}
-
-.academyRewardRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.academyRewardLvlBadge {
-  font-size: 0.62rem;
-  color: var(--accent-warn);
-  background: rgba(190,150,81,0.12);
-  border: 1px solid rgba(190,150,81,0.3);
-  border-radius: 3px;
-  padding: 1px 5px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.academyRewardChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.academyRewardChip {
-  font-size: 0.7rem;
-  color: var(--text-main);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 3px;
-  padding: 1px 6px;
-}
-
-/* ---- Donate button / maxed ---- */
-
-.academyDonateBtn {
-  width: 100%;
-  margin-top: 10px;
-  padding: 9px;
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  background: rgba(190,150,81,0.15);
-  border: 1px solid rgba(190,150,81,0.4);
-  border-radius: var(--soft-radius);
-  color: var(--accent-warn);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.academyDonateBtn:hover:not(:disabled) {
-  background: rgba(190,150,81,0.28);
-}
-
-.academyDonateBtn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.academyMaxedBadge {
-  width: 100%;
-  margin-top: 10px;
-  padding: 7px;
-  font-size: 0.82rem;
-  text-align: center;
-  background: rgba(180, 155, 82, 0.12);
-  border: 1px solid rgba(180,155,82,0.3);
-  border-radius: var(--soft-radius);
-  color: #c9a84c;
-}
-
-/* ---- Donate modal ---- */
-
-.academyModalOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-}
-
-.academyModal {
-  background: var(--panel-bg, #0d1117);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  width: 400px;
-  max-width: 94vw;
-  overflow: hidden;
-}
-
-.academyModalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-.academyModalHeader h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  color: var(--accent-warn);
-}
-
-.academyModalBody {
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.academyModalFooter {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-}
-
-.academyModalNodeInfo {
-  font-size: 0.82rem;
-  color: var(--text-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.academyModalNodeName {
-  font-family: var(--font-display);
-  font-size: 0.92rem;
-  color: var(--text-main);
-}
-
-.academyModalDucatsRow {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--text-soft);
-}
-
-.academyModalDucatsValue {
-  color: var(--text-main);
-  font-weight: 500;
-}
-
-.academyDonateInputRow {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.academyDonateInput {
-  flex: 1;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 0.88rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  color: var(--text-main);
-}
-
-.academyDonateInput:focus {
-  outline: none;
-  border-color: rgba(190,150,81,0.5);
-}
-
-.academyDonateMax {
-  padding: 7px 10px;
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  background: rgba(190,150,81,0.12);
-  border: 1px solid rgba(190,150,81,0.3);
-  border-radius: var(--soft-radius);
-  color: var(--accent-warn);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.academyDonateMax:hover {
-  background: rgba(190,150,81,0.22);
-}
 
 .academyDonateError {
   font-size: 0.78rem;
@@ -3297,123 +2755,142 @@
   color: var(--accent-ok, #5ae07a);
 }
 
-/* ---- History view ---- */
+/* ---- AcademyDonatePanel (charge system) ---- */
 
-.academyHistoryView {
-  flex: 1;
+.academyDonatePanel {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(178, 143, 86, 0.06);
+  border: 1px solid rgba(178, 143, 86, 0.22);
+  border-radius: var(--soft-radius);
 }
 
-.academyHistoryList {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-right: 4px;
-}
-
-.academyHistoryRow {
+.academyDonatePanelHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  font-size: 0.8rem;
 }
 
-.academyHistoryRowLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.academyDonatePanelTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-warn, #b28f56);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.academyHistoryPlayer {
+.academyChargesCount {
+  font-size: 1.05rem;
+  font-weight: 700;
   color: var(--text-main);
-  font-weight: 500;
 }
 
-.academyHistoryNode {
+.academyChargesMax {
+  font-size: 0.78rem;
+  font-weight: 400;
   color: var(--text-soft);
-  font-size: 0.75rem;
 }
 
-.academyHistoryRight {
+/* Pip row — 20 small bars representing charge slots */
+.academyChargesPips {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  gap: 3px;
+  flex-wrap: nowrap;
 }
 
-.academyHistoryAmount {
-  color: var(--accent-warn);
-  font-weight: 500;
-}
-
-.academyHistoryDate {
-  color: var(--text-soft);
-  font-size: 0.72rem;
-}
-
-/* ---- Contributions view ---- */
-
-.academyContribView {
+.academyChargesPip {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  height: 8px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.academyContribList {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-right: 4px;
+.academyChargesPip.isFilled {
+  background: var(--accent-warn, #b28f56);
+  border-color: rgba(178, 143, 86, 0.6);
+  box-shadow: 0 0 4px rgba(178, 143, 86, 0.35);
 }
 
-.academyContribRow {
+.academyChargesRegenRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: var(--soft-radius);
-  font-size: 0.8rem;
-}
-
-.academyContribRank {
-  width: 22px;
-  text-align: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
   color: var(--text-soft);
-  font-size: 0.75rem;
-  flex-shrink: 0;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.academyContribRank.top3 {
-  color: var(--accent-warn);
-  font-weight: 700;
-}
-
-.academyContribName {
-  flex: 1;
-  color: var(--text-main);
-}
-
-.academyContribAmount {
-  color: var(--accent-warn);
+.academyChargesFullText {
+  color: var(--accent-ok, #5ae07a);
   font-weight: 500;
 }
 
-/* ---- contentCard--academy ---- */
-
-.contentCard--academy {
-  padding: 0;
-  overflow: hidden;
+.academyChargesTimer {
+  color: var(--text-soft);
 }
+
+.academyChargesRateInfo {
+  color: var(--text-muted, rgba(255,255,255,0.35));
+  font-size: 0.72rem;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.academyDonateActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.academyDonateActionBtn {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: var(--soft-radius);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.18s, opacity 0.18s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+.academyDonateActionBtn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.academyDonateActionBtn--one {
+  background: var(--accent-warn, #b28f56);
+  color: #000;
+  border-color: var(--accent-warn, #b28f56);
+}
+
+.academyDonateActionBtn--one:hover:not(:disabled) {
+  background: #c9a668;
+  border-color: #c9a668;
+}
+
+.academyDonateActionBtn--all {
+  background: rgba(178, 143, 86, 0.14);
+  color: var(--accent-warn, #b28f56);
+  border-color: rgba(178, 143, 86, 0.35);
+}
+
+.academyDonateActionBtn--all:hover:not(:disabled) {
+  background: rgba(178, 143, 86, 0.24);
+  border-color: rgba(178, 143, 86, 0.55);
+}
+
+
+
