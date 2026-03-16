@@ -96,8 +96,8 @@ describe("player state service", () => {
     });
 
     expect(levelTen.total.strength).toBe(levelOne.total.strength);
-    expect(levelTen.total.maxHitpoints).toBe(189);
-    expect(levelTen.total.damage).toBe(21);
+    expect(levelTen.total.maxHitpoints).toBe(504);
+    expect(levelTen.total.damage).toBe(8);
     expect(levelTen.total.armor).toBe(23);
     expect(levelTen.total.initiative).toBe(14);
     expect(levelTen.total.extraAttackChance).toBe(141);

@@ -45,7 +45,6 @@ export type CombatEncounterPanelProps = {
   onCloseLog?: () => void;
   onReplayCombat: () => void;
   onBackToBoard: () => void;
-  formatContractDifficulty: (difficulty: "easy" | "medium" | "hard") => string;
   formatDurationFromMs: (value: number) => string;
 };
 
@@ -57,7 +56,6 @@ export function CombatEncounterTravelPanel({
   travelEndsAt,
   travelDurationMs,
   travelDescription,
-  formatContractDifficulty: _formatContractDifficulty,
   formatDurationFromMs
 }: Pick<
   CombatEncounterPanelProps,
@@ -68,7 +66,6 @@ export function CombatEncounterTravelPanel({
   | "travelEndsAt"
   | "travelDurationMs"
   | "travelDescription"
-  | "formatContractDifficulty"
   | "formatDurationFromMs"
 >) {
   const countdownLabel =
@@ -440,7 +437,6 @@ export function CombatEncounterPanel(props: CombatEncounterPanelProps) {
         travelEndsAt={props.travelEndsAt}
         travelDurationMs={props.travelDurationMs}
         travelDescription={props.travelDescription}
-        formatContractDifficulty={props.formatContractDifficulty}
         formatDurationFromMs={props.formatDurationFromMs}
       />
     );

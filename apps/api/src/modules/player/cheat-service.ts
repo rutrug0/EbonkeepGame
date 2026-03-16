@@ -120,8 +120,8 @@ export async function levelPlayerForCheats(
   const playerState = await loadRequiredPlayerState(prisma, playerId);
   const normalizedTargetLevel = Math.min(playerProgressionConfig.maxLevel, Math.max(1, Math.floor(targetLevel)));
 
-  if (normalizedTargetLevel <= playerState.level) {
-    throw new Error("Target level must be higher than the current level.");
+  if (normalizedTargetLevel === playerState.level) {
+    throw new Error("Target level must be different from the current level.");
   }
 
   await prisma.playerProfile.update({

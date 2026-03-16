@@ -621,6 +621,6 @@ describe("contracts routes", () => {
     expect(parsed.levels[0]?.averageTravelSeconds).toBeGreaterThan(0);
     expect(parsed.levels[0]?.averageStaminaWaitSecondsForContract).toBeGreaterThan(0);
     expect(parsed.levels[0]?.averageContractAvailabilityWaitSeconds).toBeGreaterThan(0);
-    expect(parsed.levels[0]?.averageExperiencePerContract.easy).toBeGreaterThan(0);
+    expect(parsed.levels[0]?.averageExperiencePerContract.on_level).toBeGreaterThan(0);
   });
 });

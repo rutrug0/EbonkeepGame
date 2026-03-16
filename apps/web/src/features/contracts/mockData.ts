@@ -2,7 +2,8 @@ import {
   COMBAT_MITIGATION_FLOOR_BPS,
   calculateCombatMitigation,
   clampCombatChanceBps,
-  type ContractEfficiencyTier
+  type ContractEfficiencyTier,
+  type ContractLevelBand
 } from "@ebonkeep/shared/combat";
 import type { PlayerClass, PlayerStatBlock } from "@ebonkeep/shared/core";
 import { classToStatTree } from "@ebonkeep/shared/core";
@@ -19,9 +20,8 @@ import {
   type CombatPlaybackRollStats
 } from "../combat/playback";
 
-export type { ContractEfficiencyTier } from "@ebonkeep/shared/combat";
+export type { ContractEfficiencyTier, ContractLevelBand } from "@ebonkeep/shared/combat";
 
-export type ContractDifficulty = "easy" | "medium" | "hard";
 export type ContractRoll = "low" | "medium" | "high";
 
 type ContractBand = {
@@ -33,7 +33,8 @@ type ContractBand = {
 type ContractTemplate = {
   id: string;
   name: string;
-  difficulty: ContractDifficulty;
+  levelBand: ContractLevelBand;
+  contractLevel: number;
   experience: ContractBand;
   ducats: ContractBand;
   materials: ContractBand;
@@ -282,18 +283,6 @@ function damageKindFromCombatStat(
   return "melee";
 }
 
-function mockEncounterLevel(difficulty: ContractDifficulty): number {
-  switch (difficulty) {
-    case "medium":
-      return 12;
-    case "hard":
-      return 18;
-    case "easy":
-    default:
-      return 6;
-  }
-}
-
 function buildMockPlayerRollStats(args: {
   level: number;
   playerStats: PlayerStatBlock;
@@ -354,7 +343,8 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: "ashfen-trail",
     name: "Ashfen Caravan Escort",
-    difficulty: "easy",
+    levelBand: "under_level",
+    contractLevel: 6,
     experience: { low: 120, medium: 180, high: 260 },
     ducats: { low: 70, medium: 110, high: 170 },
     materials: { low: 2, medium: 4, high: 6 },
@@ -364,7 +354,8 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: "bogwatch-recon",
     name: "Bogwatch Recon Sweep",
-    difficulty: "easy",
+    levelBand: "under_level",
+    contractLevel: 8,
     experience: { low: 130, medium: 200, high: 280 },
     ducats: { low: 65, medium: 105, high: 165 },
     materials: { low: 3, medium: 5, high: 7 },
@@ -374,7 +365,8 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: "cinderhold-rats",
     name: "Cinderhold Purge Detail",
-    difficulty: "medium",
+    levelBand: "on_level",
+    contractLevel: 12,
     experience: { low: 200, medium: 300, high: 420 },
     ducats: { low: 120, medium: 180, high: 260 },
     materials: { low: 4, medium: 7, high: 10 },
@@ -384,7 +376,8 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: "spire-wardens",
     name: "Spire Warden Relief",
-    difficulty: "medium",
+    levelBand: "on_level",
+    contractLevel: 14,
     experience: { low: 210, medium: 320, high: 430 },
     ducats: { low: 125, medium: 190, high: 275 },
     materials: { low: 5, medium: 8, high: 11 },
@@ -394,7 +387,8 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: "blackbriar-break",
     name: "Blackbriar Siege Break",
-    difficulty: "hard",
+    levelBand: "over_level",
+    contractLevel: 18,
     experience: { low: 310, medium: 470, high: 620 },
     ducats: { low: 190, medium: 270, high: 380 },
     materials: { low: 7, medium: 11, high: 15 },
@@ -404,7 +398,8 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   {
     id: "thornkeep-nightfall",
     name: "Thornkeep Nightfall Hunt",
-    difficulty: "hard",
+    levelBand: "over_level",
+    contractLevel: 20,
     experience: { low: 330, medium: 490, high: 650 },
     ducats: { low: 200, medium: 285, high: 395 },
     materials: { low: 8, medium: 12, high: 16 },
@@ -413,11 +408,10 @@ const CONTRACT_TEMPLATES: ContractTemplate[] = [
   }
 ];
 
-const CONTRACT_AVAILABILITY_WINDOWS: Record<ContractDifficulty, { minMs: number; maxMs: number }> = {
-  easy: { minMs: 35 * 60 * 1000, maxMs: 90 * 60 * 1000 },
-  medium: { minMs: 25 * 60 * 1000, maxMs: 75 * 60 * 1000 },
-  hard: { minMs: 20 * 60 * 1000, maxMs: 60 * 60 * 1000 }
-};
+const CONTRACT_AVAILABILITY_WINDOW = {
+  minMs: 25 * 60 * 1000,
+  maxMs: 75 * 60 * 1000
+} as const;
 
 function randomInRange(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -447,20 +441,20 @@ function getTravelStageAssetPath(familyId: string): string | undefined {
   return getGeneratedStageAssetPath(`travel_stage:${familyId}:default`, `travel_stage:${familyId}`);
 }
 
-export function getEncounterTravelDescription(difficulty: ContractDifficulty): string {
-  switch (difficulty) {
-    case "easy":
+export function getEncounterTravelDescription(levelBand: ContractLevelBand): string {
+  switch (levelBand) {
+    case "under_level":
       return "Torch smoke drifts through cramped goblin tunnels ahead. The hollow is close, noisy, and badly kept.";
-    case "medium":
+    case "on_level":
       return "Cold mirewater gathers around reed roots and black pools. Something in the hollow is already listening.";
-    case "hard":
+    case "over_level":
       return "Bright grass, white tents, and wagon tracks spread ahead. The land looks good until the camp comes into focus.";
     default:
       return "The path ahead tightens toward the contract target.";
   }
 }
 
-function getEncounterPreset(difficulty: ContractDifficulty): {
+function getEncounterPreset(levelBand: ContractLevelBand): {
   familyId: string;
   locationName: string;
   enemyId: string;
@@ -474,8 +468,8 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
   avatarPath?: string;
   usesSilhouetteFallback?: boolean;
 } {
-  switch (difficulty) {
-    case "easy": {
+  switch (levelBand) {
+    case "under_level": {
       const easyTravelImagePath =
         getTravelStageAssetPath("snagtooth_hollow_00") ??
         getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss");
@@ -493,7 +487,7 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         avatarPath: getMonsterAssetPath("monster:snagtooth_hollow_00:snagtooth boss")
       };
     }
-    case "medium": {
+    case "on_level": {
       const mediumTravelImagePath =
         getTravelStageAssetPath("mirepool_boglings_04") ??
         getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker");
@@ -511,7 +505,7 @@ function getEncounterPreset(difficulty: ContractDifficulty): {
         avatarPath: getMonsterAssetPath("monster:mirepool_boglings_04:the mire croaker")
       };
     }
-    case "hard": {
+    case "over_level": {
       const hardTravelImagePath = getTravelStageAssetPath("ternfield_hobgoblins_08");
       return {
         familyId: "ternfield_hobgoblins_08",
@@ -554,9 +548,9 @@ export function buildMockCombatEncounterState(args: {
   nowMs: number;
 }): ActiveContractEncounterState {
   const { offer, slotIndex, playerName, playerClass, playerPower, playerStats, playerAvatarPath, nowMs } = args;
-  const preset = getEncounterPreset(offer.template.difficulty);
+  const preset = getEncounterPreset(offer.template.levelBand);
   const playerMaxHp = 100;
-  const encounterLevel = mockEncounterLevel(offer.template.difficulty);
+  const encounterLevel = offer.template.contractLevel;
   const playerCombatStat: "strength" | "dexterity" | "intelligence" = classToStatTree(playerClass);
   const playerActor = {
     id: "player-warden",
@@ -592,7 +586,8 @@ export function buildMockCombatEncounterState(args: {
     encounterId: `${offer.instanceId}-encounter`,
     contractInstanceId: offer.instanceId,
     contractName: offer.template.name,
-    difficulty: offer.template.difficulty,
+    contractLevel: offer.template.contractLevel,
+    levelBand: offer.template.levelBand,
     locationName: preset.locationName,
     travelImagePath: preset.travelImagePath,
     combatBackgroundPath: preset.combatBackgroundPath,
@@ -751,7 +746,7 @@ export function buildMockCombatEncounterState(args: {
     travelEndsAt: nowMs + CONTRACT_TRAVEL_DURATION_MS,
     travelDurationMs: CONTRACT_TRAVEL_DURATION_MS,
     encounter,
-    travelDescription: getEncounterTravelDescription(offer.template.difficulty),
+    travelDescription: getEncounterTravelDescription(offer.template.levelBand),
     timeline,
     currentEventIndex: 0,
     hpByActorId: {
@@ -843,8 +838,7 @@ export function randomContractRoll(): ContractRoll {
 
 export function createContractOffer(nowMs: number): ContractOffer {
   const template = CONTRACT_TEMPLATES[randomInRange(0, CONTRACT_TEMPLATES.length - 1)];
-  const availabilityWindow = CONTRACT_AVAILABILITY_WINDOWS[template.difficulty];
-  const durationMs = randomInRange(availabilityWindow.minMs, availabilityWindow.maxMs);
+  const durationMs = randomInRange(CONTRACT_AVAILABILITY_WINDOW.minMs, CONTRACT_AVAILABILITY_WINDOW.maxMs);
   return {
     instanceId: `${template.id}-${nowMs}-${randomInRange(1000, 9999)}`,
     template,

@@ -48,7 +48,7 @@ const { artifactPath, config, jobId, result } = await runDeveloperContractSimula
 const averageArchetype = result.archetypes.find((archetype) => archetype.archetype === "average");
 console.log(JSON.stringify({
   artifactPath,
-  benchmarkTargetBandHitRateByDifficulty: averageArchetype?.benchmarkTargetBandHitRateByDifficulty ?? null,
+  benchmarkTargetBandHitRateByBand: averageArchetype?.benchmarkTargetBandHitRateByBand ?? null,
   config,
   jobId
 }, null, 2));

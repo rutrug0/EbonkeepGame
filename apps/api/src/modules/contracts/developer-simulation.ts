@@ -9,22 +9,17 @@ import {
   developerContractSimulationJobSchema,
   developerContractSimulationLevelSummarySchema,
   runDeveloperContractSimulationBodySchema,
-  type ContractDifficulty,
   type ContractEfficiencyTier,
+  type ContractLevelBand,
   type DeveloperContractSimulationArchetype,
-  type DeveloperContractSimulationDifficultyAverages,
-  type DeveloperContractSimulationDifficultyHitRate,
+  type DeveloperContractSimulationBandAverages,
+  type DeveloperContractSimulationBandHitRate,
   type DeveloperContractSimulationJob,
   type DeveloperContractSimulationLevelSummary,
   type DeveloperContractSimulationResult,
   type RunDeveloperContractSimulationBody
 } from "@ebonkeep/shared/combat";
-import {
-  allEquipmentSlotIds,
-  type EquipmentSlotId,
-  type PlayerClass
-} from "@ebonkeep/shared/core";
-import { type EquipmentState } from "@ebonkeep/shared/inventory";
+import { type PlayerClass } from "@ebonkeep/shared/core";
 import { type PlayerState } from "@ebonkeep/shared/player";
 
 import {
@@ -32,58 +27,45 @@ import {
   resolveContractTravelDurationSeconds,
   resolveStaminaRegenPercentPerHour
 } from "../../config/activity-pacing.js";
+import { rollInventoryItem } from "../inventory/item-service.js";
 import { playerProgressionConfig, getExperienceToNextLevel } from "../player/progression-service.js";
 import {
-  buildPlayerStatSnapshot,
-  computeGearScore,
-  createEmptyEquipmentState
-} from "../player/state-service.js";
-import { rollInventoryItem } from "../inventory/item-service.js";
-import {
-  CONTRACT_DIFFICULTY_WINDOWS,
+  CONTRACT_AVAILABILITY_WINDOW,
+  CONTRACT_LEVEL_BANDS,
   CONTRACT_SLOT_COUNT,
   buildEncounterDefinition,
-  buildEncounterDefinitionForDifficulty,
+  buildEncounterDefinitionForLevel,
+  buildEncounterDefinitionForBand,
   createSeededRng,
-  randomChoice,
   randomInt,
   type EncounterDefinition
 } from "./data.js";
-import { rollRewardItemSpec, simulateEncounter } from "./simulator.js";
+import { buildPlayerActorSnapshot, simulateCombat, simulateEncounter } from "./simulator.js";
+import { createExpectedPlayerState, getExpectedPlayerCombatMetrics } from "./balance-model.js";
 
 const JOB_TTL_MS = 30 * 60 * 1000;
 const MAX_STORED_JOBS = 10;
 const MAX_FIGHTS_PER_LEVEL = 400;
 const SIMULATION_ARTIFACT_DIR = resolve(process.cwd(), "artifacts", "contracts-simulations");
-const STANDARD_SIMULATION_SLOTS = allEquipmentSlotIds.filter(
-  (slotId): slotId is EquipmentSlotId =>
-    slotId !== "vestige1" && slotId !== "vestige2" && slotId !== "vestige3"
-);
-const DEFAULT_WIN_RATE_BY_DIFFICULTY: Record<ContractDifficulty, number> = {
-  easy: 0.9,
-  medium: 0.7,
-  hard: 0.55
+const DEFAULT_WIN_RATE_BY_BAND: Record<ContractLevelBand, number> = {
+  under_level: 0.9,
+  on_level: 0.7,
+  over_level: 0.55
 };
 const SHARED_EFFICIENCY_TIER: ContractEfficiencyTier = "standard_cost";
-const SIMULATION_BASE_STATS = {
-  strength: 12,
-  intelligence: 8,
-  dexterity: 10,
-  vitality: 12,
-  initiative: 10,
-  luck: 9
-} as const;
+
+type BandRecord<T> = Record<ContractLevelBand, T>;
+
 type ArchetypePolicy = {
   archetype: DeveloperContractSimulationArchetype;
   staminaReserveRatio: number;
   resumeStaminaRatio: number;
   fightOverheadSeconds: number;
   restOverheadSeconds: number;
-  preferredDifficulties: ContractDifficulty[];
-  syntheticEquipmentDifficulty: ContractDifficulty;
+  preferredBands: ContractLevelBand[];
 };
 
-type DifficultyStats = Record<ContractDifficulty, { wins: number; losses: number }>;
+type BandStats = BandRecord<{ wins: number; losses: number }>;
 
 type SimulatedBoardSlot = {
   slotIndex: number;
@@ -104,8 +86,8 @@ type LevelAccumulator = {
   staminaWaitSecondsTotal: number;
   contractAvailabilityWaitSecondsTotal: number;
   fightsTotal: number;
-  wins: Record<ContractDifficulty, number>;
-  losses: Record<ContractDifficulty, number>;
+  wins: BandRecord<number>;
+  losses: BandRecord<number>;
   experienceTotal: number;
   staminaSpentTotal: number;
   restCountTotal: number;
@@ -115,18 +97,18 @@ type LevelAccumulator = {
   playerAttackCountTotal: number;
   playerHpLossPercentTotal: number;
   playerHpLossCountTotal: number;
-  benchmarkPlayerActionTurnTotals: Record<ContractDifficulty, number>;
-  benchmarkPlayerActionTurnCounts: Record<ContractDifficulty, number>;
-  benchmarkEnemyActionTurnTotals: Record<ContractDifficulty, number>;
-  benchmarkEnemyActionTurnCounts: Record<ContractDifficulty, number>;
-  benchmarkPlayerStrikeTotals: Record<ContractDifficulty, number>;
-  benchmarkPlayerStrikeCounts: Record<ContractDifficulty, number>;
-  benchmarkEnemyStrikeTotals: Record<ContractDifficulty, number>;
-  benchmarkEnemyStrikeCounts: Record<ContractDifficulty, number>;
-  benchmarkPlayerHpLossPercentTotals: Record<ContractDifficulty, number>;
-  benchmarkPlayerHpLossPercentCounts: Record<ContractDifficulty, number>;
-  benchmarkEncounterHpRatioTotals: Record<ContractDifficulty, number>;
-  benchmarkEncounterHpRatioCounts: Record<ContractDifficulty, number>;
+  benchmarkPlayerActionTurnTotals: BandRecord<number>;
+  benchmarkPlayerActionTurnCounts: BandRecord<number>;
+  benchmarkEnemyActionTurnTotals: BandRecord<number>;
+  benchmarkEnemyActionTurnCounts: BandRecord<number>;
+  benchmarkPlayerStrikeTotals: BandRecord<number>;
+  benchmarkPlayerStrikeCounts: BandRecord<number>;
+  benchmarkEnemyStrikeTotals: BandRecord<number>;
+  benchmarkEnemyStrikeCounts: BandRecord<number>;
+  benchmarkPlayerHpLossPercentTotals: BandRecord<number>;
+  benchmarkPlayerHpLossPercentCounts: BandRecord<number>;
+  benchmarkEncounterHpRatioTotals: BandRecord<number>;
+  benchmarkEncounterHpRatioCounts: BandRecord<number>;
 };
 
 type JobRecord = DeveloperContractSimulationJob & {
@@ -135,7 +117,7 @@ type JobRecord = DeveloperContractSimulationJob & {
 };
 
 type SimulationArtifactPayload = {
-  artifactVersion: 5;
+  artifactVersion: 6;
   generatedAt: string;
   jobId: string;
   config: DeveloperContractSimulationJob["config"];
@@ -155,24 +137,60 @@ type SimulationArtifactPayload = {
     >;
     benchmarkTargetBandHitRateByArchetype: Record<
       DeveloperContractSimulationArchetype,
-      DeveloperContractSimulationDifficultyHitRate
+      DeveloperContractSimulationBandHitRate
     >;
     benchmarkTurnTargetHitRateByArchetype: Record<
       DeveloperContractSimulationArchetype,
-      DeveloperContractSimulationDifficultyHitRate
+      DeveloperContractSimulationBandHitRate
     >;
   };
 };
 
-const BENCHMARK_HP_LOSS_TARGETS: Record<ContractDifficulty, { min: number; max: number }> = {
-  easy: { min: 3, max: 10 },
-  medium: { min: 10, max: 15 },
-  hard: { min: 15, max: 25 }
+export type ExactDeltaSimulationAuditPoint = {
+  playerLevel: number;
+  encounterLevel: number;
+  levelDelta: number;
+  sampleSize: number;
+  winRate: number;
+  avgPlayerHpLossPercent: number;
+  avgTotalActionRounds: number;
+  avgPlayerActionTurns: number;
+  avgEnemyActionTurns: number;
+  avgEnemyToPlayerActionTurnRatio: number;
+  avgPlayerStrikes: number;
+  avgEnemyStrikes: number;
+  playerMaxHp: number;
+  avgTotalEnemyHp: number;
+  avgEnemyHpToPlayerHpRatio: number;
+  avgEnemyHitSize: number;
+  expectedPlayerMetrics: {
+    gearScore: number;
+    ehp: number;
+    dps: number;
+    tempo: number;
+  };
 };
-const BENCHMARK_ACTION_TURN_TARGETS: Record<ContractDifficulty, { min: number; max: number }> = {
-  easy: { min: 4, max: 6 },
-  medium: { min: 7, max: 9 },
-  hard: { min: 8, max: 12 }
+
+export type MirrorPvpSimulationAuditPoint = {
+  playerLevel: number;
+  sampleSize: number;
+  avgResolvedActions: number;
+  avgWinnerHpLossPercent: number;
+  avgMitigatedHitSize: number;
+  avgApproxHitsToKill: number;
+  firstActorWinRate: number;
+  avgPlayerMaxHp: number;
+};
+
+const BENCHMARK_HP_LOSS_TARGETS: BandRecord<{ min: number; max: number }> = {
+  under_level: { min: 25, max: 35 },
+  on_level: { min: 35, max: 45 },
+  over_level: { min: 50, max: 60 }
+};
+const BENCHMARK_ACTION_TURN_TARGETS: BandRecord<{ min: number; max: number }> = {
+  under_level: { min: 5, max: 8 },
+  on_level: { min: 8, max: 12 },
+  over_level: { min: 11, max: 16 }
 };
 
 const ARCHETYPE_POLICIES: ReadonlyArray<ArchetypePolicy> = [
@@ -182,8 +200,7 @@ const ARCHETYPE_POLICIES: ReadonlyArray<ArchetypePolicy> = [
     resumeStaminaRatio: 0,
     fightOverheadSeconds: 5,
     restOverheadSeconds: 20,
-    preferredDifficulties: ["hard", "medium", "easy"],
-    syntheticEquipmentDifficulty: "hard"
+    preferredBands: ["over_level", "on_level", "under_level"]
   },
   {
     archetype: "average",
@@ -191,8 +208,7 @@ const ARCHETYPE_POLICIES: ReadonlyArray<ArchetypePolicy> = [
     resumeStaminaRatio: 0.5,
     fightOverheadSeconds: 15,
     restOverheadSeconds: 40,
-    preferredDifficulties: ["medium", "hard", "easy"],
-    syntheticEquipmentDifficulty: "medium"
+    preferredBands: ["on_level", "over_level", "under_level"]
   },
   {
     archetype: "slow",
@@ -200,12 +216,23 @@ const ARCHETYPE_POLICIES: ReadonlyArray<ArchetypePolicy> = [
     resumeStaminaRatio: 1,
     fightOverheadSeconds: 30,
     restOverheadSeconds: 60,
-    preferredDifficulties: ["easy", "medium", "hard"],
-    syntheticEquipmentDifficulty: "easy"
+    preferredBands: ["under_level", "on_level", "over_level"]
   }
 ];
 
 const simulationJobs = new Map<string, JobRecord>();
+
+function createBandRecord<T>(factory: () => T): BandRecord<T> {
+  return {
+    under_level: factory(),
+    on_level: factory(),
+    over_level: factory()
+  };
+}
+
+function createNumberBandRecord(): BandRecord<number> {
+  return createBandRecord(() => 0);
+}
 
 function roundToTwo(value: number): number {
   return Math.round(value * 100) / 100;
@@ -221,8 +248,8 @@ function createLevelAccumulator(): LevelAccumulator {
     staminaWaitSecondsTotal: 0,
     contractAvailabilityWaitSecondsTotal: 0,
     fightsTotal: 0,
-    wins: { easy: 0, medium: 0, hard: 0 },
-    losses: { easy: 0, medium: 0, hard: 0 },
+    wins: createNumberBandRecord(),
+    losses: createNumberBandRecord(),
     experienceTotal: 0,
     staminaSpentTotal: 0,
     restCountTotal: 0,
@@ -232,47 +259,57 @@ function createLevelAccumulator(): LevelAccumulator {
     playerAttackCountTotal: 0,
     playerHpLossPercentTotal: 0,
     playerHpLossCountTotal: 0,
-    benchmarkPlayerActionTurnTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkPlayerActionTurnCounts: { easy: 0, medium: 0, hard: 0 },
-    benchmarkEnemyActionTurnTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkEnemyActionTurnCounts: { easy: 0, medium: 0, hard: 0 },
-    benchmarkPlayerStrikeTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkPlayerStrikeCounts: { easy: 0, medium: 0, hard: 0 },
-    benchmarkEnemyStrikeTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkEnemyStrikeCounts: { easy: 0, medium: 0, hard: 0 },
-    benchmarkPlayerHpLossPercentTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkPlayerHpLossPercentCounts: { easy: 0, medium: 0, hard: 0 },
-    benchmarkEncounterHpRatioTotals: { easy: 0, medium: 0, hard: 0 },
-    benchmarkEncounterHpRatioCounts: { easy: 0, medium: 0, hard: 0 }
+    benchmarkPlayerActionTurnTotals: createNumberBandRecord(),
+    benchmarkPlayerActionTurnCounts: createNumberBandRecord(),
+    benchmarkEnemyActionTurnTotals: createNumberBandRecord(),
+    benchmarkEnemyActionTurnCounts: createNumberBandRecord(),
+    benchmarkPlayerStrikeTotals: createNumberBandRecord(),
+    benchmarkPlayerStrikeCounts: createNumberBandRecord(),
+    benchmarkEnemyStrikeTotals: createNumberBandRecord(),
+    benchmarkEnemyStrikeCounts: createNumberBandRecord(),
+    benchmarkPlayerHpLossPercentTotals: createNumberBandRecord(),
+    benchmarkPlayerHpLossPercentCounts: createNumberBandRecord(),
+    benchmarkEncounterHpRatioTotals: createNumberBandRecord(),
+    benchmarkEncounterHpRatioCounts: createNumberBandRecord()
   };
 }
 
-function createZeroDifficultyHitRate(): DeveloperContractSimulationDifficultyHitRate {
+function createZeroBandHitRate(): DeveloperContractSimulationBandHitRate {
   return {
-    easy: 0,
-    medium: 0,
-    hard: 0
+    under_level: 0,
+    on_level: 0,
+    over_level: 0
   };
 }
 
-function isWithinTargetBand(difficulty: ContractDifficulty, value: number): boolean {
-  const band = BENCHMARK_HP_LOSS_TARGETS[difficulty];
+function createBandStats(): BandStats {
+  return createBandRecord(() => ({ wins: 0, losses: 0 }));
+}
+
+function isWithinTargetBand(levelBand: ContractLevelBand, value: number): boolean {
+  const band = BENCHMARK_HP_LOSS_TARGETS[levelBand];
   return value >= band.min && value <= band.max;
 }
 
-function isWithinActionTurnTargetBand(difficulty: ContractDifficulty, value: number): boolean {
-  const band = BENCHMARK_ACTION_TURN_TARGETS[difficulty];
+function isWithinActionTurnTargetBand(levelBand: ContractLevelBand, value: number): boolean {
+  const band = BENCHMARK_ACTION_TURN_TARGETS[levelBand];
   return value >= band.min && value <= band.max;
 }
 
-function isJobTerminal(job: JobRecord): boolean {
+function formatSeedTime(seconds: number): string {
+  return seconds.toFixed(3);
+}
+
+function isJobTerminal(job: Pick<JobRecord, "status">): boolean {
   return job.status === "completed" || job.status === "failed";
 }
 
-function ensureJobCapacity(): void {
-  const expiredCutoff = Date.now() - JOB_TTL_MS;
+function evictExpiredJobs(nowMs = Date.now()): void {
   for (const [jobId, job] of simulationJobs) {
-    if (job.createdAtMs < expiredCutoff && isJobTerminal(job)) {
+    if (!isJobTerminal(job)) {
+      continue;
+    }
+    if (nowMs - job.createdAtMs > JOB_TTL_MS) {
       simulationJobs.delete(jobId);
     }
   }
@@ -281,11 +318,12 @@ function ensureJobCapacity(): void {
     return;
   }
 
-  const oldestJob = [...simulationJobs.values()]
+  const oldestTerminalJob = [...simulationJobs.values()]
     .filter(isJobTerminal)
     .sort((left, right) => left.createdAtMs - right.createdAtMs)[0];
-  if (oldestJob) {
-    simulationJobs.delete(oldestJob.jobId);
+
+  if (oldestTerminalJob) {
+    simulationJobs.delete(oldestTerminalJob.jobId);
   }
 }
 
@@ -387,17 +425,13 @@ function createSyntheticPlayerState(args: {
       imperials: 0,
       renown: 0
     },
-      cheatSettings: {
-        fastTravelEnabled: false,
-        fastContractReplenishEnabled: false,
-        invincibilityEnabled: false,
-        fastTrainTimeEnabled: false
-      }
+    cheatSettings: {
+      fastTravelEnabled: false,
+      fastContractReplenishEnabled: false,
+      invincibilityEnabled: false,
+      fastTrainTimeEnabled: false
+    }
   };
-}
-
-function formatSeedTime(seconds: number): string {
-  return seconds.toFixed(2);
 }
 
 function calculateStaminaWaitSeconds(args: {
@@ -421,54 +455,14 @@ function calculateStaminaWaitSeconds(args: {
   return missingStamina * (3600 / regenPerHour);
 }
 
-function calculateStaminaRegenForSeconds(args: {
-  level: number;
-  elapsedSeconds: number;
-  maxStamina: number;
-}): number {
-  if (args.elapsedSeconds <= 0) {
-    return 0;
-  }
-
-  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
-  const regenPerHour = (args.maxStamina * regenPercentPerHour) / 100;
-  if (regenPerHour <= 0) {
-    return 0;
-  }
-
-  return (regenPerHour / 3600) * args.elapsedSeconds;
-}
-
 function getFightCombatSeconds(events: ReturnType<typeof simulateEncounter>["events"]): number {
-  return events[events.length - 1]?.timelineTime ?? 0;
-}
-
-function getFightPlayerHealthAfter(args: {
-  playerId: string;
-  events: ReturnType<typeof simulateEncounter>["events"];
-  maxHealth: number;
-}): number {
-  let currentHealth = args.maxHealth;
-  for (const event of args.events) {
-    if (event.type !== "CombatActionResolved") {
-      continue;
-    }
-    for (const strike of event.strikes) {
-      if (strike.targetId === args.playerId) {
-        currentHealth = strike.targetHpAfter;
-      }
-    }
-  }
-  return Math.max(0, Math.min(args.maxHealth, currentHealth));
+  return events.length * 2.5;
 }
 
 function getFightPlayerAttackMetrics(args: {
   playerId: string;
   events: ReturnType<typeof simulateEncounter>["events"];
-}): {
-  totalRawDamage: number;
-  landedStrikes: number;
-} {
+}): { totalRawDamage: number; landedStrikes: number } {
   let totalRawDamage = 0;
   let landedStrikes = 0;
 
@@ -476,20 +470,15 @@ function getFightPlayerAttackMetrics(args: {
     if (event.type !== "CombatActionResolved" || event.actorId !== args.playerId) {
       continue;
     }
-
     for (const strike of event.strikes) {
-      if (!strike.hit) {
-        continue;
+      if (strike.hit) {
+        totalRawDamage += strike.rawDamage;
+        landedStrikes += 1;
       }
-      totalRawDamage += strike.rawDamage;
-      landedStrikes += 1;
     }
   }
 
-  return {
-    totalRawDamage,
-    landedStrikes
-  };
+  return { totalRawDamage, landedStrikes };
 }
 
 function getFightActionMetrics(args: {
@@ -510,23 +499,61 @@ function getFightActionMetrics(args: {
     if (event.type !== "CombatActionResolved") {
       continue;
     }
-
     if (event.actorId === args.playerId) {
       playerActionTurns += 1;
       playerStrikes += event.strikes.length;
-      continue;
+    } else {
+      enemyActionTurns += 1;
+      enemyStrikes += event.strikes.length;
     }
-
-    enemyActionTurns += 1;
-    enemyStrikes += event.strikes.length;
   }
 
-  return {
-    playerActionTurns,
-    enemyActionTurns,
-    playerStrikes,
-    enemyStrikes
-  };
+  return { playerActionTurns, enemyActionTurns, playerStrikes, enemyStrikes };
+}
+
+function getFightPlayerHealthAfter(args: {
+  playerId: string;
+  events: ReturnType<typeof simulateEncounter>["events"];
+  maxHealth: number;
+}): number {
+  return getFightActorHealthAfter({
+    actorId: args.playerId,
+    events: args.events,
+    maxHealth: args.maxHealth
+  });
+}
+
+function getFightActorHealthAfter(args: {
+  actorId: string;
+  events: ReturnType<typeof simulateEncounter>["events"];
+  maxHealth: number;
+}): number {
+  let currentHp = args.maxHealth;
+
+  for (const event of args.events) {
+    if (event.type !== "CombatActionResolved") {
+      continue;
+    }
+    for (const strike of event.strikes) {
+      if (strike.targetId === args.actorId) {
+        currentHp = strike.targetHpAfter;
+      }
+    }
+  }
+
+  return Math.max(0, Math.min(args.maxHealth, currentHp));
+}
+
+function getCombatEndedEvent(
+  events: ReturnType<typeof simulateEncounter>["events"]
+): Extract<ReturnType<typeof simulateEncounter>["events"][number], { type: "CombatEnded" }> | null {
+  for (let index = events.length - 1; index >= 0; index -= 1) {
+    const event = events[index];
+    if (event?.type === "CombatEnded") {
+      return event;
+    }
+  }
+  return null;
 }
 
 function getFightPlayerHpLossPercent(args: {
@@ -535,71 +562,82 @@ function getFightPlayerHpLossPercent(args: {
   maxHealth: number;
 }): number {
   const healthAfter = getFightPlayerHealthAfter(args);
-  return ((args.maxHealth - healthAfter) / args.maxHealth) * 100;
+  if (args.maxHealth <= 0) {
+    return 0;
+  }
+  return roundToTwo(((args.maxHealth - healthAfter) / args.maxHealth) * 100);
 }
 
-function getObservedWinRate(difficulty: ContractDifficulty, stats: DifficultyStats): number {
-  const attempts = stats[difficulty].wins + stats[difficulty].losses;
+function calculateStaminaRegenForSeconds(args: {
+  level: number;
+  staminaCurrent: number;
+  staminaMax: number;
+  elapsedSeconds: number;
+}): number {
+  if (args.elapsedSeconds <= 0 || args.staminaCurrent >= args.staminaMax) {
+    return args.staminaCurrent;
+  }
+
+  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
+  const regenPerSecond = ((args.staminaMax * regenPercentPerHour) / 100) / 3600;
+  return Math.min(args.staminaMax, args.staminaCurrent + (regenPerSecond * args.elapsedSeconds));
+}
+
+function getObservedWinRate(levelBand: ContractLevelBand, stats: BandStats): number {
+  const attempts = stats[levelBand].wins + stats[levelBand].losses;
   if (attempts === 0) {
-    return DEFAULT_WIN_RATE_BY_DIFFICULTY[difficulty];
+    return DEFAULT_WIN_RATE_BY_BAND[levelBand];
   }
-  return stats[difficulty].wins / attempts;
+  return stats[levelBand].wins / attempts;
 }
 
-function getPreferredDifficultiesForPolicy(policy: ArchetypePolicy, stats: DifficultyStats): ContractDifficulty[] {
-  const uniqueDifficulties = policy.preferredDifficulties.filter(
-    (difficulty, index, list) => list.indexOf(difficulty) === index
-  );
-  const explorationOrder: ContractDifficulty[] = ["easy", "medium", "hard"];
+function getPreferredBandsForPolicy(policy: ArchetypePolicy, stats: BandStats): ContractLevelBand[] {
+  const uniqueBands = policy.preferredBands.filter((levelBand, index, list) => list.indexOf(levelBand) === index);
+  const explorationOrder: ContractLevelBand[] = ["under_level", "on_level", "over_level"];
   const unattempted = explorationOrder.filter(
-    (difficulty) => uniqueDifficulties.includes(difficulty) && stats[difficulty].wins + stats[difficulty].losses === 0
+    (levelBand) => uniqueBands.includes(levelBand) && stats[levelBand].wins + stats[levelBand].losses === 0
   );
-  if (unattempted.length > 0) {
-    return unattempted;
-  }
-
-  const attempted = uniqueDifficulties.filter((difficulty) => !unattempted.includes(difficulty));
+  const attempted = uniqueBands.filter((levelBand) => !unattempted.includes(levelBand));
 
   attempted.sort((left, right) => {
-    const leftIndex = policy.preferredDifficulties.indexOf(left);
-    const rightIndex = policy.preferredDifficulties.indexOf(right);
+    const leftIndex = policy.preferredBands.indexOf(left);
+    const rightIndex = policy.preferredBands.indexOf(right);
     if (leftIndex !== rightIndex) {
       return leftIndex - rightIndex;
     }
-
     return getObservedWinRate(right, stats) - getObservedWinRate(left, stats);
   });
 
   return [...unattempted, ...attempted];
 }
 
-function simulateBenchmarkDifficultyMetrics(args: {
+function simulateBenchmarkBandMetrics(args: {
   policy: ArchetypePolicy;
   playerClass: PlayerClass;
   playerState: PlayerState;
   level: number;
   sampleIndex: number;
-  stats: DifficultyStats;
+  stats: BandStats;
   accumulator: LevelAccumulator;
 }): void {
-  for (const difficulty of ["easy", "medium", "hard"] satisfies ContractDifficulty[]) {
+  for (const levelBand of CONTRACT_LEVEL_BANDS) {
     const rng = createSeededRng(
-      `${args.policy.archetype}:${args.playerClass}:benchmark:${args.sampleIndex}:${args.level}:${difficulty}`
+      `${args.policy.archetype}:${args.playerClass}:benchmark:${args.sampleIndex}:${args.level}:${levelBand}`
     );
-    const encounter = buildEncounterDefinitionForDifficulty(
+    const encounter = buildEncounterDefinitionForBand(
       rng,
       {
         playerId: `sim_${args.playerClass}_${args.sampleIndex}`,
         playerLevel: args.level,
         playerClass: args.playerClass
       },
-      difficulty
+      levelBand
     );
     const simulation = simulateEncounter({
       encounter,
       playerState: args.playerState,
       playerName: "Warden",
-      runId: `${args.policy.archetype}:${args.playerClass}:benchmark-fight:${args.sampleIndex}:${args.level}:${difficulty}`
+      runId: `${args.policy.archetype}:${args.playerClass}:benchmark-fight:${args.sampleIndex}:${args.level}:${levelBand}`
     });
     const benchmarkHpLossPercent = getFightPlayerHpLossPercent({
       playerId: simulation.player.id,
@@ -614,31 +652,28 @@ function simulateBenchmarkDifficultyMetrics(args: {
       ? simulation.enemies.reduce((sum, enemy) => sum + enemy.maxHp, 0) / simulation.player.maxHp
       : 0;
 
-    args.accumulator.benchmarkPlayerActionTurnTotals[difficulty] += benchmarkActionMetrics.playerActionTurns;
-    args.accumulator.benchmarkPlayerActionTurnCounts[difficulty] += 1;
-    args.accumulator.benchmarkEnemyActionTurnTotals[difficulty] += benchmarkActionMetrics.enemyActionTurns;
-    args.accumulator.benchmarkEnemyActionTurnCounts[difficulty] += 1;
-    args.accumulator.benchmarkPlayerStrikeTotals[difficulty] += benchmarkActionMetrics.playerStrikes;
-    args.accumulator.benchmarkPlayerStrikeCounts[difficulty] += 1;
-    args.accumulator.benchmarkEnemyStrikeTotals[difficulty] += benchmarkActionMetrics.enemyStrikes;
-    args.accumulator.benchmarkEnemyStrikeCounts[difficulty] += 1;
-    args.accumulator.benchmarkPlayerHpLossPercentTotals[difficulty] += benchmarkHpLossPercent;
-    args.accumulator.benchmarkPlayerHpLossPercentCounts[difficulty] += 1;
-    args.accumulator.benchmarkEncounterHpRatioTotals[difficulty] += benchmarkEncounterHpRatio;
-    args.accumulator.benchmarkEncounterHpRatioCounts[difficulty] += 1;
+    args.accumulator.benchmarkPlayerActionTurnTotals[levelBand] += benchmarkActionMetrics.playerActionTurns;
+    args.accumulator.benchmarkPlayerActionTurnCounts[levelBand] += 1;
+    args.accumulator.benchmarkEnemyActionTurnTotals[levelBand] += benchmarkActionMetrics.enemyActionTurns;
+    args.accumulator.benchmarkEnemyActionTurnCounts[levelBand] += 1;
+    args.accumulator.benchmarkPlayerStrikeTotals[levelBand] += benchmarkActionMetrics.playerStrikes;
+    args.accumulator.benchmarkPlayerStrikeCounts[levelBand] += 1;
+    args.accumulator.benchmarkEnemyStrikeTotals[levelBand] += benchmarkActionMetrics.enemyStrikes;
+    args.accumulator.benchmarkEnemyStrikeCounts[levelBand] += 1;
+    args.accumulator.benchmarkPlayerHpLossPercentTotals[levelBand] += benchmarkHpLossPercent;
+    args.accumulator.benchmarkPlayerHpLossPercentCounts[levelBand] += 1;
+    args.accumulator.benchmarkEncounterHpRatioTotals[levelBand] += benchmarkEncounterHpRatio;
+    args.accumulator.benchmarkEncounterHpRatioCounts[levelBand] += 1;
 
-    if (args.stats[difficulty].wins + args.stats[difficulty].losses > 0) {
+    if (args.stats[levelBand].wins + args.stats[levelBand].losses > 0) {
       continue;
     }
 
     if (simulation.winnerSide === "player") {
-      args.stats[difficulty].wins += 1;
-      args.accumulator.wins[difficulty] += 1;
-      continue;
+      args.stats[levelBand].wins += 1;
+    } else {
+      args.stats[levelBand].losses += 1;
     }
-
-    args.stats[difficulty].losses += 1;
-    args.accumulator.losses[difficulty] += 1;
   }
 }
 
@@ -678,9 +713,12 @@ function buildSimulatedBoardEncounter(args: {
   );
 }
 
-function buildAvailabilityExpirySeconds(rng: () => number, difficulty: ContractDifficulty, nowSeconds: number): number {
-  const window = CONTRACT_DIFFICULTY_WINDOWS[difficulty];
-  return nowSeconds + randomInt(rng, Math.round(window.minMs / 1000), Math.round(window.maxMs / 1000));
+function buildAvailabilityExpirySeconds(rng: () => number, nowSeconds: number): number {
+  return nowSeconds + randomInt(
+    rng,
+    Math.round(CONTRACT_AVAILABILITY_WINDOW.minMs / 1000),
+    Math.round(CONTRACT_AVAILABILITY_WINDOW.maxMs / 1000)
+  );
 }
 
 function buildReplenishAtSeconds(rng: () => number, nowSeconds: number, level: number): number {
@@ -729,7 +767,7 @@ function refreshSimulatedBoardState(args: {
       slot.replenishCount += 1;
       slot.state = "available";
       slot.encounter = encounter;
-      slot.expiresAtSeconds = buildAvailabilityExpirySeconds(availabilityRng, encounter.difficulty, args.nowSeconds);
+      slot.expiresAtSeconds = buildAvailabilityExpirySeconds(availabilityRng, args.nowSeconds);
       slot.replenishAtSeconds = null;
     }
   }
@@ -737,21 +775,21 @@ function refreshSimulatedBoardState(args: {
 
 function pickAvailableBoardSlot(args: {
   policy: ArchetypePolicy;
-  stats: DifficultyStats;
+  stats: BandStats;
   slots: SimulatedBoardSlot[];
   staminaCurrent: number;
   maxStamina: number;
 }): SimulatedBoardSlot | null {
-  const preferredDifficulties = getPreferredDifficultiesForPolicy(args.policy, args.stats);
+  const preferredBands = getPreferredBandsForPolicy(args.policy, args.stats);
   const reserveStamina = Math.floor(args.maxStamina * args.policy.staminaReserveRatio);
 
   const pickCandidate = (enforceReserve: boolean) => {
-    for (const difficulty of preferredDifficulties) {
+    for (const levelBand of preferredBands) {
       const candidates = args.slots
         .filter((slot) =>
           slot.state === "available" &&
           slot.encounter !== null &&
-          slot.encounter.difficulty === difficulty &&
+          slot.encounter.levelBand === levelBand &&
           args.staminaCurrent >= slot.encounter.rewardPreview.staminaCost &&
           (!enforceReserve || args.staminaCurrent - slot.encounter.rewardPreview.staminaCost >= reserveStamina)
         )
@@ -798,92 +836,82 @@ function getSecondsUntilNextBoardChange(slots: SimulatedBoardSlot[], nowSeconds:
   return Number.isFinite(nextChangeAt) ? Math.max(0, nextChangeAt - nowSeconds) : Number.POSITIVE_INFINITY;
 }
 
-function averageDifficultyValues(values: Record<ContractDifficulty, number>, divisor: number): DeveloperContractSimulationDifficultyAverages {
+function averageBandValues(values: BandRecord<number>, divisor: number): DeveloperContractSimulationBandAverages {
   return {
-    easy: roundToTwo(values.easy / divisor),
-    medium: roundToTwo(values.medium / divisor),
-    hard: roundToTwo(values.hard / divisor)
+    under_level: roundToTwo(values.under_level / divisor),
+    on_level: roundToTwo(values.on_level / divisor),
+    over_level: roundToTwo(values.over_level / divisor)
   };
 }
 
-function averageDifficultyValuesByCounts(
-  totals: Record<ContractDifficulty, number>,
-  counts: Record<ContractDifficulty, number>
-): DeveloperContractSimulationDifficultyAverages {
+function averageBandValuesByCounts(
+  totals: BandRecord<number>,
+  counts: BandRecord<number>
+): DeveloperContractSimulationBandAverages {
   return {
-    easy: counts.easy > 0 ? roundToTwo(totals.easy / counts.easy) : 0,
-    medium: counts.medium > 0 ? roundToTwo(totals.medium / counts.medium) : 0,
-    hard: counts.hard > 0 ? roundToTwo(totals.hard / counts.hard) : 0
+    under_level: counts.under_level > 0 ? roundToTwo(totals.under_level / counts.under_level) : 0,
+    on_level: counts.on_level > 0 ? roundToTwo(totals.on_level / counts.on_level) : 0,
+    over_level: counts.over_level > 0 ? roundToTwo(totals.over_level / counts.over_level) : 0
   };
 }
 
-function averageDifficultyPercentages(
-  totals: Record<ContractDifficulty, number>,
-  counts: Record<ContractDifficulty, number>
-): DeveloperContractSimulationLevelSummary["avgPlayerHpLossPercentByDifficulty"] {
+function averageBandPercentages(
+  totals: BandRecord<number>,
+  counts: BandRecord<number>
+): DeveloperContractSimulationLevelSummary["avgPlayerHpLossPercentByBand"] {
   return {
-    easy: counts.easy > 0 ? roundToTwo(totals.easy / counts.easy) : 0,
-    medium: counts.medium > 0 ? roundToTwo(totals.medium / counts.medium) : 0,
-    hard: counts.hard > 0 ? roundToTwo(totals.hard / counts.hard) : 0
+    under_level: counts.under_level > 0 ? roundToTwo(totals.under_level / counts.under_level) : 0,
+    on_level: counts.on_level > 0 ? roundToTwo(totals.on_level / counts.on_level) : 0,
+    over_level: counts.over_level > 0 ? roundToTwo(totals.over_level / counts.over_level) : 0
   };
 }
 
 function buildBenchmarkTargetBandHitRate(
   levels: DeveloperContractSimulationLevelSummary[]
-): DeveloperContractSimulationDifficultyHitRate {
+): DeveloperContractSimulationBandHitRate {
   if (levels.length === 0) {
-    return createZeroDifficultyHitRate();
+    return createZeroBandHitRate();
   }
 
-  const hits = {
-    easy: 0,
-    medium: 0,
-    hard: 0
-  };
-
+  const hits = createNumberBandRecord();
   for (const level of levels) {
-    for (const difficulty of ["easy", "medium", "hard"] satisfies ContractDifficulty[]) {
-      if (isWithinTargetBand(difficulty, level.avgPlayerHpLossPercentByDifficulty[difficulty])) {
-        hits[difficulty] += 1;
+    for (const levelBand of CONTRACT_LEVEL_BANDS) {
+      if (isWithinTargetBand(levelBand, level.avgPlayerHpLossPercentByBand[levelBand])) {
+        hits[levelBand] += 1;
       }
     }
   }
 
   return {
-    easy: roundToTwo(hits.easy / levels.length),
-    medium: roundToTwo(hits.medium / levels.length),
-    hard: roundToTwo(hits.hard / levels.length)
+    under_level: roundToTwo(hits.under_level / levels.length),
+    on_level: roundToTwo(hits.on_level / levels.length),
+    over_level: roundToTwo(hits.over_level / levels.length)
   };
 }
 
 function buildBenchmarkTurnTargetHitRate(
   levels: DeveloperContractSimulationLevelSummary[]
-): DeveloperContractSimulationDifficultyHitRate {
+): DeveloperContractSimulationBandHitRate {
   if (levels.length === 0) {
-    return createZeroDifficultyHitRate();
+    return createZeroBandHitRate();
   }
 
-  const hits = {
-    easy: 0,
-    medium: 0,
-    hard: 0
-  };
-
+  const hits = createNumberBandRecord();
   for (const level of levels) {
-    for (const difficulty of ["easy", "medium", "hard"] satisfies ContractDifficulty[]) {
+    for (const levelBand of CONTRACT_LEVEL_BANDS) {
       if (
-        isWithinActionTurnTargetBand(difficulty, level.avgPlayerActionTurnsByDifficulty[difficulty]) &&
-        isWithinActionTurnTargetBand(difficulty, level.avgEnemyActionTurnsByDifficulty[difficulty])
+        isWithinActionTurnTargetBand(levelBand, level.avgPlayerActionTurnsByBand[levelBand]) &&
+        isWithinActionTurnTargetBand(levelBand, level.avgEnemyActionTurnsByBand[levelBand])
       ) {
-        hits[difficulty] += 1;
+        hits[levelBand] += 1;
       }
     }
   }
 
   return {
-    easy: roundToTwo(hits.easy / levels.length),
-    medium: roundToTwo(hits.medium / levels.length),
-    hard: roundToTwo(hits.hard / levels.length)
+    under_level: roundToTwo(hits.under_level / levels.length),
+    on_level: roundToTwo(hits.on_level / levels.length),
+    over_level: roundToTwo(hits.over_level / levels.length)
   };
 }
 
@@ -892,9 +920,9 @@ function buildLevelSummary(args: {
   sampleSize: number;
   accumulator: LevelAccumulator;
 }): DeveloperContractSimulationLevelSummary {
-  const totalEasyAttempts = args.accumulator.wins.easy + args.accumulator.losses.easy;
-  const totalMediumAttempts = args.accumulator.wins.medium + args.accumulator.losses.medium;
-  const totalHardAttempts = args.accumulator.wins.hard + args.accumulator.losses.hard;
+  const totalUnderAttempts = args.accumulator.wins.under_level + args.accumulator.losses.under_level;
+  const totalOnAttempts = args.accumulator.wins.on_level + args.accumulator.losses.on_level;
+  const totalOverAttempts = args.accumulator.wins.over_level + args.accumulator.losses.over_level;
 
   return developerContractSimulationLevelSummarySchema.parse({
     level: args.level,
@@ -909,12 +937,12 @@ function buildLevelSummary(args: {
       args.accumulator.contractAvailabilityWaitSecondsTotal / Math.max(1, args.accumulator.completedSamples)
     ),
     avgFightsToClearLevel: roundToTwo(args.accumulator.fightsTotal / Math.max(1, args.accumulator.completedSamples)),
-    avgWinsByDifficulty: averageDifficultyValues(args.accumulator.wins, Math.max(1, args.accumulator.completedSamples)),
-    avgLossesByDifficulty: averageDifficultyValues(args.accumulator.losses, Math.max(1, args.accumulator.completedSamples)),
-    winRateByDifficulty: {
-      easy: totalEasyAttempts > 0 ? roundToTwo(args.accumulator.wins.easy / totalEasyAttempts) : 0,
-      medium: totalMediumAttempts > 0 ? roundToTwo(args.accumulator.wins.medium / totalMediumAttempts) : 0,
-      hard: totalHardAttempts > 0 ? roundToTwo(args.accumulator.wins.hard / totalHardAttempts) : 0
+    avgWinsByBand: averageBandValues(args.accumulator.wins, Math.max(1, args.accumulator.completedSamples)),
+    avgLossesByBand: averageBandValues(args.accumulator.losses, Math.max(1, args.accumulator.completedSamples)),
+    winRateByBand: {
+      under_level: totalUnderAttempts > 0 ? roundToTwo(args.accumulator.wins.under_level / totalUnderAttempts) : 0,
+      on_level: totalOnAttempts > 0 ? roundToTwo(args.accumulator.wins.on_level / totalOnAttempts) : 0,
+      over_level: totalOverAttempts > 0 ? roundToTwo(args.accumulator.wins.over_level / totalOverAttempts) : 0
     },
     avgXpPerFight: args.accumulator.fightsTotal > 0 ? roundToTwo(args.accumulator.experienceTotal / args.accumulator.fightsTotal) : 0,
     avgStaminaCostPerFight: args.accumulator.fightsTotal > 0 ? roundToTwo(args.accumulator.staminaSpentTotal / args.accumulator.fightsTotal) : 0,
@@ -928,68 +956,57 @@ function buildLevelSummary(args: {
     avgPlayerHpLossPercent: args.accumulator.playerHpLossCountTotal > 0
       ? roundToTwo(args.accumulator.playerHpLossPercentTotal / args.accumulator.playerHpLossCountTotal)
       : 0,
-    avgPlayerActionTurnsByDifficulty: averageDifficultyValuesByCounts(
+    avgPlayerActionTurnsByBand: averageBandValuesByCounts(
       args.accumulator.benchmarkPlayerActionTurnTotals,
       args.accumulator.benchmarkPlayerActionTurnCounts
     ),
-    avgEnemyActionTurnsByDifficulty: averageDifficultyValuesByCounts(
+    avgEnemyActionTurnsByBand: averageBandValuesByCounts(
       args.accumulator.benchmarkEnemyActionTurnTotals,
       args.accumulator.benchmarkEnemyActionTurnCounts
     ),
-    avgPlayerStrikesByDifficulty: averageDifficultyValuesByCounts(
+    avgPlayerStrikesByBand: averageBandValuesByCounts(
       args.accumulator.benchmarkPlayerStrikeTotals,
       args.accumulator.benchmarkPlayerStrikeCounts
     ),
-    avgEnemyStrikesByDifficulty: averageDifficultyValuesByCounts(
+    avgEnemyStrikesByBand: averageBandValuesByCounts(
       args.accumulator.benchmarkEnemyStrikeTotals,
       args.accumulator.benchmarkEnemyStrikeCounts
     ),
-    avgPlayerHpLossPercentByDifficulty: averageDifficultyPercentages(
+    avgPlayerHpLossPercentByBand: averageBandPercentages(
       args.accumulator.benchmarkPlayerHpLossPercentTotals,
       args.accumulator.benchmarkPlayerHpLossPercentCounts
     ),
-    avgEncounterHpToPlayerHpRatioByDifficulty: averageDifficultyValuesByCounts(
+    avgEncounterHpToPlayerHpRatioByBand: averageBandValuesByCounts(
       args.accumulator.benchmarkEncounterHpRatioTotals,
       args.accumulator.benchmarkEncounterHpRatioCounts
     )
   });
 }
 
-function buildSimulationArtifactPayload(args: {
+function buildCumulativeElapsedDaysByArchetype(result: DeveloperContractSimulationResult) {
+  return Object.fromEntries(result.archetypes.map((archetypeResult) => {
+    let cumulativeElapsedSeconds = 0;
+    return [
+      archetypeResult.archetype,
+      archetypeResult.levels.map((level) => {
+        cumulativeElapsedSeconds += level.avgElapsedSecondsToClearLevel;
+        return {
+          level: level.level,
+          cumulativeElapsedDays: roundToTwo(cumulativeElapsedSeconds / 86400)
+        };
+      })
+    ];
+  })) as SimulationArtifactPayload["derived"]["cumulativeElapsedDaysByArchetype"];
+}
+
+async function writeSimulationArtifact(args: {
   jobId: string;
   config: DeveloperContractSimulationJob["config"];
   result: DeveloperContractSimulationResult;
-}): SimulationArtifactPayload {
-  const cumulativeElapsedDaysByArchetype = Object.fromEntries(
-    args.result.archetypes.map((archetypeResult) => {
-      let cumulativeElapsedSeconds = 0;
-      return [
-        archetypeResult.archetype,
-        archetypeResult.levels.map((level) => {
-          cumulativeElapsedSeconds += level.avgElapsedSecondsToClearLevel;
-          return {
-            level: level.level,
-            cumulativeElapsedDays: roundToTwo(cumulativeElapsedSeconds / 86_400)
-          };
-        })
-      ];
-    })
-  ) as SimulationArtifactPayload["derived"]["cumulativeElapsedDaysByArchetype"];
-  const benchmarkTargetBandHitRateByArchetype = Object.fromEntries(
-    args.result.archetypes.map((archetypeResult) => [
-      archetypeResult.archetype,
-      archetypeResult.benchmarkTargetBandHitRateByDifficulty
-    ])
-  ) as SimulationArtifactPayload["derived"]["benchmarkTargetBandHitRateByArchetype"];
-  const benchmarkTurnTargetHitRateByArchetype = Object.fromEntries(
-    args.result.archetypes.map((archetypeResult) => [
-      archetypeResult.archetype,
-      archetypeResult.benchmarkTurnTargetHitRateByDifficulty
-    ])
-  ) as SimulationArtifactPayload["derived"]["benchmarkTurnTargetHitRateByArchetype"];
-
-  return {
-    artifactVersion: 5,
+}): Promise<string> {
+  await mkdir(SIMULATION_ARTIFACT_DIR, { recursive: true });
+  const payload: SimulationArtifactPayload = {
+    artifactVersion: 6,
     generatedAt: new Date().toISOString(),
     jobId: args.jobId,
     config: args.config,
@@ -1000,34 +1017,65 @@ function buildSimulationArtifactPayload(args: {
     },
     result: args.result,
     derived: {
-      cumulativeElapsedDaysByArchetype,
-      benchmarkTargetBandHitRateByArchetype,
-      benchmarkTurnTargetHitRateByArchetype
+      cumulativeElapsedDaysByArchetype: buildCumulativeElapsedDaysByArchetype(args.result),
+      benchmarkTargetBandHitRateByArchetype: Object.fromEntries(
+        args.result.archetypes.map((entry) => [entry.archetype, entry.benchmarkTargetBandHitRateByBand])
+      ) as SimulationArtifactPayload["derived"]["benchmarkTargetBandHitRateByArchetype"],
+      benchmarkTurnTargetHitRateByArchetype: Object.fromEntries(
+        args.result.archetypes.map((entry) => [entry.archetype, entry.benchmarkTurnTargetHitRateByBand])
+      ) as SimulationArtifactPayload["derived"]["benchmarkTurnTargetHitRateByArchetype"]
     }
   };
-}
-
-async function writeSimulationArtifact(args: {
-  jobId: string;
-  config: DeveloperContractSimulationJob["config"];
-  result: DeveloperContractSimulationResult;
-}): Promise<string> {
-  await mkdir(SIMULATION_ARTIFACT_DIR, { recursive: true });
   const filePath = resolve(SIMULATION_ARTIFACT_DIR, `contracts-simulation-${args.jobId}.json`);
-  const payload = buildSimulationArtifactPayload(args);
-  await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await writeFile(filePath, JSON.stringify(payload, null, 2), "utf8");
   return filePath;
 }
 
-function parseSimulationConfig(body: RunDeveloperContractSimulationBody): DeveloperContractSimulationJob["config"] {
-  const parsed = runDeveloperContractSimulationBodySchema.parse(body);
-  const maxLevel = Math.min(parsed.maxLevel ?? playerProgressionConfig.maxLevel, playerProgressionConfig.maxLevel);
-
-  return {
-    playerClass: parsed.playerClass,
-    sampleSize: parsed.sampleSize,
-    maxLevel
-  };
+async function runSimulationJob(jobId: string): Promise<void> {
+  try {
+    const current = simulationJobs.get(jobId);
+    if (!current) {
+      return;
+    }
+    current.status = "running";
+    const result = await simulateDeveloperContractProgression({
+      body: current.config,
+      onProgress: (progress) => {
+        const next = simulationJobs.get(jobId);
+        if (!next) {
+          return;
+        }
+        next.progress = progress;
+      }
+    });
+    const latest = simulationJobs.get(jobId);
+    if (!latest) {
+      return;
+    }
+    latest.status = "completed";
+    latest.finishedAt = new Date().toISOString();
+    latest.progress = {
+      totalSamples: latest.config.sampleSize * ARCHETYPE_POLICIES.length,
+      completedSamples: latest.config.sampleSize * ARCHETYPE_POLICIES.length,
+      currentArchetype: null,
+      currentLevel: null,
+      currentSampleIndex: null
+    };
+    latest.result = result;
+    latest.artifactPath = await writeSimulationArtifact({
+      jobId,
+      config: latest.config,
+      result
+    });
+  } catch (error) {
+    const latest = simulationJobs.get(jobId);
+    if (!latest) {
+      return;
+    }
+    latest.status = "failed";
+    latest.finishedAt = new Date().toISOString();
+    latest.error = error instanceof Error ? error.message : "Simulation failed.";
+  }
 }
 
 export async function runDeveloperContractSimulationToArtifact(body: RunDeveloperContractSimulationBody): Promise<{
@@ -1036,81 +1084,200 @@ export async function runDeveloperContractSimulationToArtifact(body: RunDevelope
   jobId: string;
   result: DeveloperContractSimulationResult;
 }> {
-  const config = parseSimulationConfig(body);
+  const parsed = runDeveloperContractSimulationBodySchema.parse(body);
+  const result = await simulateDeveloperContractProgression({ body: parsed });
   const jobId = `ctrsim_${randomUUID().replaceAll("-", "")}`;
-  const result = await simulateDeveloperContractProgression({
-    body: config
-  });
-  const artifactPath = await writeSimulationArtifact({
-    jobId,
-    config,
-    result
-  });
-
-  return {
-    artifactPath,
-    config,
-    jobId,
-    result
+  const config = {
+    playerClass: parsed.playerClass,
+    sampleSize: parsed.sampleSize,
+    maxLevel: Math.min(parsed.maxLevel ?? playerProgressionConfig.maxLevel, playerProgressionConfig.maxLevel)
   };
+  const artifactPath = await writeSimulationArtifact({ jobId, config, result });
+  return { artifactPath, config, jobId, result };
 }
 
-async function yieldToEventLoop(): Promise<void> {
-  await new Promise<void>((resolve) => {
-    setImmediate(resolve);
+export function runExactDeltaSimulationAudit(args: {
+  playerClass: PlayerClass;
+  playerLevel: number;
+  sampleSize: number;
+  minDelta?: number;
+  maxDelta?: number;
+}): ExactDeltaSimulationAuditPoint[] {
+  const minDelta = args.minDelta ?? -6;
+  const maxDelta = args.maxDelta ?? 6;
+  const playerState = createExpectedPlayerState({
+    playerClass: args.playerClass,
+    level: args.playerLevel
   });
-}
+  const expectedMetrics = getExpectedPlayerCombatMetrics({
+    playerClass: args.playerClass,
+    level: args.playerLevel
+  });
+  const audit: ExactDeltaSimulationAuditPoint[] = [];
 
-async function runSimulationJob(jobId: string): Promise<void> {
-  const job = simulationJobs.get(jobId);
-  if (!job) {
-    return;
-  }
+  for (let levelDelta = minDelta; levelDelta <= maxDelta; levelDelta += 1) {
+    const encounterLevel = Math.max(1, Math.min(100, args.playerLevel + levelDelta));
+    let wins = 0;
+    let totalHpLossPercent = 0;
+    let totalActionRounds = 0;
+    let totalPlayerActionTurns = 0;
+    let totalEnemyActionTurns = 0;
+    let totalPlayerStrikes = 0;
+    let totalEnemyStrikes = 0;
+    let totalEnemyHp = 0;
+    let totalEnemyHitSize = 0;
 
-  try {
-    job.status = "running";
-    const result = await simulateDeveloperContractProgression({
-      body: {
-        playerClass: job.config.playerClass,
-        sampleSize: job.config.sampleSize,
-        maxLevel: job.config.maxLevel
-      },
-      onProgress: (progress) => {
-        const current = simulationJobs.get(jobId);
-        if (!current) {
-          return;
-        }
-        current.progress = progress;
+    for (let sampleIndex = 0; sampleIndex < args.sampleSize; sampleIndex += 1) {
+      const encounter = buildEncounterDefinitionForLevel(
+        createSeededRng(`audit:${args.playerClass}:${args.playerLevel}:${encounterLevel}:${sampleIndex}`),
+        {
+          playerId: playerState.playerId,
+          playerLevel: args.playerLevel,
+          playerClass: args.playerClass
+        },
+        encounterLevel
+      );
+      const simulation = simulateEncounter({
+        playerState,
+        playerName: "Simulator",
+        encounter,
+        runId: `audit:${args.playerClass}:${args.playerLevel}:${encounterLevel}:${sampleIndex}`
+      });
+      const actionMetrics = getFightActionMetrics({
+        playerId: simulation.player.id,
+        events: simulation.events
+      });
+      const hpAfter = getFightPlayerHealthAfter({
+        playerId: simulation.player.id,
+        events: simulation.events,
+        maxHealth: playerState.health.max
+      });
+      totalHpLossPercent += ((playerState.health.max - hpAfter) / Math.max(1, playerState.health.max)) * 100;
+      totalActionRounds += actionMetrics.playerActionTurns + actionMetrics.enemyActionTurns;
+      totalPlayerActionTurns += actionMetrics.playerActionTurns;
+      totalEnemyActionTurns += actionMetrics.enemyActionTurns;
+      totalPlayerStrikes += actionMetrics.playerStrikes;
+      totalEnemyStrikes += actionMetrics.enemyStrikes;
+      totalEnemyHp += simulation.enemies.reduce((sum, enemy) => sum + enemy.maxHp, 0);
+      totalEnemyHitSize += simulation.enemies.reduce((sum, enemy) => sum + ((enemy.minDamage + enemy.maxDamage) / 2), 0) / Math.max(1, simulation.enemies.length);
+      if (simulation.winnerSide === "player") {
+        wins += 1;
+      }
+    }
+
+    const averagePlayerActionTurns = totalPlayerActionTurns / Math.max(1, args.sampleSize);
+    const averageEnemyActionTurns = totalEnemyActionTurns / Math.max(1, args.sampleSize);
+    const averageEnemyHp = totalEnemyHp / Math.max(1, args.sampleSize);
+
+    audit.push({
+      playerLevel: args.playerLevel,
+      encounterLevel,
+      levelDelta,
+      sampleSize: args.sampleSize,
+      winRate: roundToTwo(wins / Math.max(1, args.sampleSize)),
+      avgPlayerHpLossPercent: roundToTwo(totalHpLossPercent / Math.max(1, args.sampleSize)),
+      avgTotalActionRounds: roundToTwo(totalActionRounds / Math.max(1, args.sampleSize)),
+      avgPlayerActionTurns: roundToTwo(averagePlayerActionTurns),
+      avgEnemyActionTurns: roundToTwo(averageEnemyActionTurns),
+      avgEnemyToPlayerActionTurnRatio: roundToTwo(averageEnemyActionTurns / Math.max(1, averagePlayerActionTurns)),
+      avgPlayerStrikes: roundToTwo(totalPlayerStrikes / Math.max(1, args.sampleSize)),
+      avgEnemyStrikes: roundToTwo(totalEnemyStrikes / Math.max(1, args.sampleSize)),
+      playerMaxHp: playerState.health.max,
+      avgTotalEnemyHp: roundToTwo(averageEnemyHp),
+      avgEnemyHpToPlayerHpRatio: roundToTwo(averageEnemyHp / Math.max(1, playerState.health.max)),
+      avgEnemyHitSize: roundToTwo(totalEnemyHitSize / Math.max(1, args.sampleSize)),
+      expectedPlayerMetrics: {
+        gearScore: expectedMetrics.gearScore,
+        ehp: roundToTwo(expectedMetrics.ehp),
+        dps: roundToTwo(expectedMetrics.dps),
+        tempo: roundToTwo(expectedMetrics.tempo)
       }
     });
-    const current = simulationJobs.get(jobId);
-    if (!current) {
-      return;
-    }
-    current.status = "completed";
-    current.finishedAt = new Date().toISOString();
-    current.progress = {
-      totalSamples: current.config.sampleSize * ARCHETYPE_POLICIES.length,
-      completedSamples: current.config.sampleSize * ARCHETYPE_POLICIES.length,
-      currentArchetype: null,
-      currentLevel: null,
-      currentSampleIndex: null
-    };
-    current.result = result;
-    current.artifactPath = await writeSimulationArtifact({
-      jobId,
-      config: current.config,
-      result
-    });
-  } catch (error) {
-    const current = simulationJobs.get(jobId);
-    if (!current) {
-      return;
-    }
-    current.status = "failed";
-    current.finishedAt = new Date().toISOString();
-    current.error = error instanceof Error ? error.message : "Simulation failed.";
   }
+
+  return audit;
+}
+
+export function runMirrorPvpSimulationAudit(args: {
+  playerClass: PlayerClass;
+  playerLevel: number;
+  sampleSize: number;
+}): MirrorPvpSimulationAuditPoint {
+  const playerState = createExpectedPlayerState({
+    playerClass: args.playerClass,
+    level: args.playerLevel
+  });
+  const playerActor = buildPlayerActorSnapshot({
+    playerState,
+    playerName: "Mirror Player"
+  });
+  const enemyActor = {
+    ...playerActor,
+    id: `enemy:${playerState.playerId}`,
+    side: "enemy" as const,
+    encounterOrder: 0,
+    name: "Mirror Enemy"
+  };
+  let totalResolvedActions = 0;
+  let totalWinnerHpLossPercent = 0;
+  let totalMitigatedDamage = 0;
+  let landedStrikeCount = 0;
+  let firstActorWins = 0;
+
+  for (let sampleIndex = 0; sampleIndex < args.sampleSize; sampleIndex += 1) {
+    const events = simulateCombat({
+      player: playerActor,
+      enemies: [enemyActor],
+      seed: `mirror-pvp:${args.playerClass}:${args.playerLevel}:${sampleIndex}`
+    });
+    const resolvedActions = events.filter(
+      (event): event is Extract<(typeof events)[number], { type: "CombatActionResolved" }> => event.type === "CombatActionResolved"
+    );
+    const combatEnded = getCombatEndedEvent(events);
+    if (!combatEnded) {
+      continue;
+    }
+
+    totalResolvedActions += resolvedActions.length;
+    for (const action of resolvedActions) {
+      for (const strike of action.strikes) {
+        if (!strike.hit) {
+          continue;
+        }
+        totalMitigatedDamage += strike.mitigatedDamage;
+        landedStrikeCount += 1;
+      }
+    }
+
+    const winnerActorId = combatEnded.winnerSide === "player" ? playerActor.id : enemyActor.id;
+    const winnerHealthAfter = getFightActorHealthAfter({
+      actorId: winnerActorId,
+      events,
+      maxHealth: playerState.health.max
+    });
+    totalWinnerHpLossPercent += ((playerState.health.max - winnerHealthAfter) / Math.max(1, playerState.health.max)) * 100;
+
+    const firstResolvedActorId = resolvedActions[0]?.actorId;
+    if (
+      (firstResolvedActorId === playerActor.id && combatEnded.winnerSide === "player") ||
+      (firstResolvedActorId === enemyActor.id && combatEnded.winnerSide === "enemy")
+    ) {
+      firstActorWins += 1;
+    }
+  }
+
+  const averageMitigatedHitSize = totalMitigatedDamage / Math.max(1, landedStrikeCount);
+
+  return {
+    playerLevel: args.playerLevel,
+    sampleSize: args.sampleSize,
+    avgResolvedActions: roundToTwo(totalResolvedActions / Math.max(1, args.sampleSize)),
+    avgWinnerHpLossPercent: roundToTwo(totalWinnerHpLossPercent / Math.max(1, args.sampleSize)),
+    avgMitigatedHitSize: roundToTwo(averageMitigatedHitSize),
+    avgApproxHitsToKill: roundToTwo(playerState.health.max / Math.max(1, averageMitigatedHitSize)),
+    firstActorWinRate: roundToTwo(firstActorWins / Math.max(1, args.sampleSize)),
+    avgPlayerMaxHp: playerState.health.max
+  };
 }
 
 export async function simulateDeveloperContractProgression(args: {
@@ -1141,24 +1308,12 @@ export async function simulateDeveloperContractProgression(args: {
           currentSampleIndex: sampleIndex + 1
         });
 
-        const gearSeed = `${body.playerClass}:gear:${sampleIndex}:${level}`;
-        const equipment = buildSyntheticEquipment({
+        const playerState = createExpectedPlayerState({
           playerClass: body.playerClass,
-          level,
-          seed: gearSeed,
-          difficulty: policy.syntheticEquipmentDifficulty
-        });
-        const playerState = createSyntheticPlayerState({
-          playerClass: body.playerClass,
-          level,
-          equipment
+          level
         });
         const accumulator = levelAccumulators.get(targetLevel) ?? createLevelAccumulator();
-        const observedDifficultyStats: DifficultyStats = {
-          easy: { wins: 0, losses: 0 },
-          medium: { wins: 0, losses: 0 },
-          hard: { wins: 0, losses: 0 }
-        };
+        const observedBandStats = createBandStats();
         let activePlaySeconds = 0;
         let elapsedSeconds = 0;
         let idleSeconds = 0;
@@ -1183,22 +1338,31 @@ export async function simulateDeveloperContractProgression(args: {
           if (seconds <= 0) {
             return;
           }
-
-          const staminaRegen = calculateStaminaRegenForSeconds({
+          staminaCurrent = calculateStaminaRegenForSeconds({
             level,
-            elapsedSeconds: seconds,
-            maxStamina: playerState.stamina.max
+            staminaCurrent,
+            staminaMax: playerState.stamina.max,
+            elapsedSeconds: seconds
           });
-          staminaCurrent = Math.min(playerState.stamina.max, staminaCurrent + staminaRegen);
           worldTimeSeconds += seconds;
           elapsedSeconds += seconds;
-
           if (kind === "active") {
             activePlaySeconds += seconds;
           } else {
             idleSeconds += seconds;
           }
         };
+
+        accumulator.gearScoreTotal += playerState.gearScore;
+        simulateBenchmarkBandMetrics({
+          policy,
+          playerClass: body.playerClass,
+          playerState,
+          level,
+          sampleIndex,
+          stats: observedBandStats,
+          accumulator
+        });
 
         while (experienceIntoLevel < playerState.experienceToNextLevel && fights < MAX_FIGHTS_PER_LEVEL) {
           refreshSimulatedBoardState({
@@ -1210,91 +1374,51 @@ export async function simulateDeveloperContractProgression(args: {
             policy
           });
 
-          if (currentHealth <= 0) {
+          if (currentHealth <= Math.round(playerState.health.max * 0.35)) {
             restCount += 1;
             currentHealth = playerState.health.max;
-            advanceWorldTime(policy.restOverheadSeconds, "active");
-            refreshSimulatedBoardState({
-              slots: boardSlots,
-              nowSeconds: worldTimeSeconds,
-              playerClass: body.playerClass,
-              level,
-              sampleIndex,
-              policy
-            });
+            advanceWorldTime(policy.restOverheadSeconds, "idle");
+            continue;
           }
 
           const selectedSlot = pickAvailableBoardSlot({
             policy,
-            stats: observedDifficultyStats,
+            stats: observedBandStats,
             slots: boardSlots,
             staminaCurrent,
             maxStamina: playerState.stamina.max
           });
 
           if (!selectedSlot || !selectedSlot.encounter) {
-            const preferredDifficulties = getPreferredDifficultiesForPolicy(policy, observedDifficultyStats);
-            const availablePreferredSlots = boardSlots.filter((slot) =>
-              slot.state === "available" &&
-              slot.encounter !== null &&
-              preferredDifficulties.includes(slot.encounter.difficulty)
-            );
-            const requiredStamina = availablePreferredSlots.reduce<number | null>((lowest, slot) => {
-              const nextRequired = slot.encounter!.rewardPreview.staminaCost;
-              return lowest === null ? nextRequired : Math.min(lowest, nextRequired);
-            }, null);
             const nextBoardChangeSeconds = getSecondsUntilNextBoardChange(boardSlots, worldTimeSeconds);
-            const staminaWaitSeconds = requiredStamina === null
-              ? Number.POSITIVE_INFINITY
-              : calculateStaminaWaitSeconds({
-                  level,
-                  currentStamina: staminaCurrent,
-                  targetStamina: Math.max(requiredStamina, Math.ceil(playerState.stamina.max * policy.resumeStaminaRatio)),
-                  maxStamina: playerState.stamina.max
-                });
-            const waitSeconds = Math.min(nextBoardChangeSeconds, staminaWaitSeconds);
-
-            if (!Number.isFinite(waitSeconds) || waitSeconds <= 0) {
-              break;
-            }
-
-            const boardHasPreferredContract = availablePreferredSlots.length > 0;
-            const hasEnoughStaminaForPreferredContract = boardHasPreferredContract &&
-              requiredStamina !== null &&
-              staminaCurrent >= requiredStamina;
-
-            if (boardHasPreferredContract && !hasEnoughStaminaForPreferredContract && staminaWaitSeconds <= nextBoardChangeSeconds) {
-              staminaWaitSecondsTotal += waitSeconds;
-            } else if (!boardHasPreferredContract && nextBoardChangeSeconds <= staminaWaitSeconds) {
-              contractAvailabilityWaitSecondsTotal += waitSeconds;
-            } else if (!boardHasPreferredContract && Number.isFinite(nextBoardChangeSeconds)) {
-              contractAvailabilityWaitSecondsTotal += waitSeconds;
-            } else if (boardHasPreferredContract && !hasEnoughStaminaForPreferredContract) {
-              staminaWaitSecondsTotal += waitSeconds;
-            }
-
+            const availableCosts = boardSlots
+              .filter((slot) => slot.state === "available" && slot.encounter !== null)
+              .map((slot) => slot.encounter!.rewardPreview.staminaCost)
+              .sort((left, right) => left - right);
+            const cheapestAvailableCost = availableCosts[0];
+            const regenPerSecond = Math.max(0.0001, ((playerState.stamina.max * resolveStaminaRegenPercentPerHour(level)) / 100) / 3600);
+            const secondsToStamina = typeof cheapestAvailableCost === "number" && staminaCurrent < cheapestAvailableCost
+              ? (cheapestAvailableCost - staminaCurrent) / regenPerSecond
+              : Number.POSITIVE_INFINITY;
+            const waitSeconds = Math.max(1, Math.ceil(Math.min(nextBoardChangeSeconds, secondsToStamina)));
             advanceWorldTime(waitSeconds, "idle");
+            if (Number.isFinite(secondsToStamina) && secondsToStamina <= nextBoardChangeSeconds) {
+              staminaWaitSecondsTotal += waitSeconds;
+            } else {
+              contractAvailabilityWaitSecondsTotal += waitSeconds;
+            }
             continue;
           }
 
-          const encounter = selectedSlot.encounter;
-          staminaCurrent = Math.max(0, staminaCurrent - encounter.rewardPreview.staminaCost);
-          staminaSpent += encounter.rewardPreview.staminaCost;
+          staminaCurrent = Math.max(0, staminaCurrent - selectedSlot.encounter.rewardPreview.staminaCost);
+          staminaSpent += selectedSlot.encounter.rewardPreview.staminaCost;
           selectedSlot.state = "traveling";
+          const encounter = selectedSlot.encounter;
           selectedSlot.encounter = null;
           selectedSlot.expiresAtSeconds = null;
           selectedSlot.replenishAtSeconds = null;
 
-          const travelSeconds = resolveContractTravelDurationSeconds(level, encounter.rewardPreview.efficiencyTier);
-          advanceWorldTime(travelSeconds, "idle");
-          refreshSimulatedBoardState({
-            slots: boardSlots,
-            nowSeconds: worldTimeSeconds,
-            playerClass: body.playerClass,
-            level,
-            sampleIndex,
-            policy
-          });
+          advanceWorldTime(resolveContractTravelDurationSeconds(level, SHARED_EFFICIENCY_TIER), "idle");
 
           const fightState: PlayerState = {
             ...playerState,
@@ -1303,7 +1427,7 @@ export async function simulateDeveloperContractProgression(args: {
               max: playerState.health.max
             },
             stamina: {
-              current: staminaCurrent,
+              current: Math.floor(staminaCurrent),
               max: playerState.stamina.max,
               nextPointAt: null
             }
@@ -1346,38 +1470,19 @@ export async function simulateDeveloperContractProgression(args: {
           );
           selectedSlot.state = "replenishing";
           selectedSlot.replenishAtSeconds = buildReplenishAtSeconds(replenishRng, worldTimeSeconds, level);
-          refreshSimulatedBoardState({
-            slots: boardSlots,
-            nowSeconds: worldTimeSeconds,
-            playerClass: body.playerClass,
-            level,
-            sampleIndex,
-            policy
-          });
 
           if (won) {
-            observedDifficultyStats[encounter.difficulty].wins += 1;
+            observedBandStats[encounter.levelBand].wins += 1;
             experienceIntoLevel += simulation.rewards.experience;
-            accumulator.wins[encounter.difficulty] += 1;
+            accumulator.wins[encounter.levelBand] += 1;
             accumulator.experienceTotal += simulation.rewards.experience;
           } else {
-            observedDifficultyStats[encounter.difficulty].losses += 1;
-            accumulator.losses[encounter.difficulty] += 1;
+            observedBandStats[encounter.levelBand].losses += 1;
+            accumulator.losses[encounter.levelBand] += 1;
           }
         }
 
-        accumulator.gearScoreTotal += playerState.gearScore;
-        simulateBenchmarkDifficultyMetrics({
-          policy,
-          playerClass: body.playerClass,
-          playerState,
-          level,
-          sampleIndex,
-          stats: observedDifficultyStats,
-          accumulator
-        });
-        const completedLevel = experienceIntoLevel >= playerState.experienceToNextLevel;
-        if (completedLevel) {
+        if (experienceIntoLevel >= playerState.experienceToNextLevel) {
           accumulator.completedSamples += 1;
           accumulator.elapsedSecondsTotal += elapsedSeconds;
           accumulator.activePlaySecondsTotal += activePlaySeconds;
@@ -1394,34 +1499,22 @@ export async function simulateDeveloperContractProgression(args: {
           accumulator.playerHpLossPercentTotal += playerHpLossPercentTotal;
           accumulator.playerHpLossCountTotal += playerHpLossCountTotal;
         }
-        levelAccumulators.set(targetLevel, accumulator);
 
-        await yieldToEventLoop();
+        levelAccumulators.set(targetLevel, accumulator);
       }
 
       completedSamples += 1;
-      args.onProgress?.({
-        totalSamples,
-        completedSamples,
-        currentArchetype: policy.archetype,
-        currentLevel: maxLevel,
-        currentSampleIndex: sampleIndex + 1
-      });
     }
 
     const levels = Array.from(levelAccumulators.entries())
-      .sort((left, right) => left[0] - right[0])
-      .map(([level, accumulator]) => buildLevelSummary({
-        level,
-        sampleSize,
-        accumulator
-      }));
+      .map(([level, accumulator]) => buildLevelSummary({ level, sampleSize, accumulator }))
+      .filter((level) => level.level <= maxLevel);
 
     archetypeResults.push({
       archetype: policy.archetype,
-      levels,
-      benchmarkTargetBandHitRateByDifficulty: buildBenchmarkTargetBandHitRate(levels),
-      benchmarkTurnTargetHitRateByDifficulty: buildBenchmarkTurnTargetHitRate(levels)
+      benchmarkTargetBandHitRateByBand: buildBenchmarkTargetBandHitRate(levels),
+      benchmarkTurnTargetHitRateByBand: buildBenchmarkTurnTargetHitRate(levels),
+      levels
     });
   }
 
@@ -1434,12 +1527,17 @@ export async function simulateDeveloperContractProgression(args: {
 }
 
 export function createDeveloperContractSimulationJob(body: RunDeveloperContractSimulationBody): DeveloperContractSimulationJob {
-  ensureJobCapacity();
+  const parsed = runDeveloperContractSimulationBodySchema.parse(body);
+  evictExpiredJobs();
 
-  const config = parseSimulationConfig(body);
   const jobId = `ctrsim_${randomUUID().replaceAll("-", "")}`;
   const now = new Date().toISOString();
-  const record = developerContractSimulationJobSchema.parse({
+  const config = {
+    playerClass: parsed.playerClass,
+    sampleSize: parsed.sampleSize,
+    maxLevel: Math.min(parsed.maxLevel ?? playerProgressionConfig.maxLevel, playerProgressionConfig.maxLevel)
+  };
+  const job = developerContractSimulationJobSchema.parse({
     jobId,
     status: "queued",
     config,
@@ -1455,24 +1553,17 @@ export function createDeveloperContractSimulationJob(body: RunDeveloperContractS
     artifactPath: null,
     error: null,
     result: null
-  });
+  }) as JobRecord;
+  job.createdAtMs = Date.now();
 
-  simulationJobs.set(jobId, {
-    ...record,
-    createdAtMs: Date.now()
-  });
-
+  simulationJobs.set(jobId, job);
   void runSimulationJob(jobId);
-  return record;
+  return job;
 }
 
 export function getDeveloperContractSimulationJob(jobId: string): DeveloperContractSimulationJob | null {
-  const job = simulationJobs.get(jobId);
-  if (!job) {
-    return null;
-  }
-
-  return developerContractSimulationJobSchema.parse(job);
+  evictExpiredJobs();
+  return simulationJobs.get(jobId) ?? null;
 }
 
 export function resetDeveloperContractSimulationJobsForTests(): void {

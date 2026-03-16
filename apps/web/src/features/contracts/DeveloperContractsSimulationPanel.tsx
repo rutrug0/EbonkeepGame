@@ -17,6 +17,7 @@ import {
   type PlayerClass
 } from "@ebonkeep/shared/core";
 import {
+  type ContractLevelBand,
   type DeveloperContractsStaticCurvePoint,
   type DeveloperContractsStaticCurvesResponse,
   type DeveloperContractSimulationArchetype,
@@ -60,17 +61,17 @@ const ARCHETYPE_COLORS: Record<DeveloperContractSimulationArchetype, string> = {
   slow: "#5f87a3"
 };
 
-const DIFFICULTY_COLORS = {
-  easy: "#6f8d5f",
-  medium: "#c49143",
-  hard: "#b85a4e"
+const LEVEL_BAND_COLORS: Record<ContractLevelBand, string> = {
+  under_level: "#6f8d5f",
+  on_level: "#c49143",
+  over_level: "#b85a4e"
 } as const;
 
-const BENCHMARK_HP_LOSS_TARGETS = {
-  easy: { min: 3, max: 10 },
-  medium: { min: 10, max: 15 },
-  hard: { min: 15, max: 25 }
-} as const;
+const BENCHMARK_HP_LOSS_TARGETS: Record<ContractLevelBand, { min: number; max: number }> = {
+  under_level: { min: 25, max: 35 },
+  on_level: { min: 35, max: 45 },
+  over_level: { min: 50, max: 60 }
+};
 
 function formatDuration(value: number): string {
   if (value <= 0) {
@@ -165,9 +166,9 @@ function summarizeArchetype(result: DeveloperContractSimulationArchetypeResult) 
     totalActiveSeconds,
     totalIdleSeconds,
     finalGearScore: finalLevel?.gearScore ?? 0,
-    finalHardWinRate: finalLevel?.winRateByDifficulty.hard ?? 0,
+    finalOverLevelWinRate: finalLevel?.winRateByBand.over_level ?? 0,
     finalCompletionRate: finalLevel?.completionRate ?? 0,
-    benchmarkTargetBandHitRateByDifficulty: result.benchmarkTargetBandHitRateByDifficulty
+    benchmarkTargetBandHitRateByBand: result.benchmarkTargetBandHitRateByBand
   };
 }
 
@@ -283,7 +284,7 @@ function StaticMetricChart(props: {
   );
 }
 
-function StaticDifficultyChart(props: {
+function StaticLevelBandChart(props: {
   title: string;
   description: string;
   data: DeveloperContractsStaticCurvePoint[];
@@ -292,9 +293,9 @@ function StaticDifficultyChart(props: {
   const { t } = useTranslation();
   const rows = props.data.map((level) => ({
     level: level.level,
-    easy: level.averageExperiencePerContract.easy,
-    medium: level.averageExperiencePerContract.medium,
-    hard: level.averageExperiencePerContract.hard
+    under_level: level.averageExperiencePerContract.under_level,
+    on_level: level.averageExperiencePerContract.on_level,
+    over_level: level.averageExperiencePerContract.over_level
   }));
 
   return (
@@ -335,9 +336,9 @@ function StaticDifficultyChart(props: {
               }}
             />
             <Legend />
-            <Line type="monotone" dataKey="easy" name={t("contracts.difficultyEasy")} stroke={DIFFICULTY_COLORS.easy} strokeWidth={3} dot={false} />
-            <Line type="monotone" dataKey="medium" name={t("contracts.difficultyMedium")} stroke={DIFFICULTY_COLORS.medium} strokeWidth={3} dot={false} />
-            <Line type="monotone" dataKey="hard" name={t("contracts.difficultyHard")} stroke={DIFFICULTY_COLORS.hard} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="under_level" name={t("contracts.levelBandUnderLevel")} stroke={LEVEL_BAND_COLORS.under_level} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="on_level" name={t("contracts.levelBandOnLevel")} stroke={LEVEL_BAND_COLORS.on_level} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="over_level" name={t("contracts.levelBandOverLevel")} stroke={LEVEL_BAND_COLORS.over_level} strokeWidth={3} dot={false} />
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>
@@ -345,7 +346,7 @@ function StaticDifficultyChart(props: {
   );
 }
 
-function DifficultyChart(props: {
+function LevelBandWinRateChart(props: {
   archetype: DeveloperContractSimulationArchetype;
   levels: DeveloperContractSimulationLevelSummary[];
   title: string;
@@ -353,13 +354,13 @@ function DifficultyChart(props: {
   const { t } = useTranslation();
   const data = props.levels.map((level) => ({
     level: level.level,
-    easy: level.winRateByDifficulty.easy * 100,
-    medium: level.winRateByDifficulty.medium * 100,
-    hard: level.winRateByDifficulty.hard * 100
+    under_level: level.winRateByBand.under_level * 100,
+    on_level: level.winRateByBand.on_level * 100,
+    over_level: level.winRateByBand.over_level * 100
   }));
 
   return (
-    <article className="contentCard developerSimulationChartCard" data-testid={`developer-sim-difficulty-${props.archetype}`}>
+    <article className="contentCard developerSimulationChartCard" data-testid={`developer-sim-level-band-${props.archetype}`}>
       <div className="developerSimulationChartHeader">
         <div>
           <h4>{props.title}</h4>
@@ -396,9 +397,9 @@ function DifficultyChart(props: {
               }}
             />
             <Legend />
-            <Line type="monotone" dataKey="easy" name={t("contracts.difficultyEasy")} stroke={DIFFICULTY_COLORS.easy} strokeWidth={3} dot={false} />
-            <Line type="monotone" dataKey="medium" name={t("contracts.difficultyMedium")} stroke={DIFFICULTY_COLORS.medium} strokeWidth={3} dot={false} />
-            <Line type="monotone" dataKey="hard" name={t("contracts.difficultyHard")} stroke={DIFFICULTY_COLORS.hard} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="under_level" name={t("contracts.levelBandUnderLevel")} stroke={LEVEL_BAND_COLORS.under_level} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="on_level" name={t("contracts.levelBandOnLevel")} stroke={LEVEL_BAND_COLORS.on_level} strokeWidth={3} dot={false} />
+            <Line type="monotone" dataKey="over_level" name={t("contracts.levelBandOverLevel")} stroke={LEVEL_BAND_COLORS.over_level} strokeWidth={3} dot={false} />
           </RechartsLineChart>
         </ResponsiveContainer>
       </div>
@@ -406,15 +407,15 @@ function DifficultyChart(props: {
   );
 }
 
-function BenchmarkDifficultyChart(props: {
+function BenchmarkLevelBandChart(props: {
   title: string;
   description: string;
   data: LevelChartRow[];
-  difficulty: "easy" | "medium" | "hard";
+  levelBand: ContractLevelBand;
   testId: string;
 }) {
   const { t } = useTranslation();
-  const targetBand = BENCHMARK_HP_LOSS_TARGETS[props.difficulty];
+  const targetBand = BENCHMARK_HP_LOSS_TARGETS[props.levelBand];
 
   return (
     <article className="contentCard developerSimulationChartCard" data-testid={props.testId}>
@@ -431,7 +432,7 @@ function BenchmarkDifficultyChart(props: {
             <ReferenceArea
               y1={targetBand.min}
               y2={targetBand.max}
-              fill={DIFFICULTY_COLORS[props.difficulty]}
+              fill={LEVEL_BAND_COLORS[props.levelBand]}
               fillOpacity={0.14}
               ifOverflow="extendDomain"
             />
@@ -567,15 +568,15 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
     [result]
   );
   const benchmarkEasyHpLossRows = useMemo(
-    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByDifficulty.easy) : [],
+    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByBand.under_level) : [],
     [result]
   );
   const benchmarkMediumHpLossRows = useMemo(
-    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByDifficulty.medium) : [],
+    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByBand.on_level) : [],
     [result]
   );
   const benchmarkHardHpLossRows = useMemo(
-    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByDifficulty.hard) : [],
+    () => result ? buildArchetypeRows(result.archetypes, (level) => level.avgPlayerHpLossPercentByBand.over_level) : [],
     [result]
   );
   const staticTravelRows = useMemo(
@@ -745,21 +746,21 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
                 </p>
                 <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
                   {t("settings.simulation.benchmarkTargetBandHitRateLabel", {
-                    difficulty: t("contracts.difficultyEasy")
-                  })}: {(entry.metrics.benchmarkTargetBandHitRateByDifficulty.easy * 100).toFixed(0)}%
+                    band: t("contracts.levelBandUnderLevel")
+                  })}: {(entry.metrics.benchmarkTargetBandHitRateByBand.under_level * 100).toFixed(0)}%
                 </p>
                 <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
                   {t("settings.simulation.benchmarkTargetBandHitRateLabel", {
-                    difficulty: t("contracts.difficultyMedium")
-                  })}: {(entry.metrics.benchmarkTargetBandHitRateByDifficulty.medium * 100).toFixed(0)}%
+                    band: t("contracts.levelBandOnLevel")
+                  })}: {(entry.metrics.benchmarkTargetBandHitRateByBand.on_level * 100).toFixed(0)}%
                 </p>
                 <p style={{ margin: "0 0 6px", fontSize: "13px" }}>
                   {t("settings.simulation.benchmarkTargetBandHitRateLabel", {
-                    difficulty: t("contracts.difficultyHard")
-                  })}: {(entry.metrics.benchmarkTargetBandHitRateByDifficulty.hard * 100).toFixed(0)}%
+                    band: t("contracts.levelBandOverLevel")
+                  })}: {(entry.metrics.benchmarkTargetBandHitRateByBand.over_level * 100).toFixed(0)}%
                 </p>
                 <p style={{ margin: 0, fontSize: "13px" }}>
-                  {t("settings.simulation.finalHardWinRate")}: {(entry.metrics.finalHardWinRate * 100).toFixed(0)}%
+                  {t("settings.simulation.finalOverLevelWinRate")}: {(entry.metrics.finalOverLevelWinRate * 100).toFixed(0)}%
                 </p>
               </article>
             ))}
@@ -773,26 +774,26 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
               </p>
             </div>
             <div className="developerSimulationChartsGrid">
-              <BenchmarkDifficultyChart
-                title={t("settings.simulation.benchmarkEasyChartTitle")}
-                description={t("settings.simulation.benchmarkEasyAxis")}
+              <BenchmarkLevelBandChart
+                title={t("settings.simulation.benchmarkUnderLevelChartTitle")}
+                description={t("settings.simulation.benchmarkUnderLevelAxis")}
                 data={benchmarkEasyHpLossRows}
-                difficulty="easy"
-                testId="developer-sim-benchmark-hp-loss-easy-chart"
+                levelBand="under_level"
+                testId="developer-sim-benchmark-hp-loss-under-level-chart"
               />
-              <BenchmarkDifficultyChart
-                title={t("settings.simulation.benchmarkMediumChartTitle")}
-                description={t("settings.simulation.benchmarkMediumAxis")}
+              <BenchmarkLevelBandChart
+                title={t("settings.simulation.benchmarkOnLevelChartTitle")}
+                description={t("settings.simulation.benchmarkOnLevelAxis")}
                 data={benchmarkMediumHpLossRows}
-                difficulty="medium"
-                testId="developer-sim-benchmark-hp-loss-medium-chart"
+                levelBand="on_level"
+                testId="developer-sim-benchmark-hp-loss-on-level-chart"
               />
-              <BenchmarkDifficultyChart
-                title={t("settings.simulation.benchmarkHardChartTitle")}
-                description={t("settings.simulation.benchmarkHardAxis")}
+              <BenchmarkLevelBandChart
+                title={t("settings.simulation.benchmarkOverLevelChartTitle")}
+                description={t("settings.simulation.benchmarkOverLevelAxis")}
                 data={benchmarkHardHpLossRows}
-                difficulty="hard"
-                testId="developer-sim-benchmark-hp-loss-hard-chart"
+                levelBand="over_level"
+                testId="developer-sim-benchmark-hp-loss-over-level-chart"
               />
             </div>
           </section>
@@ -887,7 +888,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
             />
 
             {result.archetypes.map((entry) => (
-              <DifficultyChart
+              <LevelBandWinRateChart
                 key={entry.archetype}
                 archetype={entry.archetype}
                 levels={entry.levels}
@@ -940,7 +941,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
               lineColor="#4da3a6"
               testId="developer-static-contract-wait-chart"
             />
-            <StaticDifficultyChart
+            <StaticLevelBandChart
               title={t("settings.simulation.staticXpPerContractChartTitle")}
               description={t("settings.simulation.staticXpPerContractAxis")}
               data={staticCurves.levels}

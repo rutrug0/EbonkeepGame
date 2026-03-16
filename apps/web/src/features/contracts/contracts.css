@@ -81,19 +81,22 @@
   background: rgba(28, 36, 45, 0.74);
 }
 
-.contractDifficulty-easy {
-  border-color: color-mix(in srgb, var(--accent-success) 74%, transparent);
-  color: color-mix(in srgb, var(--accent-success) 65%, var(--text-main) 35%);
+.contractDifficulty-under_level {
+  border-color: color-mix(in srgb, var(--accent-success) 78%, transparent);
+  background: color-mix(in srgb, var(--accent-success) 14%, rgba(28, 36, 45, 0.74));
+  color: color-mix(in srgb, var(--accent-success) 68%, var(--text-main) 32%);
 }
 
-.contractDifficulty-medium {
-  border-color: color-mix(in srgb, var(--accent-warn) 74%, transparent);
-  color: color-mix(in srgb, var(--accent-warn) 66%, var(--text-main) 34%);
+.contractDifficulty-on_level {
+  border-color: rgba(193, 176, 147, 0.3);
+  background: rgba(28, 36, 45, 0.74);
+  color: var(--text-main);
 }
 
-.contractDifficulty-hard {
-  border-color: color-mix(in srgb, var(--accent-danger) 76%, transparent);
-  color: color-mix(in srgb, var(--accent-danger) 62%, var(--text-main) 38%);
+.contractDifficulty-over_level {
+  border-color: color-mix(in srgb, var(--accent-warn) 78%, transparent);
+  background: color-mix(in srgb, var(--accent-warn) 16%, rgba(28, 36, 45, 0.74));
+  color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-main) 28%);
 }
 
 .contractsTimeCell {

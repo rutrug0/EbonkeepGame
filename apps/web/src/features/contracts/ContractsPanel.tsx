@@ -5,7 +5,6 @@ import {
   CONTRACT_SLOT_COUNT,
   getEncounterAnimationRate,
   type ActiveContractEncounterState,
-  type ContractDifficulty,
   type ContractEfficiencyTier,
   type ContractOffer,
   type ContractRoll,
@@ -31,7 +30,6 @@ export type ContractsPanelProps = {
     offer: ContractOffer
   ) => void;
   onAbandonContractSlot: (slotIndex: number) => void;
-  formatContractDifficulty: (difficulty: ContractDifficulty) => string;
   formatContractEfficiencyTier: (tier: ContractEfficiencyTier) => string;
   formatContractRoll: (roll: ContractRoll) => string;
   formatDurationFromMs: (value: number) => string;
@@ -87,7 +85,6 @@ export function ContractsPanel(props: ContractsPanelProps) {
         onToggleFastForward={props.onToggleFastForward}
         onReplayCombat={props.onReplayCombat}
         onBackToBoard={props.onBackToBoard}
-        formatContractDifficulty={props.formatContractDifficulty}
         formatDurationFromMs={props.formatDurationFromMs}
       />
     );
@@ -116,7 +113,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
               <thead>
                 <tr>
                   <th>{i18n.t("contracts.table.contract")}</th>
-                  <th>{i18n.t("contracts.table.difficulty")}</th>
+                  <th>{i18n.t("contracts.table.contractLevel")}</th>
                   <th>{i18n.t("contracts.table.experienceRoll")}</th>
                   <th>{i18n.t("contracts.table.ducatsRoll")}</th>
                   <th>{i18n.t("contracts.table.materialsRoll")}</th>
@@ -159,7 +156,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
                       role="button"
                       aria-label={i18n.t("contracts.enterAria", {
                         contract: template.name,
-                        difficulty: props.formatContractDifficulty(template.difficulty)
+                        level: template.contractLevel
                       })}
                       onClick={() => props.onStartContractEncounter(slot.slotIndex, slot.offer as ContractOffer)}
                       onKeyDown={(event) =>
@@ -175,9 +172,9 @@ export function ContractsPanel(props: ContractsPanelProps) {
                           </span>
                         </div>
                       </td>
-                      <td data-label={i18n.t("contracts.table.difficulty")}>
-                        <span className={`contractDifficulty contractDifficulty-${template.difficulty}`}>
-                          {props.formatContractDifficulty(template.difficulty)}
+                      <td data-label={i18n.t("contracts.table.contractLevel")}>
+                        <span className={`contractDifficulty contractDifficulty-${template.levelBand}`}>
+                          {template.contractLevel}
                         </span>
                       </td>
                       <td data-label={i18n.t("contracts.table.experienceRoll")}>

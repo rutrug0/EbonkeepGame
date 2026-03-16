@@ -102,7 +102,8 @@
       "contract": "Contrato",
       "difficulty": "Dificultad",
       "staminaCost": "Costo de Energía",
-      "action": "Acción"
+      "action": "Acción",
+      "contractLevel": "Contract Level"
     },
     "abandon": "Abandonar",
     "replenishing": "Reponiendo",
@@ -131,7 +132,11 @@
       "defenseReductionDetail": "{{mitigation}} {{resistance}} + {{defense}} {{defenseValue}} = {{effectiveDefense}} total; attacker power {{attackerPower}}, scale {{scale}}",
       "minimumFloor": "Minimum floor {{value}} ({{percent}} of raw)",
       "math": "Math"
-    }
+    },
+    "enterAria": "Start {{contract}} (Level {{level}})",
+    "levelBandUnderLevel": "Under-Level",
+    "levelBandOnLevel": "On-Level",
+    "levelBandOverLevel": "Over-Level"
   },
   "currencies": {
     "ducats": "Ducados",
@@ -196,9 +201,9 @@
       "playerAttackRollAxis": "Raw damage on landed player strikes",
       "playerHpLossChartTitle": "Average player HP loss by level",
       "playerHpLossAxis": "Player HP lost per fight (%)",
-      "benchmarkSectionTitle": "Benchmark Combat Difficulty",
-      "benchmarkSectionDescription": "Explicit easy, medium, and hard benchmark fights at each level. The shaded band marks the rough target HP-loss range for that difficulty.",
-      "benchmarkTargetBandHitRateLabel": "{{difficulty}} levels in target band",
+      "benchmarkSectionTitle": "Benchmark Contract Bands",
+      "benchmarkSectionDescription": "Explicit under-level, on-level, and over-level benchmark fights at each level. The shaded band marks the target HP-loss range for that band.",
+      "benchmarkTargetBandHitRateLabel": "{{band}} levels in target band",
       "benchmarkEasyChartTitle": "Easy benchmark HP loss by level",
       "benchmarkEasyAxis": "Player HP lost per easy benchmark fight (%)",
       "benchmarkMediumChartTitle": "Medium benchmark HP loss by level",
@@ -225,7 +230,14 @@
       "staticXpPerContractChartTitle": "Average XP gained per contract by level",
       "staticXpPerContractAxis": "Average XP per contract",
       "staticXpRequiredChartTitle": "XP required to reach the next level",
-      "staticXpRequiredAxis": "XP required for next level"
+      "staticXpRequiredAxis": "XP required for next level",
+      "finalOverLevelWinRate": "Final over-level win rate",
+      "benchmarkUnderLevelChartTitle": "Under-level benchmark HP loss by level",
+      "benchmarkUnderLevelAxis": "Player HP lost per under-level benchmark fight (%)",
+      "benchmarkOnLevelChartTitle": "On-level benchmark HP loss by level",
+      "benchmarkOnLevelAxis": "Player HP lost per on-level benchmark fight (%)",
+      "benchmarkOverLevelChartTitle": "Over-level benchmark HP loss by level",
+      "benchmarkOverLevelAxis": "Player HP lost per over-level benchmark fight (%)"
     },
     "tabs": {
       "general": "General",
@@ -250,7 +262,7 @@
       "replenished": "Health and stamina fully replenished.",
       "levelLabel": "Target level",
       "levelButton": "Level up",
-      "invalidLevel": "Enter a valid target level above your current level.",
+      "invalidLevel": "Enter a valid target level from 1 to 100 that differs from your current level.",
       "levelUpSuccess": "Player level set to {{level}}.",
       "rarityLabel": "Equipment rarity",
       "generateEquipmentButton": "Generate equip",
