@@ -52,7 +52,8 @@ export class RenownError extends Error {
  * Auto-seeds `first_charter` for first-time visitors so the root is always unlocked.
  */
 export async function getRenownState(playerId: string, prisma: PrismaClient): Promise<RenownState> {
-  const [unlockedRows, currency] = await Promise.all([
+  const [playerExists, unlockedRows, currency] = await Promise.all([
+    prisma.playerProfile.findUnique({ where: { id: playerId }, select: { id: true } }),
     prisma.playerRenownNode.findMany({
       where: { playerId },
       select: { nodeId: true }
@@ -62,6 +63,10 @@ export async function getRenownState(playerId: string, prisma: PrismaClient): Pr
       select: { renown: true }
     })
   ]);
+
+  if (!playerExists) {
+    throw new RenownError("PLAYER_NOT_FOUND", 404, "Player not found");
+  }
 
   let unlockedNodeIds = unlockedRows.map((r) => r.nodeId);
 

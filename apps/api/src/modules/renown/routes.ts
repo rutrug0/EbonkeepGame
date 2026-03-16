@@ -11,8 +11,15 @@ export async function renownRoutes(fastify: FastifyInstance) {
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
       const playerId = request.user.playerId;
-      const state = await getRenownState(playerId, fastify.prisma);
-      return reply.send(state);
+      try {
+        const state = await getRenownState(playerId, fastify.prisma);
+        return reply.send(state);
+      } catch (err) {
+        if (err instanceof RenownError) {
+          return reply.status(err.statusCode).send({ error: err.message, code: err.code });
+        }
+        throw err;
+      }
     }
   );
 

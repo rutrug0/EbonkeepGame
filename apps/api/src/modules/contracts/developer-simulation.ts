@@ -20,6 +20,7 @@ import {
   type RunDeveloperContractSimulationBody
 } from "@ebonkeep/shared/combat";
 import { type PlayerClass } from "@ebonkeep/shared/core";
+import { type EquipmentState } from "@ebonkeep/shared/inventory";
 import { type PlayerState } from "@ebonkeep/shared/player";
 
 import {
@@ -29,6 +30,7 @@ import {
 } from "../../config/activity-pacing.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { playerProgressionConfig, getExperienceToNextLevel } from "../player/progression-service.js";
+import { buildPlayerStatSnapshot, computeGearScore, createEmptyEquipmentState } from "../player/state-service.js";
 import {
   CONTRACT_AVAILABILITY_WINDOW,
   CONTRACT_LEVEL_BANDS,
@@ -40,8 +42,8 @@ import {
   randomInt,
   type EncounterDefinition
 } from "./data.js";
-import { buildPlayerActorSnapshot, simulateCombat, simulateEncounter } from "./simulator.js";
-import { createExpectedPlayerState, getExpectedPlayerCombatMetrics } from "./balance-model.js";
+import { buildPlayerActorSnapshot, rollRewardItemSpec, simulateCombat, simulateEncounter } from "./simulator.js";
+import { createExpectedPlayerState, getExpectedPlayerCombatMetrics, SIMULATION_BASE_STATS, STANDARD_SIMULATION_SLOTS } from "./balance-model.js";
 
 const JOB_TTL_MS = 30 * 60 * 1000;
 const MAX_STORED_JOBS = 10;
@@ -342,7 +344,6 @@ function buildSyntheticEquipment(args: {
   playerClass: PlayerClass;
   level: number;
   seed: string;
-  difficulty: ContractDifficulty;
 }): EquipmentState {
   const equipment = createEmptyEquipmentState();
 
@@ -351,7 +352,6 @@ function buildSyntheticEquipment(args: {
       rng: createSeededRng(`${args.seed}:${slotId}:reward-roll`),
       playerClass: args.playerClass,
       encounterLevel: args.level,
-      difficulty: args.difficulty,
       allowedSlotId: slotId
     });
     if (!rewardItem) {

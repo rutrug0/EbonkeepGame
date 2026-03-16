@@ -1,18 +1,5 @@
-/*
-  Warnings:
-
-  - You are about to drop the `player_academy_donation_charges` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `player_renown_nodes` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropForeignKey
-ALTER TABLE "player_academy_donation_charges" DROP CONSTRAINT "player_academy_donation_charges_playerId_fkey";
-
--- DropForeignKey
-ALTER TABLE "player_renown_nodes" DROP CONSTRAINT "player_renown_nodes_playerId_fkey";
-
--- DropTable
-DROP TABLE "player_academy_donation_charges";
-
--- DropTable
-DROP TABLE "player_renown_nodes";
+-- No-op: player_renown_nodes and player_academy_donation_charges were created in
+-- 20260316120000_add_renown_persistence and 20260316133005_add_academy_donation_charges
+-- respectively and must be preserved. The renown column was already added to
+-- "currencies" in 20260316120000_add_renown_persistence.
+SELECT 1;

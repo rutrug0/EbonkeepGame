@@ -12,6 +12,9 @@ test-results/
 .playwright/
 tests/e2e/.auth/
 
+# Simulation artifacts
+apps/api/artifacts/
+
 # Env files
 .env
 .env.local

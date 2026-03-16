@@ -379,7 +379,8 @@ export function createExpectedPlayerState(args: {
     equipment: loadout.equipment,
     currency: {
       ducats: 0,
-      imperials: 0
+      imperials: 0,
+      renown: 0
     },
     cheatSettings: {
       invincibilityEnabled: false,
