@@ -434,49 +434,6 @@ function createSyntheticPlayerState(args: {
   };
 }
 
-function formatSeedTime(seconds: number): string {
-  return seconds.toFixed(2);
-}
-
-function calculateStaminaWaitSeconds(args: {
-  level: number;
-  currentStamina: number;
-  targetStamina: number;
-  maxStamina: number;
-}): number {
-  const clampedTarget = Math.max(args.currentStamina, Math.min(args.maxStamina, args.targetStamina));
-  const missingStamina = Math.max(0, clampedTarget - args.currentStamina);
-  if (missingStamina <= 0) {
-    return 0;
-  }
-
-  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
-  const regenPerHour = (args.maxStamina * regenPercentPerHour) / 100;
-  if (regenPerHour <= 0) {
-    return 0;
-  }
-
-  return missingStamina * (3600 / regenPerHour);
-}
-
-function calculateStaminaRegenForSeconds(args: {
-  level: number;
-  elapsedSeconds: number;
-  maxStamina: number;
-}): number {
-  if (args.elapsedSeconds <= 0) {
-    return 0;
-  }
-
-  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
-  const regenPerHour = (args.maxStamina * regenPercentPerHour) / 100;
-  if (regenPerHour <= 0) {
-    return 0;
-  }
-
-  return (regenPerHour / 3600) * args.elapsedSeconds;
-}
-
 function getFightCombatSeconds(events: ReturnType<typeof simulateEncounter>["events"]): number {
   return events.length * 2.5;
 }
