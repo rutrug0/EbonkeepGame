@@ -386,6 +386,7 @@ export function createExpectedPlayerState(args: {
       invincibilityEnabled: false,
       fastTravelEnabled: false,
       fastContractReplenishEnabled: false,
+      fastArenaReplenishEnabled: false,
       fastTrainTimeEnabled: false
     }
   };

@@ -1,0 +1,350 @@
+.arenaPanelShell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.arenaPanelRoot,
+.arenaReplayRoot {
+  min-height: 100%;
+  flex: 1 1 auto;
+}
+
+.arenaPanelRoot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.arenaHeaderCard,
+.arenaProfileCard,
+.arenaLadderCard,
+.arenaErrorCard,
+.arenaModalCard {
+  background:
+    linear-gradient(180deg, rgba(30, 38, 47, 0.98), rgba(20, 26, 33, 0.98)),
+    radial-gradient(circle at top right, rgba(153, 111, 43, 0.14), transparent 42%);
+}
+
+.arenaHeaderRow,
+.arenaSectionHeader,
+.arenaProfileSummary,
+.arenaOfferTopRow,
+.arenaOfferFooter,
+.arenaReplaySummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.arenaDescription,
+.arenaProfileHint,
+.arenaSearchEmptyState p {
+  color: var(--text-soft);
+}
+
+.arenaProfileCard {
+  flex: 0 0 auto;
+}
+
+.arenaProfileRow {
+  display: grid;
+  grid-template-columns: minmax(160px, auto) minmax(0, 1fr) minmax(240px, 300px);
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.arenaProfileSummary {
+  justify-content: flex-start;
+}
+
+.arenaProfileStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.arenaProfileActions {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-3);
+  text-align: right;
+}
+
+.arenaSummaryTile,
+.arenaOfferStats > div {
+  padding: var(--space-3);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--soft-radius);
+  background: rgba(13, 18, 23, 0.78);
+  display: grid;
+  gap: 4px;
+}
+
+.arenaSummaryTile span,
+.arenaOfferStats span,
+.arenaOfferRating span,
+.arenaLadderNameCell span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.arenaSummaryTile strong,
+.arenaOfferStats strong,
+.arenaOfferRating strong,
+.arenaLadderNameCell strong {
+  color: var(--text-main);
+}
+
+.arenaFindButtonInline {
+  min-width: 220px;
+}
+
+.arenaWindowChip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(145, 109, 54, 0.18);
+  border: 1px solid rgba(186, 139, 72, 0.32);
+  color: #f1d6a4;
+  font-size: 0.92rem;
+}
+
+.arenaLadderCard {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  align-content: stretch;
+}
+
+.arenaFooterActions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.arenaLadderCardInner {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  min-height: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.arenaLadderTableWrap {
+  min-height: 0;
+}
+
+.arenaLadderTableScroll {
+  overflow: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.arenaLadderTableScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.arenaLadderTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.arenaLadderTable th,
+.arenaLadderTable td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+}
+
+.arenaLadderTable th {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.arenaLadderCurrentRow {
+  background: rgba(158, 113, 45, 0.08);
+}
+
+.arenaLadderNameCell {
+  display: grid;
+  gap: 2px;
+}
+
+.arenaModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgba(4, 6, 8, 0.74);
+  backdrop-filter: blur(10px);
+}
+
+.arenaModalCard {
+  width: min(1180px, 100%);
+  max-height: min(780px, calc(100vh - 64px));
+  border: 1px solid rgba(186, 139, 72, 0.24);
+  border-radius: calc(var(--soft-radius) + 2px);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  overflow: auto;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
+.arenaModalCloseButton {
+  flex-shrink: 0;
+}
+
+.arenaSearchEmptyState {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  gap: var(--space-4);
+  text-align: center;
+  border: 1px dashed rgba(186, 166, 131, 0.24);
+  border-radius: var(--soft-radius);
+  background:
+    linear-gradient(180deg, rgba(14, 19, 24, 0.74), rgba(10, 14, 18, 0.9)),
+    radial-gradient(circle at center, rgba(162, 116, 49, 0.08), transparent 50%);
+}
+
+.arenaSearchEmptyStateModal {
+  min-height: 280px;
+}
+
+.arenaOffersGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.arenaOffersGridModal {
+  align-items: start;
+}
+
+.arenaOfferCard {
+  padding: var(--space-4);
+  border: 1px solid rgba(186, 139, 72, 0.22);
+  border-radius: calc(var(--soft-radius) + 1px);
+  background:
+    linear-gradient(180deg, rgba(21, 28, 35, 0.96), rgba(12, 17, 22, 0.98)),
+    radial-gradient(circle at top right, rgba(173, 118, 44, 0.14), transparent 40%);
+  display: grid;
+  gap: var(--space-3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.arenaOfferMeta,
+.arenaOfferWeapon {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.arenaOfferStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.arenaOfferFooter {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.arenaFightButton {
+  width: 100%;
+}
+
+.arenaResultDelta.isPositive {
+  color: #d1edbf;
+}
+
+.arenaResultDelta.isNegative {
+  color: #f0b9b2;
+}
+
+.arenaReplaySummary {
+  justify-content: flex-end;
+  color: var(--text-soft);
+}
+
+.arenaCombatViewportGroup {
+  width: 100%;
+  max-width: var(--panel-viewport-max);
+}
+
+.arenaCombatViewportMain,
+.arenaCombatViewportSide {
+  min-height: 0;
+}
+
+.arenaCombatViewportMainStack {
+  min-height: 100%;
+}
+
+@media (max-width: 1240px) {
+  .arenaProfileRow {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .arenaProfileActions {
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+@media (max-width: 960px) {
+  .arenaHeaderRow,
+  .arenaProfileSummary,
+  .arenaSectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .arenaProfileStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .arenaOffersGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .arenaModalCard {
+    padding: var(--space-4);
+  }
+
+  .arenaReplaySummary {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .arenaPanelRoot {
+    overflow: visible;
+    height: auto;
+  }
+
+  .arenaProfileStats {
+    grid-template-columns: 1fr;
+  }
+
+  .arenaFindButtonInline {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .arenaModalBackdrop {
+    padding: var(--space-3);
+  }
+}

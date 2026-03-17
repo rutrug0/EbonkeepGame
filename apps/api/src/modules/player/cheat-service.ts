@@ -25,6 +25,7 @@ const STANDARD_CHEAT_SLOT_IDS: readonly EquipmentSlotId[] = [
 
 export const CHEAT_FAST_TRAVEL_DURATION_MS = 2_000;
 export const CHEAT_FAST_CONTRACT_REPLENISH_DURATION_MS = 3_000;
+export const CHEAT_FAST_ARENA_REPLENISH_DURATION_MS = 2_000;
 export const CHEAT_DUCATS_GRANT = 1_000_000;
 export const CHEAT_IMPERIALS_GRANT = 10_000;
 export const CHEAT_RENOWN_GRANT = 20;
@@ -84,6 +85,7 @@ export async function updatePlayerCheatSettings(
     SET
       "fastTravelEnabled" = ${settings.fastTravelEnabled},
       "fastContractReplenishEnabled" = ${settings.fastContractReplenishEnabled},
+      "fastArenaReplenishEnabled" = ${settings.fastArenaReplenishEnabled},
       "invincibilityEnabled" = ${settings.invincibilityEnabled},
       "fastTrainTimeEnabled" = ${settings.fastTrainTimeEnabled},
       "updatedAt" = CURRENT_TIMESTAMP

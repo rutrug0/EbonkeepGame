@@ -1157,8 +1157,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0;
   line-height: 1;
+}
+
+.combatLogCloseButton::before {
+  content: "\00D7";
+  font-size: 1rem;
 }
 
 .combatLogActionsBar {

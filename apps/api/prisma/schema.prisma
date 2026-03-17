@@ -41,6 +41,7 @@ model PlayerProfile {
   preferredLocale  String            @default("en")
   fastTravelEnabled            Boolean @default(false)
   fastContractReplenishEnabled Boolean @default(false)
+  fastArenaReplenishEnabled    Boolean @default(false)
   invincibilityEnabled         Boolean @default(false)
   fastTrainTimeEnabled         Boolean @default(false)
   level            Int               @default(1)
@@ -74,6 +75,9 @@ model PlayerProfile {
   academyDonations     GuildAcademyDonation[] @relation("GuildAcademyDonations")
   renownNodes          PlayerRenownNode[]
   academyDonationCharges PlayerAcademyDonationCharges?
+  arenaEntry          ArenaEntry?
+  arenaOffers         ArenaOffer[]        @relation("ArenaOffersByPlayer")
+  arenaMatches        ArenaMatch[]        @relation("ArenaMatchesByPlayer")
 
   @@index([accountId])
   @@map("player_profiles")
@@ -303,6 +307,68 @@ model ContractRun {
   @@index([playerId, state])
   @@index([playerId, createdAt(sort: Desc)])
   @@map("contract_runs")
+}
+
+model ArenaEntry {
+  id               String        @id @default(cuid())
+  playerId         String?       @unique
+  source           String
+  rating           Int           @default(1000)
+  wins             Int           @default(0)
+  losses           Int           @default(0)
+  cooldownEndsAt   DateTime?
+  displayName      String
+  playerClass      String
+  level            Int
+  gearScore        Int           @default(0)
+  weaponLabel      String?
+  previewStats     Json
+  combatSnapshot   Json
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  player           PlayerProfile? @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  offersAsOpponent ArenaOffer[]  @relation("ArenaOfferOpponent")
+  matchesAsOpponent ArenaMatch[] @relation("ArenaMatchOpponent")
+
+  @@index([source, rating])
+  @@index([rating(sort: Desc)])
+  @@map("arena_entries")
+}
+
+model ArenaOffer {
+  id              String        @id @default(cuid())
+  challengerId    String
+  opponentEntryId String
+  summary         Json
+  combatSnapshot  Json
+  offeredAt       DateTime      @default(now())
+  cooldownEndsAt  DateTime
+  challenger      PlayerProfile @relation("ArenaOffersByPlayer", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponentEntry   ArenaEntry    @relation("ArenaOfferOpponent", fields: [opponentEntryId], references: [id], onDelete: Cascade)
+
+  @@index([challengerId, offeredAt(sort: Desc)])
+  @@index([challengerId, cooldownEndsAt])
+  @@map("arena_offers")
+}
+
+model ArenaMatch {
+  id                 String        @id @default(cuid())
+  challengerId       String
+  opponentEntryId    String
+  winnerSide         String
+  ratingDelta        Int
+  challengerRating   Int
+  opponentRating     Int
+  opponentSummary    Json
+  encounter          Json
+  events             Json
+  createdAt          DateTime      @default(now())
+  challenger         PlayerProfile @relation("ArenaMatchesByPlayer", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponentEntry      ArenaEntry    @relation("ArenaMatchOpponent", fields: [opponentEntryId], references: [id], onDelete: Cascade)
+
+  @@index([challengerId, createdAt(sort: Desc)])
+  @@index([opponentEntryId, createdAt(sort: Desc)])
+  @@map("arena_matches")
 }
 
 // =====================================================

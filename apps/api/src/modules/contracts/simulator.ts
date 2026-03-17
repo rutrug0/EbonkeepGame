@@ -325,6 +325,7 @@ export function simulateCombat(args: {
   enemies: CombatActorSnapshot[];
   seed: string;
   playerInvincible?: boolean;
+  levelDeltaMode?: "pve" | "neutral";
 }): CombatEvent[] {
   const rng = createSeededRng(args.seed);
   const actors = [createRuntimeActor(args.player, rng), ...args.enemies.map((enemy) => createRuntimeActor(enemy, rng))];
@@ -389,7 +390,13 @@ export function simulateCombat(args: {
         if (!target) break;
       }
 
-      const levelDeltaModifier = getPveLevelDeltaModifier(actor.level, target.level);
+      const levelDeltaModifier =
+        args.levelDeltaMode === "neutral"
+          ? {
+              accuracyMultiplierBps: 10_000,
+              damageMultiplierBps: 10_000
+            }
+          : getPveLevelDeltaModifier(actor.level, target.level);
       const adjustedAccuracy = Math.max(
         0,
         Math.round((actor.accuracy * levelDeltaModifier.accuracyMultiplierBps) / 10_000)

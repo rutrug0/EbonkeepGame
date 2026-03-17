@@ -35,6 +35,7 @@ This document set defines the high-level, implementation-ready blueprint for Ebo
 21. [22-server-authoritative-contracts-combat.md](./22-server-authoritative-contracts-combat.md)
 22. [dev-setup.md](./dev-setup.md)
 23. [local-runtime.md](./local-runtime.md)
+24. [23-consumables-and-apothecary-balance-v1.md](./23-consumables-and-apothecary-balance-v1.md)
 
 ## Decision Log (Locked)
 Date: 2026-02-28

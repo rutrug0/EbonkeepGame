@@ -1,5 +1,6 @@
 @import "./features/contracts/contracts.css";
 @import "./features/combat/combat.css";
+@import "./features/arena/arena.css";
 @import "./features/guild/guild.css";
 @import "./features/auction/auction.css";
 @import "./features/leaderboard/leaderboard.css";

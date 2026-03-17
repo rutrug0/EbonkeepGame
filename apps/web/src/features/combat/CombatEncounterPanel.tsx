@@ -46,6 +46,8 @@ export type CombatEncounterPanelProps = {
   onCloseLog?: () => void;
   onReplayCombat: () => void;
   onBackToBoard: () => void;
+  replayButtonLabel?: string;
+  backButtonLabel?: string;
   formatDurationFromMs: (value: number) => string;
 };
 
@@ -120,7 +122,9 @@ export function CombatEncounterArenaPanel({
   onToggleFastForward,
   onSkipToEnd,
   onReplayCombat,
-  onBackToBoard
+  onBackToBoard,
+  replayButtonLabel,
+  backButtonLabel
 }: Pick<
   CombatEncounterPanelProps,
   | "encounter"
@@ -137,6 +141,8 @@ export function CombatEncounterArenaPanel({
   | "onSkipToEnd"
   | "onReplayCombat"
   | "onBackToBoard"
+  | "replayButtonLabel"
+  | "backButtonLabel"
 >) {
   const { t } = useTranslation();
   const player = encounter.player;
@@ -187,14 +193,14 @@ export function CombatEncounterArenaPanel({
                   className="combatArenaReplayButton combatSpeedToggleOverlay"
                   onClick={onReplayCombat}
                 >
-                  {t("contracts.replayCombat", { defaultValue: "Replay Combat" })}
+                  {replayButtonLabel ?? t("contracts.replayCombat", { defaultValue: "Replay Combat" })}
                 </button>
                 <button
                   type="button"
                   className="combatArenaReturnButton combatSpeedToggleOverlay"
                   onClick={onBackToBoard}
                 >
-                  {t("contracts.backToBoard")}
+                  {backButtonLabel ?? t("contracts.backToBoard")}
                 </button>
               </div>
             ) : null}
@@ -241,7 +247,9 @@ export function CombatEncounterLogPanel({
   typedSummaryLine,
   onCloseLog,
   onReplayCombat,
-  onBackToBoard
+  onBackToBoard,
+  replayButtonLabel,
+  backButtonLabel
 }: Pick<
   CombatEncounterPanelProps,
   | "encounter"
@@ -254,6 +262,8 @@ export function CombatEncounterLogPanel({
   | "onCloseLog"
   | "onReplayCombat"
   | "onBackToBoard"
+  | "replayButtonLabel"
+  | "backButtonLabel"
 >) {
   const { t } = useTranslation();
   const combatLogBodyRef = useRef<HTMLDivElement>(null);
@@ -332,10 +342,10 @@ export function CombatEncounterLogPanel({
             {resolutionState === "awaiting_return" ? (
               <div className="combatLogActionsBar">
                 <button type="button" className="combatLogActionButton" onClick={onReplayCombat}>
-                  {t("contracts.replayCombat", { defaultValue: "Replay Combat" })}
+                  {replayButtonLabel ?? t("contracts.replayCombat", { defaultValue: "Replay Combat" })}
                 </button>
                 <button type="button" className="combatLogActionButton" onClick={onBackToBoard}>
-                  {t("contracts.backToBoard")}
+                  {backButtonLabel ?? t("contracts.backToBoard")}
                 </button>
               </div>
             ) : (

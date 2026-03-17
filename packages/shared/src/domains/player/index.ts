@@ -12,6 +12,7 @@ import { equipmentStateSchema, inventoryItemSchema } from "../inventory/index.js
 export const playerCheatSettingsSchema = z.object({
   fastTravelEnabled: z.boolean().default(false),
   fastContractReplenishEnabled: z.boolean().default(false),
+  fastArenaReplenishEnabled: z.boolean().default(false),
   invincibilityEnabled: z.boolean().default(false),
   fastTrainTimeEnabled: z.boolean().default(false)
 });

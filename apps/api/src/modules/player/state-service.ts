@@ -403,6 +403,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     Array<{
       fastTravelEnabled: boolean;
       fastContractReplenishEnabled: boolean;
+      fastArenaReplenishEnabled: boolean;
       invincibilityEnabled: boolean;
       fastTrainTimeEnabled: boolean;
     }>
@@ -410,6 +411,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     SELECT
       "fastTravelEnabled",
       "fastContractReplenishEnabled",
+      "fastArenaReplenishEnabled",
       "invincibilityEnabled",
       "fastTrainTimeEnabled"
     FROM "player_profiles"
@@ -419,6 +421,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
   const cheatSettingsRow = cheatSettingsRows[0] ?? {
     fastTravelEnabled: false,
     fastContractReplenishEnabled: false,
+    fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false
   };
@@ -472,6 +475,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     cheatSettings: playerCheatSettingsSchema.parse({
       fastTravelEnabled: cheatSettingsRow.fastTravelEnabled,
       fastContractReplenishEnabled: cheatSettingsRow.fastContractReplenishEnabled,
+      fastArenaReplenishEnabled: cheatSettingsRow.fastArenaReplenishEnabled,
       invincibilityEnabled: cheatSettingsRow.invincibilityEnabled,
       fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled
     })
