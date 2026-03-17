@@ -3,6 +3,7 @@
   useMemo,
   useRef,
   useState,
+  type DragEvent as ReactDragEvent,
   type FormEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
@@ -265,6 +266,16 @@ type InventoryFilterState = {
   showOnlyWearable: boolean;
   powerSortDirection: "desc" | "asc";
 };
+
+export type InventoryGridEntry =
+  | { kind: "item"; item: InventoryItem }
+  | { kind: "empty"; id: string; slotIndex: number };
+type MerchantOfferGridEntry =
+  | { kind: "offer"; offer: MerchantOffer }
+  | { kind: "empty"; id: string; slotIndex: number };
+type MerchantSellGridEntry =
+  | { kind: "sell"; entry: { item: InventoryItem; fromSlot: string } }
+  | { kind: "empty"; id: string; slotIndex: number };
 
 type StatContributionLine = {
   label: string;
@@ -1170,6 +1181,10 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean, p
   );
 }
 
+function renderEmptyInventorySlotCardBody(): ReactElement {
+  return <div className="inventoryCompactVisual inventoryCompactVisualEmpty" aria-hidden="true" />;
+}
+
 function renderInventoryItemDetailCardBody(
   item: InventoryItem,
   canUseItem: boolean,
@@ -1329,6 +1344,153 @@ function renderItemIcon(args: {
         iconVisual.label
       )}
     </span>
+  );
+}
+
+export function createFixedInventoryGridEntries(items: InventoryItem[], slotCapacity: number): InventoryGridEntry[] {
+  const normalizedSlotCapacity = Math.max(0, slotCapacity);
+  const visibleItems = items.slice(0, normalizedSlotCapacity);
+  const entries: InventoryGridEntry[] = visibleItems.map((item) => ({
+    kind: "item",
+    item
+  }));
+
+  for (let slotIndex = visibleItems.length; slotIndex < normalizedSlotCapacity; slotIndex += 1) {
+    entries.push({
+      kind: "empty",
+      id: `empty-slot-${slotIndex}`,
+      slotIndex
+    });
+  }
+
+  return entries;
+}
+
+export function createFixedMerchantOfferEntries(offers: MerchantOffer[], slotCapacity: number): MerchantOfferGridEntry[] {
+  const normalizedSlotCapacity = Math.max(0, slotCapacity);
+  const visibleOffers = offers.slice(0, normalizedSlotCapacity);
+  const entries: MerchantOfferGridEntry[] = visibleOffers.map((offer) => ({
+    kind: "offer",
+    offer
+  }));
+
+  for (let slotIndex = visibleOffers.length; slotIndex < normalizedSlotCapacity; slotIndex += 1) {
+    entries.push({
+      kind: "empty",
+      id: `merchant-offer-empty-slot-${slotIndex}`,
+      slotIndex
+    });
+  }
+
+  return entries;
+}
+
+export function createFixedMerchantSellEntries(
+  entries: Array<{ item: InventoryItem; fromSlot: string }>,
+  slotCapacity: number
+): MerchantSellGridEntry[] {
+  const normalizedSlotCapacity = Math.max(0, slotCapacity);
+  const visibleEntries = entries.slice(0, normalizedSlotCapacity);
+  const paddedEntries: MerchantSellGridEntry[] = visibleEntries.map((entry) => ({
+    kind: "sell",
+    entry
+  }));
+
+  for (let slotIndex = visibleEntries.length; slotIndex < normalizedSlotCapacity; slotIndex += 1) {
+    paddedEntries.push({
+      kind: "empty",
+      id: `merchant-player-empty-slot-${slotIndex}`,
+      slotIndex
+    });
+  }
+
+  return paddedEntries;
+}
+
+type InventoryCardGridProps = {
+  entries: InventoryGridEntry[];
+  allowDrag: boolean;
+  playerState: PlayerState | null;
+  draggingInventoryCardId: string | null;
+  dropTargetInventoryCardId: string | null;
+  dropInsertPosition: InventoryInsertPosition;
+  onInventoryCardDragStart: (event: ReactDragEvent<HTMLElement>, itemId: string) => void;
+  onInventoryCardDragOver: (event: ReactDragEvent<HTMLElement>, itemId: string) => void;
+  onInventoryCardDrop: (event: ReactDragEvent<HTMLElement>) => void;
+  onInventoryCardDoubleClick: (itemId: string) => Promise<void> | void;
+  onInventoryCardMouseEnter: (
+    item: InventoryItem,
+    hoverKey: string,
+    cardElement: HTMLElement,
+    placement?: "left" | "right"
+  ) => void;
+  onInventoryCardMouseLeave: (hoverKey: string) => void;
+  onInventoryCardDragEnd: () => void;
+};
+
+export function InventoryCardGrid(props: InventoryCardGridProps): ReactElement {
+  if (props.entries.length === 0) {
+    return <p>{i18n.t("inventory.noItems")}</p>;
+  }
+
+  return (
+    <div className="inventoryCards">
+      {props.entries.map((entry) => {
+        if (entry.kind === "empty") {
+          return (
+            <article
+              key={entry.id}
+              className="inventoryItemCard inventoryItemCardEmpty"
+              data-testid={`inventory-empty-slot-${entry.slotIndex}`}
+              draggable={false}
+              aria-label={i18n.t("item.empty")}
+            >
+              {renderEmptyInventorySlotCardBody()}
+            </article>
+          );
+        }
+
+        const { item } = entry;
+        const dragSourceClass = props.draggingInventoryCardId === item.id ? " isDragSource" : "";
+        const dropCueClass =
+          props.dropTargetInventoryCardId === item.id && props.draggingInventoryCardId !== item.id
+            ? props.dropInsertPosition === "before"
+              ? " dropCueBefore"
+              : " dropCueAfter"
+            : "";
+        const canUseItem = canPlayerUseItem(item, props.playerState);
+
+        return (
+          <article
+            key={item.id}
+            className={`inventoryItemCard rarity-${item.rarity}${dragSourceClass}${dropCueClass}`}
+            data-testid={`inventory-card-${item.id}`}
+            draggable={props.allowDrag}
+            onDragStart={props.allowDrag ? (event) => props.onInventoryCardDragStart(event, item.id) : undefined}
+            onDragOver={props.allowDrag ? (event) => props.onInventoryCardDragOver(event, item.id) : undefined}
+            onDrop={props.allowDrag ? (event) => props.onInventoryCardDrop(event) : undefined}
+            onDoubleClick={props.allowDrag ? () => props.onInventoryCardDoubleClick(item.id) : undefined}
+            onContextMenu={
+              props.allowDrag
+                ? (event) => {
+                    event.preventDefault();
+                    void props.onInventoryCardDoubleClick(item.id);
+                  }
+                : undefined
+            }
+            onMouseEnter={
+              props.allowDrag
+                ? (event) => props.onInventoryCardMouseEnter(item, item.id, event.currentTarget, "left")
+                : undefined
+            }
+            onMouseLeave={props.allowDrag ? () => props.onInventoryCardMouseLeave(item.id) : undefined}
+            onDragEnd={props.allowDrag ? props.onInventoryCardDragEnd : undefined}
+          >
+            {renderInventoryItemCardBody(item, canUseItem)}
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
@@ -4215,51 +4377,28 @@ export function AppShell() {
     );
   }
 
-  function renderInventoryCards(items: InventoryItem[], allowDrag: boolean) {
-    if (items.length === 0) {
-      return <p>{i18n.t("inventory.noItems")}</p>;
-    }
+  function renderInventoryCards(items: InventoryItem[], allowDrag: boolean, slotCapacity?: number) {
+    const entries =
+      typeof slotCapacity === "number"
+        ? createFixedInventoryGridEntries(items, slotCapacity)
+        : items.map((item) => ({ kind: "item", item }) satisfies InventoryGridEntry);
 
     return (
-      <div className="inventoryCards">
-        {items.map((item) => {
-          const dragSourceClass = draggingInventoryCardId === item.id ? " isDragSource" : "";
-          const dropCueClass =
-            dropTargetInventoryCardId === item.id && draggingInventoryCardId !== item.id
-              ? dropInsertPosition === "before"
-                ? " dropCueBefore"
-                : " dropCueAfter"
-              : "";
-          const canUseItem = canPlayerUseItem(item, playerState);
-          return (
-            <article
-              key={item.id}
-              className={`inventoryItemCard rarity-${item.rarity}${dragSourceClass}${dropCueClass}`}
-              data-testid={`inventory-card-${item.id}`}
-              draggable={allowDrag}
-              onDragStart={allowDrag ? (event) => handleInventoryCardDragStart(event, item.id) : undefined}
-              onDragOver={allowDrag ? (event) => handleInventoryCardDragOver(event, item.id) : undefined}
-              onDrop={allowDrag ? (event) => handleInventoryCardDrop(event) : undefined}
-              onDoubleClick={allowDrag ? () => handleInventoryCardDoubleClick(item.id) : undefined}
-              onContextMenu={
-                allowDrag
-                  ? (event) => {
-                      event.preventDefault();
-                      void handleInventoryCardDoubleClick(item.id);
-                    }
-                  : undefined
-              }
-              onMouseEnter={
-                allowDrag ? (event) => handleInventoryCardMouseEnter(item, item.id, event.currentTarget, "left") : undefined
-              }
-              onMouseLeave={allowDrag ? () => handleInventoryCardMouseLeave(item.id) : undefined}
-              onDragEnd={allowDrag ? handleInventoryCardDragEnd : undefined}
-            >
-              {renderInventoryItemCardBody(item, canUseItem)}
-            </article>
-          );
-        })}
-      </div>
+      <InventoryCardGrid
+        entries={entries}
+        allowDrag={allowDrag}
+        playerState={playerState}
+        draggingInventoryCardId={draggingInventoryCardId}
+        dropTargetInventoryCardId={dropTargetInventoryCardId}
+        dropInsertPosition={dropInsertPosition}
+        onInventoryCardDragStart={handleInventoryCardDragStart}
+        onInventoryCardDragOver={handleInventoryCardDragOver}
+        onInventoryCardDrop={handleInventoryCardDrop}
+        onInventoryCardDoubleClick={handleInventoryCardDoubleClick}
+        onInventoryCardMouseEnter={handleInventoryCardMouseEnter}
+        onInventoryCardMouseLeave={handleInventoryCardMouseLeave}
+        onInventoryCardDragEnd={handleInventoryCardDragEnd}
+      />
     );
   }
 
@@ -4362,9 +4501,7 @@ export function AppShell() {
   }
 
   function renderMerchantOffers(): ReactElement {
-    if (!merchantState || merchantState.offers.length === 0) {
-      return <p>No merchant stock available.</p>;
-    }
+    const offerEntries = createFixedMerchantOfferEntries(filteredMerchantOffers, INVENTORY_ITEM_LIMIT);
 
     return (
       <div
@@ -4379,7 +4516,22 @@ export function AppShell() {
         }}
         onDrop={handleMerchantInventoryDrop}
       >
-        {filteredMerchantOffers.map((offer) => {
+        {offerEntries.map((entry) => {
+          if (entry.kind === "empty") {
+            return (
+              <article
+                key={entry.id}
+                className="inventoryItemCard inventoryItemCardEmpty"
+                data-testid={`merchant-offer-empty-slot-${entry.slotIndex}`}
+                draggable={false}
+                aria-label={i18n.t("item.empty")}
+              >
+                {renderEmptyInventorySlotCardBody()}
+              </article>
+            );
+          }
+
+          const { offer } = entry;
           const canUseItem = canPlayerUseItem(offer.item, playerState);
 
           return (
@@ -4407,9 +4559,7 @@ export function AppShell() {
   }
 
   function renderMerchantSellCards(entries: Array<{ item: InventoryItem; fromSlot: string }>): ReactElement {
-    if (entries.length === 0) {
-      return <p>No items available.</p>;
-    }
+    const paddedEntries = createFixedMerchantSellEntries(entries, INVENTORY_ITEM_LIMIT);
 
     return (
       <div
@@ -4424,33 +4574,48 @@ export function AppShell() {
         }}
         onDrop={handlePlayerMerchantListDrop}
       >
-        {entries.map((entry) => {
-          const canUseItem = canPlayerUseItem(entry.item, playerState);
-          const sellPrice = merchantState?.sellPrices[entry.item.id] ?? 0;
+        {paddedEntries.map((entry) => {
+          if (entry.kind === "empty") {
+            return (
+              <article
+                key={entry.id}
+                className="inventoryItemCard inventoryItemCardEmpty"
+                data-testid={`merchant-player-empty-slot-${entry.slotIndex}`}
+                draggable={false}
+                aria-label={i18n.t("item.empty")}
+              >
+                {renderEmptyInventorySlotCardBody()}
+              </article>
+            );
+          }
+
+          const { item, fromSlot } = entry.entry;
+          const canUseItem = canPlayerUseItem(item, playerState);
+          const sellPrice = merchantState?.sellPrices[item.id] ?? 0;
 
           return (
             <article
-              key={`${entry.fromSlot}-${entry.item.id}`}
-              className={`inventoryItemCard rarity-${entry.item.rarity}`}
-              data-testid={`merchant-player-item-${entry.item.id}`}
+              key={`${fromSlot}-${item.id}`}
+              className={`inventoryItemCard rarity-${item.rarity}`}
+              data-testid={`merchant-player-item-${item.id}`}
               draggable={!isMerchantMutating}
               onDragStart={
-                entry.fromSlot === "inventory"
-                  ? (event) => handleInventoryCardDragStart(event, entry.item.id)
-                  : (event) => handleEquipmentSlotDragStart(event, entry.fromSlot as EquipmentSlotId)
+                fromSlot === "inventory"
+                  ? (event) => handleInventoryCardDragStart(event, item.id)
+                  : (event) => handleEquipmentSlotDragStart(event, fromSlot as EquipmentSlotId)
               }
               onDragEnd={handleInventoryCardDragEnd}
-              onDoubleClick={() => void handleMerchantPlayerItemInteract(entry.item.id, entry.fromSlot)}
+              onDoubleClick={() => void handleMerchantPlayerItemInteract(item.id, fromSlot)}
               onMouseEnter={(event) =>
-                handleInventoryCardMouseEnter(entry.item, `${entry.fromSlot}-${entry.item.id}`, event.currentTarget, "left")
+                handleInventoryCardMouseEnter(item, `${fromSlot}-${item.id}`, event.currentTarget, "left")
               }
-              onMouseLeave={() => handleInventoryCardMouseLeave(`${entry.fromSlot}-${entry.item.id}`)}
+              onMouseLeave={() => handleInventoryCardMouseLeave(`${fromSlot}-${item.id}`)}
               onContextMenu={(event) => {
                 event.preventDefault();
-                void handleMerchantPlayerItemInteract(entry.item.id, entry.fromSlot);
+                void handleMerchantPlayerItemInteract(item.id, fromSlot);
               }}
             >
-              {renderInventoryItemCardBody(entry.item, canUseItem, sellPrice.toLocaleString())}
+              {renderInventoryItemCardBody(item, canUseItem, sellPrice.toLocaleString())}
             </article>
           );
         })}
@@ -4469,14 +4634,12 @@ export function AppShell() {
         isMerchantMutating={isMerchantMutating}
         merchantOfferFilters={merchantOfferFilters}
         merchantPlayerFilters={merchantPlayerFilters}
-        merchantInventoryItemsCount={merchantInventoryItems.length}
-        merchantEquippedEntriesCount={merchantEquippedEntries.length}
+        merchantInventoryItemsCount={merchantInventoryItems.length + merchantEquippedEntries.length}
         filteredMerchantOffersCount={filteredMerchantOffers.length}
-        filteredMerchantInventoryItems={filteredMerchantInventoryItems.map((item) => ({ item, fromSlot: "inventory" }))}
-        filteredMerchantEquippedEntries={filteredMerchantEquippedEntries.map((entry) => ({
-          item: entry.item,
-          fromSlot: entry.slotId
-        }))}
+        filteredMerchantInventoryItems={[
+          ...filteredMerchantInventoryItems.map((item) => ({ item, fromSlot: "inventory" })),
+          ...filteredMerchantEquippedEntries.map((entry) => ({ item: entry.item, fromSlot: entry.slotId }))
+        ]}
         onRestock={handleMerchantRestock}
         formatDurationFromMs={formatDurationFromMs}
         renderPlaceholderPanel={renderPlaceholderPanel}
@@ -4501,6 +4664,7 @@ export function AppShell() {
           isLoadingState={isLoadingState}
           playerState={playerState}
           inventoryItems={inventoryItems}
+          inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
           profileSideTab={profileSideTab}
           sidePanelScrollRef={sidePanelScrollRef}
           filteredInventoryItems={filteredInventoryItems}
@@ -4577,6 +4741,7 @@ export function AppShell() {
         isLoadingState={isLoadingState}
         playerState={playerState}
         inventoryItems={inventoryItems}
+        inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
         profileSideTab={profileSideTab}
         sidePanelScrollRef={sidePanelScrollRef}
         filteredInventoryItems={filteredInventoryItems}
