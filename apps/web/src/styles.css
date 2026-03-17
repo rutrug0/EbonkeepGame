@@ -4107,6 +4107,12 @@ button:focus-visible {
   isolation: isolate;
 }
 
+.inventoryItemCardEmpty {
+  border-color: rgba(142, 128, 105, 0.18);
+  background:
+    linear-gradient(160deg, rgba(22, 28, 34, 0.86), rgba(15, 20, 26, 0.92));
+}
+
 .inventoryComparisonOverlay {
   position: fixed;
   z-index: 38;
@@ -5150,6 +5156,32 @@ button:focus-visible {
   padding: 0;
 }
 
+.inventoryCompactVisualEmpty {
+  border-color: rgba(173, 155, 126, 0.16);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(132, 97, 58, 0.08), transparent 52%),
+    linear-gradient(170deg, rgba(17, 23, 30, 0.94), rgba(10, 15, 21, 0.98));
+  opacity: 0.28;
+}
+
+.inventoryEmptySlotGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border: 1px dashed rgba(179, 162, 133, 0.22);
+  border-radius: calc(var(--soft-radius) - 2px);
+  color: rgba(191, 176, 148, 0.48);
+  background: rgba(11, 16, 21, 0.28);
+}
+
+.inventoryEmptySlotGlyph svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+}
+
 .inventoryCompactVisual .itemVisualImage,
 .inventoryCompactVisual .itemVisualImageCard {
   width: 100%;
@@ -5482,35 +5514,28 @@ button:focus-visible {
   min-height: 0;
 }
 
+.merchantShell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0) 34%,
+      rgba(0, 0, 0, 0.16) 58%,
+      rgba(0, 0, 0, 0.42) 82%,
+      rgba(0, 0, 0, 0.68) 100%
+    );
+  z-index: 0;
+}
+
 .merchantStack {
   width: 100%;
   min-height: 100%;
   height: 100%;
-  grid-template-rows: auto 1fr;
-}
-
-.merchantHeaderCard,
-.merchantColumnCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-height: 0;
-}
-
-.merchantHeaderTop {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  align-items: start;
-}
-
-.merchantHeaderTop h2 {
-  margin: 0 0 6px;
-}
-
-.merchantHeaderText {
-  margin: 0;
-  color: var(--text-soft);
+  grid-template-rows: minmax(0, 1fr);
+  align-content: center;
 }
 
 .merchantStatusRow {
@@ -5524,17 +5549,33 @@ button:focus-visible {
 .merchantColumns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-3);
   align-items: stretch;
   min-height: 0;
+  max-height: 100%;
+}
+
+.merchantColumnCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.merchantSceneCard {
+  position: relative;
+  padding: var(--space-3);
+  min-height: 0;
+  align-self: center;
 }
 
 .merchantTradeActionRow {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-2);
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: var(--space-3);
   margin-top: var(--space-1);
 }
 
@@ -5585,6 +5626,17 @@ button:focus-visible {
 .merchantTradeButton:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.merchantSceneCard .inventoryToolbarSticky {
+  background: transparent;
+}
+
+.merchantSceneCard .merchantTradeButton {
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.42),
+    0 4px 0 rgba(8, 11, 15, 0.82),
+    inset 0 1px 0 rgba(249, 232, 201, 0.08);
 }
 
 .merchantSectionHeader {

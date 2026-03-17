@@ -1,8 +1,11 @@
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 
 import type { PlayerState } from "@ebonkeep/shared/player";
 
+import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import i18n from "../../i18n";
+
+const MERCHANT_BACKGROUND_KEY = "indoors:merchant";
 
 type MerchantStateLike = {
   offers: unknown[];
@@ -36,10 +39,8 @@ export type MerchantPanelProps = {
   merchantOfferFilters: InventoryFilterStateLike;
   merchantPlayerFilters: InventoryFilterStateLike;
   merchantInventoryItemsCount: number;
-  merchantEquippedEntriesCount: number;
   filteredMerchantOffersCount: number;
   filteredMerchantInventoryItems: MerchantSellEntryLike[];
-  filteredMerchantEquippedEntries: MerchantSellEntryLike[];
   onRestock: () => void;
   formatDurationFromMs: (value: number) => string;
   renderPlaceholderPanel: (title: string, description: string) => ReactElement;
@@ -77,23 +78,19 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
     item: entry.item,
     fromSlot: "inventory"
   }));
-  const equippedSellEntries = props.filteredMerchantEquippedEntries.map((entry) => ({
-    item: entry.item,
-    fromSlot: entry.fromSlot
-  }));
   const currentDucats = props.currencies?.ducats ?? props.playerState.currency.ducats;
+  const merchantBackgroundPath = GENERATED_ITEM_ICON_PATHS[MERCHANT_BACKGROUND_KEY];
+  const merchantSceneStyle = merchantBackgroundPath
+    ? ({
+        "--indoor-scene-image": `url("${merchantBackgroundPath}")`
+      } as CSSProperties)
+    : undefined;
 
   return (
-    <section className="contentShell merchantShell">
+    <section className="contentShell merchantShell indoorSceneShell" style={merchantSceneStyle}>
       <section className="contentStack merchantStack">
-        <article className="contentCard merchantHeaderCard">
-          <div className="merchantHeaderTop">
-            <div>
-              <h2>{i18n.t("menu.merchant")}</h2>
-              <p className="merchantHeaderText">
-                Rotating heavy armor and melee stock. Inventory refreshes every 12 hours.
-              </p>
-            </div>
+        <section className="merchantColumns merchantSceneCard">
+          <div className="merchantTradeActionRow">
             <button
               type="button"
               className="merchantTradeButton"
@@ -103,13 +100,6 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
               Restock
             </button>
           </div>
-          <div className="merchantStatusRow">
-            <span className="merchantTradePrice merchantTradePriceXL">Ducats: <span className="ducatsAmount">{currentDucats.toLocaleString()}</span></span>
-            <span className="merchantTradeMeta">Next refresh in {props.formatDurationFromMs(nextRefreshMs)}</span>
-          </div>
-        </article>
-
-        <section className="merchantColumns">
           <article className="contentCard merchantColumnCard">
             <div className="inventoryHeader">
               <h3>Merchant Inventory</h3>
@@ -135,20 +125,14 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
             {props.renderInventoryControlsRow({
               idPrefix: "merchant-player",
               filters: props.merchantPlayerFilters,
-              totalCount: props.merchantInventoryItemsCount + props.merchantEquippedEntriesCount,
-              shownCount: inventorySellEntries.length + equippedSellEntries.length,
+              totalCount: props.merchantInventoryItemsCount,
+              shownCount: inventorySellEntries.length,
               onTogglePowerSort: props.onTogglePlayerPowerSort,
               onToggleCategory: props.onTogglePlayerCategory,
               onToggleWearable: props.onTogglePlayerWearable
             })}
             <div className="merchantColumnBody merchantColumnBodyStacked">
               {props.renderMerchantSellCards(inventorySellEntries)}
-
-              <div className="inventoryHeader merchantSectionHeader">
-                <h3>Equipped</h3>
-                <p>{props.merchantEquippedEntriesCount} equipped items</p>
-              </div>
-              {props.renderMerchantSellCards(equippedSellEntries)}
             </div>
           </article>
         </section>
