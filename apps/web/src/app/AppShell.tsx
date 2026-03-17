@@ -115,6 +115,7 @@ import {
   getEncounterPlaybackThresholdMs,
   mapBoardSlotsToUi,
   resetCombatEncounterPlayback,
+  skipToEndCombatPlayback,
   snapshotEncounterPlayback,
   startContractsRun,
   type ActiveContractEncounterState,
@@ -3864,6 +3865,15 @@ export function AppShell() {
     });
   }
 
+  function skipContractEncounterToEnd() {
+    setActiveContractEncounter((previousEncounter) => {
+      if (!previousEncounter || previousEncounter.phase !== "combat") {
+        return previousEncounter;
+      }
+      return skipToEndCombatPlayback(previousEncounter);
+    });
+  }
+
   function toggleCombatFastForward() {
     setActiveContractEncounter((previousEncounter) => {
       if (!previousEncounter || previousEncounter.phase !== "combat") {
@@ -5346,6 +5356,7 @@ export function AppShell() {
                           hoveredActorId={hoveredCombatActorId}
                           resolutionState={activeContractEncounter.resolutionState}
                           onToggleFastForward={toggleCombatFastForward}
+                          onSkipToEnd={skipContractEncounterToEnd}
                           onReplayCombat={replayContractEncounter}
                           onBackToBoard={returnToContractsBoard}
                         />
@@ -5391,6 +5402,7 @@ export function AppShell() {
                         hoveredActorId={hoveredCombatActorId}
                         resolutionState={activeContractEncounter.resolutionState}
                         onToggleFastForward={toggleCombatFastForward}
+                        onSkipToEnd={skipContractEncounterToEnd}
                         onReplayCombat={replayContractEncounter}
                         onBackToBoard={returnToContractsBoard}
                       />

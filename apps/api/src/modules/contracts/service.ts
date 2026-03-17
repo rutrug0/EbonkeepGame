@@ -45,6 +45,9 @@ import { simulateEncounter, type StoredRewardSpec } from "./simulator.js";
 
 const FAST_TRAVEL_CHEAT_DURATION_MS = 2_000;
 const FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS = 3_000;
+// Allow the client to claim up to this many ms before the server clock catches up.
+// Handles typical client/server clock skew without permitting real early claims.
+const CLAIM_GRACE_PERIOD_MS = 6_000;
 
 function json<T>(value: T): Prisma.JsonObject {
   return JSON.parse(JSON.stringify(value)) as Prisma.JsonObject;
@@ -255,7 +258,7 @@ async function syncRunState(prisma: PrismaClient, runId: string, now: Date): Pro
           : run.travelEndsAt.getTime()
       );
 
-  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt > now) {
+  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt.getTime() > now.getTime() + CLAIM_GRACE_PERIOD_MS) {
     return;
   }
 

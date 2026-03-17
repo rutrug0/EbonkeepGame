@@ -42,6 +42,7 @@ export type CombatEncounterPanelProps = {
   hoveredActorId?: string | null;
   onHoverActor?: (actorId: string | null) => void;
   onToggleFastForward: () => void;
+  onSkipToEnd?: () => void;
   onCloseLog?: () => void;
   onReplayCombat: () => void;
   onBackToBoard: () => void;
@@ -117,6 +118,7 @@ export function CombatEncounterArenaPanel({
   hoveredActorId,
   resolutionState,
   onToggleFastForward,
+  onSkipToEnd,
   onReplayCombat,
   onBackToBoard
 }: Pick<
@@ -132,6 +134,7 @@ export function CombatEncounterArenaPanel({
   | "hoveredActorId"
   | "resolutionState"
   | "onToggleFastForward"
+  | "onSkipToEnd"
   | "onReplayCombat"
   | "onBackToBoard"
 >) {
@@ -166,6 +169,17 @@ export function CombatEncounterArenaPanel({
             >
               &raquo;&raquo;
             </button>
+            {resolutionState === "playing" ? (
+              <button
+                type="button"
+                className="combatSkipToEndButton combatSpeedToggleOverlay"
+                aria-label={t("contracts.skipToEnd", { defaultValue: "Skip to End" })}
+                title={t("contracts.skipToEnd", { defaultValue: "Skip to End" })}
+                onClick={onSkipToEnd}
+              >
+                {t("contracts.skipToEnd", { defaultValue: "Skip to End" })}
+              </button>
+            ) : null}
             {resolutionState === "awaiting_return" ? (
               <div className="combatArenaResolvedActions">
                 <button

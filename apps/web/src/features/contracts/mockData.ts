@@ -14,6 +14,7 @@ import {
   combatPlaybackEventSchema,
   type CombatPlaybackActionResolved,
   type CombatPlaybackActor,
+  type CombatPlaybackEnded,
   type CombatPlaybackEncounter,
   type CombatPlaybackEvent,
   type CombatPlaybackRollBreakdown,
@@ -788,6 +789,42 @@ export function resetCombatEncounterPlayback(previousEncounter: ActiveContractEn
     typedSummaryLine: "",
     playbackRate: previousEncounter.playbackRate,
     segmentPlaybackRate: previousEncounter.playbackRate,
+    playbackProgressMs: 0,
+    lastPlaybackTickAtMs: null
+  };
+}
+
+export function skipToEndCombatPlayback(encounter: ActiveContractEncounterState): ActiveContractEncounterState {
+  const updatedHp = { ...encounter.hpByActorId };
+  const newLogEntries = [...encounter.combatLogEntries];
+  const newLogEventIds = [...encounter.combatLogEventIds];
+
+  const appliedEventIds = new Set(encounter.combatLogEventIds);
+  for (const event of encounter.timeline) {
+    if (event.type === "CombatPlaybackActionResolved" && !appliedEventIds.has(event.eventId)) {
+      updatedHp[event.targetId] = event.targetHpAfter;
+      newLogEntries.push(event.logLine);
+      newLogEventIds.push(event.eventId);
+      appliedEventIds.add(event.eventId);
+    }
+  }
+
+  const endedEvent = encounter.timeline.find(
+    (event): event is CombatPlaybackEnded => event.type === "CombatPlaybackEnded"
+  );
+  const summaryLine = endedEvent?.summaryLine ?? "";
+
+  return {
+    ...encounter,
+    currentEventIndex: encounter.timeline.length,
+    hpByActorId: updatedHp,
+    combatLogEntries: newLogEntries,
+    combatLogEventIds: newLogEventIds,
+    activeAction: null,
+    impactTargetId: null,
+    resolutionState: "awaiting_return",
+    finalSummaryLine: summaryLine,
+    typedSummaryLine: summaryLine,
     playbackProgressMs: 0,
     lastPlaybackTickAtMs: null
   };

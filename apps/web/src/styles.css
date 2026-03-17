@@ -169,6 +169,7 @@ body {
   --menu-icon-left: 8px;
   --menu-label-side-pad: 36px;
   --equip-slot-size: 90px;
+  --character-frame-height: calc(5 * var(--equip-slot-size) + 4 * var(--space-2));
 }
 
 .appRoot.layout-wide {
@@ -1001,9 +1002,11 @@ button:focus-visible {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.panelViewportProfileMain .contentShell,
 .panelViewportSide .contentShell {
   height: 100%;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .contractsCombatViewportMain,
@@ -4165,7 +4168,7 @@ button:focus-visible {
 
 .academyTreeLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 380px;
   gap: var(--space-3);
   align-items: stretch;
 }

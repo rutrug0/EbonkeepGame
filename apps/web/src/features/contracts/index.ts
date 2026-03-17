@@ -25,6 +25,7 @@ export {
   getEncounterPlaybackThresholdMs,
   getEncounterTravelDescription,
   resetCombatEncounterPlayback,
+  skipToEndCombatPlayback,
   snapshotEncounterPlayback,
   type ActiveContractEncounterState,
   type ContractLevelBand,
