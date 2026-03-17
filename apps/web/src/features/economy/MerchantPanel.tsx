@@ -73,12 +73,7 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
     return props.renderPlaceholderPanel(i18n.t("menu.merchant"), "Merchant stock is unavailable.");
   }
 
-  const nextRefreshMs = Math.max(0, props.merchantState.nextRefreshAtMs - props.nowMs);
-  const inventorySellEntries = props.filteredMerchantInventoryItems.map((entry) => ({
-    item: entry.item,
-    fromSlot: "inventory"
-  }));
-  const currentDucats = props.currencies?.ducats ?? props.playerState.currency.ducats;
+  const inventorySellEntries = props.filteredMerchantInventoryItems;
   const merchantBackgroundPath = GENERATED_ITEM_ICON_PATHS[MERCHANT_BACKGROUND_KEY];
   const merchantSceneStyle = merchantBackgroundPath
     ? ({
@@ -120,7 +115,7 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
           <article className="contentCard merchantColumnCard">
             <div className="inventoryHeader">
               <h3>Your Inventory</h3>
-              <p>{inventorySellEntries.length} bag items</p>
+              <p>{inventorySellEntries.length} sellable items</p>
             </div>
             {props.renderInventoryControlsRow({
               idPrefix: "merchant-player",

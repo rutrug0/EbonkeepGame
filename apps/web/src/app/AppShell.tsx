@@ -2245,6 +2245,14 @@ export function AppShell() {
     () => inventoryItems,
     [inventoryItems]
   );
+  const merchantEquippedEntries = useMemo(
+    () =>
+      ALL_EQUIPMENT_SLOTS.map((slotId) => ({
+        slotId,
+        item: equippedItems[slotId]
+      })).filter((entry) => entry.item !== null) as Array<{ slotId: EquipmentSlotId; item: InventoryItem }>,
+    [equippedItems]
+  );
   const filteredMerchantOffers = useMemo(
     () =>
       (merchantState?.offers ?? [])
@@ -2259,6 +2267,17 @@ export function AppShell() {
   const filteredMerchantInventoryItems = useMemo(
     () => applyInventoryFilters(merchantInventoryItems, merchantPlayerFilters),
     [merchantInventoryItems, merchantPlayerFilters]
+  );
+  const filteredMerchantEquippedEntries = useMemo(
+    () =>
+      merchantEquippedEntries
+        .filter((entry) => applyInventoryFilters([entry.item], merchantPlayerFilters).length > 0)
+        .sort((left, right) =>
+          merchantPlayerFilters.powerSortDirection === "desc"
+            ? right.item.power - left.item.power
+            : left.item.power - right.item.power
+        ),
+    [merchantEquippedEntries, merchantPlayerFilters]
   );
 
   useEffect(() => {
@@ -4580,7 +4599,11 @@ export function AppShell() {
               className={`inventoryItemCard rarity-${item.rarity}`}
               data-testid={`merchant-player-item-${item.id}`}
               draggable={!isMerchantMutating}
-              onDragStart={(event) => handleInventoryCardDragStart(event, item.id)}
+              onDragStart={
+                fromSlot === "inventory"
+                  ? (event) => handleInventoryCardDragStart(event, item.id)
+                  : (event) => handleEquipmentSlotDragStart(event, fromSlot as EquipmentSlotId)
+              }
               onDragEnd={handleInventoryCardDragEnd}
               onDoubleClick={() => void handleMerchantPlayerItemInteract(item.id, fromSlot)}
               onMouseEnter={(event) =>
@@ -4611,9 +4634,12 @@ export function AppShell() {
         isMerchantMutating={isMerchantMutating}
         merchantOfferFilters={merchantOfferFilters}
         merchantPlayerFilters={merchantPlayerFilters}
-        merchantInventoryItemsCount={merchantInventoryItems.length}
+        merchantInventoryItemsCount={merchantInventoryItems.length + merchantEquippedEntries.length}
         filteredMerchantOffersCount={filteredMerchantOffers.length}
-        filteredMerchantInventoryItems={filteredMerchantInventoryItems.map((item) => ({ item, fromSlot: "inventory" }))}
+        filteredMerchantInventoryItems={[
+          ...filteredMerchantInventoryItems.map((item) => ({ item, fromSlot: "inventory" })),
+          ...filteredMerchantEquippedEntries.map((entry) => ({ item: entry.item, fromSlot: entry.slotId }))
+        ]}
         onRestock={handleMerchantRestock}
         formatDurationFromMs={formatDurationFromMs}
         renderPlaceholderPanel={renderPlaceholderPanel}
