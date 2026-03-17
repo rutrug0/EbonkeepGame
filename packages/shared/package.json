@@ -30,6 +30,10 @@
       "types": "./src/domains/combat/index.ts",
       "default": "./src/domains/combat/index.ts"
     },
+    "./arena": {
+      "types": "./src/domains/arena/index.ts",
+      "default": "./src/domains/arena/index.ts"
+    },
     "./economy": {
       "types": "./src/domains/economy/index.ts",
       "default": "./src/domains/economy/index.ts"

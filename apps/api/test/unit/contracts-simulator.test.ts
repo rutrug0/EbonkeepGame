@@ -111,6 +111,7 @@ function createPlayerState(): PlayerState {
       invincibilityEnabled: false,
       fastTravelEnabled: false,
       fastContractReplenishEnabled: false,
+      fastArenaReplenishEnabled: false,
       fastTrainTimeEnabled: false
     }
   };
@@ -213,6 +214,54 @@ describe("contracts simulator", () => {
       killed: true
     });
     expect(firstAction?.strikes[1]?.targetId).toBe("enemy-b");
+  });
+
+  it("skips the PvE level modifier when combat is simulated in neutral mode", () => {
+    const player = actor({
+      id: "player",
+      side: "player",
+      name: "Player",
+      level: 10,
+      combatSpeed: 200,
+      accuracy: 1000,
+      dodgeChance: 0,
+      minDamage: 20,
+      maxDamage: 20,
+      maxHp: 120,
+      currentHp: 120
+    });
+    const enemy = actor({
+      id: "enemy",
+      side: "enemy",
+      name: "Enemy",
+      encounterOrder: 0,
+      level: 60,
+      combatSpeed: 1,
+      dodgeChance: 0,
+      maxHp: 300,
+      currentHp: 300
+    });
+
+    const pveEvents = simulateCombat({
+      player,
+      enemies: [enemy],
+      seed: "level-delta-seed"
+    });
+    const neutralEvents = simulateCombat({
+      player,
+      enemies: [enemy],
+      seed: "level-delta-seed",
+      levelDeltaMode: "neutral"
+    });
+
+    const pveStrike = pveEvents.find(
+      (event): event is Extract<(typeof pveEvents)[number], { type: "CombatActionResolved" }> => event.type === "CombatActionResolved"
+    )?.strikes[0];
+    const neutralStrike = neutralEvents.find(
+      (event): event is Extract<(typeof neutralEvents)[number], { type: "CombatActionResolved" }> => event.type === "CombatActionResolved"
+    )?.strikes[0];
+
+    expect(pveStrike?.rawDamage).toBeLessThan(neutralStrike?.rawDamage ?? 0);
   });
 
   it("uses the mitigation curve and a five percent minimum-hit floor", () => {

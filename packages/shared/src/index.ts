@@ -3,6 +3,7 @@ export * from "./domains/auth/index.js";
 export * from "./domains/player/index.js";
 export * from "./domains/inventory/index.js";
 export * from "./domains/combat/index.js";
+export * from "./domains/arena/index.js";
 export * from "./domains/economy/index.js";
 export * from "./domains/guild/index.js";
 export * from "./domains/leaderboard/index.js";

@@ -11,6 +11,7 @@ import { auctionRoutes } from "./modules/auction/routes.js";
 import { authRoutes } from "./modules/auth/routes.js";
 import { initEmailService } from "./modules/auth/services/email.js";
 import { academyRoutes } from "./modules/academy/routes.js";
+import { arenaRoutes } from "./modules/arena/routes.js";
 import { renownRoutes } from "./modules/renown/routes.js";
 import { combatRoutes } from "./modules/combat/routes.js";
 import { contractRoutes } from "./modules/contracts/routes.js";
@@ -120,6 +121,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(playerRoutes);
   await fastify.register(combatRoutes);
   await fastify.register(contractRoutes);
+  await fastify.register(arenaRoutes);
   await fastify.register(inventoryRoutes);
   await fastify.register(economyRoutes);
   if (options.registerPayments ?? true) {

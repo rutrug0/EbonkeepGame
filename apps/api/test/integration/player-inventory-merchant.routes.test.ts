@@ -93,6 +93,7 @@ describe("player, inventory, and merchant routes", () => {
     expect(initialStateResponse.json().cheatSettings).toEqual({
       fastTravelEnabled: false,
       fastContractReplenishEnabled: false,
+      fastArenaReplenishEnabled: false,
       invincibilityEnabled: false,
       fastTrainTimeEnabled: false
     });
@@ -104,6 +105,7 @@ describe("player, inventory, and merchant routes", () => {
       payload: {
         fastTravelEnabled: true,
         fastContractReplenishEnabled: true,
+        fastArenaReplenishEnabled: true,
         invincibilityEnabled: true,
         fastTrainTimeEnabled: true
       }
@@ -112,6 +114,7 @@ describe("player, inventory, and merchant routes", () => {
     expect(settingsResponse.json().playerState.cheatSettings).toEqual({
       fastTravelEnabled: true,
       fastContractReplenishEnabled: true,
+      fastArenaReplenishEnabled: true,
       invincibilityEnabled: true,
       fastTrainTimeEnabled: true
     });
@@ -124,6 +127,7 @@ describe("player, inventory, and merchant routes", () => {
     expect(persistedStateResponse.statusCode).toBe(200);
     expect(persistedStateResponse.json().cheatSettings.fastTravelEnabled).toBe(true);
     expect(persistedStateResponse.json().cheatSettings.fastContractReplenishEnabled).toBe(true);
+    expect(persistedStateResponse.json().cheatSettings.fastArenaReplenishEnabled).toBe(true);
 
     await context.prisma.playerProfile.update({
       where: { id: guest.body.playerId },

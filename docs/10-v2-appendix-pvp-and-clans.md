@@ -1,5 +1,7 @@
 # V2 Appendix: PvP and Clans
 
+Note: v1 now includes a limited arena ladder. The shipped subset is 1v1 mock-opponent arena duels with rating movement, a timed opponent-selection window, and server-resolved combat replay. This appendix remains focused on the larger future PvP and clan roadmap.
+
 ## Appendix Purpose
 This document reserves architectural and design direction for PvP/clan systems without committing v1 implementation scope.
 
@@ -38,4 +40,5 @@ This document reserves architectural and design direction for PvP/clan systems w
 - Ranked PvP economy and rewards.
 - Seasonal clan ladders.
 - Clan social systems (chat moderation, diplomacy, etc).
+- Live player-vs-player matchmaking beyond the implemented mock-opponent arena ladder.
 

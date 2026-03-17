@@ -124,6 +124,7 @@ import {
   type ContractSlotState
 } from "../features/contracts";
 import { ImperialShop, MerchantPanel } from "../features/economy";
+import { ArenaPanel } from "../features/arena";
 import { GuildMissions, GuildPanel } from "../features/guild";
 import { Leaderboard } from "../features/leaderboard";
 import {
@@ -1620,6 +1621,7 @@ export function AppShell() {
   const cheatSettings = playerState?.cheatSettings ?? {
     fastTravelEnabled: false,
     fastContractReplenishEnabled: false,
+    fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false
   };
@@ -4687,6 +4689,23 @@ export function AppShell() {
                 <input
                   type="checkbox"
                   style={cheatToggleInputStyle}
+                  checked={cheatSettings.fastArenaReplenishEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) =>
+                    handleCheatSettingToggle("fastArenaReplenishEnabled", event.currentTarget.checked)
+                  }
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.fastArenaReplenishLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.fastArenaReplenishHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
                   checked={cheatSettings.fastContractReplenishEnabled}
                   disabled={isCheatActionPending("settings")}
                   onChange={(event) =>
@@ -4877,7 +4896,15 @@ export function AppShell() {
           />
         );
       case "arena":
-        return renderPlaceholderPanel(i18n.t("menu.arena"), i18n.t("placeholders.arena"));
+        return (
+          <ArenaPanel
+            token={token}
+            hasPlayerState={Boolean(playerState)}
+            playerName={profileName}
+            playerAvatarPath={activeCharacterVisualPath}
+            formatDurationFromMs={formatDurationFromMs}
+          />
+        );
       case "guild":
         return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} playerName={profileName} playerClass={playerState?.class ?? null} playerPower={playerState?.gearScore ?? null} playerDucats={currencies?.ducats ?? 0} onActiveMissionChange={setIsGuildMissionActive} onDucatsChanged={(n) => setCurrencies((c) => c ? { ...c, ducats: n } : null)} />;
       case "castles":

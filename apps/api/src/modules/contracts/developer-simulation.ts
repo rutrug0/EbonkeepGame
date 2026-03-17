@@ -428,6 +428,7 @@ function createSyntheticPlayerState(args: {
       cheatSettings: {
         fastTravelEnabled: false,
         fastContractReplenishEnabled: false,
+        fastArenaReplenishEnabled: false,
         invincibilityEnabled: false,
         fastTrainTimeEnabled: false
       }
