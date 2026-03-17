@@ -258,7 +258,13 @@ async function syncRunState(prisma: PrismaClient, runId: string, now: Date, grac
           : run.travelEndsAt.getTime()
       );
 
-  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt.getTime() > now.getTime() + graceMs) {
+  // Cap grace to the time already elapsed so that a run cannot be auto-completed
+  // before the player has actually traveled for at least that long (prevents
+  // sub-second claims on short runs whose total duration is < CLAIM_GRACE_PERIOD_MS).
+  const elapsedMs = run ? Math.max(0, now.getTime() - run.createdAt.getTime()) : 0;
+  const cappedGrace = Math.min(graceMs, elapsedMs);
+
+  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt.getTime() > now.getTime() + cappedGrace) {
     return;
   }
 

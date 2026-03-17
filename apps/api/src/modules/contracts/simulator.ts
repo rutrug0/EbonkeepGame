@@ -482,6 +482,20 @@ export function simulateCombat(args: {
 
   for (const loser of losingActors) {
     const killDamage = loser.currentHp;
+    // Compute a semantically correct pre-mitigation rawDamage so playback can
+    // reproduce the mitigation breakdown without impossible math.
+    // mitigationPercentBps is independent of rawDamage (attacker/defender stats only).
+    const killMit = finisherActor
+      ? calculateCombatMitigation({
+          rawDamage: killDamage,
+          damageKind: finisherActor.damageKind,
+          attacker: finisherActor,
+          defender: loser
+        })
+      : null;
+    const rawDamage = killMit && killMit.mitigationPercentBps > 0
+      ? Math.ceil((killDamage * 10_000) / (10_000 - killMit.mitigationPercentBps))
+      : killDamage;
     events.push(combatEventSchema.parse({
       type: "CombatActionResolved",
       sequence: sequence++,
@@ -493,7 +507,7 @@ export function simulateCombat(args: {
         targetId: loser.id,
         hit: true,
         crit: false,
-        rawDamage: killDamage,
+        rawDamage,
         mitigatedDamage: killDamage,
         targetHpAfter: 0,
         killed: true
