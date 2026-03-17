@@ -45,8 +45,8 @@ import { simulateEncounter, type StoredRewardSpec } from "./simulator.js";
 
 const FAST_TRAVEL_CHEAT_DURATION_MS = 2_000;
 const FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS = 3_000;
-// Allow the client to claim up to this many ms before the server clock catches up.
-// Handles typical client/server clock skew without permitting real early claims.
+// Allow the claim endpoint to succeed even when the server clock lags the client
+// by up to this amount (typical deployment skew). Does NOT affect state polling.
 const CLAIM_GRACE_PERIOD_MS = 6_000;
 
 function json<T>(value: T): Prisma.JsonObject {
@@ -232,7 +232,7 @@ async function ensureBoardSlots(prisma: PrismaClient, playerId: string): Promise
   });
 }
 
-async function syncRunState(prisma: PrismaClient, runId: string, now: Date): Promise<void> {
+async function syncRunState(prisma: PrismaClient, runId: string, now: Date, graceMs = 0): Promise<void> {
   const run = await prisma.contractRun.findUnique({
     where: { id: runId },
     select: {
@@ -258,7 +258,7 @@ async function syncRunState(prisma: PrismaClient, runId: string, now: Date): Pro
           : run.travelEndsAt.getTime()
       );
 
-  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt.getTime() > now.getTime() + CLAIM_GRACE_PERIOD_MS) {
+  if (!run || run.state !== "traveling" || !effectiveTravelEndsAt || effectiveTravelEndsAt.getTime() > now.getTime() + graceMs) {
     return;
   }
 
@@ -603,7 +603,7 @@ export async function getContractRun(prisma: PrismaClient, playerId: string, run
 
 export async function claimContractRunResult(prisma: PrismaClient, playerId: string, runId: string): Promise<ContractRunResult> {
   const now = new Date();
-  await syncRunState(prisma, runId, now);
+  await syncRunState(prisma, runId, now, CLAIM_GRACE_PERIOD_MS);
   let events = combatEventSchema.array().parse([]);
   let winnerSide: "player" | "enemy" = "enemy";
   let snapshot: ContractRunSnapshot | null = null;
