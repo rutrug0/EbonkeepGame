@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ARENA_OFFER_COUNT } from "@ebonkeep/shared/arena";
 
 import {
+  buildMockCombatSnapshot,
   calculateArenaCooldownEndsAt,
   calculateArenaRatingDelta,
   pickArenaOfferCandidates
@@ -61,5 +62,52 @@ describe("arena service helpers", () => {
 
     expect(normalCooldownEndsAt.getTime() - now.getTime()).toBe(600_000);
     expect(fastCooldownEndsAt.getTime() - now.getTime()).toBe(2_000);
+  });
+
+  it("uses the stored mock class when building combat snapshots", () => {
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0);
+    const playerState = {
+      level: 60,
+      gearScore: 1500,
+      statSnapshot: {
+        total: {
+          maxHitpoints: 4000,
+          damage: 700,
+          initiative: 150,
+          accuracy: 90,
+          dodgeChance: 1200,
+          critChance: 900,
+          critMultiplier: 18000,
+          extraAttackChance: 600,
+          armor: 320,
+          spellShield: 410,
+          missileResistance: 260,
+          physicalDefense: 50,
+          magicDefense: 55
+        }
+      }
+    } as Parameters<typeof buildMockCombatSnapshot>[0]["playerState"];
+
+    try {
+      const intelligenceSnapshot = buildMockCombatSnapshot({
+        entryId: "mock-int",
+        playerState,
+        playerRating: 1000,
+        targetRating: 1000,
+        playerClass: "runecaster"
+      });
+      const dexteritySnapshot = buildMockCombatSnapshot({
+        entryId: "mock-dex",
+        playerState,
+        playerRating: 1000,
+        targetRating: 1000,
+        playerClass: "shade"
+      });
+
+      expect(intelligenceSnapshot.damageKind).toBe("spell");
+      expect(dexteritySnapshot.damageKind).toBe("ranged");
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });

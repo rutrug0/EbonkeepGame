@@ -113,14 +113,14 @@ function buildPlayerCombatSnapshot(playerState: Awaited<ReturnType<typeof loadPl
   });
 }
 
-function buildMockCombatSnapshot(args: {
+export function buildMockCombatSnapshot(args: {
   entryId: string;
   playerState: NonNullable<Awaited<ReturnType<typeof loadPlayerState>>>;
   playerRating: number;
   targetRating: number;
   playerClass: PlayerClass;
 }): CombatActorSnapshot {
-  const selectedClass = randomChoice(allPlayerClasses);
+  const selectedClass = args.playerClass;
   const classTree = classToStatTree(selectedClass);
   const playerStats = args.playerState.statSnapshot.total;
   const ratingMultiplier = ratingBandToMultiplier(args.playerRating, args.targetRating);
