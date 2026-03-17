@@ -585,14 +585,14 @@ function NoGuildView({
         <div className="noGuildHeroActions">
           <button
             type="button"
-            className="guildFormButton guildFormButtonPrimary"
+            className="buttonPrimary"
             onClick={handleCreateClick}
           >
             {t("guild.create")}
           </button>
           <button
             type="button"
-            className="guildFormButton guildFormButtonSecondary"
+            className="buttonSecondary"
             onClick={onSearchClick}
           >
             {t("guild.actions.join")}
@@ -1250,10 +1250,11 @@ function GuildMembersTab({
             <div className="guildRosterInfo">
               <div className="guildRosterNameRow">
                 <span className="guildRosterName">{username}</span>
-                {isMe && <span className="guildRosterYou">({t("you")})</span>}
-                <span className={`guildRoleBadge guildRoleBadge--${member.role}`}>
-                  {t(`guild.role.${member.role}`)}
-                </span>
+                {member.role !== "member" && (
+                  <span className={`guildRoleBadge guildRoleBadge--${member.role}`}>
+                    {t(`guild.role.${member.role}`)}
+                  </span>
+                )}
               </div>
               <div className="guildRosterMeta">
                 <span className="guildRosterClass">{t(`class.${member.player.class}`)}</span>

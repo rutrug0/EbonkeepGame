@@ -25,7 +25,7 @@ import {
 
 const ACTION_COST = 1000;
 const MAX_CHAIN_STRIKES = 5;
-const MAX_SIMULATION_ACTIONS = 300;
+const MAX_SIMULATION_ACTIONS = 10000;
 
 export type StoredRewardSpec = {
   experience: number;
@@ -456,12 +456,78 @@ export function simulateCombat(args: {
     actor.nextActionAt += ACTION_COST / actor.combatSpeed;
   }
 
-  const livingPlayers = actors.filter((actor) => actor.side === "player" && !actor.defeated && actor.currentHp > 0);
+  // ── Action-limit fallback ─────────────────────────────────────────────────
+  // Neither side was fully eliminated within MAX_SIMULATION_ACTIONS turns.
+  // Determine the winner by average remaining HP percentage, then force-kill
+  // the losing side with a synthetic finishing strike so the playback always
+  // ends with a conclusive death event rather than everyone appearing alive.
+  const livingPlayers = actors.filter((a) => a.side === "player" && !a.defeated && a.currentHp > 0);
+  const livingEnemies = actors.filter((a) => a.side === "enemy" && !a.defeated && a.currentHp > 0);
+
+  let timeoutWinnerSide: "player" | "enemy";
+  if (livingPlayers.length === 0) {
+    timeoutWinnerSide = "enemy";
+  } else if (livingEnemies.length === 0) {
+    timeoutWinnerSide = "player";
+  } else {
+    const playerHpPct = livingPlayers.reduce((s, a) => s + a.currentHp / a.maxHp, 0) / livingPlayers.length;
+    const enemyHpPct  = livingEnemies.reduce((s, a) => s + a.currentHp / a.maxHp, 0) / livingEnemies.length;
+    timeoutWinnerSide = playerHpPct >= enemyHpPct ? "player" : "enemy";
+  }
+
+  const timeoutTime = Math.max(...actors.map((a) => a.nextActionAt), 0);
+  const losingActors = timeoutWinnerSide === "player" ? livingEnemies : livingPlayers;
+  const winningActors = timeoutWinnerSide === "player" ? livingPlayers : livingEnemies;
+  const finisherActor = winningActors.sort((a, b) => b.currentHp - a.currentHp)[0];
+
+  for (const loser of losingActors) {
+    const killDamage = loser.currentHp;
+    // Compute a semantically correct pre-mitigation rawDamage so playback can
+    // reproduce the mitigation breakdown without impossible math.
+    // mitigationPercentBps is independent of rawDamage (attacker/defender stats only).
+    const killMit = finisherActor
+      ? calculateCombatMitigation({
+          rawDamage: killDamage,
+          damageKind: finisherActor.damageKind,
+          attacker: finisherActor,
+          defender: loser
+        })
+      : null;
+    const rawDamage = killMit && killMit.mitigationPercentBps > 0
+      ? Math.ceil((killDamage * 10_000) / (10_000 - killMit.mitigationPercentBps))
+      : killDamage;
+    events.push(combatEventSchema.parse({
+      type: "CombatActionResolved",
+      sequence: sequence++,
+      timelineTime: timeoutTime,
+      actorId: finisherActor?.id ?? loser.id,
+      actionType: "basic_attack",
+      strikes: [{
+        strikeIndex: 1,
+        targetId: loser.id,
+        hit: true,
+        crit: false,
+        rawDamage,
+        mitigatedDamage: killDamage,
+        targetHpAfter: 0,
+        killed: true
+      }]
+    }));
+    events.push(combatEventSchema.parse({
+      type: "CombatActorDefeated",
+      sequence: sequence++,
+      timelineTime: timeoutTime,
+      actorId: loser.id
+    }));
+    loser.currentHp = 0;
+    loser.defeated = true;
+  }
+
   events.push(combatEventSchema.parse({
     type: "CombatEnded",
     sequence: sequence++,
-    timelineTime: Math.max(...actors.map((actor) => actor.nextActionAt), 0),
-    winnerSide: livingPlayers.length > 0 ? "player" : "enemy"
+    timelineTime: timeoutTime,
+    winnerSide: timeoutWinnerSide
   }));
   return events;
 }

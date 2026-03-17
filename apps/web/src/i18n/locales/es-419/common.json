@@ -134,6 +134,7 @@
       "math": "Math"
     },
     "enterAria": "Start {{contract}} (Level {{level}})",
+    "skipToEnd": "Saltar al Final",
     "levelBandUnderLevel": "Under-Level",
     "levelBandOnLevel": "On-Level",
     "levelBandOverLevel": "Over-Level"

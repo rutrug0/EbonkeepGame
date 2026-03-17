@@ -172,6 +172,7 @@
     "combatTitle": "Contract Encounter",
     "combatLog": "Combat Log",
     "fastForward": "Fast Forward x5",
+    "skipToEnd": "Skip to End",
     "victoryTitle": "Victory",
     "victorySummary": "{{enemy}} was defeated.",
     "replayCombat": "Replay Combat",

@@ -134,6 +134,7 @@
       "math": "Math"
     },
     "enterAria": "Start {{contract}} (Level {{level}})",
+    "skipToEnd": "끝으로 건너뛰기",
     "levelBandUnderLevel": "Under-Level",
     "levelBandOnLevel": "On-Level",
     "levelBandOverLevel": "Over-Level"
