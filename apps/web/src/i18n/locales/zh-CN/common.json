@@ -75,13 +75,24 @@
     "missions": "任务",
     "arena": "竞技场",
     "guild": "公会",
+    "guildHall": "公会大厅",
     "castles": "城堡",
     "auctionHouse": "拍卖行",
     "merchant": "商人",
     "shop": "帝国商店",
+    "garden": "花园",
+    "apothecary": "药房",
+    "workshop": "工坊",
     "leaderboards": "排行榜",
     "settings": "设置",
     "logout": "退出登录"
+  },
+  "menuGroups": {
+    "profile": "档案",
+    "adventures": "冒险",
+    "market": "市场",
+    "estate": "领地",
+    "realm": "疆域"
   },
   "player": {
     "classUnknown": "未知职业",
@@ -453,7 +464,8 @@
   },
   "inventory": {
     "consumables": "消耗品",
-    "noItems": "暂无物品。"
+    "noItems": "暂无物品。",
+    "slotsUsed": "已使用 {{used}} / {{capacity}} 个槽位"
   },
   "profile": {
     "inventoryTab": "背包",
@@ -869,5 +881,10 @@
       "rating": "Rating",
       "record": "Record"
     }
+  },
+  "placeholders": {
+    "garden": "这里将用于培育草药、菌类和稀有植物，服务你后续的筹备循环。",
+    "apothecary": "这里将使用花园收获物与任务试剂调配药剂、酊剂和药膏。",
+    "workshop": "这里将在工坊系统上线后用于精炼战场材料并淬炼装备。"
   }
 }

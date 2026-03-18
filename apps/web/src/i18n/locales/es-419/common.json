@@ -75,13 +75,24 @@
     "missions": "Misiones",
     "arena": "Arena",
     "guild": "Gremio",
+    "guildHall": "Sala del Gremio",
     "castles": "Castillos",
     "auctionHouse": "Casa de Subastas",
     "merchant": "Mercader",
     "shop": "Tienda Imperial",
+    "garden": "Jardin",
+    "apothecary": "Botica",
+    "workshop": "Taller",
     "leaderboards": "Clasificaciones",
     "settings": "Ajustes",
     "logout": "Cerrar sesión"
+  },
+  "menuGroups": {
+    "profile": "Perfil",
+    "adventures": "Aventuras",
+    "market": "Mercado",
+    "estate": "Dominio",
+    "realm": "Reino"
   },
   "player": {
     "classUnknown": "Clase desconocida",
@@ -452,7 +463,8 @@
   },
   "inventory": {
     "consumables": "Consumibles",
-    "noItems": "No hay objetos disponibles."
+    "noItems": "No hay objetos disponibles.",
+    "slotsUsed": "{{used}} / {{capacity}} espacios usados"
   },
   "profile": {
     "inventoryTab": "Inventario",
@@ -871,5 +883,10 @@
       "rating": "Rating",
       "record": "Record"
     }
+  },
+  "placeholders": {
+    "garden": "Aqui cultivaras hierbas, hongos y botanicos raros para tus futuros ciclos de preparacion.",
+    "apothecary": "Aqui prepararas tonicos, brebajes y unguentos con cosechas del jardin y reactivos de mision.",
+    "workshop": "Aqui refinaras materiales del campo de batalla y templaras equipo cuando el taller este disponible."
   }
 }

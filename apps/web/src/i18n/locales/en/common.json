@@ -79,13 +79,24 @@
     "missions": "Missions",
     "arena": "Arena",
     "guild": "Guild",
+    "guildHall": "Guild Hall",
     "castles": "Castles",
     "auctionHouse": "Auction House",
     "merchant": "Merchant",
     "shop": "Imperial Shop",
+    "garden": "Garden",
+    "apothecary": "Apothecary",
+    "workshop": "Workshop",
     "leaderboards": "Leaderboards",
     "settings": "Settings",
     "logout": "Logout"
+  },
+  "menuGroups": {
+    "profile": "Profile",
+    "adventures": "Adventures",
+    "market": "Market",
+    "estate": "Estate",
+    "realm": "Realm"
   },
   "player": {
     "classUnknown": "Class unknown",
@@ -110,6 +121,7 @@
     "filterJewelry": "JEWELRY FILTER",
     "filterWearable": "WEARABLE FILTER",
     "summary": "Showing {{shown}}/{{total}}",
+    "slotsUsed": "{{used}} / {{capacity}} slots used",
     "consumables": "Consumables",
     "itemCount": "{{count}} items",
     "messageShowChat": "Show chat panel",
@@ -711,6 +723,9 @@
     "castles": "Castle conquest systems and holdings will appear here.",
     "auctionHouse": "Marketplace listings will appear here. This is a placeholder panel for the first iteration.",
     "merchant": "Merchant offers, rerolls, and purchases will appear here.",
+    "garden": "Cultivate herbs, fungi, and rare botanicals here for your future preparation loops.",
+    "apothecary": "Brew tonics, draughts, and salves here using garden harvests and mission reagents.",
+    "workshop": "Refine battlefield materials and temper equipment here once the workshop systems come online.",
     "leaderboards": "Season rankings and score ladders will appear here.",
     "panelUnavailable": "Panel unavailable."
   },

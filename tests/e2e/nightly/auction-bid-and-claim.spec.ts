@@ -47,6 +47,7 @@ test("auction bid and reward claim flows work @nightly", async ({ page, request 
   }, login.accessToken);
   await page.reload();
 
+  await page.getByTestId("menu-group-market").click();
   await page.getByTestId("menu-auctionHouse").click();
   await expect(page.getByText(/Playwright Blade/)).toBeVisible();
   await page.locator('input[type="number"]').first().fill("110");

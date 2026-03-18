@@ -75,13 +75,24 @@
     "missions": "Missões",
     "arena": "Arena",
     "guild": "Guilda",
+    "guildHall": "Sala da Guilda",
     "castles": "Castelos",
     "auctionHouse": "Casa de Leilões",
     "merchant": "Mercador",
     "shop": "Loja Imperial",
+    "garden": "Jardim",
+    "apothecary": "Boticario",
+    "workshop": "Oficina",
     "leaderboards": "Rankings",
     "settings": "Configurações",
     "logout": "Sair"
+  },
+  "menuGroups": {
+    "profile": "Perfil",
+    "adventures": "Aventuras",
+    "market": "Mercado",
+    "estate": "Propriedade",
+    "realm": "Reino"
   },
   "player": {
     "classUnknown": "Classe desconhecida",
@@ -452,7 +463,8 @@
   },
   "inventory": {
     "consumables": "Consumíveis",
-    "noItems": "Nenhum item disponível."
+    "noItems": "Nenhum item disponível.",
+    "slotsUsed": "{{used}} / {{capacity}} espaços usados"
   },
   "profile": {
     "inventoryTab": "Inventário",
@@ -871,5 +883,10 @@
       "rating": "Rating",
       "record": "Record"
     }
+  },
+  "placeholders": {
+    "garden": "Aqui voce cultivara ervas, fungos e botanicos raros para seus futuros ciclos de preparacao.",
+    "apothecary": "Aqui voce produz tonicos, draughts e unguentos com colheitas do jardim e reagentes de missao.",
+    "workshop": "Aqui voce refinara materiais do campo de batalha e temperara equipamento quando a oficina estiver ativa."
   }
 }

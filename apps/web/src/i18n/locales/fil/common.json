@@ -75,13 +75,24 @@
     "missions": "Mga Misyon",
     "arena": "Arena",
     "guild": "Guild",
+    "guildHall": "Bulwagan ng Guild",
     "castles": "Mga Kastilyo",
     "auctionHouse": "Auction House",
     "merchant": "Mangangalakal",
     "shop": "Imperial Shop",
+    "garden": "Hardin",
+    "apothecary": "Botika",
+    "workshop": "Pagawaan",
     "leaderboards": "Leaderboards",
     "settings": "Mga Setting",
     "logout": "Mag-logout"
+  },
+  "menuGroups": {
+    "profile": "Profile",
+    "adventures": "Adventures",
+    "market": "Market",
+    "estate": "Estate",
+    "realm": "Realm"
   },
   "player": {
     "classUnknown": "Hindi kilalang klase",
@@ -320,7 +331,8 @@
   },
   "inventory": {
     "consumables": "Consumables",
-    "noItems": "Walang available na item."
+    "noItems": "Walang available na item.",
+    "slotsUsed": "{{used}} / {{capacity}} slots used"
   },
   "profile": {
     "inventoryTab": "Imbentaryo",
@@ -906,5 +918,10 @@
       "rating": "Rating",
       "record": "Record"
     }
+  },
+  "placeholders": {
+    "garden": "Dito mo palalakihin ang mga halamang gamot, kabute, at bihirang botanikal para sa mga susunod mong paghahanda.",
+    "apothecary": "Dito mo gagawin ang mga tonic, draught, at pahid gamit ang ani mula sa hardin at mission reagents.",
+    "workshop": "Dito mo pino-proseso ang mga materyales mula sa labanan at pinatitibay ang kagamitan kapag bukas na ang workshop."
   }
 }
