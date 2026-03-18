@@ -79,6 +79,14 @@ type BoardSlotRecord = {
   rewardsPreview: Prisma.JsonValue | null;
 };
 
+export function shouldIncludeContractBoardSlot(args: {
+  slotIndex: number;
+  slotCount: number;
+  activeRunId: string | null;
+}): boolean {
+  return args.slotIndex <= args.slotCount || args.activeRunId !== null;
+}
+
 function normalizeRewardPreview(value: Prisma.JsonValue | null): ContractRewardPreview | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -249,6 +257,27 @@ async function ensureBoardSlots(prisma: PrismaClient, playerId: string, slotCoun
   });
 }
 
+function buildVisibleContractBoardSlotWhere(
+  playerId: string,
+  slotCount: number
+): Prisma.ContractBoardSlotWhereInput {
+  return {
+    playerId,
+    OR: [
+      {
+        slotIndex: {
+          lte: slotCount
+        }
+      },
+      {
+        activeRunId: {
+          not: null
+        }
+      }
+    ]
+  };
+}
+
 async function syncRunState(prisma: PrismaClient, runId: string, now: Date, graceMs = 0): Promise<void> {
   const run = await prisma.contractRun.findUnique({
     where: { id: runId },
@@ -303,10 +332,7 @@ async function refreshBoardState(prisma: PrismaClient, playerId: string, now = n
   await ensureBoardSlots(prisma, playerId, slotCount);
   const context = await getPlayerContractContext(prisma, playerId);
   const slots = await prisma.contractBoardSlot.findMany({
-    where: {
-      playerId,
-      slotIndex: { lte: slotCount }
-    },
+    where: buildVisibleContractBoardSlotWhere(playerId, slotCount),
     orderBy: { slotIndex: "asc" }
   });
 
@@ -467,8 +493,12 @@ export async function getContractBoard(prisma: PrismaClient, playerId: string): 
     orderBy: { slotIndex: "asc" }
   });
 
-  const visibleSlots = slots.filter(
-    (slot) => slot.slotIndex <= slotCount || slot.activeRunId !== null
+  const visibleSlots = slots.filter((slot) =>
+    shouldIncludeContractBoardSlot({
+      slotIndex: slot.slotIndex,
+      slotCount,
+      activeRunId: slot.activeRunId
+    })
   );
 
   return contractBoardResponseSchema.parse({

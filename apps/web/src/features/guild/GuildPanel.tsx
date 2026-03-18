@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { GuildMissions } from "./GuildMissions";
 import DOMPurify from "dompurify";
+import { ClassIcon } from "../../app/ClassIcon";
 
 // Allowed HTML tags/attrs for guild descriptions
 const DESC_PURIFY_CONFIG = {
@@ -1255,7 +1256,7 @@ function GuildMembersTab({
         return (
           <div key={member.id} className="guildRosterCard">
             <div className="guildRosterAvatar">
-              <span className="guildRosterAvatarInitial">{username.charAt(0).toUpperCase()}</span>
+              <ClassIcon playerClass={member.player.class} size={46} className="guildRosterClassIcon" alt="" />
             </div>
             <div className="guildRosterInfo">
               <div className="guildRosterNameRow">
@@ -1267,7 +1268,9 @@ function GuildMembersTab({
                 )}
               </div>
               <div className="guildRosterMeta">
-                <span className="guildRosterClass">{t(`class.${member.player.class}`)}</span>
+                <span className="guildRosterClass">
+                  {t(`class.${member.player.class}`)}
+                </span>
                 <span className="guildRosterStatPill">{t("guild.level")} {member.player.level}</span>
                 <span className="guildRosterStatPill">{t("guild.power")} {member.contributedPower.toLocaleString()}</span>
               </div>
