@@ -6531,6 +6531,7 @@ button:focus-visible {
   border-radius: 0;
   border: none;
   background: transparent;
+  overflow: visible;
 }
 
 .gardenPlotVisual::before {
@@ -6544,9 +6545,20 @@ button:focus-visible {
 
 .gardenPlotVisual.phase-bloom::before {
   background:
-    radial-gradient(circle at 50% 50%, rgba(239, 214, 113, 0.34) 0%, rgba(239, 214, 113, 0.2) 24%, rgba(239, 214, 113, 0.08) 46%, transparent 68%);
-  opacity: 0.95;
-  animation: gardenBloomRadiance 2.2s ease-in-out infinite;
+    radial-gradient(circle at 50% 50%, rgba(244, 221, 126, 0.54) 0%, rgba(244, 221, 126, 0.3) 24%, rgba(244, 221, 126, 0.12) 46%, transparent 70%);
+  opacity: 1;
+  animation: gardenBloomRadiance 2.1s ease-in-out infinite;
+}
+
+.gardenPlotVisual.phase-bloom::after {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(248, 226, 138, 0.22) 0%, rgba(248, 226, 138, 0.1) 42%, transparent 70%);
+  opacity: 0.84;
+  pointer-events: none;
+  animation: gardenBloomHalo 2.7s ease-in-out infinite;
 }
 
 .gardenPlantSilhouette {
@@ -6567,11 +6579,13 @@ button:focus-visible {
   font-family: var(--font-display);
   font-size: 2.6rem;
   color: var(--text-main);
+  opacity: 1;
+  transform-origin: center bottom;
 }
 
 .gardenPlantSilhouette:empty {
-  width: 92px;
-  height: 92px;
+  width: 78px;
+  height: 78px;
 }
 
 .gardenPlantSilhouette.phase-bloom {
@@ -6593,11 +6607,54 @@ button:focus-visible {
   filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.22));
   user-select: none;
   pointer-events: none;
+  opacity: 1;
+  transform-origin: center bottom;
+  will-change: transform, opacity, filter;
 }
 
 .gardenPlantImage.phase-growing {
   width: min(100%, 99px);
   max-height: 99px;
+}
+
+.gardenPlantImage.fx-enter,
+.gardenPlantSilhouette.fx-enter {
+  animation:
+    gardenPlantFadeIn 0.36s ease-out both,
+    gardenPlantTinyShake 0.52s ease-out both;
+}
+
+.gardenPlantImage.fx-shake-once,
+.gardenPlantSilhouette.fx-shake-once {
+  animation: gardenPlantTinyShake 0.52s ease-out both;
+}
+
+.gardenPlantImage.fx-hidden,
+.gardenPlantSilhouette.fx-hidden {
+  opacity: 0;
+}
+
+.gardenPlantImage.fx-clear-fade-out,
+.gardenPlantSilhouette.fx-clear-fade-out {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  animation: gardenPlantFadeOut 0.38s ease-out both;
+}
+
+.gardenPlantSilhouette.fx-empty-fade-out {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  animation: gardenEmptyFadeOut 0.28s ease-out both;
+}
+
+.gardenPlantSilhouette.fx-empty-fade-in {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+  animation: gardenEmptyFadeIn 0.42s ease-out both;
 }
 
 .gardenPlotBody {
@@ -6827,12 +6884,93 @@ button:focus-visible {
 @keyframes gardenBloomRadiance {
   0%,
   100% {
-    opacity: 0.45;
-    transform: scale(0.82);
+    opacity: 0.66;
+    transform: scale(0.86);
   }
   50% {
     opacity: 1;
-    transform: scale(1.16);
+    transform: scale(1.19);
+  }
+}
+
+@keyframes gardenBloomHalo {
+  0%,
+  100% {
+    opacity: 0.48;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.09);
+  }
+}
+
+@keyframes gardenPlantTinyShake {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  18% {
+    transform: translate3d(-1px, 0, 0) rotate(-1deg);
+  }
+  36% {
+    transform: translate3d(1.5px, -1px, 0) rotate(1.3deg);
+  }
+  54% {
+    transform: translate3d(-1.5px, 0, 0) rotate(-1deg);
+  }
+  72% {
+    transform: translate3d(1px, 0, 0) rotate(0.65deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+@keyframes gardenPlantFadeIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes gardenPlantFadeOut {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0) scale(0.9);
+  }
+}
+
+@keyframes gardenEmptyFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+    filter: blur(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes gardenEmptyFadeOut {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.88);
+    filter: blur(8px);
   }
 }
 

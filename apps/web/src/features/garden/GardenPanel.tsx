@@ -2,6 +2,7 @@ import {
   startTransition,
   useEffect,
   useEffectEvent,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -29,6 +30,26 @@ export type GardenPanelProps = {
 };
 
 const GARDEN_BACKGROUND_PATH = "/assets/items/generated/garden/garden.png";
+const GARDEN_PLOT_SHAKE_DURATION_MS = 520;
+const GARDEN_PLOT_PLANTING_DURATION_MS = 680;
+const GARDEN_PLOT_CLEARING_DURATION_MS = 420;
+
+type GardenPlotVisualFx =
+  | {
+      kind: "planting";
+      plantId: GardenPlantId;
+      phase: GardenPlotPhase;
+    }
+  | {
+      kind: "phase";
+      plantId: GardenPlantId;
+      phase: GardenPlotPhase;
+    }
+  | {
+      kind: "clearing";
+      plantId: GardenPlantId;
+      phase: GardenPlotPhase;
+    };
 
 function deriveLivePlotState(plot: GardenPlotState, nowMs: number): GardenPlotState {
   const phase = resolveGardenPlotPhase({
@@ -114,6 +135,17 @@ function formatGardenDuration(totalSeconds: number): string {
   return `${minutes}m ${seconds}s`;
 }
 
+function getFxDurationMs(kind: GardenPlotVisualFx["kind"]): number {
+  switch (kind) {
+    case "planting":
+      return GARDEN_PLOT_PLANTING_DURATION_MS;
+    case "clearing":
+      return GARDEN_PLOT_CLEARING_DURATION_MS;
+    default:
+      return GARDEN_PLOT_SHAKE_DURATION_MS;
+  }
+}
+
 export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const { t } = useTranslation();
   const [gardenState, setGardenState] = useState<GardenStateResponse | null>(null);
@@ -124,6 +156,9 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [serverClockOffsetMs, setServerClockOffsetMs] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [plotVisualFxBySlot, setPlotVisualFxBySlot] = useState<Record<number, GardenPlotVisualFx>>({});
+  const previousPlotsRef = useRef<GardenPlotState[] | null>(null);
+  const plotVisualFxTimersRef = useRef<Record<number, number>>({});
   const gardenSceneStyle = {
     "--indoor-scene-image": `url("${GARDEN_BACKGROUND_PATH}")`
   } as CSSProperties;
@@ -183,6 +218,79 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
 
   const plots = (gardenState?.plots ?? []).map((plot) => deriveLivePlotState(plot, nowMs));
   const seedEntries = (gardenState?.inventory ?? []).filter((entry) => entry.kind === "seed");
+
+  const schedulePlotVisualFx = useEffectEvent((slotIndex: number, fx: GardenPlotVisualFx) => {
+    const existingTimerId = plotVisualFxTimersRef.current[slotIndex];
+    if (existingTimerId) {
+      window.clearTimeout(existingTimerId);
+    }
+
+    setPlotVisualFxBySlot((current) => ({
+      ...current,
+      [slotIndex]: fx
+    }));
+
+    plotVisualFxTimersRef.current[slotIndex] = window.setTimeout(() => {
+      setPlotVisualFxBySlot((current) => {
+        if (!current[slotIndex]) {
+          return current;
+        }
+
+        const nextState = { ...current };
+        delete nextState[slotIndex];
+        return nextState;
+      });
+      delete plotVisualFxTimersRef.current[slotIndex];
+    }, getFxDurationMs(fx.kind));
+  });
+
+  useEffect(() => {
+    const previousPlots = previousPlotsRef.current;
+    if (!previousPlots || previousPlots.length === 0) {
+      previousPlotsRef.current = plots;
+      return;
+    }
+
+    const previousPlotBySlot = new Map(previousPlots.map((plot) => [plot.slotIndex, plot]));
+
+    for (const plot of plots) {
+      const previousPlot = previousPlotBySlot.get(plot.slotIndex);
+      if (!previousPlot) {
+        continue;
+      }
+
+      if (!previousPlot.plantId && plot.plantId) {
+        schedulePlotVisualFx(plot.slotIndex, {
+          kind: "planting",
+          plantId: plot.plantId,
+          phase: plot.phase
+        });
+        continue;
+      }
+
+      if (
+        previousPlot.plantId &&
+        plot.plantId &&
+        (previousPlot.plantId !== plot.plantId || previousPlot.phase !== plot.phase)
+      ) {
+        schedulePlotVisualFx(plot.slotIndex, {
+          kind: "phase",
+          plantId: plot.plantId,
+          phase: plot.phase
+        });
+      }
+    }
+
+    previousPlotsRef.current = plots;
+  }, [plots, schedulePlotVisualFx]);
+
+  useEffect(() => {
+    return () => {
+      for (const timerId of Object.values(plotVisualFxTimersRef.current)) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedSeedPlantId) {
@@ -278,6 +386,13 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     }
 
     if (plot.phase === "wilted") {
+      if (plot.plantId) {
+        schedulePlotVisualFx(slotIndex, {
+          kind: "clearing",
+          plantId: plot.plantId,
+          phase: plot.phase
+        });
+      }
       void handleClear(slotIndex);
       return;
     }
@@ -345,6 +460,38 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                   const isSelected = plot.slotIndex === selectedSlotIndex;
                   const phaseTone = getPhaseTone(plot.phase);
                   const isSeedTarget = plot.phase === "empty" && selectedSeedPlantId !== null;
+                  const plotVisualFx = plotVisualFxBySlot[plot.slotIndex] ?? null;
+                  const clearingPlantImagePath =
+                    plotVisualFx?.kind === "clearing"
+                      ? getGardenPlantImagePath(plotVisualFx.plantId, plotVisualFx.phase)
+                      : null;
+                  const visualClassName = [
+                    "gardenPlotVisual",
+                    `phase-${plot.phase}`,
+                    plot.phase === "bloom" ? "phase-bloom" : "",
+                    plotVisualFx?.kind === "clearing" ? "fx-clearing" : "",
+                    plotVisualFx?.kind === "planting" ? "fx-planting" : ""
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  const plantClassName = [
+                    "gardenPlantImage",
+                    `phase-${plot.phase}`,
+                    plotVisualFx?.kind === "planting" ? "fx-enter fx-shake-once" : "",
+                    plotVisualFx?.kind === "phase" ? "fx-shake-once" : "",
+                    plotVisualFx?.kind === "clearing" ? "fx-hidden" : ""
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  const plantPlaceholderClassName = [
+                    "gardenPlantSilhouette",
+                    `phase-${plot.phase}`,
+                    plotVisualFx?.kind === "planting" ? "fx-enter fx-shake-once" : "",
+                    plotVisualFx?.kind === "phase" ? "fx-shake-once" : "",
+                    plotVisualFx?.kind === "clearing" ? "fx-hidden" : ""
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
 
                   return (
                     <div
@@ -355,17 +502,40 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                       onClick={() => handleSlotClick(plot.slotIndex)}
                       onKeyDown={(event) => handleSlotKeyDown(event, plot.slotIndex)}
                     >
-                      <div className="gardenPlotVisual" aria-hidden="true">
+                      <div className={visualClassName} aria-hidden="true">
+                        {plotVisualFx?.kind === "planting" ? (
+                          <span className="gardenPlantSilhouette phase-empty fx-empty-fade-out" />
+                        ) : null}
+
+                        {plotVisualFx?.kind === "clearing" ? (
+                          <>
+                            <span className="gardenPlantSilhouette phase-empty fx-empty-fade-in" />
+                            {clearingPlantImagePath ? (
+                              <img
+                                className="gardenPlantImage phase-wilted fx-clear-fade-out"
+                                src={clearingPlantImagePath}
+                                alt=""
+                                loading="lazy"
+                                draggable={false}
+                              />
+                            ) : (
+                              <span className="gardenPlantSilhouette phase-wilted fx-clear-fade-out">
+                                {getPlantPlaceholderLabel(plotVisualFx.plantId)}
+                              </span>
+                            )}
+                          </>
+                        ) : null}
+
                         {plantImagePath ? (
                           <img
-                            className={`gardenPlantImage phase-${plot.phase}`}
+                            className={plantClassName}
                             src={plantImagePath}
                             alt=""
                             loading="lazy"
                             draggable={false}
                           />
                         ) : (
-                          <span className={`gardenPlantSilhouette phase-${plot.phase}`}>
+                          <span className={plantPlaceholderClassName}>
                             {getPlantPlaceholderLabel(plot.plantId)}
                           </span>
                         )}

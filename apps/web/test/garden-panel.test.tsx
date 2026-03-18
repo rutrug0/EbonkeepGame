@@ -132,6 +132,13 @@ describe("garden panel", () => {
     await waitFor(() => {
       expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_growing.png"]')).toBeTruthy();
     });
+    await waitFor(() => {
+      expect(
+        document
+          .querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_growing.png"]')
+          ?.className.includes("fx-enter")
+      ).toBe(true);
+    });
     expect(screen.getByText("998")).toBeTruthy();
   });
 
@@ -256,8 +263,60 @@ describe("garden panel", () => {
       });
 
       expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_blooming.png"]')).toBeTruthy();
+      expect(
+        document
+          .querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_blooming.png"]')
+          ?.className.includes("fx-shake-once")
+      ).toBe(true);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("fades wilted plants out into the empty slot silhouette when clearing", async () => {
+    const nowMs = Date.now();
+    let resolveClear: ((value: { garden: GardenStateResponse; clearedSlotIndex: number }) => void) | null = null;
+    gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
+      serverTime: toIso(nowMs),
+      plots: [
+        {
+          slotIndex: 1,
+          plantId: "bloodleaf",
+          phase: "wilted",
+          plantedAt: toIso(nowMs - 15_000),
+          growthEndsAt: toIso(nowMs - 10_000),
+          bloomStartsAt: toIso(nowMs - 10_000),
+          bloomEndsAt: toIso(nowMs - 5_000),
+          wiltAt: toIso(nowMs - 1_000),
+          nextTransitionAt: null,
+          harvestYield: 0
+        },
+        ...createGardenState().plots.slice(1)
+      ]
+    }));
+    gardenApiMocks.clearGardenPlot.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveClear = resolve;
+        })
+    );
+
+    const { container } = render(<GardenPanel token="token" />);
+
+    await waitFor(() => {
+      expect(document.querySelector(".gardenPlantImage.phase-wilted")).toBeTruthy();
+    });
+
+    const firstPlotCard = container.querySelector(".gardenPlotCard");
+    expect(firstPlotCard).toBeTruthy();
+    fireEvent.click(firstPlotCard!);
+
+    expect(document.querySelector(".gardenPlantImage.fx-clear-fade-out")).toBeTruthy();
+    expect(document.querySelector(".gardenPlantSilhouette.fx-empty-fade-in")).toBeTruthy();
+
+    resolveClear?.({
+      garden: createGardenState(),
+      clearedSlotIndex: 1
+    });
   });
 });
