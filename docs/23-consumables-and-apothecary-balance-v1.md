@@ -18,6 +18,7 @@ This document extends the Garden and Stillroom foundation in [16-non-combat-prog
 - `Prep` potions apply for the next `3` contracts unless otherwise stated.
 - `Efficiency` potions use real-time duration in hours and are intentionally expensive.
 - `Cleansing` may remove persistent afflictions that survive combat or provide short-run resistance to new afflictions.
+- The first implemented Garden slice uses only `5` starter herbs with fast development timings; see [24-garden-growth-and-starter-catalog-v1.md](./24-garden-growth-and-starter-catalog-v1.md).
 
 ## Families
 Consumables are split into `4` families:
@@ -80,6 +81,10 @@ Keep early game simple, then widen the network.
 Early-game rule:
 - players should be able to understand the first 4 herbs without a wiki
 - Bloodleaf should be the first obvious "healing herb"
+
+Garden v1 note:
+- the initial Garden runtime ships only these `4` common herbs plus `Kingsfoil`
+- Emberbud, Shadecap, Gravebloom, and Sunspike remain future Garden expansions even though their apothecary roles are already planned here
 
 ### Level 15-29 Herbs
 

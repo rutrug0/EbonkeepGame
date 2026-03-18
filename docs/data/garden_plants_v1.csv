@@ -1,0 +1,6 @@
+plant_id,display_name,rarity,seed_item_code,ingredient_item_code,growth_seconds,pre_bloom_seconds,bloom_seconds,post_bloom_seconds,base_yield,bloom_yield,recipe_refs
+bloodleaf,Bloodleaf,common,seed_bloodleaf,ingredient_bloodleaf,5,0,5,5,2,4,Field Tonic;Healing Potion;Warden's Draft
+fenroot,Fenroot,common,seed_fenroot,ingredient_fenroot,5,0,5,5,2,4,Field Tonic
+ironbloom,Ironbloom,common,seed_ironbloom,ingredient_ironbloom,5,0,5,5,2,4,Warden's Draft;Hunter's Draft;Bulwark Distillate
+duskmint,Duskmint,common,seed_duskmint,ingredient_duskmint,5,0,5,5,2,4,Healing Potion;Hunter's Draft;Purge Philter
+kingsfoil,Kingsfoil,uncommon,seed_kingsfoil,ingredient_kingsfoil,5,0,5,5,1,2,Greater Healing Potion;Bulwark Distillate;Wardwash Tonic;Traveler's Distillate
