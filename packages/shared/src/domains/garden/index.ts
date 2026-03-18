@@ -2,8 +2,8 @@ import { z } from "zod";
 
 import { GARDEN_PLANT_CATALOG, GARDEN_PLANT_IDS } from "./catalog.generated.js";
 
-export const MAX_GARDEN_SLOT_COUNT = 5;
-export const STARTER_GARDEN_SEED_QUANTITY = 5;
+export const MAX_GARDEN_SLOT_COUNT = 8;
+export const STARTER_GARDEN_SEED_QUANTITY = 999;
 
 export const gardenPlantIdSchema = z.enum(GARDEN_PLANT_IDS);
 export type GardenPlantId = z.infer<typeof gardenPlantIdSchema>;

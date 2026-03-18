@@ -6301,10 +6301,24 @@ button:focus-visible {
   flex-direction: column;
   gap: var(--space-4);
   min-height: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.gardenPanelCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background:
-    radial-gradient(circle at top left, rgba(105, 145, 92, 0.12), transparent 28%),
-    radial-gradient(circle at top right, rgba(185, 161, 91, 0.1), transparent 24%),
-    linear-gradient(180deg, rgba(21, 28, 24, 0.96), rgba(13, 18, 16, 0.98));
+    radial-gradient(
+      ellipse at center,
+      rgba(0, 0, 0, 0) 34%,
+      rgba(0, 0, 0, 0.16) 58%,
+      rgba(0, 0, 0, 0.42) 82%,
+      rgba(0, 0, 0, 0.68) 100%
+    );
+  z-index: 0;
 }
 
 .gardenPanelHeader {
@@ -6357,10 +6371,11 @@ button:focus-visible {
 }
 
 .gardenLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.95fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
   min-height: 0;
+  height: 100%;
 }
 
 .gardenPlotsColumn,
@@ -6369,6 +6384,19 @@ button:focus-visible {
   flex-direction: column;
   gap: var(--space-3);
   min-height: 0;
+}
+
+.gardenPlotsColumn {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.gardenInventoryColumn {
+  flex: 0 0 auto;
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(191, 174, 145, 0.16);
+  align-items: center;
 }
 
 .gardenSectionHeader {
@@ -6409,8 +6437,14 @@ button:focus-visible {
 
 .gardenPlotsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 190px));
+  justify-content: center;
+  align-content: center;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+  width: calc(100% - 12%);
+  max-width: 1040px;
+  margin: 4% 6% 0;
 }
 
 .gardenPlotCard {
@@ -6418,20 +6452,21 @@ button:focus-visible {
   appearance: none;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: var(--space-2);
   width: 100%;
-  min-height: 320px;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
   text-align: left;
-  padding: var(--space-3);
-  border: 1px solid rgba(191, 174, 145, 0.18);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at top, rgba(88, 114, 70, 0.12), transparent 36%),
-    linear-gradient(180deg, rgba(24, 31, 26, 0.96), rgba(15, 20, 17, 0.98));
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
   color: inherit;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: none;
 }
 
 .gardenViewportShell {
@@ -6454,45 +6489,32 @@ button:focus-visible {
 
 .gardenPlotCard:hover,
 .gardenPlotCard.isSelected {
-  transform: translateY(-2px);
-  border-color: rgba(197, 181, 130, 0.42);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  transform: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .gardenPlotCard.isHarvestable {
-  border-color: rgba(106, 159, 103, 0.42);
+  border-color: transparent;
 }
 
 .gardenPlotCard.isSeedTarget {
-  border-color: rgba(132, 181, 109, 0.52);
-  box-shadow:
-    inset 0 0 0 1px rgba(132, 181, 109, 0.18),
-    0 10px 26px rgba(0, 0, 0, 0.22);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .gardenPlotCard.isSeedTarget::before {
-  content: "";
-  position: absolute;
-  inset: 8px;
-  border-radius: 14px;
-  border: 1px dashed rgba(132, 181, 109, 0.5);
-  opacity: 0.6;
-  animation: gardenSeedTargetPulse 1.9s ease-in-out infinite;
-  pointer-events: none;
+  content: none;
 }
 
 .gardenPlotCard.isBloom {
-  border-color: rgba(210, 182, 88, 0.48);
-  background:
-    radial-gradient(circle at top, rgba(195, 164, 66, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(34, 30, 21, 0.96), rgba(18, 17, 12, 0.98));
+  border-color: transparent;
+  background: transparent;
 }
 
 .gardenPlotCard.isWilted {
-  border-color: rgba(158, 102, 102, 0.36);
-  background:
-    radial-gradient(circle at top, rgba(126, 75, 75, 0.16), transparent 34%),
-    linear-gradient(180deg, rgba(31, 23, 23, 0.96), rgba(18, 14, 14, 0.98));
+  border-color: transparent;
+  background: transparent;
 }
 
 .gardenPlotVisual {
@@ -6501,13 +6523,14 @@ button:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 auto;
-  min-height: 236px;
-  border-radius: 14px;
-  border: 1px dashed rgba(191, 174, 145, 0.18);
-  background:
-    radial-gradient(circle at 50% 24%, rgba(105, 145, 92, 0.18), transparent 48%),
-    linear-gradient(180deg, rgba(12, 17, 14, 0.88), rgba(8, 12, 10, 0.96));
+  flex: 0 0 auto;
+  width: min(100%, 132px);
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  align-self: center;
+  border-radius: 0;
+  border: none;
+  background: transparent;
 }
 
 .gardenPlotVisual::before {
@@ -6535,11 +6558,20 @@ button:focus-visible {
   width: 112px;
   height: 112px;
   border-radius: 50%;
-  border: 1px solid rgba(191, 174, 145, 0.18);
-  background: rgba(255, 255, 255, 0.04);
+  border: none;
+  background: rgba(6, 8, 7, 0.34);
+  backdrop-filter: blur(4px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 8px 18px rgba(0, 0, 0, 0.16);
   font-family: var(--font-display);
   font-size: 2.6rem;
   color: var(--text-main);
+}
+
+.gardenPlantSilhouette:empty {
+  width: 92px;
+  height: 92px;
 }
 
 .gardenPlantSilhouette.phase-bloom {
@@ -6554,13 +6586,18 @@ button:focus-visible {
   position: relative;
   z-index: 1;
   display: block;
-  width: min(100%, 180px);
-  max-height: 196px;
+  width: min(100%, 132px);
+  max-height: 132px;
   object-fit: contain;
   object-position: center bottom;
   filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.22));
   user-select: none;
   pointer-events: none;
+}
+
+.gardenPlantImage.phase-growing {
+  width: min(100%, 99px);
+  max-height: 99px;
 }
 
 .gardenPlotBody {
@@ -6569,6 +6606,7 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 0 8px 8px;
 }
 
 .gardenProgressBlock {
@@ -6591,6 +6629,10 @@ button:focus-visible {
   background: linear-gradient(90deg, rgba(120, 170, 96, 0.84), rgba(211, 188, 97, 0.9));
 }
 
+.gardenProgressFill.isWilted {
+  background: linear-gradient(90deg, rgba(151, 80, 74, 0.92), rgba(94, 33, 33, 0.96));
+}
+
 .gardenProgressMeta {
   margin: 0;
   font-size: 0.82rem;
@@ -6601,9 +6643,12 @@ button:focus-visible {
 .gardenSeedGrid {
   --garden-seed-slot-size: 92px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, var(--garden-seed-slot-size));
-  justify-content: start;
+  grid-template-columns: repeat(auto-fit, minmax(var(--garden-seed-slot-size), var(--garden-seed-slot-size)));
+  justify-content: center;
   gap: var(--space-3);
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
 }
 
 .gardenSeedGridCell {
@@ -6611,6 +6656,7 @@ button:focus-visible {
 }
 
 .gardenSeedSlot {
+  position: relative;
   width: var(--garden-seed-slot-size);
   min-width: var(--garden-seed-slot-size);
   height: var(--garden-seed-slot-size);
@@ -6618,9 +6664,8 @@ button:focus-visible {
   padding: 10px;
   border-radius: 18px;
   border: 1px solid rgba(191, 174, 145, 0.18);
-  background:
-    radial-gradient(circle at 50% 28%, rgba(153, 121, 76, 0.16), transparent 52%),
-    linear-gradient(180deg, rgba(18, 23, 20, 0.92), rgba(11, 14, 13, 0.98));
+  background: rgba(11, 14, 13, 0.12);
+  backdrop-filter: blur(2px);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -6643,9 +6688,7 @@ button:focus-visible {
   box-shadow:
     inset 0 0 0 1px rgba(211, 188, 97, 0.32),
     0 14px 28px rgba(5, 8, 6, 0.28);
-  background:
-    radial-gradient(circle at 50% 24%, rgba(195, 167, 78, 0.22), transparent 50%),
-    linear-gradient(180deg, rgba(26, 32, 27, 0.96), rgba(13, 17, 15, 0.98));
+  background: rgba(26, 32, 27, 0.18);
 }
 
 .gardenSeedEmptyState {
@@ -6665,6 +6708,24 @@ button:focus-visible {
   object-fit: contain;
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
   user-select: none;
+  pointer-events: none;
+}
+
+.gardenSeedCountBadge {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  min-width: 26px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(7, 10, 8, 0.86);
+  border: 1px solid rgba(191, 174, 145, 0.22);
+  color: var(--text-main);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
   pointer-events: none;
 }
 
@@ -6701,10 +6762,20 @@ button:focus-visible {
 
 .gardenSeedTooltip {
   z-index: 28;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.gardenSeedTooltip::after {
+  display: none;
 }
 
 .gardenSeedTooltipCard {
-  width: min(300px, calc(100vw - 16px));
+  width: min(280px, calc(100vw - 32px));
   display: grid;
   gap: var(--space-3);
   padding: var(--space-3);
@@ -6775,7 +6846,21 @@ button:focus-visible {
 }
 
 @media (max-width: 1180px) {
-  .gardenLayout {
-    grid-template-columns: 1fr;
+  .gardenPlotsGrid {
+    width: calc(100% - 8%);
+    margin: 3% 4% 0;
+  }
+
+  .gardenPlotVisual {
+    width: min(100%, 120px);
+  }
+
+  .gardenPlantImage {
+    width: min(100%, 120px);
+    max-height: 120px;
+  }
+
+  .gardenSeedGrid {
+    justify-content: center;
   }
 }

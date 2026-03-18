@@ -42,7 +42,7 @@ vi.mock("../src/features/garden/api", () => ({
 function createGardenState(overrides?: Partial<GardenStateResponse>): GardenStateResponse {
   return {
     serverTime: "2026-03-18T10:00:00.000Z",
-    plots: Array.from({ length: 5 }, (_, index) => ({
+    plots: Array.from({ length: 8 }, (_, index) => ({
       slotIndex: index + 1,
       plantId: null,
       phase: "empty" as const,
@@ -62,7 +62,7 @@ function createGardenState(overrides?: Partial<GardenStateResponse>): GardenStat
         itemCode: "seed_bloodleaf",
         displayName: "Bloodleaf Seeds",
         rarity: "common",
-        quantity: 5
+        quantity: 999
       }
     ],
     ...overrides
@@ -108,7 +108,7 @@ describe("garden panel", () => {
             itemCode: "seed_bloodleaf",
             displayName: "Bloodleaf Seeds",
             rarity: "common",
-            quantity: 5
+            quantity: 998
           }
         ]
       })
@@ -129,8 +129,10 @@ describe("garden panel", () => {
       });
     });
 
-    expect(await screen.findByText(/^gardenPanel\.milestone\.growthDone:/)).toBeTruthy();
-    expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_growing.png"]')).toBeTruthy();
+    await waitFor(() => {
+      expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_growing.png"]')).toBeTruthy();
+    });
+    expect(screen.getByText("998")).toBeTruthy();
   });
 
   it("renders the bloodleaf seed art in the inventory grid", async () => {
@@ -143,6 +145,10 @@ describe("garden panel", () => {
     fireEvent.click(seedButton);
     expect(seedButton.getAttribute("aria-pressed")).toBe("true");
     expect(document.activeElement).not.toBe(seedButton);
+    expect(screen.getByText("999")).toBeTruthy();
+    expect(screen.getByText("gardenPanel.seedGrowTime:5s")).toBeTruthy();
+    expect(screen.getByText("gardenPanel.seedHarvestableTime:10s")).toBeTruthy();
+    expect(screen.getByText("gardenPanel.seedBloomTime:5s")).toBeTruthy();
     expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_seed.png"]')).toBeTruthy();
   });
 
@@ -182,7 +188,7 @@ describe("garden panel", () => {
             itemCode: "seed_bloodleaf",
             displayName: "Bloodleaf Seeds",
             rarity: "common",
-            quantity: 5
+            quantity: 999
           },
           {
             inventoryEntryId: "ingredient_1",
@@ -199,7 +205,9 @@ describe("garden panel", () => {
 
     const { container } = render(<GardenPanel token="token" />);
 
-    expect(await screen.findByText(/^gardenPanel\.milestone\.bloomEnds:/)).toBeTruthy();
+    await waitFor(() => {
+      expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_blooming.png"]')).toBeTruthy();
+    });
     const firstPlotCard = container.querySelector(".gardenPlotCard");
     expect(firstPlotCard).toBeTruthy();
 
@@ -241,13 +249,13 @@ describe("garden panel", () => {
         await Promise.resolve();
       });
 
-      expect(screen.getByText(/^gardenPanel\.milestone\.growthDone:/)).toBeTruthy();
+      expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_growing.png"]')).toBeTruthy();
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(6_000);
       });
 
-      expect(screen.getByText(/^gardenPanel\.milestone\.bloomEnds:/)).toBeTruthy();
+      expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_blooming.png"]')).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }

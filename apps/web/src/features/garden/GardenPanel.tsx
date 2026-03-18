@@ -3,6 +3,7 @@ import {
   useEffect,
   useEffectEvent,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type ReactElement
 } from "react";
@@ -27,10 +28,7 @@ export type GardenPanelProps = {
   token: string | null;
 };
 
-type PlotTimingWindow = {
-  startAtMs: number;
-  endAtMs: number;
-};
+const GARDEN_BACKGROUND_PATH = "/assets/items/generated/garden/garden.png";
 
 function deriveLivePlotState(plot: GardenPlotState, nowMs: number): GardenPlotState {
   const phase = resolveGardenPlotPhase({
@@ -57,76 +55,6 @@ function deriveLivePlotState(plot: GardenPlotState, nowMs: number): GardenPlotSt
       phase
     })
   };
-}
-
-function formatDurationShort(durationMs: number): string {
-  const totalSeconds = Math.max(0, Math.ceil(durationMs / 1_000));
-  const hours = Math.floor(totalSeconds / 3_600);
-  const minutes = Math.floor((totalSeconds % 3_600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
-}
-
-function getPlotTimingWindow(plot: GardenPlotState): PlotTimingWindow | null {
-  if (!plot.plantedAt) {
-    return null;
-  }
-
-  const plantedAtMs = Date.parse(plot.plantedAt);
-  const growthEndsAtMs = plot.growthEndsAt ? Date.parse(plot.growthEndsAt) : Number.NaN;
-  const bloomStartsAtMs = plot.bloomStartsAt ? Date.parse(plot.bloomStartsAt) : Number.NaN;
-  const bloomEndsAtMs = plot.bloomEndsAt ? Date.parse(plot.bloomEndsAt) : Number.NaN;
-  const wiltAtMs = plot.wiltAt ? Date.parse(plot.wiltAt) : Number.NaN;
-
-  switch (plot.phase) {
-    case "growing":
-      return Number.isNaN(growthEndsAtMs) ? null : { startAtMs: plantedAtMs, endAtMs: growthEndsAtMs };
-    case "pre_bloom":
-      return Number.isNaN(growthEndsAtMs) || Number.isNaN(bloomStartsAtMs)
-        ? null
-        : { startAtMs: growthEndsAtMs, endAtMs: bloomStartsAtMs };
-    case "bloom":
-      return Number.isNaN(bloomStartsAtMs) || Number.isNaN(bloomEndsAtMs)
-        ? null
-        : { startAtMs: bloomStartsAtMs, endAtMs: bloomEndsAtMs };
-    case "post_bloom":
-      return Number.isNaN(bloomEndsAtMs) || Number.isNaN(wiltAtMs)
-        ? null
-        : { startAtMs: bloomEndsAtMs, endAtMs: wiltAtMs };
-    default:
-      return null;
-  }
-}
-
-function getPlotProgressPercent(plot: GardenPlotState, nowMs: number): number {
-  const window = getPlotTimingWindow(plot);
-  if (!window) {
-    return plot.phase === "wilted" ? 100 : 0;
-  }
-
-  const duration = Math.max(1, window.endAtMs - window.startAtMs);
-  const elapsed = Math.max(0, Math.min(duration, nowMs - window.startAtMs));
-  return Math.round((elapsed / duration) * 100);
-}
-
-function getMilestoneKey(phase: GardenPlotPhase): string | null {
-  switch (phase) {
-    case "growing":
-      return "gardenPanel.milestone.growthDone";
-    case "pre_bloom":
-      return "gardenPanel.milestone.bloomStarts";
-    case "bloom":
-      return "gardenPanel.milestone.bloomEnds";
-    case "post_bloom":
-      return "gardenPanel.milestone.wiltBegins";
-    default:
-      return null;
-  }
 }
 
 function getDefaultSelectedSlotIndex(
@@ -165,10 +93,25 @@ function isHarvestablePhase(phase: GardenPlotPhase): boolean {
 
 function getPlantPlaceholderLabel(plantId: GardenPlantId | null): string {
   if (!plantId) {
-    return "?";
+    return "";
   }
 
-  return gardenPlantCatalogById[plantId]?.displayName?.[0] ?? "?";
+  return gardenPlantCatalogById[plantId]?.displayName?.[0] ?? "";
+}
+
+function formatGardenDuration(totalSeconds: number): string {
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`;
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (seconds === 0) {
+    return `${minutes}m`;
+  }
+
+  return `${minutes}m ${seconds}s`;
 }
 
 export function GardenPanel({ token }: GardenPanelProps): ReactElement {
@@ -181,6 +124,9 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [serverClockOffsetMs, setServerClockOffsetMs] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const gardenSceneStyle = {
+    "--indoor-scene-image": `url("${GARDEN_BACKGROUND_PATH}")`
+  } as CSSProperties;
 
   function syncServerClock(serverTime: string) {
     const receivedAtMs = Date.now();
@@ -237,6 +183,17 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
 
   const plots = (gardenState?.plots ?? []).map((plot) => deriveLivePlotState(plot, nowMs));
   const seedEntries = (gardenState?.inventory ?? []).filter((entry) => entry.kind === "seed");
+
+  useEffect(() => {
+    if (!selectedSeedPlantId) {
+      return;
+    }
+
+    const selectedSeedEntry = seedEntries.find((entry) => entry.plantId === selectedSeedPlantId) ?? null;
+    if (!selectedSeedEntry || selectedSeedEntry.quantity <= 0) {
+      setSelectedSeedPlantId(null);
+    }
+  }, [seedEntries, selectedSeedPlantId]);
 
   async function handlePlantSeed(slotIndex: number, plantId: GardenInventoryEntry["plantId"]) {
     if (!token) {
@@ -352,7 +309,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     return (
       <section className="contentShell gardenViewportShell">
         <section className="contentStack gardenViewportStack">
-          <article className="contentCard">
+          <article className="contentCard gardenPanelCard indoorSceneShell" style={gardenSceneStyle}>
             <h2>{t("menu.garden")}</h2>
             <p>{t("gardenPanel.loading")}</p>
           </article>
@@ -365,7 +322,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     return (
       <section className="contentShell gardenViewportShell">
         <section className="contentStack gardenViewportStack">
-          <article className="contentCard">
+          <article className="contentCard gardenPanelCard indoorSceneShell" style={gardenSceneStyle}>
             <h2>{t("menu.garden")}</h2>
             <p>{error ?? t("gardenPanel.unavailable")}</p>
           </article>
@@ -377,7 +334,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   return (
     <section className="contentShell gardenViewportShell">
       <section className="contentStack gardenViewportStack">
-        <article className="contentCard gardenPanelCard">
+        <article className="contentCard gardenPanelCard indoorSceneShell" style={gardenSceneStyle}>
           {error ? <p className="error">{error}</p> : null}
 
           <div className="gardenLayout">
@@ -385,13 +342,6 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
               <div className="gardenPlotsGrid">
                 {plots.map((plot) => {
                   const plantImagePath = getGardenPlantImagePath(plot.plantId, plot.phase);
-                  const nextTransitionAtMs = plot.nextTransitionAt ? Date.parse(plot.nextTransitionAt) : null;
-                  const countdownLabel =
-                    nextTransitionAtMs && nextTransitionAtMs > nowMs
-                      ? formatDurationShort(nextTransitionAtMs - nowMs)
-                      : null;
-                  const milestoneKey = getMilestoneKey(plot.phase);
-                  const progressPercent = getPlotProgressPercent(plot, nowMs);
                   const isSelected = plot.slotIndex === selectedSlotIndex;
                   const phaseTone = getPhaseTone(plot.phase);
                   const isSeedTarget = plot.phase === "empty" && selectedSeedPlantId !== null;
@@ -420,25 +370,6 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                           </span>
                         )}
                       </div>
-
-                      <div className="gardenPlotBody">
-                        <div className="gardenProgressBlock">
-                          <div className="gardenProgressTrack">
-                            <span className="gardenProgressFill" style={{ width: `${progressPercent}%` }} />
-                          </div>
-                          <p className="gardenProgressMeta">
-                            {milestoneKey && countdownLabel ? (
-                              <span>{t(milestoneKey, { duration: countdownLabel })}</span>
-                            ) : plot.phase === "wilted" ? (
-                              <span>{t("gardenPanel.wiltedHint")}</span>
-                            ) : plot.phase === "empty" ? (
-                              <span>{t("gardenPanel.selectSeedPrompt")}</span>
-                            ) : (
-                              <span>{t("gardenPanel.readyToHarvest")}</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   );
                 })}
@@ -450,10 +381,8 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                 {seedEntries.map((entry) => {
                   const plant = gardenPlantCatalogById[entry.plantId];
                   const seedImagePath = getGardenSeedImagePath(entry.plantId);
-                  const totalGrowthMs =
-                    (plant.growthSeconds + plant.preBloomSeconds + plant.bloomSeconds + plant.postBloomSeconds) * 1_000;
-                  const plantDuration = formatDurationShort(totalGrowthMs);
                   const isSelected = entry.plantId === selectedSeedPlantId;
+                  const isOutOfSeeds = entry.quantity <= 0;
 
                   return (
                     <div key={`${entry.kind}-${entry.plantId}`} className="uiHoverTooltipTrigger gardenSeedGridCell">
@@ -466,7 +395,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                         }}
                         aria-label={entry.displayName}
                         aria-pressed={isSelected}
-                        disabled={actionKey !== null}
+                        disabled={actionKey !== null || isOutOfSeeds}
                       >
                         {seedImagePath ? (
                           <img
@@ -479,14 +408,16 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                         ) : (
                           <span className="gardenSeedFallback">{getPlantPlaceholderLabel(entry.plantId)}</span>
                         )}
+                        <span className="gardenSeedCountBadge" aria-hidden="true">
+                          {entry.quantity.toLocaleString()}
+                        </span>
                       </button>
 
-                      <div className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorStart gardenSeedTooltip" role="tooltip">
+                      <div className="uiHoverTooltip gardenSeedTooltip" role="tooltip">
                         <article className={`gardenSeedTooltipCard rarity-${entry.rarity}`}>
                           <div className="gardenSeedTooltipHeader">
                             <div>
                               <h4>{entry.displayName}</h4>
-                              <p>{t("gardenPanel.seedDuration", { duration: plantDuration })}</p>
                             </div>
                             <span className="gardenSeedTooltipBadge">
                               {isSelected ? t("gardenPanel.seedTooltipSelected") : t("gardenPanel.seedTooltipSelect")}
@@ -494,6 +425,15 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                           </div>
 
                           <div className="gardenSeedTooltipBody">
+                            <p>{t("gardenPanel.seedGrowTime", { duration: formatGardenDuration(plant.growthSeconds) })}</p>
+                            <p>
+                              {t("gardenPanel.seedHarvestableTime", {
+                                duration: formatGardenDuration(
+                                  plant.preBloomSeconds + plant.bloomSeconds + plant.postBloomSeconds
+                                )
+                              })}
+                            </p>
+                            <p>{t("gardenPanel.seedBloomTime", { duration: formatGardenDuration(plant.bloomSeconds) })}</p>
                             <p>{t("gardenPanel.seedBaseYield", { yield: plant.baseYield })}</p>
                             <p>{t("gardenPanel.seedBloomYield", { yield: plant.bloomYield })}</p>
                             <p>{t("gardenPanel.recipeRefs", { recipes: plant.recipeRefs.join(", ") })}</p>

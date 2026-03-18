@@ -23,6 +23,7 @@ import {
 } from "@ebonkeep/shared/garden";
 
 type GardenDbClient = PrismaClient | Prisma.TransactionClient;
+const LEGACY_INFINITE_GARDEN_SEED_QUANTITY = 5;
 
 type GardenPlotRecord = {
   id: string;
@@ -99,9 +100,7 @@ async function ensureGardenBootstrapped(prisma: GardenDbClient, playerId: string
       plantId: {
         in: Array.from(starterGardenPlantIds)
       },
-      quantity: {
-        lt: STARTER_GARDEN_SEED_QUANTITY
-      }
+      quantity: LEGACY_INFINITE_GARDEN_SEED_QUANTITY
     },
     data: {
       quantity: STARTER_GARDEN_SEED_QUANTITY
@@ -229,6 +228,32 @@ async function addGardenInventoryQuantity(args: {
   });
 }
 
+async function consumeGardenSeed(args: {
+  prisma: GardenDbClient;
+  playerId: string;
+  plantId: GardenPlantId;
+}): Promise<void> {
+  const result = await args.prisma.gardenInventoryEntry.updateMany({
+    where: {
+      playerId: args.playerId,
+      plantId: args.plantId,
+      kind: "seed",
+      quantity: {
+        gt: 0
+      }
+    },
+    data: {
+      quantity: {
+        decrement: 1
+      }
+    }
+  });
+
+  if (result.count !== 1) {
+    throw new GardenError("SEED_UNAVAILABLE", 409, "You do not have any seeds of this type.");
+  }
+}
+
 async function clearPlot(prisma: GardenDbClient, playerId: string, slotIndex: number): Promise<void> {
   await prisma.gardenPlot.update({
     where: {
@@ -280,6 +305,38 @@ async function claimPlotForHarvest(
   }
 }
 
+async function claimEmptyPlotForPlanting(args: {
+  prisma: GardenDbClient;
+  playerId: string;
+  slotIndex: number;
+  plantId: GardenPlantId;
+  plantedAt: Date;
+  growthEndsAt: Date;
+  bloomStartsAt: Date;
+  bloomEndsAt: Date;
+  wiltAt: Date;
+}): Promise<void> {
+  const result = await args.prisma.gardenPlot.updateMany({
+    where: {
+      playerId: args.playerId,
+      slotIndex: args.slotIndex,
+      plantId: null
+    },
+    data: {
+      plantId: args.plantId,
+      plantedAt: args.plantedAt,
+      growthEndsAt: args.growthEndsAt,
+      bloomStartsAt: args.bloomStartsAt,
+      bloomEndsAt: args.bloomEndsAt,
+      wiltAt: args.wiltAt
+    }
+  });
+
+  if (result.count !== 1) {
+    throw new GardenError("PLOT_OCCUPIED", 409, "This plot is already occupied.");
+  }
+}
+
 export async function getGardenState(prisma: GardenDbClient, playerId: string): Promise<GardenStateResponse> {
   await ensureGardenBootstrapped(prisma, playerId);
   return loadGardenStateInternal(prisma, playerId, new Date());
@@ -302,21 +359,22 @@ export async function plantGardenSeed(
       throw new GardenError("PLOT_OCCUPIED", 409, "This plot is already occupied.");
     }
 
-    await tx.gardenPlot.update({
-      where: {
-        playerId_slotIndex: {
-          playerId,
-          slotIndex
-        }
-      },
-      data: {
-        plantId,
-        plantedAt: now,
-        growthEndsAt: new Date(timing.growthEndsAt),
-        bloomStartsAt: new Date(timing.bloomStartsAt),
-        bloomEndsAt: new Date(timing.bloomEndsAt),
-        wiltAt: new Date(timing.wiltAt)
-      }
+    await consumeGardenSeed({
+      prisma: tx,
+      playerId,
+      plantId
+    });
+
+    await claimEmptyPlotForPlanting({
+      prisma: tx,
+      playerId,
+      slotIndex,
+      plantId,
+      plantedAt: now,
+      growthEndsAt: new Date(timing.growthEndsAt),
+      bloomStartsAt: new Date(timing.bloomStartsAt),
+      bloomEndsAt: new Date(timing.bloomEndsAt),
+      wiltAt: new Date(timing.wiltAt)
     });
 
     return loadGardenStateInternal(tx, playerId, now);
