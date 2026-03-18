@@ -30,10 +30,10 @@ describe("garden routes", () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body.plots).toHaveLength(5);
+    expect(body.plots).toHaveLength(8);
     expect(body.plots.every((plot: { phase: string }) => plot.phase === "empty")).toBe(true);
     expect(body.inventory).toHaveLength(5);
-    expect(body.inventory.every((entry: { kind: string; quantity: number }) => entry.kind === "seed" && entry.quantity === 5)).toBe(true);
+    expect(body.inventory.every((entry: { kind: string; quantity: number }) => entry.kind === "seed" && entry.quantity === 999)).toBe(true);
   });
 
   it("handles concurrent first-load bootstrap without duplicate plot or seed rows", async () => {
@@ -68,11 +68,11 @@ describe("garden routes", () => {
       }
     });
 
-    expect(plotCount).toBe(5);
+    expect(plotCount).toBe(8);
     expect(seedCount).toBe(5);
   });
 
-  it("plants seeds, tracks phases, and keeps starter seeds available", async () => {
+  it("plants seeds, decrements inventory, and upgrades legacy infinite starter stacks once", async () => {
     const guest = await loginAsGuest(context.app);
     const headers = authHeaders(guest.body.accessToken);
 
@@ -96,7 +96,7 @@ describe("garden routes", () => {
     expect(plantResponse.json().garden.plots[0].phase).toBe("growing");
     expect(
       plantResponse.json().garden.inventory.find((entry: { plantId: string; kind: string }) => entry.plantId === "bloodleaf" && entry.kind === "seed").quantity
-    ).toBe(5);
+    ).toBe(998);
 
     await context.prisma.gardenInventoryEntry.updateMany({
       where: {
@@ -105,20 +105,20 @@ describe("garden routes", () => {
         kind: "seed"
       },
       data: {
-        quantity: 0
+        quantity: 5
       }
     });
 
-    const replenishedSeedState = await context.app.inject({
+    const migratedSeedState = await context.app.inject({
       method: "GET",
       url: "/v1/garden/state",
       headers
     });
 
-    expect(replenishedSeedState.statusCode).toBe(200);
+    expect(migratedSeedState.statusCode).toBe(200);
     expect(
-      replenishedSeedState.json().inventory.find((entry: { plantId: string; kind: string }) => entry.plantId === "fenroot" && entry.kind === "seed").quantity
-    ).toBe(5);
+      migratedSeedState.json().inventory.find((entry: { plantId: string; kind: string }) => entry.plantId === "fenroot" && entry.kind === "seed").quantity
+    ).toBe(999);
 
     const plantFenrootResponse = await context.app.inject({
       method: "POST",
@@ -130,6 +130,9 @@ describe("garden routes", () => {
     });
 
     expect(plantFenrootResponse.statusCode).toBe(200);
+    expect(
+      plantFenrootResponse.json().garden.inventory.find((entry: { plantId: string; kind: string }) => entry.plantId === "fenroot" && entry.kind === "seed").quantity
+    ).toBe(998);
   });
 
   it("harvests bloom crops for double yield and keeps ingredients outside player inventory", async () => {
@@ -326,7 +329,7 @@ describe("garden routes", () => {
 
     const response = await context.app.inject({
       method: "POST",
-      url: "/v1/garden/slots/6/plant",
+      url: "/v1/garden/slots/9/plant",
       headers,
       payload: {
         plantId: "bloodleaf"
