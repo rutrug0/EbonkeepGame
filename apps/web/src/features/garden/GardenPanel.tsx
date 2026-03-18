@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactElement
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,7 +33,9 @@ export type GardenPanelProps = {
 const GARDEN_BACKGROUND_PATH = "/assets/items/generated/garden/garden.png";
 const GARDEN_PLOT_SHAKE_DURATION_MS = 520;
 const GARDEN_PLOT_PLANTING_DURATION_MS = 680;
+const GARDEN_PLOT_HARVESTING_DURATION_MS = 560;
 const GARDEN_PLOT_CLEARING_DURATION_MS = 420;
+const GARDEN_FLOATING_REWARD_DURATION_MS = 1_250;
 
 type GardenPlotVisualFx =
   | {
@@ -46,10 +49,22 @@ type GardenPlotVisualFx =
       phase: GardenPlotPhase;
     }
   | {
+      kind: "harvesting";
+      plantId: GardenPlantId;
+      phase: GardenPlotPhase;
+    }
+  | {
       kind: "clearing";
       plantId: GardenPlantId;
       phase: GardenPlotPhase;
     };
+
+type GardenFloatingReward = {
+  id: number;
+  x: number;
+  y: number;
+  label: string;
+};
 
 function deriveLivePlotState(plot: GardenPlotState, nowMs: number): GardenPlotState {
   const phase = resolveGardenPlotPhase({
@@ -120,6 +135,23 @@ function getPlantPlaceholderLabel(plantId: GardenPlantId | null): string {
   return gardenPlantCatalogById[plantId]?.displayName?.[0] ?? "";
 }
 
+function getGardenPlotAccessibleLabel(args: {
+  slotIndex: number;
+  phase: GardenPlotPhase;
+  plantId: GardenPlantId | null;
+  t: (key: string, options?: Record<string, string | number>) => string;
+}): string {
+  const slotLabel = args.t("gardenPanel.slotTitle", { slot: args.slotIndex });
+  const phaseLabel = args.t(`gardenPanel.phase.${args.phase}`);
+  const plantName = args.plantId ? gardenPlantCatalogById[args.plantId]?.displayName ?? "" : "";
+
+  if (plantName) {
+    return `${slotLabel}, ${plantName}, ${phaseLabel}`;
+  }
+
+  return `${slotLabel}, ${phaseLabel}`;
+}
+
 function formatGardenDuration(totalSeconds: number): string {
   if (totalSeconds < 60) {
     return `${totalSeconds}s`;
@@ -139,6 +171,8 @@ function getFxDurationMs(kind: GardenPlotVisualFx["kind"]): number {
   switch (kind) {
     case "planting":
       return GARDEN_PLOT_PLANTING_DURATION_MS;
+    case "harvesting":
+      return GARDEN_PLOT_HARVESTING_DURATION_MS;
     case "clearing":
       return GARDEN_PLOT_CLEARING_DURATION_MS;
     default:
@@ -157,8 +191,12 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const [serverClockOffsetMs, setServerClockOffsetMs] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [plotVisualFxBySlot, setPlotVisualFxBySlot] = useState<Record<number, GardenPlotVisualFx>>({});
+  const [floatingRewards, setFloatingRewards] = useState<GardenFloatingReward[]>([]);
   const previousPlotsRef = useRef<GardenPlotState[] | null>(null);
   const plotVisualFxTimersRef = useRef<Record<number, number>>({});
+  const floatingRewardIdRef = useRef(0);
+  const floatingRewardTimersRef = useRef<Record<number, number>>({});
+  const gardenPanelCardRef = useRef<HTMLElement | null>(null);
   const gardenSceneStyle = {
     "--indoor-scene-image": `url("${GARDEN_BACKGROUND_PATH}")`
   } as CSSProperties;
@@ -244,6 +282,34 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     }, getFxDurationMs(fx.kind));
   });
 
+  const spawnFloatingReward = useEffectEvent(
+    (quantity: number, targetElement: HTMLElement | null, point?: { x: number; y: number }) => {
+      const panelElement = gardenPanelCardRef.current;
+      if (!panelElement) {
+        return;
+      }
+
+      const panelRect = panelElement.getBoundingClientRect();
+      const targetRect = targetElement?.getBoundingClientRect() ?? null;
+      const baseX =
+        point?.x ?? (targetRect ? targetRect.left + (targetRect.width / 2) : panelRect.left + (panelRect.width / 2));
+      const baseY =
+        point?.y ?? (targetRect ? targetRect.top + (targetRect.height / 2) : panelRect.top + (panelRect.height / 2));
+      const nextReward: GardenFloatingReward = {
+        id: floatingRewardIdRef.current++,
+        x: Math.max(24, Math.min(panelRect.width - 24, (baseX - panelRect.left) + 16)),
+        y: Math.max(24, Math.min(panelRect.height - 24, (baseY - panelRect.top) - 12)),
+        label: `+${quantity}`
+      };
+
+      setFloatingRewards((current) => [...current, nextReward]);
+      floatingRewardTimersRef.current[nextReward.id] = window.setTimeout(() => {
+        setFloatingRewards((current) => current.filter((reward) => reward.id !== nextReward.id));
+        delete floatingRewardTimersRef.current[nextReward.id];
+      }, GARDEN_FLOATING_REWARD_DURATION_MS);
+    }
+  );
+
   useEffect(() => {
     const previousPlots = previousPlotsRef.current;
     if (!previousPlots || previousPlots.length === 0) {
@@ -289,6 +355,9 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
       for (const timerId of Object.values(plotVisualFxTimersRef.current)) {
         window.clearTimeout(timerId);
       }
+      for (const timerId of Object.values(floatingRewardTimersRef.current)) {
+        window.clearTimeout(timerId);
+      }
     };
   }, []);
 
@@ -331,20 +400,32 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     }
   }
 
-  async function handleHarvest(slotIndex: number) {
+  async function handleHarvest(
+    plot: GardenPlotState,
+    targetElement: HTMLElement | null,
+    point?: { x: number; y: number }
+  ) {
     if (!token) {
       setError(t("gardenPanel.unavailable"));
       return;
     }
 
-    const currentActionKey = `harvest:${slotIndex}`;
+    const currentActionKey = `harvest:${plot.slotIndex}`;
     setActionKey(currentActionKey);
 
     try {
-      const response = await harvestGardenPlot(token, slotIndex);
+      const response = await harvestGardenPlot(token, plot.slotIndex);
+      if (plot.plantId) {
+        schedulePlotVisualFx(plot.slotIndex, {
+          kind: "harvesting",
+          plantId: plot.plantId,
+          phase: plot.phase
+        });
+      }
+      spawnFloatingReward(response.harvested.quantity, targetElement, point);
       setGardenState(response.garden);
       setSelectedSlotIndex((current) =>
-        current === slotIndex ? getDefaultSelectedSlotIndex(response.garden, current) : current
+        current === plot.slotIndex ? getDefaultSelectedSlotIndex(response.garden, current) : current
       );
       syncServerClock(response.garden.serverTime);
       setError(null);
@@ -377,7 +458,11 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     }
   }
 
-  function handleSlotClick(slotIndex: number) {
+  function handleSlotClick(
+    slotIndex: number,
+    targetElement: HTMLElement | null,
+    point?: { x: number; y: number }
+  ) {
     setSelectedSlotIndex(slotIndex);
 
     const plot = plots.find((entry) => entry.slotIndex === slotIndex) ?? null;
@@ -398,7 +483,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     }
 
     if (isHarvestablePhase(plot.phase)) {
-      void handleHarvest(slotIndex);
+      void handleHarvest(plot, targetElement, point);
       return;
     }
 
@@ -413,7 +498,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     }
 
     event.preventDefault();
-    handleSlotClick(slotIndex);
+    handleSlotClick(slotIndex, event.currentTarget);
   }
 
   function handleSeedToggle(plantId: GardenPlantId) {
@@ -449,8 +534,24 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   return (
     <section className="contentShell gardenViewportShell">
       <section className="contentStack gardenViewportStack">
-        <article className="contentCard gardenPanelCard indoorSceneShell" style={gardenSceneStyle}>
+        <article
+          ref={gardenPanelCardRef}
+          className="contentCard gardenPanelCard indoorSceneShell"
+          style={gardenSceneStyle}
+        >
           {error ? <p className="error">{error}</p> : null}
+          {floatingRewards.map((reward) => (
+            <span
+              key={reward.id}
+              className="gardenFloatingReward"
+              style={{
+                left: `${reward.x}px`,
+                top: `${reward.y}px`
+              }}
+            >
+              {reward.label}
+            </span>
+          ))}
 
           <div className="gardenLayout">
             <section className="gardenPlotsColumn">
@@ -460,9 +561,19 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                   const isSelected = plot.slotIndex === selectedSlotIndex;
                   const phaseTone = getPhaseTone(plot.phase);
                   const isSeedTarget = plot.phase === "empty" && selectedSeedPlantId !== null;
+                  const accessibleLabel = getGardenPlotAccessibleLabel({
+                    slotIndex: plot.slotIndex,
+                    phase: plot.phase,
+                    plantId: plot.plantId,
+                    t
+                  });
                   const plotVisualFx = plotVisualFxBySlot[plot.slotIndex] ?? null;
                   const clearingPlantImagePath =
                     plotVisualFx?.kind === "clearing"
+                      ? getGardenPlantImagePath(plotVisualFx.plantId, plotVisualFx.phase)
+                      : null;
+                  const harvestingPlantImagePath =
+                    plotVisualFx?.kind === "harvesting"
                       ? getGardenPlantImagePath(plotVisualFx.plantId, plotVisualFx.phase)
                       : null;
                   const visualClassName = [
@@ -479,7 +590,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                     `phase-${plot.phase}`,
                     plotVisualFx?.kind === "planting" ? "fx-enter fx-shake-once" : "",
                     plotVisualFx?.kind === "phase" ? "fx-shake-once" : "",
-                    plotVisualFx?.kind === "clearing" ? "fx-hidden" : ""
+                    plotVisualFx?.kind === "clearing" || plotVisualFx?.kind === "harvesting" ? "fx-hidden" : ""
                   ]
                     .filter(Boolean)
                     .join(" ");
@@ -488,7 +599,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                     `phase-${plot.phase}`,
                     plotVisualFx?.kind === "planting" ? "fx-enter fx-shake-once" : "",
                     plotVisualFx?.kind === "phase" ? "fx-shake-once" : "",
-                    plotVisualFx?.kind === "clearing" ? "fx-hidden" : ""
+                    plotVisualFx?.kind === "clearing" || plotVisualFx?.kind === "harvesting" ? "fx-hidden" : ""
                   ]
                     .filter(Boolean)
                     .join(" ");
@@ -498,8 +609,14 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                       key={plot.slotIndex}
                       role="button"
                       tabIndex={0}
+                      aria-label={accessibleLabel}
                       className={`gardenPlotCard${isSelected ? " isSelected" : ""}${phaseTone ? ` ${phaseTone}` : ""}${isSeedTarget ? " isSeedTarget" : ""}`}
-                      onClick={() => handleSlotClick(plot.slotIndex)}
+                      onClick={(event: ReactMouseEvent<HTMLDivElement>) =>
+                        handleSlotClick(plot.slotIndex, event.currentTarget, {
+                          x: event.clientX,
+                          y: event.clientY
+                        })
+                      }
                       onKeyDown={(event) => handleSlotKeyDown(event, plot.slotIndex)}
                     >
                       <div className={visualClassName} aria-hidden="true">
@@ -524,6 +641,22 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                               </span>
                             )}
                           </>
+                        ) : null}
+
+                        {plotVisualFx?.kind === "harvesting" ? (
+                          harvestingPlantImagePath ? (
+                            <img
+                              className="gardenPlantImage fx-harvest-out"
+                              src={harvestingPlantImagePath}
+                              alt=""
+                              loading="lazy"
+                              draggable={false}
+                            />
+                          ) : (
+                            <span className="gardenPlantSilhouette fx-harvest-out">
+                              {getPlantPlaceholderLabel(plotVisualFx.plantId)}
+                            </span>
+                          )
                         ) : null}
 
                         {plantImagePath ? (

@@ -117,6 +117,7 @@ describe("garden panel", () => {
     const { container } = render(<GardenPanel token="token" />);
 
     expect(await screen.findByText("Bloodleaf Seeds")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "gardenPanel.slotTitle:1, gardenPanel.phase.empty" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Bloodleaf Seeds" }));
 
     const firstPlotCard = container.querySelector(".gardenPlotCard");
@@ -223,6 +224,10 @@ describe("garden panel", () => {
     await waitFor(() => {
       expect(gardenApiMocks.harvestGardenPlot).toHaveBeenCalledWith("token", 1);
     });
+    await waitFor(() => {
+      expect(document.querySelector(".gardenPlantImage.fx-harvest-out")).toBeTruthy();
+    });
+    expect(screen.getByText("+4")).toBeTruthy();
   });
 
   it("keeps phase updates anchored to server time after the initial load", async () => {
