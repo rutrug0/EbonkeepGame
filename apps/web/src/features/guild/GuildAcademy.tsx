@@ -120,6 +120,30 @@ function buildAcademyCanopies(config: AcademyTreeState["config"]): Array<{
 }
 
 /** SVG path glyphs (same stroked-path style as RenownPanel). */
+
+const ACADEMY_NODE_IMAGE: Record<string, string> = {
+  academy_core: "/assets/renown_academy/renown_14.png",
+  combat_basics: "/assets/renown_academy/renown_15.png",
+  heavy_arms: "/assets/renown_academy/renown_16.png",
+  swift_strike: "/assets/renown_academy/renown_17.png",
+  warlord_creed: "/assets/renown_academy/renown_18.png",
+  arcane_basics: "/assets/renown_academy/renown_19.png",
+  runic_shields: "/assets/renown_academy/renown_20.png",
+  spellweaving: "/assets/renown_academy/renown_21.png",
+  high_sorcery: "/assets/renown_academy/renown_22.png",
+  guild_hall: "/assets/renown_academy/renown_23.png",
+  war_council: "/assets/renown_academy/renown_24.png",
+  alliance_pact: "/assets/renown_academy/renown_25.png",
+  merchant_ties: "/assets/renown_academy/renown_26.png",
+  trade_routes: "/assets/renown_academy/renown_27.png",
+  royal_charter: "/assets/renown_academy/renown_28.png",
+};
+
+function getAcademyNodeImage(iconKey: string): string | undefined {
+  const normalized = iconKey.replace(/^node_/, "");
+  return ACADEMY_NODE_IMAGE[normalized] ?? ACADEMY_NODE_IMAGE[iconKey];
+}
+
 function renderAcademyGlyph(glyph: AcademyGlyphKey): ReactElement {
   switch (glyph) {
     case "sigil":
@@ -279,8 +303,16 @@ function AcademyNodeButton({
         </svg>
       )}
       <span className="academyNodeFrame" aria-hidden="true">
-        {renderAcademyGlyph(glyph)}
+        {getAcademyNodeImage(node.iconKey)
+          ? <img src={getAcademyNodeImage(node.iconKey)!} alt="" className="academyNodeImg" />
+          : renderAcademyGlyph(glyph)
+        }
       </span>
+      {getAcademyNodeImage(node.iconKey) && (
+        <div className="academyNodeImagePreview" aria-hidden="true">
+          <img src={getAcademyNodeImage(node.iconKey)!} alt="" />
+        </div>
+      )}
       {!isCenter && (
         <span className="academyNodeLevelBadge" aria-hidden="true">
           {state.currentLevel}/{node.maxLevel}

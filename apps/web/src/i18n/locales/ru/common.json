@@ -634,6 +634,8 @@
     "confirmTransfer": "Вы уверены, что хотите передать лидерство {{player}}?",
     "statusOpen": "Открыт набор",
     "statusClosed": "Набор закрыт",
+    "showInfo": "О гильдии",
+    "hideInfo": "Скрыть",
     "createSubtitle": "Поднимите знамя и соберите своих соратников.",
     "nameHint": "3–32 символа",
     "tagHint": "2–6 символов",

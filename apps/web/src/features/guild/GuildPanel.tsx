@@ -131,6 +131,7 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
   const [hasGuild, setHasGuild] = useState(false);
   const [isActiveMission, setIsActiveMission] = useState(false);
+  const [myGuildActiveTab, setMyGuildActiveTab] = useState<GuildDetailTab>("members");
 
   useEffect(() => {
     if (token) {
@@ -162,7 +163,7 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
   // When a mission is active, we just add height:100% so the travel/combat shells fill the panel.
   return (
     <section
-      className="contentShell guildPanelShell"
+      className={`contentShell guildPanelShell${myGuildActiveTab === "academy" && currentView === "myGuild" ? " guildPanelShell--academy" : ""}`}
       style={isActiveMission ? { height: "100%", background: "transparent", border: "none" } : undefined}
     >
       <section
@@ -207,6 +208,7 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
             onActiveMissionChange={handleMissionActiveChange}
             onSearchClick={() => setCurrentView("search")}
             onDucatsChanged={onDucatsChanged}
+            onTabChange={setMyGuildActiveTab}
           />
         )}
         {!isActiveMission && currentView === "search" && (
@@ -232,6 +234,7 @@ function MyGuildView({
   onActiveMissionChange,
   onSearchClick,
   onDucatsChanged,
+  onTabChange,
 }: {
   token: string;
   currentPlayerId?: string | null;
@@ -244,6 +247,7 @@ function MyGuildView({
   onActiveMissionChange?: (active: boolean) => void;
   onSearchClick: () => void;
   onDucatsChanged?: (newAmount: number) => void;
+  onTabChange?: (tab: GuildDetailTab) => void;
 }) {
   const { t } = useTranslation("common");
   const [guildData, setGuildData] = useState<GuildDetailsResponse | null>(null);
@@ -252,6 +256,7 @@ function MyGuildView({
   const [activeTab, setActiveTab] = useState<GuildDetailTab>("members");
   const [pendingAction, setPendingAction] = useState<"leave" | "disband" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isGuildInfoExpanded, setIsGuildInfoExpanded] = useState(false);
 
   useEffect(() => {
     loadGuildData();
@@ -369,50 +374,55 @@ function MyGuildView({
             </article>
           )}
 
-          {/* ── Hero banner ── */}
-          <article className="contentCard guildHeroBanner">
-            <div className="guildHeroCrest">
-              <GuildCrestDisplay crestId={guildData.guild.crestId} size="medium" />
-            </div>
-            <div className="guildHeroBody">
-              <h2 className="guildHeroName">
-                {guildData.guild.name}
-                <span className="guildHeroTag">[{guildData.guild.tag}]</span>
-              </h2>
-              {guildData.guild.description ? (
-                <div
-                  className="guildHeroDesc"
-                  dangerouslySetInnerHTML={{ __html: safeHtml(guildData.guild.description) }}
-                />
-              ) : (
-                <p className="guildHeroDesc guildHeroDesc--empty">{t("guild.noDescription")}</p>
-              )}
-            </div>
-            <div className="guildHeroStats">
-              <div className="guildHeroStat">
-                <span className="guildHeroStatLabel">{t("guild.level")}</span>
-                <span className="guildHeroStatValue">{guildData.guild.level}</span>
+          {/* ── Compact guild header (always visible) ── */}
+          <article className="contentCard guildCompactHeader">
+            <div className="guildCompactHeaderRow">
+              <div className="guildCompactCrest">
+                <GuildCrestDisplay crestId={guildData.guild.crestId} size="small" />
               </div>
-              <div className="guildHeroStat">
-                <span className="guildHeroStatLabel">{t("guild.totalPower")}</span>
-                <span className="guildHeroStatValue">{guildData.guild.totalPower.toLocaleString()}</span>
+              <div className="guildCompactIdentity">
+                <span className="guildCompactName">{guildData.guild.name}</span>
+                <span className="guildCompactTag">[{guildData.guild.tag}]</span>
               </div>
-              <div className="guildHeroStat">
-                <span className="guildHeroStatLabel">{t("guild.members")}</span>
-                <span className="guildHeroStatValue">{guildData.memberCount}/{guildData.guild.maxMembers}</span>
-              </div>
-              <div className="guildHeroStat">
-                <span className="guildHeroStatLabel">{t("guild.recruiting")}</span>
-                <span className={`guildHeroStatusBadge${guildData.guild.isRecruiting ? " guildHeroStatusBadge--open" : " guildHeroStatusBadge--closed"}`}>
+              <div className="guildCompactPills">
+                <span className="guildCompactPill">{t("guild.level")} {guildData.guild.level}</span>
+                <span className="guildCompactPill">{guildData.memberCount}/{guildData.guild.maxMembers}</span>
+                <span className={`guildCompactPill guildCompactPill--${guildData.guild.isRecruiting ? "open" : "closed"}`}>
                   {guildData.guild.isRecruiting ? t("guild.statusOpen") : t("guild.statusClosed")}
                 </span>
+                <span className="guildCompactPill guildCompactPill--power">{guildData.guild.totalPower.toLocaleString()} {t("guild.power")}</span>
               </div>
+              <button
+                type="button"
+                className={`guildInfoToggle${isGuildInfoExpanded ? " isExpanded" : ""}`}
+                onClick={() => setIsGuildInfoExpanded((v) => !v)}
+                aria-expanded={isGuildInfoExpanded}
+                aria-label={t("guild.showInfo")}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true" width="14" height="14">
+                  <circle cx="8" cy="8" r="7" strokeWidth="1.5" fill="none" stroke="currentColor"/>
+                  <path d="M8 7v5M8 5v0.5" strokeWidth="1.8" strokeLinecap="round" stroke="currentColor"/>
+                </svg>
+                {isGuildInfoExpanded ? t("guild.hideInfo") : t("guild.showInfo")}
+              </button>
             </div>
-            {!isLeader && (
-              <div className="guildHeroLeaveAction">
-                <button type="button" className="buttonSecondary" onClick={handleLeave}>
-                  {t("guild.actions.leave")}
-                </button>
+            {isGuildInfoExpanded && (
+              <div className="guildInfoDrawer">
+                {guildData.guild.description ? (
+                  <div
+                    className="guildHeroDesc"
+                    dangerouslySetInnerHTML={{ __html: safeHtml(guildData.guild.description) }}
+                  />
+                ) : (
+                  <p className="guildHeroDesc guildHeroDesc--empty">{t("guild.noDescription")}</p>
+                )}
+                {!isLeader && (
+                  <div className="guildInfoDrawerActions">
+                    <button type="button" className="buttonSecondary" onClick={handleLeave}>
+                      {t("guild.actions.leave")}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </article>
@@ -428,7 +438,7 @@ function MyGuildView({
                       key={tab.id}
                       type="button"
                       className={`profileSwitchButton${activeTab === tab.id ? " active" : ""}`}
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => { setActiveTab(tab.id); onTabChange?.(tab.id); }}
                     >
                       {tab.label}
                     </button>

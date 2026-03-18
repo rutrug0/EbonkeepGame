@@ -933,6 +933,8 @@
     "confirmTransfer": "Are you sure you want to transfer leadership to {{player}}?",
     "statusOpen": "Open",
     "statusClosed": "Closed",
+    "showInfo": "Guild Info",
+    "hideInfo": "Hide Info",
     "createSubtitle": "Forge your banner and rally your company.",
     "nameHint": "3–32 characters",
     "tagHint": "2–6 characters",

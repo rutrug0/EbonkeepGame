@@ -355,6 +355,22 @@ function buildRenownEdgePath(source: RenownNode, target: RenownNode): string {
   }, ${target.x} ${target.y}`;
 }
 
+const RENOWN_NODE_IMAGE: Record<string, string> = {
+  first_charter: "/assets/renown_academy/renown_01.png",
+  ledger_quills: "/assets/renown_academy/renown_02.png",
+  garden_patronage: "/assets/renown_academy/renown_03.png",
+  campaign_banners: "/assets/renown_academy/renown_04.png",
+  surveyor_marks: "/assets/renown_academy/renown_05.png",
+  wardens_lantern: "/assets/renown_academy/renown_06.png",
+  stillroom_measures: "/assets/renown_academy/renown_07.png",
+  seed_vaults: "/assets/renown_academy/renown_08.png",
+  quartermaster_routes: "/assets/renown_academy/renown_09.png",
+  tempering_clause: "/assets/renown_academy/renown_10.png",
+  archive_ciphers: "/assets/renown_academy/renown_11.png",
+  draught_reserve: "/assets/renown_academy/renown_12.png",
+  veteran_dispatch: "/assets/renown_academy/renown_13.png",
+};
+
 function renderRenownNodeGlyph(icon: RenownIconKey): ReactElement {
   switch (icon) {
     case "sigil":
@@ -484,8 +500,8 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
   const renownBalance = props.renownState?.renownBalance ?? 0;
 
   return (
-    <section className="contentShell">
-      <section className="contentStack">
+    <section className="contentShell renownPanelShell">
+      <section className="contentStack renownPanelStack">
         {props.renderCharacterHubTabs()}
         <article className="contentCard renownTreeCard">
           <div className="renownTreeLayout">
@@ -557,8 +573,16 @@ export function RenownPanel(props: RenownPanelProps): ReactElement {
                     title={node.label}
                   >
                     <span className="renownNodeFrame" aria-hidden="true">
-                      {renderRenownNodeGlyph(node.icon)}
+                      {RENOWN_NODE_IMAGE[node.id]
+                        ? <img src={RENOWN_NODE_IMAGE[node.id]} alt="" className="renownNodeImg" />
+                        : renderRenownNodeGlyph(node.icon)
+                      }
                     </span>
+                    {RENOWN_NODE_IMAGE[node.id] && (
+                      <div className="renownNodeImagePreview" aria-hidden="true">
+                        <img src={RENOWN_NODE_IMAGE[node.id]} alt="" />
+                      </div>
+                    )}
                   </button>
                   );
                 })}

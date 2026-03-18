@@ -669,6 +669,8 @@
     "confirmTransfer": "Sigurado ka bang gusto mong ilipat ang pamumuno kay {{player}}?",
     "statusOpen": "Bukas",
     "statusClosed": "Sarado",
+    "showInfo": "Info ng Guild",
+    "hideInfo": "Itago",
     "createSubtitle": "Itayo ang iyong watawat at tipunin ang iyong mga kasama.",
     "nameHint": "3–32 na karakter",
     "tagHint": "2–6 na karakter",

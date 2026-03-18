@@ -634,6 +634,8 @@
     "confirmTransfer": "Tem certeza de que deseja transferir a liderança para {{player}}?",
     "statusOpen": "Aberto",
     "statusClosed": "Fechado",
+    "showInfo": "Info da Guilda",
+    "hideInfo": "Ocultar Info",
     "createSubtitle": "Forje sua bandeira e reúna sua companhia.",
     "nameHint": "3–32 caracteres",
     "tagHint": "2–6 caracteres",

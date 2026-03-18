@@ -632,6 +632,8 @@
     "confirmTransfer": "你确定要转让会长给{{player}}吗？",
     "statusOpen": "招募中",
     "statusClosed": "已关闭",
+    "showInfo": "公会信息",
+    "hideInfo": "收起信息",
     "createSubtitle": "铸造你的旗帜，召集你的同伴。",
     "nameHint": "3–32个字符",
     "tagHint": "2–6个字符",

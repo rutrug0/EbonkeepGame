@@ -1369,6 +1369,45 @@ button:focus-visible {
   align-content: start;
 }
 
+/* ── Renown panel: fill full viewport height ──────────────────────────────── */
+
+.renownPanelShell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.renownPanelStack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.renownPanelStack > .contentCard:not(.renownTreeCard) {
+  flex-shrink: 0;
+}
+
+.renownPanelShell .renownTreeCard {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-content: stretch;
+}
+
+.renownPanelShell .renownTreeLayout {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: 1fr;
+}
+
+.renownPanelShell .renownDetailPanel {
+  overflow-y: auto;
+}
+
 .renownTreeLayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -1378,7 +1417,7 @@ button:focus-visible {
 
 .renownTreeViewport {
   position: relative;
-  min-height: 700px;
+  min-height: 420px;
   overflow: hidden;
   border: 1px solid var(--border-soft);
   border-radius: calc(var(--soft-radius) + 2px);
@@ -1608,6 +1647,59 @@ button:focus-visible {
 
 .renownNode.isSelected .renownNodeFrame {
   border-color: color-mix(in srgb, var(--renown-tone) 92%, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Renown node images ─────────────────────────────────────────────────── */
+
+.renownNodeImg {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+}
+
+.renownNode.isRoot .renownNodeImg {
+  width: 52px;
+  height: 52px;
+}
+
+.renownNodeImagePreview {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.82);
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  z-index: 9999;
+  border: 1px solid rgba(191, 174, 145, 0.30);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 16px 32px rgba(0, 0, 0, 0.55);
+  background: rgba(12, 16, 21, 0.96);
+}
+
+.renownNodeImagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.renownNode:hover {
+  z-index: 9999;
+}
+
+.renownNode:hover .renownNodeImagePreview {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 
 .renownDetailPanel {
@@ -2211,7 +2303,7 @@ button:focus-visible {
 
 .appRoot.layout-standard .renownTreeViewport,
 .appRoot.layout-compact .renownTreeViewport {
-  min-height: 560px;
+  min-height: 420px;
 }
 
 .appRoot.layout-standard .renownDetailPanel,
@@ -4436,6 +4528,59 @@ button:focus-visible {
 
 .academyNode-locked .academyNodeFrame svg {
   stroke: color-mix(in srgb, var(--text-soft) 74%, var(--academy-tone) 26%);
+}
+
+/* ── Academy node images ─────────────────────────────────────────────────── */
+
+.academyNodeImg {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+}
+
+.academyNode.isRoot .academyNodeImg {
+  width: 52px;
+  height: 52px;
+}
+
+.academyNodeImagePreview {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.82);
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  z-index: 9999;
+  border: 1px solid rgba(191, 174, 145, 0.30);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 16px 32px rgba(0, 0, 0, 0.55);
+  background: rgba(12, 16, 21, 0.96);
+}
+
+.academyNodeImagePreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.academyNode:hover {
+  z-index: 9999;
+}
+
+.academyNode:hover .academyNodeImagePreview {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 
 /* ── Progress ring overlay ───────────────────────────────────────────────── */

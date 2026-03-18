@@ -670,6 +670,8 @@
     "confirmTransfer": "길드장을 {{player}}님에게 양도하시겠습니까?",
     "statusOpen": "모집 중",
     "statusClosed": "모집 마감",
+    "showInfo": "길드 정보",
+    "hideInfo": "접기",
     "createSubtitle": "깃말을 세우고 동료를 모아라.",
     "nameHint": "3–32자",
     "tagHint": "2–6자",
