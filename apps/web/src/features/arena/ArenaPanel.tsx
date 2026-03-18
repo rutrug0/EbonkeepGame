@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ArenaLadderEntry, ArenaMatchResult, ArenaOffer, ArenaStateResponse } from "@ebonkeep/shared/arena";
+import type { PlayerClass } from "@ebonkeep/shared/core";
 
 import {
   CombatEncounterArenaPanel,
@@ -23,11 +24,14 @@ import {
   type ActiveArenaEncounterState
 } from "./playback";
 import { buildArenaCombatState } from "./serverPlayback";
+import { ClassIcon } from "../../app/ClassIcon";
 
 export type ArenaPanelProps = {
   token: string | null;
   hasPlayerState: boolean;
   playerName: string;
+  playerClass: PlayerClass | null;
+  playerLevel: number | null;
   playerAvatarPath?: string;
   formatDurationFromMs: (value: number) => string;
 };
@@ -84,9 +88,14 @@ function renderLadderRow(t: (key: string) => string, entry: ArenaLadderEntry) {
     <tr key={entry.entryId} className={entry.isCurrentPlayer ? "arenaLadderCurrentRow" : undefined}>
       <td>#{entry.rank}</td>
       <td>
-        <div className="arenaLadderNameCell">
-          <strong>{entry.displayName}</strong>
-          <span>{entry.source === "mock" ? t("arena.mockOpponent") : t("arena.youLabel")}</span>
+        <div className="arenaLadderIdentity">
+          <span className="classPortrait classPortrait--md arenaIdentityAvatar" aria-hidden="true">
+            <ClassIcon playerClass={entry.class} size={46} className="classPortraitIcon" alt="" />
+          </span>
+          <div className="arenaLadderNameCell">
+            <strong>{entry.displayName}</strong>
+            <span>{entry.source === "mock" ? t("arena.mockOpponent") : t("arena.youLabel")}</span>
+          </div>
         </div>
       </td>
       <td>{formatPlayerClassLabel(entry.class)}</td>
@@ -109,9 +118,14 @@ function renderOfferCard(args: {
   return (
     <article key={offer.offerId} className="arenaOfferCard">
       <div className="arenaOfferTopRow">
-        <div>
-          <p className="sectionEyebrow">{t("arena.duelOffer")}</p>
-          <h4>{offer.opponent.displayName}</h4>
+        <div className="arenaOfferIdentity">
+          <span className="classPortrait classPortrait--md arenaIdentityAvatar" aria-hidden="true">
+            <ClassIcon playerClass={offer.opponent.class} size={46} className="classPortraitIcon" alt="" />
+          </span>
+          <div>
+            <p className="sectionEyebrow">{t("arena.duelOffer")}</p>
+            <h4>{offer.opponent.displayName}</h4>
+          </div>
         </div>
         <div className="arenaOfferRating">
           <span>{t("arena.rating")}</span>
@@ -681,9 +695,18 @@ export function ArenaPanel(props: ArenaPanelProps) {
         <article className="contentCard arenaProfileCard">
           <div className="arenaProfileRow">
             <div className="arenaProfileSummary">
-              <div>
+              <span className="classPortrait classPortrait--md arenaIdentityAvatar" aria-hidden="true">
+                {props.playerClass ? (
+                  <ClassIcon playerClass={props.playerClass} size={46} className="classPortraitIcon" alt="" />
+                ) : null}
+              </span>
+              <div className="arenaProfileIdentityText">
                 <p className="sectionEyebrow">{t("arena.profileEyebrow")}</p>
                 <h3>{props.playerName}</h3>
+                <p className="arenaProfileIdentityMeta">
+                  {props.playerClass ? formatPlayerClassLabel(props.playerClass) : t("player.classUnknown")}
+                </p>
+                <p className="arenaProfileIdentityMeta">{t("player.level", { value: props.playerLevel ?? "-" })}</p>
               </div>
             </div>
 

@@ -62,6 +62,16 @@
   justify-content: flex-start;
 }
 
+.arenaProfileIdentityText {
+  display: grid;
+  gap: 2px;
+}
+
+.arenaProfileIdentityMeta {
+  margin: 0;
+  color: var(--text-soft);
+}
+
 .arenaProfileStats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -177,6 +187,17 @@
   gap: 2px;
 }
 
+.arenaLadderIdentity,
+.arenaOfferIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.arenaIdentityAvatar {
+  flex-shrink: 0;
+}
+
 .arenaModalBackdrop {
   position: fixed;
   inset: 0;
@@ -247,6 +268,11 @@
 .arenaOfferWeapon {
   margin: 0;
   color: var(--text-soft);
+}
+
+.arenaOfferIdentity h4,
+.arenaOfferIdentity .sectionEyebrow {
+  margin-block: 0;
 }
 
 .arenaOfferStats {

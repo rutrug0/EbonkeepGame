@@ -594,7 +594,9 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
                         </td>
                         <td data-label={t("leaderboards.player")} className="leaderboardCellPlayer">
                           <span className="leaderboardPlayerIdentity">
-                            <ClassIcon playerClass={entry.class} size={26} className="leaderboardPlayerClassIcon" alt="" />
+                            <span className="classPortrait classPortrait--md leaderboardPlayerAvatar" aria-hidden="true">
+                              <ClassIcon playerClass={entry.class} size={46} className="classPortraitIcon" alt="" />
+                            </span>
                             <span className="leaderboardPlayerIdentityText">
                               <strong>{entry.username}</strong>
                               {entry.guildTag && (
