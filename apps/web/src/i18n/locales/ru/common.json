@@ -63,7 +63,7 @@
     "weaponCrossbow": "Арбалет",
     "weaponChakrams": "Чакрамы",
     "weaponRuneStone": "Рунный камень",
-    "weaponOrb": "Сфера",
+    "weaponVoidGlaive": "Трёхлезвиепустоты",
     "weaponGrimoire": "Гримуар",
     "yourClass": "Ваш класс"
   },
@@ -822,7 +822,7 @@
     "arbalist": "Арбалетчик",
     "disciple": "Ученик",
     "runecaster": "Рунник",
-    "chronomancer": "Хрономаг",
+    "voidcaster": "Маг Пустоты",
     "arcanist": "Арканист"
   },
   "renown": {

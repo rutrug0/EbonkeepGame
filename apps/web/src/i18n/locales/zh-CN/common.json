@@ -63,7 +63,7 @@
     "weaponCrossbow": "弩",
     "weaponChakrams": "轮刃",
     "weaponRuneStone": "符文石",
-    "weaponOrb": "法球",
+    "weaponVoidGlaive": "虚空三刀",
     "weaponGrimoire": "魔法书",
     "yourClass": "您的职业"
   },
@@ -820,7 +820,7 @@
     "arbalist": "弩手",
     "disciple": "门徒",
     "runecaster": "符文师",
-    "chronomancer": "时间法师",
+    "voidcaster": "虚空法师",
     "arcanist": "奥法师"
   },
   "renown": {

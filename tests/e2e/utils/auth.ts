@@ -1,6 +1,6 @@
 import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
-type PlaywrightGuestClass = "juggernaut" | "sentinel" | "reaver" | "shade" | "arbalist" | "disciple" | "runecaster" | "chronomancer" | "arcanist";
+type PlaywrightGuestClass = "juggernaut" | "sentinel" | "reaver" | "shade" | "arbalist" | "disciple" | "runecaster" | "voidcaster" | "arcanist";
 
 const apiBaseUrl =
   process.env.PLAYWRIGHT_API_URL ??

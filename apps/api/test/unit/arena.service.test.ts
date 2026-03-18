@@ -6,6 +6,7 @@ import {
   buildMockCombatSnapshot,
   calculateArenaCooldownEndsAt,
   calculateArenaRatingDelta,
+  normalizeArenaPlayerClass,
   pickArenaOfferCandidates
 } from "../../src/modules/arena/service.js";
 
@@ -152,5 +153,10 @@ describe("arena service helpers", () => {
     } finally {
       randomSpy.mockRestore();
     }
+  });
+
+  it("maps legacy arena classes onto the live class roster", () => {
+    expect(normalizeArenaPlayerClass("chronomancer")).toBe("voidcaster");
+    expect(normalizeArenaPlayerClass("unknown_legacy_class")).toBe("juggernaut");
   });
 });
