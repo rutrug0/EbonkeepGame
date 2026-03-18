@@ -45,6 +45,10 @@
     "./leaderboard": {
       "types": "./src/domains/leaderboard/index.ts",
       "default": "./src/domains/leaderboard/index.ts"
+    },
+    "./garden": {
+      "types": "./src/domains/garden/index.ts",
+      "default": "./src/domains/garden/index.ts"
     }
   },
   "scripts": {

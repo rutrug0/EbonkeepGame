@@ -79,6 +79,8 @@ model PlayerProfile {
   arenaEntry          ArenaEntry?
   arenaOffers         ArenaOffer[]        @relation("ArenaOffersByPlayer")
   arenaMatches        ArenaMatch[]        @relation("ArenaMatchesByPlayer")
+  gardenPlots         GardenPlot[]
+  gardenInventoryEntries GardenInventoryEntry[]
 
   @@index([accountId])
   @@map("player_profiles")
@@ -308,6 +310,40 @@ model ContractRun {
   @@index([playerId, state])
   @@index([playerId, createdAt(sort: Desc)])
   @@map("contract_runs")
+}
+
+model GardenPlot {
+  id            String        @id @default(cuid())
+  playerId      String
+  slotIndex     Int
+  plantId       String?
+  plantedAt     DateTime?
+  growthEndsAt  DateTime?
+  bloomStartsAt DateTime?
+  bloomEndsAt   DateTime?
+  wiltAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  player        PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, slotIndex])
+  @@index([playerId, slotIndex])
+  @@map("garden_plots")
+}
+
+model GardenInventoryEntry {
+  id        String        @id @default(cuid())
+  playerId  String
+  plantId   String
+  kind      String
+  quantity  Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, plantId, kind])
+  @@index([playerId, kind])
+  @@map("garden_inventory_entries")
 }
 
 model ArenaEntry {

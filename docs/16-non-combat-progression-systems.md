@@ -140,6 +140,24 @@ Player choices should include:
 - improved yield
 - access to higher-tier seed families
 
+### Garden v1 Runtime Baseline
+The first implemented Garden slice is intentionally narrower than the long-term design above.
+
+Garden v1 uses:
+- `5` fixed plots available immediately
+- `5` starter plants: Bloodleaf, Fenroot, Ironbloom, Duskmint, Kingsfoil
+- seed-only Garden inventory with starter bootstrap on first load
+- server-authored phase timers for `growing`, `pre_bloom`, `bloom`, `post_bloom`, and `wilted`
+- harvest timing where bloom grants double yield and wilted crops must be cleared
+
+Garden v1 does not yet include:
+- care actions such as watering, pruning, or blight response
+- plot unlock progression
+- contracts/jobs seed sourcing
+- apothecary seed conversion recipes
+
+See [24-garden-growth-and-starter-catalog-v1.md](./24-garden-growth-and-starter-catalog-v1.md) for the concrete starter timing and catalog defaults that match the current implementation slice.
+
 ## 2. Stillroom
 
 ### Role

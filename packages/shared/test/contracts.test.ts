@@ -4,7 +4,10 @@ import {
   accountOverviewResponseSchema,
   developerContractsStaticCurvesResponseSchema,
   developerContractSimulationJobSchema,
+  gardenStateResponseSchema,
   leaderboardTypeSchema as compatibilityLeaderboardTypeSchema,
+  resolveGardenHarvestYield,
+  resolveGardenPlotPhase,
   getAllowedClassesForArchetype,
   isItemUsableByClass,
   normalizePlayerClass,
@@ -238,5 +241,78 @@ describe("shared contracts", () => {
         ]
       }).levels
     ).toHaveLength(1);
+  });
+
+  it("resolves garden plot phases and yields", () => {
+    expect(
+      resolveGardenPlotPhase({
+        plantId: "bloodleaf",
+        now: "2026-03-18T10:00:00.000Z",
+        growthEndsAt: "2026-03-18T10:01:30.000Z",
+        bloomStartsAt: "2026-03-18T10:02:00.000Z",
+        bloomEndsAt: "2026-03-18T10:03:00.000Z",
+        wiltAt: "2026-03-18T10:04:00.000Z"
+      })
+    ).toBe("growing");
+
+    expect(
+      resolveGardenPlotPhase({
+        plantId: "bloodleaf",
+        now: "2026-03-18T10:02:30.000Z",
+        growthEndsAt: "2026-03-18T10:01:30.000Z",
+        bloomStartsAt: "2026-03-18T10:02:00.000Z",
+        bloomEndsAt: "2026-03-18T10:03:00.000Z",
+        wiltAt: "2026-03-18T10:04:00.000Z"
+      })
+    ).toBe("bloom");
+
+    expect(resolveGardenHarvestYield({ plantId: "bloodleaf", phase: "bloom" })).toBe(4);
+    expect(resolveGardenHarvestYield({ plantId: "bloodleaf", phase: "post_bloom" })).toBe(2);
+    expect(resolveGardenHarvestYield({ plantId: "bloodleaf", phase: "wilted" })).toBe(0);
+  });
+
+  it("parses a garden state payload", () => {
+    expect(
+      gardenStateResponseSchema.parse({
+        serverTime: "2026-03-18T10:00:00.000Z",
+        plots: [
+          {
+            slotIndex: 1,
+            plantId: "bloodleaf",
+            phase: "growing",
+            plantedAt: "2026-03-18T10:00:00.000Z",
+            growthEndsAt: "2026-03-18T10:01:30.000Z",
+            bloomStartsAt: "2026-03-18T10:02:00.000Z",
+            bloomEndsAt: "2026-03-18T10:03:00.000Z",
+            wiltAt: "2026-03-18T10:04:00.000Z",
+            nextTransitionAt: "2026-03-18T10:01:30.000Z",
+            harvestYield: null
+          },
+          ...Array.from({ length: 4 }, (_, index) => ({
+            slotIndex: index + 2,
+            plantId: null,
+            phase: "empty",
+            plantedAt: null,
+            growthEndsAt: null,
+            bloomStartsAt: null,
+            bloomEndsAt: null,
+            wiltAt: null,
+            nextTransitionAt: null,
+            harvestYield: null
+          }))
+        ],
+        inventory: [
+          {
+            inventoryEntryId: "gdn_seed_1",
+            plantId: "bloodleaf",
+            kind: "seed",
+            itemCode: "seed_bloodleaf",
+            displayName: "Bloodleaf Seeds",
+            rarity: "common",
+            quantity: 5
+          }
+        ]
+      }).inventory[0].kind
+    ).toBe("seed");
   });
 });

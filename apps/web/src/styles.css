@@ -6295,3 +6295,487 @@ button:focus-visible {
 .appRoot.layout-compact .inventoryChatPanelOverlayViewport.inventoryChatPanelOverlayViewportRight {
   right: 0;
 }
+
+.gardenPanelCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  background:
+    radial-gradient(circle at top left, rgba(105, 145, 92, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(185, 161, 91, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(21, 28, 24, 0.96), rgba(13, 18, 16, 0.98));
+}
+
+.gardenPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.gardenPanelTitle {
+  margin: 0;
+}
+
+.gardenPanelSubtitle {
+  margin: var(--space-1) 0 0;
+  color: var(--text-soft);
+  max-width: 62ch;
+}
+
+.gardenRefreshButton,
+.gardenActionButton {
+  appearance: none;
+  border: 1px solid rgba(177, 161, 109, 0.34);
+  border-radius: var(--soft-radius);
+  background: linear-gradient(180deg, rgba(67, 61, 42, 0.72), rgba(33, 31, 22, 0.96));
+  color: var(--text-main);
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.gardenRefreshButton:hover,
+.gardenActionButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(211, 193, 129, 0.5);
+}
+
+.gardenRefreshButton:disabled,
+.gardenActionButton:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gardenActionButtonMuted {
+  border-color: rgba(171, 121, 121, 0.3);
+  background: linear-gradient(180deg, rgba(63, 39, 39, 0.72), rgba(29, 19, 19, 0.96));
+}
+
+.gardenLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.95fr);
+  gap: var(--space-4);
+  min-height: 0;
+}
+
+.gardenPlotsColumn,
+.gardenInventoryColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.gardenSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.gardenSectionHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.gardenSectionHeader p {
+  margin: 4px 0 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.gardenSectionMeta,
+.gardenInventorySelection,
+.gardenIngredientNotice {
+  border: 1px solid rgba(191, 174, 145, 0.15);
+  border-radius: var(--soft-radius);
+  background: rgba(11, 15, 13, 0.58);
+  padding: 10px 12px;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
+.gardenIngredientNotice {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.gardenPlotsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-3);
+}
+
+.gardenPlotCard {
+  position: relative;
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 320px;
+  text-align: left;
+  padding: var(--space-3);
+  border: 1px solid rgba(191, 174, 145, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top, rgba(88, 114, 70, 0.12), transparent 36%),
+    linear-gradient(180deg, rgba(24, 31, 26, 0.96), rgba(15, 20, 17, 0.98));
+  color: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.gardenViewportShell {
+  height: 100%;
+  min-height: 100%;
+}
+
+.gardenViewportStack {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
+}
+
+.gardenPanelCard {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 100%;
+}
+
+.gardenPlotCard:hover,
+.gardenPlotCard.isSelected {
+  transform: translateY(-2px);
+  border-color: rgba(197, 181, 130, 0.42);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+}
+
+.gardenPlotCard.isHarvestable {
+  border-color: rgba(106, 159, 103, 0.42);
+}
+
+.gardenPlotCard.isSeedTarget {
+  border-color: rgba(132, 181, 109, 0.52);
+  box-shadow:
+    inset 0 0 0 1px rgba(132, 181, 109, 0.18),
+    0 10px 26px rgba(0, 0, 0, 0.22);
+}
+
+.gardenPlotCard.isSeedTarget::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 14px;
+  border: 1px dashed rgba(132, 181, 109, 0.5);
+  opacity: 0.6;
+  animation: gardenSeedTargetPulse 1.9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.gardenPlotCard.isBloom {
+  border-color: rgba(210, 182, 88, 0.48);
+  background:
+    radial-gradient(circle at top, rgba(195, 164, 66, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(34, 30, 21, 0.96), rgba(18, 17, 12, 0.98));
+}
+
+.gardenPlotCard.isWilted {
+  border-color: rgba(158, 102, 102, 0.36);
+  background:
+    radial-gradient(circle at top, rgba(126, 75, 75, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(31, 23, 23, 0.96), rgba(18, 14, 14, 0.98));
+}
+
+.gardenPlotVisual {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 236px;
+  border-radius: 14px;
+  border: 1px dashed rgba(191, 174, 145, 0.18);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(105, 145, 92, 0.18), transparent 48%),
+    linear-gradient(180deg, rgba(12, 17, 14, 0.88), rgba(8, 12, 10, 0.96));
+}
+
+.gardenPlotVisual::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  opacity: 0;
+  transform: scale(0.84);
+  pointer-events: none;
+}
+
+.gardenPlotVisual.phase-bloom::before {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(239, 214, 113, 0.34) 0%, rgba(239, 214, 113, 0.2) 24%, rgba(239, 214, 113, 0.08) 46%, transparent 68%);
+  opacity: 0.95;
+  animation: gardenBloomRadiance 2.2s ease-in-out infinite;
+}
+
+.gardenPlantSilhouette {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  border: 1px solid rgba(191, 174, 145, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  color: var(--text-main);
+}
+
+.gardenPlantSilhouette.phase-bloom {
+  color: #ebcf7b;
+}
+
+.gardenPlantSilhouette.phase-wilted {
+  color: #bc8a8a;
+}
+
+.gardenPlantImage {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(100%, 180px);
+  max-height: 196px;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.22));
+  user-select: none;
+  pointer-events: none;
+}
+
+.gardenPlotBody {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gardenProgressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gardenProgressTrack {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gardenProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(120, 170, 96, 0.84), rgba(211, 188, 97, 0.9));
+}
+
+.gardenProgressMeta {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+.gardenSeedGrid {
+  --garden-seed-slot-size: 92px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, var(--garden-seed-slot-size));
+  justify-content: start;
+  gap: var(--space-3);
+}
+
+.gardenSeedGridCell {
+  position: relative;
+}
+
+.gardenSeedSlot {
+  width: var(--garden-seed-slot-size);
+  min-width: var(--garden-seed-slot-size);
+  height: var(--garden-seed-slot-size);
+  min-height: var(--garden-seed-slot-size);
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(191, 174, 145, 0.18);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(153, 121, 76, 0.16), transparent 52%),
+    linear-gradient(180deg, rgba(18, 23, 20, 0.92), rgba(11, 14, 13, 0.98));
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.gardenSeedSlot:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent-focus) 55%, rgba(191, 174, 145, 0.18));
+}
+
+.gardenSeedSlot:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-focus) 76%, transparent);
+  outline-offset: 2px;
+}
+
+.gardenSeedSlot.isSelected,
+.gardenSeedSlot[aria-pressed="true"] {
+  border-color: rgba(211, 188, 97, 0.68);
+  box-shadow:
+    inset 0 0 0 1px rgba(211, 188, 97, 0.32),
+    0 14px 28px rgba(5, 8, 6, 0.28);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(195, 167, 78, 0.22), transparent 50%),
+    linear-gradient(180deg, rgba(26, 32, 27, 0.96), rgba(13, 17, 15, 0.98));
+}
+
+.gardenSeedEmptyState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: 16px;
+  border: 1px solid rgba(191, 174, 145, 0.18);
+  background: linear-gradient(180deg, rgba(23, 28, 25, 0.95), rgba(13, 17, 15, 0.98));
+}
+
+.gardenSeedImage {
+  display: block;
+  width: min(100%, 72px);
+  max-height: 72px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
+  user-select: none;
+  pointer-events: none;
+}
+
+.gardenSeedFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 1px solid rgba(191, 174, 145, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--text-main);
+}
+
+.gardenSeedTooltipHeader h4,
+.gardenSeedEmptyState h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.gardenSeedTooltipHeader p,
+.gardenSeedTooltipBody p,
+.gardenSeedEmptyState p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.gardenSeedTooltip {
+  z-index: 28;
+}
+
+.gardenSeedTooltipCard {
+  width: min(300px, calc(100vw - 16px));
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: 16px;
+  border: 1px solid rgba(191, 174, 145, 0.18);
+  background:
+    linear-gradient(180deg, rgba(26, 31, 28, 0.98), rgba(13, 17, 15, 0.98)),
+    linear-gradient(135deg, rgba(110, 86, 52, 0.12), rgba(41, 51, 46, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 24px 48px rgba(0, 0, 0, 0.28);
+}
+
+.gardenSeedTooltipHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.gardenSeedTooltipBadge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(191, 174, 145, 0.1);
+  padding: 5px 9px;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-main);
+}
+
+.gardenSeedTooltipBody {
+  display: grid;
+  gap: 6px;
+}
+
+@keyframes gardenSeedTargetPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.985);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+}
+
+@keyframes gardenBloomRadiance {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.16);
+  }
+}
+
+.gardenStatusMessage {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(98, 154, 94, 0.28);
+  border-radius: var(--soft-radius);
+  background: rgba(58, 98, 54, 0.14);
+  color: var(--text-main);
+}
+
+@media (max-width: 1180px) {
+  .gardenLayout {
+    grid-template-columns: 1fr;
+  }
+}
