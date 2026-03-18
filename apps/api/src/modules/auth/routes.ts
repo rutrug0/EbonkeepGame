@@ -6,9 +6,9 @@ import {
   loginBodySchema,
   loginResponseSchema,
   registerBodySchema,
-  registerResponseSchema,
-  type PlayerClass
+  registerResponseSchema
 } from "@ebonkeep/shared";
+import { normalizePlayerClass, playerClassSchema } from "@ebonkeep/shared/core";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 
@@ -23,7 +23,7 @@ import { generateToken, getExpiryDate } from "./utils/tokens.js";
 
 const devGuestBodySchema = z.object({
   guestId: z.string().min(1).optional(),
-  class: z.enum(["juggernaut", "sentinel", "reaver", "shade", "arbalist", "disciple", "runecaster", "voidcaster", "arcanist"]).default("juggernaut")
+  class: z.union([playerClassSchema, z.literal("chronomancer")]).default("juggernaut")
 });
 
 const verifyEmailBodySchema = z.object({
@@ -66,6 +66,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Register endpoint
   fastify.post("/v1/auth/register", async (request, reply) => {
     const body = registerBodySchema.parse(request.body ?? {});
+    const normalizedClass = normalizePlayerClass(body.class);
 
     // Check if email already exists
     const existingEmailAccount = await fastify.prisma.account.findUnique({
@@ -111,7 +112,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       data: {
         id: `player_${randomUUID().replaceAll("-", "")}`,
         accountId: account.id,
-        class: body.class,
+        class: normalizedClass,
         portraitId: body.portraitId,
         backgroundId: body.backgroundId,
         level: 1,
@@ -142,7 +143,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     await ensurePlayerEquipmentSlots(fastify.prisma, profile.id);
-    await ensureStarterInventoryItems(fastify.prisma, profile.id, body.class);
+    await ensureStarterInventoryItems(fastify.prisma, profile.id, normalizedClass);
 
     // Send verification email
     try {
@@ -225,6 +226,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const body = devGuestBodySchema.parse(request.body ?? {});
+    const normalizedClass = normalizePlayerClass(body.class);
     const providerUserId = body.guestId ?? "local-default";
 
     const account = await fastify.prisma.account.upsert({
@@ -250,7 +252,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         data: {
           id: `player_${randomUUID().replaceAll("-", "")}`,
           accountId: account.id,
-          class: body.class,
+          class: normalizedClass,
           portraitId: "str_01",
           backgroundId: "bg_01",
           level: 1,
@@ -286,7 +288,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     await ensurePlayerEquipmentSlots(fastify.prisma, profile.id);
-    await ensureStarterInventoryItems(fastify.prisma, profile.id, profile.class as PlayerClass);
+    await ensureStarterInventoryItems(fastify.prisma, profile.id, normalizePlayerClass(profile.class));
 
     const accessToken = await reply.jwtSign({
       accountId: account.id,
@@ -339,7 +341,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
         profile: profile
           ? {
               playerId: profile.id,
-              class: profile.class,
+              class: normalizePlayerClass(profile.class),
               portraitId: profile.portraitId ?? "str_01",
               backgroundId: profile.backgroundId ?? "bg_01",
               level: profile.level,

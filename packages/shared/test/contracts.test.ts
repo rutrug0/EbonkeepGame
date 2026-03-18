@@ -7,6 +7,7 @@ import {
   leaderboardTypeSchema as compatibilityLeaderboardTypeSchema,
   getAllowedClassesForArchetype,
   isItemUsableByClass,
+  normalizePlayerClass,
   runDeveloperContractSimulationBodySchema,
   validateVestigeLoadout
 } from "../src/index.js";
@@ -29,6 +30,10 @@ describe("shared contracts", () => {
     expect(isItemUsableByClass("juggernaut", "weapon", "melee")).toBe(true);
     expect(isItemUsableByClass("juggernaut", "weapon", "arcane")).toBe(false);
     expect(isItemUsableByClass("arcanist", "jewelry")).toBe(true);
+  });
+
+  it("normalizes legacy class aliases", () => {
+    expect(normalizePlayerClass("chronomancer")).toBe("voidcaster");
   });
 
   it("validates vestige loadout size and duplicates", () => {

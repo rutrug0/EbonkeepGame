@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import type { PlayerClass } from "@ebonkeep/shared/core";
+import { normalizePlayerClass, type PlayerClass } from "@ebonkeep/shared/core";
 import { ensureStarterInventoryItems } from "../src/modules/inventory/starter-items.js";
 
 const prisma = new PrismaClient();
@@ -95,7 +95,7 @@ async function main(): Promise<void> {
     });
   }
 
-  await ensureStarterInventoryItems(prisma, profile.id, profile.class as PlayerClass);
+  await ensureStarterInventoryItems(prisma, profile.id, normalizePlayerClass(profile.class));
 
   console.log("Seed complete for local default guest player.");
 }

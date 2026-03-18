@@ -23,7 +23,7 @@ import {
   type ContractRunState,
   type ContractRewardPreview
 } from "@ebonkeep/shared/combat";
-import type { PlayerClass } from "@ebonkeep/shared/core";
+import { normalizePlayerClass, type PlayerClass } from "@ebonkeep/shared/core";
 
 import {
   applyAcademyContractReplenishDuration,
@@ -232,7 +232,7 @@ async function getPlayerContractContext(
   return {
     playerId: profile.id,
     playerLevel: profile.level,
-    playerClass: profile.class as PlayerClass,
+    playerClass: normalizePlayerClass(profile.class),
     fastContractReplenishEnabled: profile.fastContractReplenishEnabled
   };
 }

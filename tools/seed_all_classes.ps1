@@ -32,7 +32,7 @@ foreach ($entry in $classes) {
   try {
     $resp = Invoke-RestMethod -Method POST -Uri "$ApiUrl/v1/dev/guest-login" `
       -ContentType "application/json" -Body $body
-    $token = $resp.token
+    $token = $resp.accessToken
     Write-Host "  [OK] $($entry.class.PadRight(12)) -> token: $($token.Substring(0, [Math]::Min(30, $token.Length)))..."
   } catch {
     $status = if ($_.Exception.Response) { $_.Exception.Response.StatusCode.value__ } else { "N/A" }

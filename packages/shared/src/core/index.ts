@@ -22,18 +22,27 @@ export const playerClassSchema = z.enum([
 ]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
 export const allPlayerClasses: readonly PlayerClass[] = playerClassSchema.options;
+const LEGACY_PLAYER_CLASS_ALIASES = {
+  chronomancer: "voidcaster"
+} as const satisfies Record<string, PlayerClass>;
 
 export const playerStatTreeSchema = z.enum(["strength", "dexterity", "intelligence"]);
 export type PlayerStatTree = z.infer<typeof playerStatTreeSchema>;
+
+export function normalizePlayerClass(playerClass: PlayerClass | string): PlayerClass {
+  const canonicalClass = LEGACY_PLAYER_CLASS_ALIASES[playerClass as keyof typeof LEGACY_PLAYER_CLASS_ALIASES] ?? playerClass;
+  return playerClassSchema.parse(canonicalClass);
+}
 
 
 
 /** Returns the primary stat tree for a player class. */
 export function classToStatTree(playerClass: PlayerClass): PlayerStatTree {
-  if (playerClass === "juggernaut" || playerClass === "sentinel" || playerClass === "reaver") {
+  const canonicalClass = normalizePlayerClass(playerClass);
+  if (canonicalClass === "juggernaut" || canonicalClass === "sentinel" || canonicalClass === "reaver") {
     return "strength";
   }
-  if (playerClass === "shade" || playerClass === "arbalist" || playerClass === "disciple") {
+  if (canonicalClass === "shade" || canonicalClass === "arbalist" || canonicalClass === "disciple") {
     return "dexterity";
   }
   return "intelligence";
@@ -48,7 +57,7 @@ export function classToStatTree(playerClass: PlayerClass): PlayerStatTree {
  *   INT weapons (mage group)    → Reaver, Shade, Arcanist
  */
 export function classToWeaponStat(playerClass: PlayerClass): PlayerStatTree {
-  switch (playerClass) {
+  switch (normalizePlayerClass(playerClass)) {
     case "juggernaut":
     case "arbalist":
     case "runecaster":

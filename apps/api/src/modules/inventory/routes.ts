@@ -4,9 +4,9 @@ import {
   inventoryMoveResponseSchema,
   validateVestigeLoadout,
   type EquipmentSlotId,
-  type EquippedItem,
-  type PlayerClass
+  type EquippedItem
 } from "@ebonkeep/shared";
+import { normalizePlayerClass } from "@ebonkeep/shared/core";
 
 import type { FastifyPluginAsync } from "fastify";
 import { canItemEquipInSlot, parseStoredInventoryItem } from "./item-service.js";
@@ -127,7 +127,7 @@ export const inventoryRoutes: FastifyPluginAsync = async (fastify) => {
         if (!canItemEquipInSlot(movingItem, toEquipmentSlotId)) {
           return reply.code(400).send({ error: "Item cannot be equipped in that slot." });
         }
-        if (!canEquipItemForPlayerClass(profile.class as PlayerClass, movingItem)) {
+        if (!canEquipItemForPlayerClass(normalizePlayerClass(profile.class), movingItem)) {
           return reply.code(400).send({ error: "Item cannot be used by this class." });
         }
         if (movingItem.levelRequirement > profile.level) {
@@ -151,7 +151,7 @@ export const inventoryRoutes: FastifyPluginAsync = async (fastify) => {
           if (!canItemEquipInSlot(displacedItem, fromEquipmentSlotId)) {
             return reply.code(400).send({ error: "Items cannot be swapped between those slots." });
           }
-          if (!canEquipItemForPlayerClass(profile.class as PlayerClass, displacedItem)) {
+          if (!canEquipItemForPlayerClass(normalizePlayerClass(profile.class), displacedItem)) {
             return reply.code(400).send({ error: "Swapped item cannot be used by this class." });
           }
           if (displacedItem.levelRequirement > profile.level) {
