@@ -163,7 +163,7 @@ const CLASS_META: Record<PlayerClass, ClassMeta> = {
   arbalist:     { id: "arbalist",     labelKey: "class.arbalist",     weaponKey: "register.weaponCrossbow",    countersKey: "register.countersStr" },
   disciple:     { id: "disciple",     labelKey: "class.disciple",     weaponKey: "register.weaponChakrams",    countersKey: "register.countersDex" },
   runecaster:   { id: "runecaster",   labelKey: "class.runecaster",   weaponKey: "register.weaponRuneStone",   countersKey: "register.countersStr" },
-  chronomancer: { id: "chronomancer", labelKey: "class.chronomancer", weaponKey: "register.weaponOrb",         countersKey: "register.countersDex" },
+  voidcaster:   { id: "voidcaster",   labelKey: "class.voidcaster",   weaponKey: "register.weaponVoidGlaive", countersKey: "register.countersDex" },
   arcanist:     { id: "arcanist",     labelKey: "class.arcanist",     weaponKey: "register.weaponGrimoire",    countersKey: "register.countersInt" }
 };
 

@@ -171,7 +171,7 @@ const CLASS_BASE_HP: Record<MemberClass, number> = {
   arbalist: 82,
   disciple: 80,
   runecaster: 78,
-  chronomancer: 75,
+  voidcaster: 75,
   arcanist: 73,
 };
 
@@ -182,7 +182,7 @@ const CLASS_COMBAT_STAT: Record<MemberClass, "strength" | "dexterity" | "intelli
   runecaster:   "strength",     // Rune Stone → STR
   sentinel:     "dexterity",    // Spear → DEX
   disciple:     "dexterity",    // Chakrams → DEX
-  chronomancer: "dexterity",    // Orb → DEX
+  voidcaster:  "dexterity",    // Void Tri-Glaive → DEX
   reaver:       "intelligence", // Cleaver → INT
   shade:        "intelligence", // Twin Daggers → INT
   arcanist:     "intelligence", // Grimoire → INT
@@ -558,7 +558,7 @@ function classLabel(cls: MemberClass): string {
     arbalist: "Arbalist",
     disciple: "Disciple",
     runecaster: "Runecaster",
-    chronomancer: "Chronomancer",
+    voidcaster: "Voidcaster",
     arcanist: "Arcanist",
   };
   return labels[cls];

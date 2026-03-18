@@ -63,7 +63,7 @@
     "weaponCrossbow": "석궁",
     "weaponChakrams": "차크람",
     "weaponRuneStone": "룬 스톤",
-    "weaponOrb": "마법 구체",
+    "weaponVoidGlaive": "헉공의 삼인낙",
     "weaponGrimoire": "마법서",
     "yourClass": "당신의 직업"
   },
@@ -846,7 +846,7 @@
     "arbalist": "석궁수",
     "disciple": "제자",
     "runecaster": "룬술사",
-    "chronomancer": "시간술사",
+    "voidcaster": "헉공사",
     "arcanist": "아르카니스트"
   },
   "renown": {

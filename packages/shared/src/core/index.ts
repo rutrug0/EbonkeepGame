@@ -17,7 +17,7 @@ export const playerClassSchema = z.enum([
   "disciple",
   // INT tree
   "runecaster",
-  "chronomancer",
+  "voidcaster",
   "arcanist"
 ]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
@@ -44,7 +44,7 @@ export function classToStatTree(playerClass: PlayerClass): PlayerStatTree {
  * This determines which item templates they can equip (equipment group)
  * and what stat powers their weapon damage.
  *   STR weapons (warrior group) → Juggernaut, Arbalist, Runecaster
- *   DEX weapons (ranger group)  → Sentinel, Disciple, Chronomancer
+ *   DEX weapons (ranger group)  → Sentinel, Disciple, Voidcaster
  *   INT weapons (mage group)    → Reaver, Shade, Arcanist
  */
 export function classToWeaponStat(playerClass: PlayerClass): PlayerStatTree {
@@ -55,7 +55,7 @@ export function classToWeaponStat(playerClass: PlayerClass): PlayerStatTree {
       return "strength";
     case "sentinel":
     case "disciple":
-    case "chronomancer":
+    case "voidcaster":
       return "dexterity";
     case "reaver":
     case "shade":
@@ -82,13 +82,13 @@ export function classToEquipmentGroup(playerClass: PlayerClass): EquipmentGroup 
 export const classesByStatTree: Record<PlayerStatTree, readonly PlayerClass[]> = {
   strength: ["juggernaut", "sentinel", "reaver"],
   dexterity: ["shade", "arbalist", "disciple"],
-  intelligence: ["runecaster", "chronomancer", "arcanist"]
+  intelligence: ["runecaster", "voidcaster", "arcanist"]
 };
 
 /** All classes that use the given equipment group (by weapon/secondary stat). */
 export const classesByEquipmentGroup: Record<EquipmentGroup, readonly PlayerClass[]> = {
   warrior: ["juggernaut", "arbalist", "runecaster"],
-  ranger:  ["sentinel", "disciple", "chronomancer"],
+  ranger:  ["sentinel", "disciple", "voidcaster"],
   mage:    ["reaver", "shade", "arcanist"]
 };
 

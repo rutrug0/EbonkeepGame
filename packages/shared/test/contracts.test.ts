@@ -17,11 +17,11 @@ describe("shared contracts", () => {
   it("maps archetypes to allowed classes", () => {
     // armor archetypes grouped by equipment group (weapon stat)
     expect(getAllowedClassesForArchetype("armor", "heavy")).toEqual(["juggernaut", "arbalist", "runecaster"]);
-    expect(getAllowedClassesForArchetype("weapon", "arcane")).toEqual(["runecaster", "chronomancer", "arcanist"]);
+    expect(getAllowedClassesForArchetype("weapon", "arcane")).toEqual(["runecaster", "voidcaster", "arcanist"]);
     expect(getAllowedClassesForArchetype("jewelry")).toEqual([
       "juggernaut", "sentinel", "reaver",
       "shade", "arbalist", "disciple",
-      "runecaster", "chronomancer", "arcanist"
+      "runecaster", "voidcaster", "arcanist"
     ]);
   });
 

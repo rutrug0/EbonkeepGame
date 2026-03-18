@@ -63,7 +63,7 @@
     "weaponCrossbow": "Besta",
     "weaponChakrams": "Chakrams",
     "weaponRuneStone": "Pedra rúnica",
-    "weaponOrb": "Orbe",
+    "weaponVoidGlaive": "Tri-Gládio do Vácuo",
     "weaponGrimoire": "Grimório",
     "yourClass": "Sua classe"
   },
@@ -810,7 +810,7 @@
     "arbalist": "Arbalista",
     "disciple": "Discípulo",
     "runecaster": "Runista",
-    "chronomancer": "Cronomante",
+    "voidcaster": "Conjurador do Vázio",
     "arcanist": "Arcanista"
   },
   "renown": {

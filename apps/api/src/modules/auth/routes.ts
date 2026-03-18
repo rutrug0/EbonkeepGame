@@ -23,7 +23,7 @@ import { generateToken, getExpiryDate } from "./utils/tokens.js";
 
 const devGuestBodySchema = z.object({
   guestId: z.string().min(1).optional(),
-  class: z.enum(["juggernaut", "sentinel", "reaver", "shade", "arbalist", "disciple", "runecaster", "chronomancer", "arcanist"]).default("juggernaut")
+  class: z.enum(["juggernaut", "sentinel", "reaver", "shade", "arbalist", "disciple", "runecaster", "voidcaster", "arcanist"]).default("juggernaut")
 });
 
 const verifyEmailBodySchema = z.object({

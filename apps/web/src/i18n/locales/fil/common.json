@@ -63,7 +63,7 @@
     "weaponCrossbow": "Crossbow",
     "weaponChakrams": "Mga Chakram",
     "weaponRuneStone": "Rune Stone",
-    "weaponOrb": "Orb",
+    "weaponVoidGlaive": "Void Tri-Glaive",
     "weaponGrimoire": "Grimoire",
     "yourClass": "Ang iyong klase"
   },
@@ -845,7 +845,7 @@
     "arbalist": "Arbalista",
     "disciple": "Disipulo",
     "runecaster": "Rune Caster",
-    "chronomancer": "Chronomancer",
+    "voidcaster": "Voidcaster",
     "arcanist": "Arcanist"
   },
   "renown": {

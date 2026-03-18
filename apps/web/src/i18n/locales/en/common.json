@@ -67,7 +67,7 @@
     "weaponCrossbow": "Crossbow",
     "weaponChakrams": "Chakrams",
     "weaponRuneStone": "Rune Stone",
-    "weaponOrb": "Orb",
+    "weaponVoidGlaive": "Void Tri-Glaive",
     "weaponGrimoire": "Grimoire",
     "yourClass": "Your class"
   },
@@ -739,7 +739,7 @@
     "arbalist": "Arbalist",
     "disciple": "Disciple",
     "runecaster": "Runecaster",
-    "chronomancer": "Chronomancer",
+    "voidcaster": "Voidcaster",
     "arcanist": "Arcanist"
   },
   "slots": {

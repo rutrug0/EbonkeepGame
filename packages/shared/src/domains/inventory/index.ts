@@ -64,13 +64,13 @@ export const MAX_EQUIPPED_VESTIGES = 3;
 export const armorArchetypeAllowedClasses: Record<ArmorArchetype, readonly PlayerClass[]> = {
   // grouped by equipment group (weapon stat), not primary archetype
   heavy: ["juggernaut", "arbalist", "runecaster"],   // warrior equipment (STR weapon)
-  light: ["sentinel", "disciple", "chronomancer"],   // ranger equipment (DEX weapon)
+  light: ["sentinel", "disciple", "voidcaster"],   // ranger equipment (DEX weapon)
   robe:  ["reaver", "shade", "arcanist"]             // mage equipment (INT weapon)
 };
 
 export const weaponArchetypeAllowedClasses: Record<WeaponArchetype, readonly PlayerClass[]> = {
   melee: ["juggernaut", "sentinel", "reaver", "shade", "disciple"],
-  arcane: ["runecaster", "chronomancer", "arcanist"],
+  arcane: ["runecaster", "voidcaster", "arcanist"],
   ranged: ["arbalist"]
 };
 
