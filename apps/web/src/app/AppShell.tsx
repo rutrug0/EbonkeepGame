@@ -19,6 +19,7 @@ import { CharacterHubTabs } from "./CharacterHubTabs";
 import { ChatPanel } from "./ChatPanel";
 import { PlaceholderPanel } from "./PlaceholderPanel";
 import { SettingsPanel } from "./SettingsPanel";
+import { ClassIcon } from "./ClassIcon";
 import { createInventoryInteractions, type InventoryInsertPosition } from "./inventoryInteractions";
 import { createInitialChatMessages, type ChatMessage } from "./chat";
 import {
@@ -1829,7 +1830,6 @@ export function AppShell() {
   }
 
   const profileName = accountInfo?.username ?? (playerState ? getDisplayName(playerState) : i18n.t("profile.defaultName"));
-  const avatarInitial = profileName.charAt(0);
 
   const availableContractSlots = useMemo(
     () => contractSlots.filter((slot) => slot.offer !== null),
@@ -5111,6 +5111,8 @@ export function AppShell() {
             token={token}
             hasPlayerState={Boolean(playerState)}
             playerName={profileName}
+            playerClass={playerState?.class ?? null}
+            playerLevel={playerState?.level ?? null}
             playerAvatarPath={activeCharacterVisualPath}
             formatDurationFromMs={formatDurationFromMs}
           />
@@ -5309,7 +5311,9 @@ export function AppShell() {
               <section className="playerCard">
                 <div className="identityRow">
                   <div className="avatar" aria-hidden="true">
-                    {avatarInitial}
+                    {playerState ? (
+                      <ClassIcon playerClass={playerState.class} size={46} className="avatarClassIcon" alt="" />
+                    ) : null}
                   </div>
                   <div className="identityText">
                     <h1>{profileName}</h1>

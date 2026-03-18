@@ -4,6 +4,7 @@ import {
   allEquipmentSlotIds,
   classToWeaponStat,
   equipmentSlotIdSchema,
+  normalizePlayerClass,
   type CoreStatKey,
   type PlayerClass,
   type PlayerStatBlock,
@@ -398,9 +399,10 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       itemData: item.itemData
     }))
     .filter((item): item is NonNullable<typeof item> => item !== null);
+  const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
   const statSnapshot = buildPlayerStatSnapshot({
-    playerClass: profile.class as PlayerClass,
+    playerClass: normalizedPlayerClass,
     level: progress.experience.level,
     baseStats: {
       strength: stats.strength,
@@ -456,7 +458,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
   return playerStateSchema.parse({
     playerId: profile.id,
     accountId: profile.accountId,
-    class: profile.class,
+    class: normalizedPlayerClass,
     portraitId: profile.portraitId ?? "str_01",
     backgroundId: profile.backgroundId ?? "bg_01",
     preferredLocale: profile.preferredLocale ?? "en",
@@ -530,9 +532,10 @@ export async function getPublicPlayerProfile(
     vitality: 10, initiative: 10, luck: 10
   };
   const equipment = buildEquipmentState(profile.equipmentSlots);
+  const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
   const statSnapshot = buildPlayerStatSnapshot({
-    playerClass: profile.class as PlayerClass,
+    playerClass: normalizedPlayerClass,
     level: profile.level,
     baseStats: {
       strength: stats.strength,
@@ -549,7 +552,7 @@ export async function getPublicPlayerProfile(
   return publicPlayerProfileSchema.parse({
     playerId: profile.id,
     username: profile.account.username ?? "Unknown Warden",
-    class: profile.class,
+    class: normalizedPlayerClass,
     level: profile.level,
     gearScore: profile.gearScore,
     guildId: profile.guildMembership?.guildId ?? null,

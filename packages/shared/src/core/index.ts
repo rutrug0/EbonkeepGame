@@ -17,23 +17,32 @@ export const playerClassSchema = z.enum([
   "disciple",
   // INT tree
   "runecaster",
-  "chronomancer",
+  "voidcaster",
   "arcanist"
 ]);
 export type PlayerClass = z.infer<typeof playerClassSchema>;
 export const allPlayerClasses: readonly PlayerClass[] = playerClassSchema.options;
+const LEGACY_PLAYER_CLASS_ALIASES = {
+  chronomancer: "voidcaster"
+} as const satisfies Record<string, PlayerClass>;
 
 export const playerStatTreeSchema = z.enum(["strength", "dexterity", "intelligence"]);
 export type PlayerStatTree = z.infer<typeof playerStatTreeSchema>;
+
+export function normalizePlayerClass(playerClass: PlayerClass | string): PlayerClass {
+  const canonicalClass = LEGACY_PLAYER_CLASS_ALIASES[playerClass as keyof typeof LEGACY_PLAYER_CLASS_ALIASES] ?? playerClass;
+  return playerClassSchema.parse(canonicalClass);
+}
 
 
 
 /** Returns the primary stat tree for a player class. */
 export function classToStatTree(playerClass: PlayerClass): PlayerStatTree {
-  if (playerClass === "juggernaut" || playerClass === "sentinel" || playerClass === "reaver") {
+  const canonicalClass = normalizePlayerClass(playerClass);
+  if (canonicalClass === "juggernaut" || canonicalClass === "sentinel" || canonicalClass === "reaver") {
     return "strength";
   }
-  if (playerClass === "shade" || playerClass === "arbalist" || playerClass === "disciple") {
+  if (canonicalClass === "shade" || canonicalClass === "arbalist" || canonicalClass === "disciple") {
     return "dexterity";
   }
   return "intelligence";
@@ -44,18 +53,18 @@ export function classToStatTree(playerClass: PlayerClass): PlayerStatTree {
  * This determines which item templates they can equip (equipment group)
  * and what stat powers their weapon damage.
  *   STR weapons (warrior group) → Juggernaut, Arbalist, Runecaster
- *   DEX weapons (ranger group)  → Sentinel, Disciple, Chronomancer
+ *   DEX weapons (ranger group)  → Sentinel, Disciple, Voidcaster
  *   INT weapons (mage group)    → Reaver, Shade, Arcanist
  */
 export function classToWeaponStat(playerClass: PlayerClass): PlayerStatTree {
-  switch (playerClass) {
+  switch (normalizePlayerClass(playerClass)) {
     case "juggernaut":
     case "arbalist":
     case "runecaster":
       return "strength";
     case "sentinel":
     case "disciple":
-    case "chronomancer":
+    case "voidcaster":
       return "dexterity";
     case "reaver":
     case "shade":
@@ -82,13 +91,13 @@ export function classToEquipmentGroup(playerClass: PlayerClass): EquipmentGroup 
 export const classesByStatTree: Record<PlayerStatTree, readonly PlayerClass[]> = {
   strength: ["juggernaut", "sentinel", "reaver"],
   dexterity: ["shade", "arbalist", "disciple"],
-  intelligence: ["runecaster", "chronomancer", "arcanist"]
+  intelligence: ["runecaster", "voidcaster", "arcanist"]
 };
 
 /** All classes that use the given equipment group (by weapon/secondary stat). */
 export const classesByEquipmentGroup: Record<EquipmentGroup, readonly PlayerClass[]> = {
   warrior: ["juggernaut", "arbalist", "runecaster"],
-  ranger:  ["sentinel", "disciple", "chronomancer"],
+  ranger:  ["sentinel", "disciple", "voidcaster"],
   mage:    ["reaver", "shade", "arcanist"]
 };
 

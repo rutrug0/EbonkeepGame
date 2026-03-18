@@ -1,5 +1,5 @@
 import type { LeaderboardResponse, LeaderboardType, PlayerClass } from "@ebonkeep/shared";
-import { classesByStatTree, classToEquipmentGroup } from "@ebonkeep/shared/core";
+import { classesByStatTree, classToEquipmentGroup, normalizePlayerClass } from "@ebonkeep/shared/core";
 import type { PlayerStatTree } from "@ebonkeep/shared/core";
 import type { PrismaClient } from "@prisma/client";
 
@@ -13,7 +13,9 @@ export async function getLeaderboard(
   const orderByColumn = leaderboardType === "power" ? "gearScore" : "level";
   
   // Build WHERE clause for class filter — expand stat tree to member classes
-  const classValues = classFilter ? [...classesByStatTree[classFilter]] : undefined;
+  const classValues = classFilter
+    ? [...classesByStatTree[classFilter], ...(classFilter === "intelligence" ? ["chronomancer"] : [])]
+    : undefined;
   const whereClause = classValues ? { class: { in: classValues } } : {};
 
   // Get top players
@@ -59,7 +61,7 @@ export async function getLeaderboard(
 
     if (currentPlayer) {
       // Check if class filter matches
-      const shouldInclude = !classFilter || classesByStatTree[classFilter].includes(currentPlayer.class as PlayerClass);
+      const shouldInclude = !classFilter || classValues?.includes(currentPlayer.class) === true;
       
       if (shouldInclude) {
         const currentValue = leaderboardType === "power" ? currentPlayer.gearScore : currentPlayer.level;
@@ -93,7 +95,7 @@ export async function getLeaderboard(
     rank: index + 1,
     playerId: player.id,
     username: player.account.username ?? "Unknown Warden",
-    class: player.class as PlayerClass,
+    class: normalizePlayerClass(player.class),
     level: player.level,
     gearScore: player.gearScore,
     value: leaderboardType === "power" ? player.gearScore : player.level,

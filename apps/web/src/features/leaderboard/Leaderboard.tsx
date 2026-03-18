@@ -12,6 +12,7 @@ import type { GuildDetailsResponse } from "@ebonkeep/shared/guild";
 import type { PublicPlayerProfile } from "@ebonkeep/shared/player";
 import { getGuildById, getMyGuild, sendGuildInvite } from "../guild";
 import { fetchLeaderboard, getGuildLeaderboard, fetchPublicPlayerProfile } from "./api";
+import { ClassIcon } from "../../app/ClassIcon";
 
 function safeHtml(raw: string): string {
   return String(DOMPurify.sanitize(raw, {
@@ -165,6 +166,7 @@ function PlayerProfileModal({
         <div className="guildLbModalHeader">
           <span className="guildLbModalHeaderTitle">
             <span className={`profileModalClassBadge profileModalClassBadge--${entry.class}`}>
+              <ClassIcon playerClass={entry.class} size={20} className="profileModalClassIcon" alt="" />
               {t(`class.${entry.class}`)}
             </span>
             {entry.username}
@@ -591,10 +593,17 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
                           <span className={getRankClass(entry.rank)}>#{entry.rank}</span>
                         </td>
                         <td data-label={t("leaderboards.player")} className="leaderboardCellPlayer">
-                          <strong>{entry.username}</strong>
-                          {entry.guildTag && (
-                            <span className="leaderboardGuildTag">[{entry.guildTag}]</span>
-                          )}
+                          <span className="leaderboardPlayerIdentity">
+                            <span className="classPortrait classPortrait--md leaderboardPlayerAvatar" aria-hidden="true">
+                              <ClassIcon playerClass={entry.class} size={46} className="classPortraitIcon" alt="" />
+                            </span>
+                            <span className="leaderboardPlayerIdentityText">
+                              <strong>{entry.username}</strong>
+                              {entry.guildTag && (
+                                <span className="leaderboardGuildTag">[{entry.guildTag}]</span>
+                              )}
+                            </span>
+                          </span>
                         </td>
                         <td data-label={t("leaderboards.class")} className="leaderboardCellClass">
                           <span className={`leaderboardClass leaderboardClass-${entry.class}`}>

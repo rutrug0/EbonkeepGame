@@ -200,6 +200,23 @@
   color: var(--text-main);
 }
 
+.leaderboardPlayerIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.leaderboardPlayerAvatar {
+  flex-shrink: 0;
+}
+
+.leaderboardPlayerIdentityText {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .leaderboardClass {
   display: inline-block;
   padding: 2px 10px;

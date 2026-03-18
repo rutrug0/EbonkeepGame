@@ -62,4 +62,27 @@ describe("academy legacy node migration", () => {
       ])
     );
   });
+
+  it("does not double-count a canonical node when a legacy row still exists beside it", () => {
+    const normalizedRows = normalizeAcademyProgressRows([
+      {
+        nodeId: "combat_basics",
+        currentLevel: 3,
+        ducatsInvested: 24_500
+      },
+      {
+        nodeId: "drill_square",
+        currentLevel: 3,
+        ducatsInvested: 24_500
+      }
+    ]);
+
+    expect(normalizedRows).toEqual([
+      expect.objectContaining({
+        nodeId: "drill_square",
+        currentLevel: 3,
+        ducatsInvested: 24_500
+      })
+    ]);
+  });
 });

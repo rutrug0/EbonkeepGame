@@ -10,6 +10,7 @@ import {
   resolveGardenPlotPhase,
   getAllowedClassesForArchetype,
   isItemUsableByClass,
+  normalizePlayerClass,
   runDeveloperContractSimulationBodySchema,
   validateVestigeLoadout
 } from "../src/index.js";
@@ -20,11 +21,11 @@ describe("shared contracts", () => {
   it("maps archetypes to allowed classes", () => {
     // armor archetypes grouped by equipment group (weapon stat)
     expect(getAllowedClassesForArchetype("armor", "heavy")).toEqual(["juggernaut", "arbalist", "runecaster"]);
-    expect(getAllowedClassesForArchetype("weapon", "arcane")).toEqual(["runecaster", "chronomancer", "arcanist"]);
+    expect(getAllowedClassesForArchetype("weapon", "arcane")).toEqual(["runecaster", "voidcaster", "arcanist"]);
     expect(getAllowedClassesForArchetype("jewelry")).toEqual([
       "juggernaut", "sentinel", "reaver",
       "shade", "arbalist", "disciple",
-      "runecaster", "chronomancer", "arcanist"
+      "runecaster", "voidcaster", "arcanist"
     ]);
   });
 
@@ -32,6 +33,10 @@ describe("shared contracts", () => {
     expect(isItemUsableByClass("juggernaut", "weapon", "melee")).toBe(true);
     expect(isItemUsableByClass("juggernaut", "weapon", "arcane")).toBe(false);
     expect(isItemUsableByClass("arcanist", "jewelry")).toBe(true);
+  });
+
+  it("normalizes legacy class aliases", () => {
+    expect(normalizePlayerClass("chronomancer")).toBe("voidcaster");
   });
 
   it("validates vestige loadout size and duplicates", () => {

@@ -27,7 +27,7 @@ import {
   type ArenaStateResponse
 } from "@ebonkeep/shared/arena";
 import { combatActorSnapshotSchema, type CombatActorSnapshot, type CombatEvent } from "@ebonkeep/shared/combat";
-import { allPlayerClasses, classToStatTree, type PlayerClass } from "@ebonkeep/shared/core";
+import { allPlayerClasses, classToStatTree, playerClassSchema, type PlayerClass } from "@ebonkeep/shared/core";
 
 import {
   applyAcademyArenaCooldownDuration,
@@ -47,6 +47,9 @@ const MIN_TOTAL_MOCKS = 18;
 
 const MOCK_NAME_PREFIXES = ["Ash", "Black", "Duskworn", "Gilded", "Iron", "Stone", "Storm", "Thorn"];
 const MOCK_NAME_SUFFIXES = ["Champion", "Harrier", "Warden", "Reaper", "Vanguard", "Marauder", "Caller", "Duelist"];
+const LEGACY_ARENA_CLASS_ALIASES = {
+  chronomancer: "voidcaster"
+} as const satisfies Record<string, PlayerClass>;
 const WEAPON_LABELS_BY_TREE = {
   strength: ["Durnholde Axe", "Black Bastard Sword", "Ashen Halberd", "Wardbreaker Maul"],
   dexterity: ["Nightglass Bow", "Gloamfang Daggers", "Riftshot Crossbow", "Sable Chakrams"],
@@ -69,6 +72,12 @@ function randomInt(min: number, max: number): number {
 
 function clampInt(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+export function normalizeArenaPlayerClass(playerClass: string): PlayerClass {
+  const canonicalClass = LEGACY_ARENA_CLASS_ALIASES[playerClass as keyof typeof LEGACY_ARENA_CLASS_ALIASES] ?? playerClass;
+  const parsed = playerClassSchema.safeParse(canonicalClass);
+  return parsed.success ? parsed.data : "juggernaut";
 }
 
 function getArenaFindCooldownMs(fastArenaReplenishEnabled: boolean): number {
@@ -190,7 +199,7 @@ function toArenaOpponentSummary(entry: PrismaArenaEntry): ArenaOpponentSummary {
   return arenaOpponentSummarySchema.parse({
     entryId: entry.id,
     displayName: entry.displayName,
-    class: entry.playerClass,
+    class: normalizeArenaPlayerClass(entry.playerClass),
     level: entry.level,
     gearScore: entry.gearScore,
     rating: entry.rating,
@@ -199,6 +208,17 @@ function toArenaOpponentSummary(entry: PrismaArenaEntry): ArenaOpponentSummary {
     source: entry.source,
     weaponLabel: entry.weaponLabel ?? null,
     previewStats: arenaPreviewStatsSchema.parse(entry.previewStats)
+  });
+}
+
+function parseArenaOpponentSummary(summary: unknown): ArenaOpponentSummary {
+  if (!summary || typeof summary !== "object" || Array.isArray(summary)) {
+    return arenaOpponentSummarySchema.parse(summary);
+  }
+
+  return arenaOpponentSummarySchema.parse({
+    ...(summary as Record<string, unknown>),
+    class: normalizeArenaPlayerClass(String((summary as Record<string, unknown>).class ?? "juggernaut"))
   });
 }
 
@@ -212,7 +232,7 @@ function toArenaOffer(offer: {
     offerId: offer.id,
     offeredAt: offer.offeredAt.toISOString(),
     cooldownEndsAt: offer.cooldownEndsAt.toISOString(),
-    opponent: arenaOpponentSummarySchema.parse(offer.summary)
+    opponent: parseArenaOpponentSummary(offer.summary)
   });
 }
 
@@ -230,7 +250,7 @@ function toArenaMatchHistoryEntry(match: {
     outcome: match.winnerSide === "player" ? "win" : "loss",
     ratingDelta: match.ratingDelta,
     ratingAfter: match.challengerRating,
-    opponent: arenaOpponentSummarySchema.parse(match.opponentSummary)
+    opponent: parseArenaOpponentSummary(match.opponentSummary)
   });
 }
 
@@ -266,7 +286,7 @@ function buildArenaLadder(args: {
       rank: entry.rank,
       entryId: entry.id,
       displayName: entry.displayName,
-      class: entry.playerClass,
+      class: normalizeArenaPlayerClass(entry.playerClass),
       level: entry.level,
       gearScore: entry.gearScore,
       rating: entry.rating,
@@ -777,7 +797,7 @@ export async function fightArenaOffer(prisma: PrismaClient, playerId: string, of
       }
     });
 
-    const opponentSummary = arenaOpponentSummarySchema.parse(offer.summary);
+    const opponentSummary = parseArenaOpponentSummary(offer.summary);
     const match = await tx.arenaMatch.create({
       data: {
         challengerId: playerId,

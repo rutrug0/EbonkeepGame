@@ -5,6 +5,7 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { GuildMember, GuildMembersQuery, UpdateMemberRoleRequest, TransferLeadershipRequest } from "@ebonkeep/shared";
+import { normalizePlayerClass } from "@ebonkeep/shared/core";
 
 import { getEffectiveGuildMaxMembers, getGuildAcademyEffectTotals } from "../academy/effects.js";
 import { rebasePlayerStaminaRegenWindow } from "../player/progression-service.js";
@@ -67,7 +68,11 @@ export async function getGuildMembers(
   return {
     members: members.map((m) => ({
       ...m,
-      joinedAt: m.joinedAt.toISOString()
+      joinedAt: m.joinedAt.toISOString(),
+      player: {
+        ...m.player,
+        class: normalizePlayerClass(m.player.class)
+      }
     })),
     total
   };
