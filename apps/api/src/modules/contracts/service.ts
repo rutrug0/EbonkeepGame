@@ -13,6 +13,7 @@ import {
   contractRunResultSchema,
   contractRunSnapshotSchema,
   startContractRunResponseSchema,
+  MAX_CONTRACT_SLOT_COUNT,
   type ContractBoardResponse,
   type ContractBoardSlotState,
   type ContractBoardSlotView,
@@ -461,14 +462,18 @@ export async function getContractBoard(prisma: PrismaClient, playerId: string): 
   const slots = await prisma.contractBoardSlot.findMany({
     where: {
       playerId,
-      slotIndex: { lte: slotCount }
+      slotIndex: { lte: MAX_CONTRACT_SLOT_COUNT }
     },
     orderBy: { slotIndex: "asc" }
   });
 
+  const visibleSlots = slots.filter(
+    (slot) => slot.slotIndex <= slotCount || slot.activeRunId !== null
+  );
+
   return contractBoardResponseSchema.parse({
     serverTime: now.toISOString(),
-    slots: slots.map((slot) => mapBoardSlot(slot as BoardSlotRecord, academyEffects))
+    slots: visibleSlots.map((slot) => mapBoardSlot(slot as BoardSlotRecord, academyEffects))
   });
 }
 

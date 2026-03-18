@@ -3,7 +3,8 @@ import type { FastifyPluginAsync } from "fastify";
 import {
   developerContractsStaticCurvesResponseSchema,
   developerContractSimulationJobSchema,
-  runDeveloperContractSimulationBodySchema
+  runDeveloperContractSimulationBodySchema,
+  MAX_CONTRACT_SLOT_COUNT
 } from "@ebonkeep/shared/combat";
 
 import { abandonContractOffer, claimContractRunResult, getContractBoard, getContractRun, startContractRun } from "./service.js";
@@ -12,7 +13,7 @@ import { createDeveloperContractSimulationJob, getDeveloperContractSimulationJob
 
 function parseSlotId(raw: string): number | null {
   const slotId = Number.parseInt(raw, 10);
-  if (!Number.isFinite(slotId) || slotId < 1 || slotId > 6) {
+  if (!Number.isFinite(slotId) || slotId < 1 || slotId > MAX_CONTRACT_SLOT_COUNT) {
     return null;
   }
   return slotId;

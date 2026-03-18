@@ -133,7 +133,7 @@ export function normalizeAcademyProgressRows<T extends AcademyProgressRow>(
 
     const combinedInvested =
       existing.ducatsInvested !== undefined || normalizedInvested !== undefined
-        ? (existing.ducatsInvested ?? 0) + (normalizedInvested ?? 0)
+        ? Math.max(existing.ducatsInvested ?? 0, normalizedInvested ?? 0)
         : undefined;
     const maxRequestedLevel = Math.max(existing.maxRequestedLevel, requestedLevel);
     const computedLevel = combinedInvested === undefined
@@ -156,53 +156,61 @@ export async function migrateLegacyAcademyRowsForGuild(
   prisma: DbClient,
   guildId: string
 ): Promise<boolean> {
-  const allRows = await prisma.guildAcademyNode.findMany({
-    where: { guildId },
-    select: {
-      nodeId: true,
-      currentLevel: true,
-      ducatsInvested: true,
-      completedAt: true
-    }
-  });
-
-  if (!allRows.some((row) => LEGACY_ACADEMY_NODE_IDS.includes(row.nodeId))) {
-    return false;
-  }
-
-  const normalizedRows = normalizeAcademyProgressRows(allRows);
-
-  for (const row of normalizedRows) {
-    await prisma.guildAcademyNode.upsert({
-      where: {
-        guildId_nodeId: {
-          guildId,
-          nodeId: row.nodeId
-        }
-      },
-      create: {
-        guildId,
-        nodeId: row.nodeId,
-        currentLevel: row.currentLevel,
-        ducatsInvested: row.ducatsInvested ?? getAcademyNodeCumulativeCost(row.nodeId, row.currentLevel),
-        completedAt: row.completedAt
-      },
-      update: {
-        currentLevel: row.currentLevel,
-        ducatsInvested: row.ducatsInvested ?? getAcademyNodeCumulativeCost(row.nodeId, row.currentLevel),
-        completedAt: row.completedAt
+  const migrateRows = async (tx: DbClient): Promise<boolean> => {
+    const allRows = await tx.guildAcademyNode.findMany({
+      where: { guildId },
+      select: {
+        nodeId: true,
+        currentLevel: true,
+        ducatsInvested: true,
+        completedAt: true
       }
     });
+
+    if (!allRows.some((row) => LEGACY_ACADEMY_NODE_IDS.includes(row.nodeId))) {
+      return false;
+    }
+
+    const normalizedRows = normalizeAcademyProgressRows(allRows);
+
+    for (const row of normalizedRows) {
+      await tx.guildAcademyNode.upsert({
+        where: {
+          guildId_nodeId: {
+            guildId,
+            nodeId: row.nodeId
+          }
+        },
+        create: {
+          guildId,
+          nodeId: row.nodeId,
+          currentLevel: row.currentLevel,
+          ducatsInvested: row.ducatsInvested ?? getAcademyNodeCumulativeCost(row.nodeId, row.currentLevel),
+          completedAt: row.completedAt
+        },
+        update: {
+          currentLevel: row.currentLevel,
+          ducatsInvested: row.ducatsInvested ?? getAcademyNodeCumulativeCost(row.nodeId, row.currentLevel),
+          completedAt: row.completedAt
+        }
+      });
+    }
+
+    await tx.guildAcademyNode.deleteMany({
+      where: {
+        guildId,
+        nodeId: {
+          in: LEGACY_ACADEMY_NODE_IDS
+        }
+      }
+    });
+
+    return true;
+  };
+
+  if ("$transaction" in prisma) {
+    return prisma.$transaction((tx) => migrateRows(tx));
   }
 
-  await prisma.guildAcademyNode.deleteMany({
-    where: {
-      guildId,
-      nodeId: {
-        in: LEGACY_ACADEMY_NODE_IDS
-      }
-    }
-  });
-
-  return true;
+  return migrateRows(prisma);
 }
