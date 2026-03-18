@@ -29,11 +29,13 @@ test("guild invite lifecycle works across two players @nightly", async ({ browse
     expect(inviteResponse.ok()).toBeTruthy();
 
     await recruit.page.goto("/");
+    await recruit.page.getByTestId("menu-group-realm").click();
     await recruit.page.getByTestId("menu-guild").click();
     await expect(recruit.page.getByRole("button", { name: /Accept/i }).first()).toBeVisible();
     await recruit.page.getByRole("button", { name: /Accept/i }).first().click();
 
     await leader.page.goto("/");
+    await leader.page.getByTestId("menu-group-realm").click();
     await leader.page.getByTestId("menu-guild").click();
     await expect(leader.page.getByText(/Night Watch/)).toBeVisible();
     await expect(leader.page.getByText(/Members/i)).toBeVisible();

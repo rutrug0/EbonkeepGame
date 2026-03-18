@@ -13,8 +13,17 @@ export type LandingTab =
   | "auctionHouse"
   | "merchant"
   | "shop"
+  | "garden"
+  | "apothecary"
+  | "workshop"
   | "leaderboards"
   | "settings";
+export type MenuGroupId = "profile" | "adventures" | "market" | "estate" | "realm";
+export type MenuGroup = {
+  id: MenuGroupId;
+  iconTab: LandingTab;
+  tabs: LandingTab[];
+};
 
 export type LayoutMode = "compact" | "standard" | "wide";
 export type CharacterHubTab = "character" | "renown" | "ledger" | "encyclopedia";
@@ -26,17 +35,51 @@ export const CHAT_CHANNEL_LABEL_KEYS: Record<ChatChannel, string> = {
   guild: "chat.guild"
 };
 
-export const MENU_ITEMS: LandingTab[] = [
-  "inventory",
-  "contracts",
-  "arena",
-  "guild",
-  "auctionHouse",
-  "merchant",
-  "shop",
-  "leaderboards",
-  "settings"
+export const MENU_GROUPS: MenuGroup[] = [
+  {
+    id: "profile",
+    iconTab: "inventory",
+    tabs: ["inventory", "leaderboards", "settings"]
+  },
+  {
+    id: "adventures",
+    iconTab: "missions",
+    tabs: ["contracts", "missions", "arena"]
+  },
+  {
+    id: "market",
+    iconTab: "merchant",
+    tabs: ["merchant", "auctionHouse", "shop"]
+  },
+  {
+    id: "estate",
+    iconTab: "garden",
+    tabs: ["garden", "apothecary", "workshop"]
+  },
+  {
+    id: "realm",
+    iconTab: "guild",
+    tabs: ["guild", "castles"]
+  }
 ];
+
+const MENU_GROUP_BY_TAB: Record<LandingTab, MenuGroupId> = {
+  inventory: "profile",
+  encyclopedia: "profile",
+  leaderboards: "profile",
+  settings: "profile",
+  contracts: "adventures",
+  missions: "adventures",
+  arena: "adventures",
+  merchant: "market",
+  auctionHouse: "market",
+  shop: "market",
+  garden: "estate",
+  apothecary: "estate",
+  workshop: "estate",
+  guild: "realm",
+  castles: "realm"
+};
 
 export function getLayoutMode(viewportWidth: number): LayoutMode {
   if (viewportWidth < 960) {
@@ -131,6 +174,31 @@ export function renderMenuIcon(tab: LandingTab): ReactElement | null {
           <circle cx="15" cy="16" r="0.5" fill="currentColor" />
         </svg>
       );
+    case "garden":
+      return (
+        <svg {...iconProps}>
+          <path d="M12 20v-7" />
+          <path d="M12 13c0-3.3 2.4-6 5.5-6-.2 3.3-2.4 6-5.5 6Z" />
+          <path d="M12 10c0-2.7-2-5-4.8-5 .1 2.8 2.1 5 4.8 5Z" />
+          <path d="M7 20h10" />
+        </svg>
+      );
+    case "apothecary":
+      return (
+        <svg {...iconProps}>
+          <path d="M10 4v4l-3.5 6.1A3 3 0 0 0 9.1 19h5.8a3 3 0 0 0 2.6-4.9L14 8V4" />
+          <path d="M9 8h6" />
+          <path d="M10 13h4" />
+        </svg>
+      );
+    case "workshop":
+      return (
+        <svg {...iconProps}>
+          <path d="M14 5 6 13l-1 4 4-1 8-8" />
+          <path d="M13 6 18 11" />
+          <path d="M15 3h6v6" />
+        </svg>
+      );
     case "leaderboards":
       return (
         <svg {...iconProps}>
@@ -154,7 +222,18 @@ export function formatMenuLabel(tab: LandingTab): string {
   if (tab === "inventory") {
     return "Character";
   }
+  if (tab === "guild") {
+    return i18n.t("menu.guildHall");
+  }
   return i18n.t(`menu.${tab}`);
+}
+
+export function formatMenuGroupLabel(groupId: MenuGroupId): string {
+  return i18n.t(`menuGroups.${groupId}`);
+}
+
+export function getMenuGroupForTab(tab: LandingTab): MenuGroupId {
+  return MENU_GROUP_BY_TAB[tab];
 }
 
 export function formatCharacterHubTabLabel(tab: CharacterHubTab): string {

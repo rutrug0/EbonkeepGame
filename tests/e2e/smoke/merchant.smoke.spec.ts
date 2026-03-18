@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("merchant buy and sell flow works @smoke", async ({ page }) => {
   await page.goto("/");
+  await page.getByTestId("menu-group-market").click();
   await page.getByTestId("menu-merchant").click();
 
   const merchantOffer = page.locator('[data-testid^="merchant-offer-"]').first();

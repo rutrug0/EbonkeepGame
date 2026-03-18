@@ -22,14 +22,17 @@ import { SettingsPanel } from "./SettingsPanel";
 import { createInventoryInteractions, type InventoryInsertPosition } from "./inventoryInteractions";
 import { createInitialChatMessages, type ChatMessage } from "./chat";
 import {
-  MENU_ITEMS,
   formatMenuLabel,
+  formatMenuGroupLabel,
+  getMenuGroupForTab,
   getLayoutMode,
+  MENU_GROUPS,
   renderMenuIcon,
   type CharacterHubTab,
   type ChatChannel,
   type LandingTab,
   type LayoutMode,
+  type MenuGroupId,
   type ProfileSideTab
 } from "./navigation";
 import {
@@ -1666,6 +1669,7 @@ export function AppShell() {
   );
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
+  const [expandedMenuGroup, setExpandedMenuGroup] = useState<MenuGroupId>("profile");
   const [characterHubTab, setCharacterHubTab] = useState<CharacterHubTab>("character");
   const [selectedRenownNodeId, setSelectedRenownNodeId] = useState<string>(DEFAULT_RENOWN_NODE_ID);
   const [renownView, setRenownView] = useState<RenownViewState>(RENOWN_INITIAL_VIEW);
@@ -1738,6 +1742,10 @@ export function AppShell() {
   const [canDockInventoryChat, setCanDockInventoryChat] = useState(false);
   const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
   const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
+
+  useEffect(() => {
+    setExpandedMenuGroup(getMenuGroupForTab(activeTab));
+  }, [activeTab]);
   const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
   const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
@@ -5109,12 +5117,26 @@ export function AppShell() {
         return renderMerchantPanel();
       case "shop":
         return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
+      case "garden":
+        return renderPlaceholderPanel(i18n.t("menu.garden"), i18n.t("placeholders.garden"));
+      case "apothecary":
+        return renderPlaceholderPanel(i18n.t("menu.apothecary"), i18n.t("placeholders.apothecary"));
+      case "workshop":
+        return renderPlaceholderPanel(i18n.t("menu.workshop"), i18n.t("placeholders.workshop"));
       case "leaderboards":
         return <Leaderboard token={token} currentPlayerId={playerState?.playerId ?? null} />;
       case "settings":
         return renderSettingsPanel();
       default:
         return renderPlaceholderPanel(i18n.t("settings.title"), i18n.t("placeholders.panelUnavailable"));
+    }
+  }
+
+  function handleMenuTabSelect(nextTab: LandingTab) {
+    setActiveTab(nextTab);
+    setExpandedMenuGroup(getMenuGroupForTab(nextTab));
+    if (nextTab === "inventory") {
+      setCharacterHubTab("character");
     }
   }
 
@@ -5458,24 +5480,50 @@ export function AppShell() {
 
               <section className="menuCard">
                 <nav className="menuList">
-                  {MENU_ITEMS.map((menuItemId) => (
-                    <button
-                      key={menuItemId}
-                      className={`menuButton${activeTab === menuItemId ? " active" : ""}`}
-                      data-testid={`menu-${menuItemId}`}
-                      onClick={() => {
-                        setActiveTab(menuItemId);
-                        if (menuItemId === "inventory") {
-                          setCharacterHubTab("character");
-                        }
-                      }}
-                    >
-                      <span className="menuButtonIcon" aria-hidden="true">
-                        {renderMenuIcon(menuItemId)}
-                      </span>
-                      <span className="menuButtonLabel">{formatMenuLabel(menuItemId)}</span>
-                    </button>
-                  ))}
+                  {MENU_GROUPS.map((menuGroup) => {
+                    const isGroupActive = getMenuGroupForTab(activeTab) === menuGroup.id;
+                    const isExpanded = expandedMenuGroup === menuGroup.id;
+
+                    return (
+                      <div key={menuGroup.id} className={`menuGroup${isExpanded ? " expanded" : ""}`}>
+                        <button
+                          type="button"
+                          className={`menuButton menuGroupButton${isGroupActive ? " active" : ""}`}
+                          data-testid={`menu-group-${menuGroup.id}`}
+                          aria-expanded={isExpanded}
+                          onClick={() => setExpandedMenuGroup(menuGroup.id)}
+                        >
+                          <span className="menuButtonIcon" aria-hidden="true">
+                            {renderMenuIcon(menuGroup.iconTab)}
+                          </span>
+                          <span className="menuButtonLabel">{formatMenuGroupLabel(menuGroup.id)}</span>
+                          <span className={`menuGroupChevron${isExpanded ? " expanded" : ""}`} aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false">
+                              <path d="m9 6 6 6-6 6" />
+                            </svg>
+                          </span>
+                        </button>
+                        {isExpanded ? (
+                          <div className="menuSubList">
+                            {menuGroup.tabs.map((menuItemId) => (
+                              <button
+                                key={menuItemId}
+                                type="button"
+                                className={`menuButton menuSubButton${activeTab === menuItemId ? " active" : ""}`}
+                                data-testid={`menu-${menuItemId}`}
+                                onClick={() => handleMenuTabSelect(menuItemId)}
+                              >
+                                <span className="menuButtonIcon" aria-hidden="true">
+                                  {renderMenuIcon(menuItemId)}
+                                </span>
+                                <span className="menuButtonLabel">{formatMenuLabel(menuItemId)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </nav>
                 <button className="logoutButton" onClick={handleLogout}>
                   {i18n.t("menu.logout")}

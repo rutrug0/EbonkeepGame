@@ -789,7 +789,7 @@ button:focus-visible {
 .menuList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -806,7 +806,8 @@ button:focus-visible {
 .menuButton {
   position: relative;
   display: block;
-  text-align: center;
+  width: 100%;
+  text-align: left;
   min-height: var(--menu-button-min-height);
   padding: var(--space-2) var(--space-3);
 }
@@ -833,21 +834,123 @@ button:focus-visible {
 .menuButtonLabel {
   display: block;
   width: 100%;
-  padding: 0 var(--menu-label-side-pad);
-  text-align: center;
-  font-size: 1.13rem;
+  padding: 0 calc(var(--space-5) + var(--space-2)) 0 var(--menu-label-side-pad);
+  text-align: left;
+  font-size: 1.04rem;
   line-height: 1.2;
 }
 
-.menuButton.active {
+.menuGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.menuGroupButton {
+  padding-right: calc(var(--space-4) + var(--space-5));
+}
+
+.menuButton:hover,
+.menuGroupButton:hover {
+  border-color: color-mix(in srgb, var(--accent-focus) 76%, transparent);
+  background:
+    linear-gradient(180deg, rgba(63, 75, 89, 0.82), rgba(35, 44, 54, 0.98)),
+    linear-gradient(130deg, rgba(66, 90, 121, 0.16), rgba(38, 49, 59, 0.12));
+  filter: brightness(1.08);
+}
+
+.menuButton:hover .menuButtonIcon,
+.menuGroupButton:hover .menuButtonIcon {
+  color: color-mix(in srgb, var(--accent-focus) 72%, #dbefff 28%);
+}
+
+.menuButton:focus-visible,
+.menuGroupButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-focus) 70%, transparent);
+  outline-offset: 1px;
+  border-color: color-mix(in srgb, var(--accent-focus) 62%, transparent);
+}
+
+.menuButton.active,
+.menuGroupButton.active {
   border-color: color-mix(in srgb, var(--accent-warn) 60%, transparent);
   background:
     linear-gradient(180deg, rgba(101, 78, 47, 0.88), rgba(62, 49, 33, 0.94)),
     linear-gradient(140deg, rgba(173, 135, 78, 0.16), rgba(94, 117, 120, 0.08));
 }
 
-.menuButton.active .menuButtonIcon {
+.menuButton.active .menuButtonIcon,
+.menuGroupButton.active .menuButtonIcon {
   color: #f3e1bf;
+}
+
+.menuGroupButton .menuButtonLabel {
+  font-size: 1.08rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.menuGroupChevron {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.menuGroupChevron svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.menuGroupChevron.expanded {
+  color: #f3e1bf;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.menuSubList {
+  display: grid;
+  gap: var(--space-2);
+  margin-left: var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 1px solid color-mix(in srgb, var(--accent-focus) 22%, transparent);
+}
+
+.menuSubButton {
+  min-height: 0;
+  padding: 0.8rem 0.95rem 0.8rem 2.7rem;
+  border-color: var(--border);
+  background:
+    linear-gradient(180deg, rgba(56, 66, 77, 0.68), rgba(30, 38, 46, 0.96)),
+    linear-gradient(130deg, rgba(64, 53, 38, 0.18), rgba(38, 49, 59, 0.12));
+  box-shadow:
+    inset 0 1px 0 rgba(249, 232, 201, 0.08);
+}
+
+.menuSubButton.active {
+  border-color: color-mix(in srgb, var(--accent-warn) 60%, transparent);
+  background:
+    linear-gradient(180deg, rgba(101, 78, 47, 0.88), rgba(62, 49, 33, 0.94)),
+    linear-gradient(140deg, rgba(173, 135, 78, 0.16), rgba(94, 117, 120, 0.08));
+}
+
+.menuSubButton .menuButtonIcon {
+  left: 0.8rem;
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.menuSubButton .menuButtonLabel {
+  padding: 0;
+  font-size: 0.96rem;
 }
 
 .logoutButton {
@@ -910,6 +1013,16 @@ button:focus-visible {
   height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+.appRoot.layout-compact .menuCard {
+  flex: 0 0 auto;
+  min-height: fit-content;
+}
+
+.appRoot.layout-compact .menuList {
+  overflow: visible;
+  padding-right: 0;
 }
 
 .appRoot.layout-compact .panelViewport,

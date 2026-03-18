@@ -75,13 +75,24 @@
     "missions": "임무",
     "arena": "투기장",
     "guild": "길드",
+    "guildHall": "길드 홀",
     "castles": "성채",
     "auctionHouse": "경매장",
     "merchant": "상인",
     "shop": "제국 상점",
+    "garden": "정원",
+    "apothecary": "약제실",
+    "workshop": "작업장",
     "leaderboards": "순위",
     "settings": "설정",
     "logout": "로그아웃"
+  },
+  "menuGroups": {
+    "profile": "프로필",
+    "adventures": "모험",
+    "market": "시장",
+    "estate": "영지",
+    "realm": "영역"
   },
   "player": {
     "classUnknown": "알 수 없는 직업",
@@ -320,7 +331,8 @@
   },
   "inventory": {
     "consumables": "소모품",
-    "noItems": "사용 가능한 아이템이 없습니다."
+    "noItems": "사용 가능한 아이템이 없습니다.",
+    "slotsUsed": "{{used}} / {{capacity}} 슬롯 사용 중"
   },
   "profile": {
     "inventoryTab": "인벤토리",
@@ -907,5 +919,10 @@
       "rating": "Rating",
       "record": "Record"
     }
+  },
+  "placeholders": {
+    "garden": "이곳에서 약초, 버섯, 희귀 식물을 길러 앞으로의 준비 루프에 사용합니다.",
+    "apothecary": "이곳에서 정원 수확물과 임무 시약으로 강장제, 약제, 연고를 만듭니다.",
+    "workshop": "이곳에서 전장 재료를 정제하고 작업장 시스템이 열리면 장비를 담금질합니다."
   }
 }
