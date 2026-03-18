@@ -5,6 +5,8 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { GuildMember, GuildMembersQuery, UpdateMemberRoleRequest, TransferLeadershipRequest } from "@ebonkeep/shared";
+
+import { getEffectiveGuildMaxMembers } from "../academy/effects.js";
 import {
   canKickMember,
   canChangeRole,
@@ -93,6 +95,7 @@ export async function joinGuild(
     const guild = await tx.guild.findUnique({
       where: { id: guildId },
       select: {
+        id: true,
         isRecruiting: true,
         maxMembers: true,
         _count: {
@@ -109,7 +112,8 @@ export async function joinGuild(
       throw new Error("GUILD_NOT_RECRUITING");
     }
 
-    if (guild._count.members >= guild.maxMembers) {
+    const effectiveMaxMembers = await getEffectiveGuildMaxMembers(tx, guild.id, guild.maxMembers);
+    if (guild._count.members >= effectiveMaxMembers) {
       throw new Error("GUILD_FULL");
     }
 

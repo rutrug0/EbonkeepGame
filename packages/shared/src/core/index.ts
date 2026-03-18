@@ -223,6 +223,7 @@ export type PlayerStatBonuses = z.infer<typeof playerStatBonusesSchema>;
 export const playerStatSnapshotSchema = z.object({
   base: playerStatBlockSchema,
   equipment: playerStatBlockSchema,
+  guild: playerStatBlockSchema,
   total: playerStatBlockSchema
 });
 export type PlayerStatSnapshot = z.infer<typeof playerStatSnapshotSchema>;

@@ -21,12 +21,12 @@ import {
 // Constants
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const CANVAS_SIZE = 1000;
+const CANVAS_SIZE = 1400;
 
-export const ACADEMY_MIN_SCALE = 0.46;
+export const ACADEMY_MIN_SCALE = 0.34;
 export const ACADEMY_MAX_SCALE = 1.5;
 export type AcademyViewState = { x: number; y: number; scale: number };
-export const ACADEMY_INITIAL_VIEW: AcademyViewState = { x: 0, y: 0, scale: 0.72 };
+export const ACADEMY_INITIAL_VIEW: AcademyViewState = { x: 0, y: 0, scale: 0.55 };
 
 type AcademyDetailPane = "node" | "history" | "contributions";
 
@@ -65,17 +65,30 @@ function formatDucats(n: number): string {
 function getGlyphKey(iconKey: string, branchId: string): AcademyGlyphKey {
   if (iconKey.includes("core") || iconKey.includes("academy")) return "sigil";
   if (iconKey.includes("swift") || iconKey.includes("strike") || iconKey.includes("agil")) return "route";
+  if (iconKey.includes("strength") || iconKey.includes("drill") || iconKey.includes("vanguard")) return "hammer";
   if (iconKey.includes("heavy") || iconKey.includes("arms") || iconKey.includes("forge")) return "hammer";
   if (iconKey.includes("shield") || iconKey.includes("defense") || iconKey.includes("wards")) return "archive";
+  if (iconKey.includes("intelligence") || iconKey.includes("scribe") || iconKey.includes("runic")) return "vial";
   if (iconKey.includes("arcane") || iconKey.includes("magic") || iconKey.includes("potion")) return "vial";
   if (iconKey.includes("aoe") || iconKey.includes("blast") || iconKey.includes("area")) return "lantern";
   if (iconKey.includes("capacity") || iconKey.includes("tower") || iconKey.includes("fortress")) return "tower";
+  if (iconKey.includes("general") || iconKey.includes("quartermaster") || iconKey.includes("contract")) return "satchel";
+  if (iconKey.includes("dispatch") || iconKey.includes("trail") || iconKey.includes("bounty") || iconKey.includes("charter")) return "map";
+  if (iconKey.includes("commonwealth") || iconKey.includes("bulwark") || iconKey.includes("sanctum") || iconKey.includes("windwatch")) return "tower";
+  if (iconKey.includes("sparring") || iconKey.includes("duelist") || iconKey.includes("spectator") || iconKey.includes("champion") || iconKey.includes("victor")) return "banner";
+  if (iconKey.includes("dexterity") || iconKey.includes("scout") || iconKey.includes("pathfinder")) return "route";
   if (iconKey.includes("logistics") || iconKey.includes("supply") || iconKey.includes("route")) return "route";
   if (iconKey.includes("treasury") || iconKey.includes("vault") || iconKey.includes("savings")) return "satchel";
   if (iconKey.includes("commerce") || iconKey.includes("trade") || iconKey.includes("merchant")) return "map";
   if (iconKey.includes("venture") || iconKey.includes("expedition")) return "sprout";
   if (iconKey.includes("combat") || iconKey.includes("warrior") || iconKey.includes("battle")) return "banner";
   switch (branchId) {
+    case "general": return "satchel";
+    case "expedition": return "map";
+    case "strength": return "hammer";
+    case "intelligence": return "vial";
+    case "dexterity": return "route";
+    case "warfare": return "banner";
     case "combat": return "hammer";
     case "arcane": return "vial";
     case "guild": return "tower";
@@ -91,8 +104,15 @@ function getGlyphKey(iconKey: string, branchId: string): AcademyGlyphKey {
  * This produces the characteristic branching S-curves of the renown tree.
  */
 function buildAcademyEdgePath(ax: number, ay: number, bx: number, by: number): string {
-  const controlYOffset = Math.max(54, Math.abs(ay - by) * 0.38);
-  return `M ${ax} ${ay} C ${ax} ${ay - controlYOffset}, ${bx} ${by + controlYOffset}, ${bx} ${by}`;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const controlYOffset = Math.max(58, Math.abs(dy) * 0.34);
+  const controlXOffset = Math.max(28, Math.min(132, Math.abs(dx) * 0.3));
+  const sweep = dx === 0 ? 0 : Math.sign(dx) * controlXOffset;
+  const sourceControlX = ax + sweep * 0.35;
+  const targetControlX = bx - sweep * 0.7;
+
+  return `M ${ax} ${ay} C ${sourceControlX} ${ay - controlYOffset}, ${targetControlX} ${by + controlYOffset}, ${bx} ${by}`;
 }
 
 /** Compute per-branch canopy halos from config node positions. */
@@ -105,6 +125,7 @@ function buildAcademyCanopies(config: AcademyTreeState["config"]): Array<{
   color: string;
 }> {
   return config.branches
+    .filter((branch) => branch.id !== "core")
     .map((branch) => {
       const nodes = config.nodes.filter((n) => n.branchId === branch.id);
       if (nodes.length === 0) return null;
@@ -123,25 +144,65 @@ function buildAcademyCanopies(config: AcademyTreeState["config"]): Array<{
 
 const ACADEMY_NODE_IMAGE: Record<string, string> = {
   academy_core: "/assets/renown_academy/renown_14.png",
-  combat_basics: "/assets/renown_academy/renown_15.png",
-  heavy_arms: "/assets/renown_academy/renown_16.png",
-  swift_strike: "/assets/renown_academy/renown_17.png",
-  warlord_creed: "/assets/renown_academy/renown_18.png",
-  arcane_basics: "/assets/renown_academy/renown_19.png",
-  runic_shields: "/assets/renown_academy/renown_20.png",
-  spellweaving: "/assets/renown_academy/renown_21.png",
-  high_sorcery: "/assets/renown_academy/renown_22.png",
-  guild_hall: "/assets/renown_academy/renown_23.png",
-  war_council: "/assets/renown_academy/renown_24.png",
-  alliance_pact: "/assets/renown_academy/renown_25.png",
-  merchant_ties: "/assets/renown_academy/renown_26.png",
-  trade_routes: "/assets/renown_academy/renown_27.png",
-  royal_charter: "/assets/renown_academy/renown_28.png",
+  shared_barracks: "/assets/renown_academy/renown_23.png",
+  field_rations: "/assets/renown_academy/renown_24.png",
+  contract_ledgers: "/assets/renown_academy/renown_25.png",
+  commonwealth_hall: "/assets/renown_academy/renown_24.png",
+  dispatch_desk: "/assets/renown_academy/renown_23.png",
+  trail_markers: "/assets/renown_academy/renown_24.png",
+  bounty_brokers: "/assets/renown_academy/renown_25.png",
+  grand_charters: "/assets/renown_academy/renown_25.png",
+  drill_square: "/assets/renown_academy/renown_15.png",
+  plated_forms: "/assets/renown_academy/renown_16.png",
+  shield_wall: "/assets/renown_academy/renown_17.png",
+  bulwark_standard: "/assets/renown_academy/renown_16.png",
+  scribe_hall: "/assets/renown_academy/renown_19.png",
+  ward_lattice: "/assets/renown_academy/renown_20.png",
+  null_wards: "/assets/renown_academy/renown_21.png",
+  astral_sanctum: "/assets/renown_academy/renown_20.png",
+  scout_post: "/assets/renown_academy/renown_27.png",
+  sightline_calibration: "/assets/renown_academy/renown_28.png",
+  evasive_routines: "/assets/renown_academy/renown_17.png",
+  windwatch_spire: "/assets/renown_academy/renown_28.png",
+  sparring_rosters: "/assets/renown_academy/renown_23.png",
+  duelist_ledgers: "/assets/renown_academy/renown_24.png",
+  spectator_rails: "/assets/renown_academy/renown_25.png",
+  victors_forum: "/assets/renown_academy/renown_24.png"
 };
 
 function getAcademyNodeImage(iconKey: string): string | undefined {
   const normalized = iconKey.replace(/^node_/, "");
   return ACADEMY_NODE_IMAGE[normalized] ?? ACADEMY_NODE_IMAGE[iconKey];
+}
+
+function getNodeProgressState(node: AcademyNodeConfig, state: AcademyNodeState): {
+  investedTowardsNext: number;
+  costForNextLevel: number | null;
+  pct: number;
+} {
+  const currentLevelConfig = node.levels[state.currentLevel];
+  if (!currentLevelConfig) {
+    return {
+      investedTowardsNext: 0,
+      costForNextLevel: null,
+      pct: 100
+    };
+  }
+
+  const costForNextLevel = currentLevelConfig.ducatCost;
+  const prevCumulative = node.levels
+    .slice(0, state.currentLevel)
+    .reduce((sum, level) => sum + level.ducatCost, 0);
+  const investedTowardsNext = Math.max(0, state.ducatsInvested - prevCumulative);
+  const pct = costForNextLevel > 0
+    ? Math.min(100, (investedTowardsNext / costForNextLevel) * 100)
+    : 0;
+
+  return {
+    investedTowardsNext,
+    costForNextLevel,
+    pct
+  };
 }
 
 function renderAcademyGlyph(glyph: AcademyGlyphKey): ReactElement {
@@ -254,6 +315,7 @@ function AcademyNodeButton({
   branch,
   selected,
   isCenter,
+  hoverCardDirection,
   onClick
 }: {
   node: AcademyNodeConfig;
@@ -261,12 +323,23 @@ function AcademyNodeButton({
   branch?: AcademyBranchConfig;
   selected: boolean;
   isCenter: boolean;
+  hoverCardDirection: "above" | "below";
   onClick: () => void;
 }): ReactElement {
+  const { t } = useTranslation("common");
   const glyph = getGlyphKey(node.iconKey, node.branchId);
   const isMaxed = state.status === "maxed";
-  const pct = node.maxLevel > 0 ? (state.currentLevel / node.maxLevel) * 100 : 0;
+  const imageSrc = getAcademyNodeImage(node.iconKey);
+  const progressState = getNodeProgressState(node, state);
   const branchColor = branch?.color ?? "rgba(178,143,86,0.4)";
+  const hoverRewards = [
+    ...node.levels.flatMap((level) =>
+      level.rewards.map((reward) => `${t("academy.level")} ${level.level}: ${reward.description}`)
+    ),
+    ...(node.completionReward
+      ? [`${t("academy.rewards.completion")}: ${node.completionReward.description}`]
+      : [])
+  ];
 
   return (
     <button
@@ -296,23 +369,47 @@ function AcademyNodeButton({
             fill="none"
             stroke={branchColor}
             strokeWidth="5"
-            strokeDasharray={`${pct * 2.7} 270`}
+            strokeDasharray={`${progressState.pct * 2.7} 270`}
             strokeLinecap="round"
             transform="rotate(-90 48 48)"
           />
         </svg>
       )}
       <span className="academyNodeFrame" aria-hidden="true">
-        {getAcademyNodeImage(node.iconKey)
-          ? <img src={getAcademyNodeImage(node.iconKey)!} alt="" className="academyNodeImg" />
+        {imageSrc
+          ? <img src={imageSrc} alt="" className="academyNodeImg" />
           : renderAcademyGlyph(glyph)
         }
       </span>
-      {getAcademyNodeImage(node.iconKey) && (
-        <div className="academyNodeImagePreview" aria-hidden="true">
-          <img src={getAcademyNodeImage(node.iconKey)!} alt="" />
+      <div
+        className={`academyNodeHoverCard academyNodeHoverCard--${hoverCardDirection}`}
+        aria-hidden="true"
+      >
+        {imageSrc && (
+          <div className="academyNodeHoverImage">
+            <img src={imageSrc} alt="" />
+          </div>
+        )}
+        <div className="academyNodeHoverBody">
+          <p className="academyNodeHoverEyebrow">{branch?.label ?? node.branchId}</p>
+          <p className="academyNodeHoverTitle">{node.label}</p>
+          <p className="academyNodeHoverDescription">{node.description}</p>
+          {progressState.costForNextLevel !== null && state.status !== "maxed" && (
+            <p className="academyNodeHoverProgress">
+              {formatDucats(progressState.investedTowardsNext)} / {formatDucats(progressState.costForNextLevel)}
+            </p>
+          )}
+          {hoverRewards.length > 0 && (
+            <div className="academyNodeHoverEffects">
+              {hoverRewards.map((reward) => (
+                <span key={reward} className="academyNodeHoverEffect">
+                  {reward}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
       {!isCenter && (
         <span className="academyNodeLevelBadge" aria-hidden="true">
           {state.currentLevel}/{node.maxLevel}
@@ -320,7 +417,7 @@ function AcademyNodeButton({
       )}
       {isMaxed && (
         <span className="academyNodeMaxedStar" aria-hidden="true">
-          ?
+          *
         </span>
       )}
     </button>
@@ -333,26 +430,19 @@ function AcademyNodeButton({
 
 function LevelProgressBar({ node, state }: { node: AcademyNodeConfig; state: AcademyNodeState }): ReactElement | null {
   const { t } = useTranslation("common");
-  const currentLevelConfig = node.levels[state.currentLevel];
-  if (!currentLevelConfig) return null;
-
-  const costForNextLevel = currentLevelConfig.ducatCost;
-  const prevCumulative = node.levels
-    .slice(0, state.currentLevel)
-    .reduce((s, l) => s + l.ducatCost, 0);
-  const investedTowardsNext = Math.max(0, state.ducatsInvested - prevCumulative);
-  const pct = Math.min(100, (investedTowardsNext / costForNextLevel) * 100);
+  const progressState = getNodeProgressState(node, state);
+  if (progressState.costForNextLevel === null) return null;
 
   return (
     <div className="academyProgressSection">
       <div className="academyProgressLabel">
         <span>{t("academy.nextLevel")}</span>
         <span>
-          {formatDucats(investedTowardsNext)} / {formatDucats(costForNextLevel)}
+          {formatDucats(progressState.investedTowardsNext)} / {formatDucats(progressState.costForNextLevel)}
         </span>
       </div>
       <div className="academyProgressTrack">
-        <div className="academyProgressFill" style={{ width: `${pct}%` }} />
+        <div className="academyProgressFill" style={{ width: `${progressState.pct}%` }} />
       </div>
     </div>
   );
@@ -403,7 +493,7 @@ function AcademyDonateModal({
             onClick={onClose}
             aria-label="Close"
           >
-            �
+            x
           </button>
         </div>
 
@@ -619,8 +709,8 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
     const vr = viewport.getBoundingClientRect();
     const W = CANVAS_SIZE * scale;
     const H = CANVAS_SIZE * scale;
-    const marginX = Math.max(64, vr.width * 0.08);
-    const marginY = Math.max(52, vr.height * 0.08);
+    const marginX = Math.max(96, vr.width * 0.11);
+    const marginY = Math.max(180, vr.height * 0.22);
 
     const x =
       W + marginX * 2 <= vr.width
@@ -737,7 +827,7 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
   function handleNodeClick(nodeId: string) {
     if (!treeState) return;
     const state = treeState.nodes[nodeId];
-    if (!state || state.status === "locked") return;
+    if (!state) return;
     setSelectedNodeId(nodeId);
     setDetailPane("node");
     // Clear donate feedback when switching node
@@ -816,6 +906,7 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
   }
 
   const canopies = buildAcademyCanopies(treeState.config);
+  const viewportRect = viewportRef.current?.getBoundingClientRect();
 
   // -- Render ----------------------------------------------------------------
 
@@ -893,6 +984,14 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
               if (!state) return null;
               if (node.hiddenUntilUnlocked && state.status === "locked") return null;
               const branch = treeState.config.branches.find((b) => b.id === node.branchId);
+              const renderedY = academyView.y + node.position.y * academyView.scale;
+              const viewportHeight = viewportRect?.height ?? 0;
+              const hoverCardDirection =
+                node.branchId === "general"
+                  ? "below"
+                  : viewportHeight > 0 && renderedY < Math.min(310, viewportHeight * 0.42)
+                  ? "below"
+                  : "above";
               return (
                 <AcademyNodeButton
                   key={node.id}
@@ -901,6 +1000,7 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
                   branch={branch}
                   selected={selectedNodeId === node.id}
                   isCenter={node.id === treeState.config.centerNodeId}
+                  hoverCardDirection={hoverCardDirection}
                   onClick={() => handleNodeClick(node.id)}
                 />
               );
@@ -939,7 +1039,7 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
               onClick={() => setAcademyView(ACADEMY_INITIAL_VIEW)}
               aria-label={t("academy.resetView")}
             >
-              ?
+              R
             </button>
           </div>
         </div>
@@ -960,200 +1060,226 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
             ))}
           </div>
 
-          {/* Total donated banner */}
-          <div className="academyTotalBanner">
-            <span className="academyTotalLabel">{t("academy.totalDonated")}</span>
-            <strong className="academyTotalValue">{formatDucats(treeState.totalDonated)}</strong>
-          </div>
-
-          {/* -- Node detail pane -- */}
-          {detailPane === "node" && (
-            <>
-              {selectedNode && selectedState ? (
-                <>
-                  <div className="academyDetailHeader">
-                    <div className="academyDetailTitleBlock">
-                      <p className="academyDetailEyebrow">
-                        {treeState.config.branches.find((b) => b.id === selectedNode.branchId)
-                          ?.label ?? selectedNode.branchId}
-                      </p>
-                      <h3>{selectedNode.label}</h3>
-                    </div>
-                    <span className={`academyStatusBadge status-${selectedState.status}`}>
-                      {t(`academy.status.${selectedState.status}`)}
-                    </span>
-                  </div>
-
-                  <div className="academyDetailStats">
-                    <div>
-                      <span>{t("academy.level")}</span>
-                      <strong>
-                        {selectedState.currentLevel}/{selectedNode.maxLevel}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>{t("academy.totalDonated")}</span>
-                      <strong>{formatDucats(selectedState.ducatsInvested)}</strong>
-                    </div>
-                    {selectedState.ducatsToNextLevel !== null && (
-                      <div>
-                        <span>{t("academy.toNextLevel")}</span>
-                        <strong>{formatDucats(selectedState.ducatsToNextLevel)}</strong>
+          <div className="academyDetailPanelMain">
+            {/* -- Node detail pane -- */}
+            {detailPane === "node" && (
+              <>
+                {selectedNode && selectedState ? (
+                  <>
+                    <div className="academyDetailHeader">
+                      <div className="academyDetailTitleBlock">
+                        <p className="academyDetailEyebrow">
+                          {treeState.config.branches.find((b) => b.id === selectedNode.branchId)
+                            ?.label ?? selectedNode.branchId}
+                        </p>
+                        <h3>{selectedNode.label}</h3>
                       </div>
-                    )}
-                  </div>
+                      <span className={`academyStatusBadge status-${selectedState.status}`}>
+                        {t(`academy.status.${selectedState.status}`)}
+                      </span>
+                    </div>
 
-                  {selectedState.status !== "maxed" && selectedState.status !== "locked" && (
-                    <LevelProgressBar node={selectedNode} state={selectedState} />
-                  )}
-
-                  <article className="academyDetailSection">
-                    <h4>{t("academy.description")}</h4>
-                    <p>{selectedNode.description}</p>
-                  </article>
-
-                  {/* Level rewards */}
-                  <article className="academyDetailSection">
-                    <h4>{t("academy.rewards.title")}</h4>
-                    <div className="academyRewardList">
-                      {selectedNode.levels.map((lvl) => (
-                        <div
-                          key={lvl.level}
-                          className={`academyRewardRow${
-                            selectedState.currentLevel >= lvl.level ? " isEarned" : ""
-                          }`}
-                        >
-                          <span className="academyRewardLvlBadge">
-                            {t("academy.level")} {lvl.level}
-                          </span>
-                          {lvl.rewards.map((r, i) => (
-                            <span key={i} className="academyRewardChip">
-                              {r.description}
-                            </span>
-                          ))}
-                        </div>
-                      ))}
-                      {selectedNode.completionReward && (
-                        <div
-                          className={`academyRewardRow academyRewardRow--completion${
-                            selectedState.status === "maxed" ? " isEarned" : ""
-                          }`}
-                        >
-                          <span className="academyRewardLvlBadge">
-                            {t("academy.rewards.completion")}
-                          </span>
-                          <span className="academyRewardChip">
-                            {selectedNode.completionReward.description}
-                          </span>
+                    <div className="academyDetailStats">
+                      <div>
+                        <span>{t("academy.level")}</span>
+                        <strong>
+                          {selectedState.currentLevel}/{selectedNode.maxLevel}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>{t("academy.totalDonated")}</span>
+                        <strong>{formatDucats(selectedState.ducatsInvested)}</strong>
+                      </div>
+                      {selectedState.ducatsToNextLevel !== null && (
+                        <div>
+                          <span>{t("academy.toNextLevel")}</span>
+                          <strong>{formatDucats(selectedState.ducatsToNextLevel)}</strong>
                         </div>
                       )}
                     </div>
-                  </article>
 
-                  {/* Prerequisites */}
-                  {selectedNode.prerequisites.length > 0 && (
+                    {selectedState.status !== "maxed" && selectedState.status !== "locked" && (
+                      <LevelProgressBar node={selectedNode} state={selectedState} />
+                    )}
+
                     <article className="academyDetailSection">
-                      <h4>{t("academy.prerequisites")}</h4>
-                      <ul className="academyPrereqList">
-                        {selectedNode.prerequisites.map((prereq) => {
-                          const prereqConfig = treeState.config.nodes.find(
-                            (n) => n.id === prereq.nodeId
-                          );
-                          const prereqState = treeState.nodes[prereq.nodeId];
-                          const met = prereqState && prereqState.currentLevel >= prereq.minLevel;
-                          return (
-                            <li
-                              key={prereq.nodeId}
-                              className={`academyPrereqItem${met ? " isMet" : ""}`}
-                            >
-                              {prereqConfig?.label ?? prereq.nodeId} (
-                              {t("academy.level")} {prereq.minLevel})
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      <h4>{t("academy.description")}</h4>
+                      <p>{selectedNode.description}</p>
                     </article>
-                  )}
 
-                  {/* Action */}
-                  {selectedState.status !== "maxed" && selectedState.status !== "locked" && (
-                    <AcademyDonatePanel
-                      chargesState={treeState.chargesState}
-                      donating={donating}
-                      donateError={donateError}
-                      donateSuccess={donateSuccess}
-                      onDonate={handleDonate}
-                    />
-                  )}
-                  {selectedState.status === "maxed" && (
-                    <div className="academyMaxedBadge">{t("academy.status.maxed")} ?</div>
-                  )}
-                </>
-              ) : (
-                <div className="academyDetailPlaceholder">
-                  <p>{t("academy.selectNode")}</p>
-                </div>
-              )}
-            </>
-          )}
+                    {/* Level rewards */}
+                    <article className="academyDetailSection">
+                      <h4>{t("academy.rewards.title")}</h4>
+                      <div className="academyRewardList">
+                        {selectedNode.levels.map((lvl) => (
+                          <div
+                            key={lvl.level}
+                            className={`academyRewardRow${
+                              selectedState.currentLevel >= lvl.level ? " isEarned" : ""
+                            }`}
+                          >
+                            <span className="academyRewardLvlBadge">
+                              {t("academy.level")} {lvl.level}
+                            </span>
+                            {lvl.rewards.map((r, i) => (
+                              <span key={i} className="academyRewardChip">
+                                {r.description}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                        {selectedNode.completionReward && (
+                          <div
+                            className={`academyRewardRow academyRewardRow--completion${
+                              selectedState.status === "maxed" ? " isEarned" : ""
+                            }`}
+                          >
+                            <span className="academyRewardLvlBadge">
+                              {t("academy.rewards.completion")}
+                            </span>
+                            <span className="academyRewardChip">
+                              {selectedNode.completionReward.description}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </article>
 
-          {/* -- History pane -- */}
-          {detailPane === "history" && (
-            <>
-              {historyLoading ? (
-                <div className="academyDetailPlaceholder">
-                  <p>{t("loading")}</p>
-                </div>
-              ) : donations.length === 0 ? (
-                <div className="academyDetailPlaceholder">
-                  <p>{t("academy.history.empty")}</p>
-                </div>
-              ) : (
-                <div className="academyHistoryList">
-                  {donations.map((d) => (
-                    <div key={d.id} className="academyHistoryRow">
-                      <span className="academyHistoryPlayer">{d.playerName}</span>
-                      <span className="academyHistoryNode">
-                        {d.nodeId.replace(/_/g, " ")}
-                      </span>
-                      <span className="academyHistoryAmount">
-                        +{formatDucats(d.amount)}
-                      </span>
-                      <span className="academyHistoryDate">
-                        {new Date(d.donatedAt).toLocaleDateString()}
-                      </span>
+                    {/* Prerequisites */}
+                    {selectedNode.prerequisites.length > 0 && (
+                      <article className="academyDetailSection">
+                        <h4>{t("academy.prerequisites")}</h4>
+                        <ul className="academyPrereqList">
+                          {selectedNode.prerequisites.map((prereq) => {
+                            const prereqConfig = treeState.config.nodes.find(
+                              (n) => n.id === prereq.nodeId
+                            );
+                            const prereqState = treeState.nodes[prereq.nodeId];
+                            const met = prereqState && prereqState.currentLevel >= prereq.minLevel;
+                            return (
+                              <li
+                                key={prereq.nodeId}
+                                className={`academyPrereqItem${met ? " isMet" : ""}`}
+                              >
+                                {prereqConfig?.label ?? prereq.nodeId} (
+                                {t("academy.level")} {prereq.minLevel})
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </article>
+                    )}
+
+                    {/* Action */}
+                    {selectedState.status !== "maxed" && selectedState.status !== "locked" && (
+                      <AcademyDonatePanel
+                        chargesState={treeState.chargesState}
+                        donating={donating}
+                        donateError={donateError}
+                        donateSuccess={donateSuccess}
+                        onDonate={handleDonate}
+                      />
+                    )}
+                    {selectedState.status === "maxed" && (
+                      <div className="academyMaxedBadge">{t("academy.status.maxed")}</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="academyDetailPlaceholder">
+                    <p>{t("academy.selectNode")}</p>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* -- History pane -- */}
+            {detailPane === "history" && (
+              <>
+                {historyLoading ? (
+                  <div className="academyDetailPlaceholder">
+                    <p>{t("loading")}</p>
+                  </div>
+                ) : donations.length === 0 ? (
+                  <div className="academyDetailPlaceholder">
+                    <p>{t("academy.history.empty")}</p>
+                  </div>
+                ) : (
+                  <div className="academyHistoryList">
+                    {donations.map((d) => (
+                      <div key={d.id} className="academyHistoryRow">
+                        <span className="academyHistoryPlayer">{d.playerName}</span>
+                        <span className="academyHistoryNode">
+                          {d.nodeId.replace(/_/g, " ")}
+                        </span>
+                        <span className="academyHistoryAmount">
+                          +{formatDucats(d.amount)}
+                        </span>
+                        <span className="academyHistoryDate">
+                          {new Date(d.donatedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* -- Contributions pane -- */}
+            {detailPane === "contributions" && (
+              <>
+                {historyLoading ? (
+                  <div className="academyDetailPlaceholder">
+                    <p>{t("loading")}</p>
+                  </div>
+                ) : contributions.length === 0 ? (
+                  <div className="academyDetailPlaceholder">
+                    <p>{t("academy.contributions.empty")}</p>
+                  </div>
+                ) : (
+                  <div className="academyContribList">
+                    {contributions.map((c, i) => (
+                      <div key={c.playerId} className="academyContribRow">
+                        <span className="academyContribRank">#{i + 1}</span>
+                        <span className="academyContribName">{c.playerName}</span>
+                        <span className="academyContribTotal">
+                          {formatDucats(c.totalDonated)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {detailPane !== "node" && (
+            <div className="academyDetailFooter">
+              <div className="academyTotalBanner">
+                <span className="academyTotalLabel">{t("academy.totalDonated")}</span>
+                <strong className="academyTotalValue">{formatDucats(treeState.totalDonated)}</strong>
+              </div>
+
+              <details className="academyEffectsToggle">
+                <summary className="academyEffectsSummary">
+                  <span>{t("academy.activeEffects.title")}</span>
+                  <span className="academyEffectsSummaryMeta">{treeState.activeEffects.length}</span>
+                </summary>
+
+                <div className="academyEffectsBody">
+                  {treeState.activeEffects.length === 0 ? (
+                    <p className="academyEffectsEmpty">{t("academy.activeEffects.empty")}</p>
+                  ) : (
+                    <div className="academyRewardList">
+                      {treeState.activeEffects.map((effect, index) => (
+                        <div key={`${effect.type}:${index}`} className="academyRewardRow isEarned">
+                          <span className="academyRewardChip">{effect.description}</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </>
-          )}
-
-          {/* -- Contributions pane -- */}
-          {detailPane === "contributions" && (
-            <>
-              {historyLoading ? (
-                <div className="academyDetailPlaceholder">
-                  <p>{t("loading")}</p>
-                </div>
-              ) : contributions.length === 0 ? (
-                <div className="academyDetailPlaceholder">
-                  <p>{t("academy.contributions.empty")}</p>
-                </div>
-              ) : (
-                <div className="academyContribList">
-                  {contributions.map((c, i) => (
-                    <div key={c.playerId} className="academyContribRow">
-                      <span className="academyContribRank">#{i + 1}</span>
-                      <span className="academyContribName">{c.playerName}</span>
-                      <span className="academyContribTotal">
-                        {formatDucats(c.totalDonated)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+              </details>
+            </div>
           )}
         </aside>
       </div>

@@ -14,7 +14,8 @@ export const playerCheatSettingsSchema = z.object({
   fastContractReplenishEnabled: z.boolean().default(false),
   fastArenaReplenishEnabled: z.boolean().default(false),
   invincibilityEnabled: z.boolean().default(false),
-  fastTrainTimeEnabled: z.boolean().default(false)
+  fastTrainTimeEnabled: z.boolean().default(false),
+  unlimitedAcademyDonationsEnabled: z.boolean().default(false)
 });
 export type PlayerCheatSettings = z.infer<typeof playerCheatSettingsSchema>;
 

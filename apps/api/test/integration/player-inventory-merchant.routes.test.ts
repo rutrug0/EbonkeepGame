@@ -95,7 +95,8 @@ describe("player, inventory, and merchant routes", () => {
       fastContractReplenishEnabled: false,
       fastArenaReplenishEnabled: false,
       invincibilityEnabled: false,
-      fastTrainTimeEnabled: false
+      fastTrainTimeEnabled: false,
+      unlimitedAcademyDonationsEnabled: false
     });
 
     const settingsResponse = await context.app.inject({
@@ -107,7 +108,8 @@ describe("player, inventory, and merchant routes", () => {
         fastContractReplenishEnabled: true,
         fastArenaReplenishEnabled: true,
         invincibilityEnabled: true,
-        fastTrainTimeEnabled: true
+        fastTrainTimeEnabled: true,
+        unlimitedAcademyDonationsEnabled: true
       }
     });
     expect(settingsResponse.statusCode).toBe(200);
@@ -116,7 +118,8 @@ describe("player, inventory, and merchant routes", () => {
       fastContractReplenishEnabled: true,
       fastArenaReplenishEnabled: true,
       invincibilityEnabled: true,
-      fastTrainTimeEnabled: true
+      fastTrainTimeEnabled: true,
+      unlimitedAcademyDonationsEnabled: true
     });
 
     const persistedStateResponse = await context.app.inject({

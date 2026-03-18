@@ -112,7 +112,8 @@ function createPlayerState(): PlayerState {
       fastTravelEnabled: false,
       fastContractReplenishEnabled: false,
       fastArenaReplenishEnabled: false,
-      fastTrainTimeEnabled: false
+      fastTrainTimeEnabled: false,
+      unlimitedAcademyDonationsEnabled: false
     }
   };
 }

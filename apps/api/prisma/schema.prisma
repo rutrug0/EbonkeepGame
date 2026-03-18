@@ -44,6 +44,7 @@ model PlayerProfile {
   fastArenaReplenishEnabled    Boolean @default(false)
   invincibilityEnabled         Boolean @default(false)
   fastTrainTimeEnabled         Boolean @default(false)
+  unlimitedAcademyDonationsEnabled Boolean @default(false)
   level            Int               @default(1)
   experience       Int               @default(0)
   gearScore        Int               @default(0)

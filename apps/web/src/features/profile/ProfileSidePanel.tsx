@@ -17,6 +17,7 @@ export type ProfileSidePanelProps = {
   isLoadingState: boolean;
   playerState: PlayerState | null;
   inventoryItems: InventoryItemLike[];
+  inventorySlotCapacity: number;
   profileSideTab: "inventory" | "consumables" | "stats";
   sidePanelScrollRef: RefObject<HTMLDivElement | null>;
   filteredInventoryItems: InventoryItemLike[];

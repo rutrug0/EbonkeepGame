@@ -91,6 +91,19 @@
     "health": "체력",
     "experience": "경험치"
   },
+  "training": {
+    "derivedContributions": "Derived Contributions",
+    "bonusSources": "Bonus Sources",
+    "equipmentBonus": "Equipment bonus",
+    "guildBonus": "Guild bonus",
+    "totalBonus": "Total bonus",
+    "train": "Train",
+    "training": "Training",
+    "busy": "Busy",
+    "progressAria": "{{stat}} training progress",
+    "alreadyInProgress": "Training already in progress.",
+    "notEnoughDucats": "Not enough ducats for training."
+  },
   "chat": {
     "world": "월드",
     "guild": "길드",
@@ -254,6 +267,8 @@
       "invincibilityHelp": "Contract enemies can no longer reduce your HP during combat simulation.",
       "fastTrainTimeLabel": "Fast train time",
       "fastTrainTimeHelp": "Active stat training finishes after 2 seconds while enabled.",
+      "unlimitedAcademyDonationsLabel": "Unlimited academy donations",
+      "unlimitedAcademyDonationsHelp": "Guild academy donations always refresh to full charges so you can donate repeatedly.",
       "processing": "Processing...",
       "replenishButton": "Replenish HP / stamina",
       "replenished": "Health and stamina fully replenished.",
@@ -782,6 +797,10 @@
     "rewards": {
       "title": "보상",
       "completion": "완료 보상"
+    },
+    "activeEffects": {
+      "title": "길드 전체 보너스",
+      "empty": "아직 활성화된 길드 전체 보너스가 없습니다."
     },
     "charges": {
       "label": "충전",

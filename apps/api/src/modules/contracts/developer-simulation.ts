@@ -430,7 +430,8 @@ function createSyntheticPlayerState(args: {
         fastContractReplenishEnabled: false,
         fastArenaReplenishEnabled: false,
         invincibilityEnabled: false,
-        fastTrainTimeEnabled: false
+        fastTrainTimeEnabled: false,
+        unlimitedAcademyDonationsEnabled: false
       }
   };
 }

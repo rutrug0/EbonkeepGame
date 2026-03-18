@@ -5,6 +5,8 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { GuildInvite, SendGuildInviteRequest } from "@ebonkeep/shared";
+
+import { getEffectiveGuildMaxMembers } from "../academy/effects.js";
 import { canSendInvites } from "./permissions.js";
 
 /**
@@ -64,21 +66,24 @@ export async function getReceivedInvites(
     orderBy: { createdAt: "desc" }
   });
 
-  return invites.map((inv) => ({
-    ...inv,
-    status: inv.status as GuildInvite["status"],
-    createdAt: inv.createdAt.toISOString(),
-    expiresAt: inv.expiresAt.toISOString(),
-    respondedAt: inv.respondedAt?.toISOString() || null,
-    guild: inv.guild
-      ? {
-          ...inv.guild,
-          createdAt: inv.guild.createdAt.toISOString(),
-          updatedAt: inv.guild.updatedAt.toISOString(),
-          memberCount: inv.guild._count.members,
-        }
-      : inv.guild,
-  }));
+  return Promise.all(
+    invites.map(async (inv) => ({
+      ...inv,
+      status: inv.status as GuildInvite["status"],
+      createdAt: inv.createdAt.toISOString(),
+      expiresAt: inv.expiresAt.toISOString(),
+      respondedAt: inv.respondedAt?.toISOString() || null,
+      guild: inv.guild
+        ? {
+            ...inv.guild,
+            maxMembers: await getEffectiveGuildMaxMembers(prisma, inv.guild.id, inv.guild.maxMembers),
+            createdAt: inv.guild.createdAt.toISOString(),
+            updatedAt: inv.guild.updatedAt.toISOString(),
+            memberCount: inv.guild._count.members
+          }
+        : inv.guild
+    }))
+  );
 }
 
 /**
@@ -146,6 +151,7 @@ export async function sendGuildInvite(
   const guild = await prisma.guild.findUnique({
     where: { id: guildId },
     select: {
+      id: true,
       maxMembers: true,
       _count: {
         select: { members: true }
@@ -157,7 +163,8 @@ export async function sendGuildInvite(
     throw new Error("GUILD_NOT_FOUND");
   }
 
-  if (guild._count.members >= guild.maxMembers) {
+  const effectiveMaxMembers = await getEffectiveGuildMaxMembers(prisma, guild.id, guild.maxMembers);
+  if (guild._count.members >= effectiveMaxMembers) {
     throw new Error("GUILD_FULL");
   }
 
@@ -290,7 +297,8 @@ export async function acceptGuildInvite(
 
     // Check guild capacity
     const guild = invite.guild;
-    if (guild._count.members >= guild.maxMembers) {
+    const effectiveMaxMembers = await getEffectiveGuildMaxMembers(tx, guild.id, guild.maxMembers);
+    if (guild._count.members >= effectiveMaxMembers) {
       throw new Error("GUILD_FULL");
     }
 

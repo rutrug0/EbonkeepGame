@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { PrismaClient } from "@prisma/client";
 
 import type {
+  AcademyActiveEffect,
   AcademyDonationChargesState,
   AcademyNodeState,
   AcademyNodeStatus,
@@ -11,6 +12,7 @@ import type {
 } from "@ebonkeep/shared/guild";
 
 import { ACADEMY_TREE_CONFIG } from "./academy-tree.config.js";
+import { resolveAcademyActiveEffectsFromRows } from "./effects.js";
 
 export class AcademyError extends Error {
   constructor(
@@ -131,6 +133,16 @@ function buildChargesStateResponse(
   };
 }
 
+function buildUnlimitedChargesStateResponse(): AcademyDonationChargesState {
+  return {
+    charges: MAX_ACADEMY_DONATION_CHARGES,
+    maxCharges: MAX_ACADEMY_DONATION_CHARGES,
+    nextChargeAt: null,
+    secondsUntilNext: null,
+    ducatsPerCharge: DUCATS_PER_CHARGE
+  };
+}
+
 // ── Public service functions ───────────────────────────────────────────────
 
 /**
@@ -153,15 +165,22 @@ export async function getAcademyTreeState(
   const dbNodes = await prisma.guildAcademyNode.findMany({
     where: { guildId }
   });
+  const playerProfile = await prisma.playerProfile.findUnique({
+    where: { id: playerId },
+    select: { unlimitedAcademyDonationsEnabled: true }
+  });
+  const hasUnlimitedAcademyDonations = playerProfile?.unlimitedAcademyDonationsEnabled ?? false;
 
   // Fetch player's donation charge state
   const chargeRow = await prisma.playerAcademyDonationCharges.findUnique({
     where: { playerId }
   });
-  const chargesState = buildChargesStateResponse(
-    chargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES,
-    chargeRow?.lastRechargeAt ?? new Date()
-  );
+  const chargesState = hasUnlimitedAcademyDonations
+    ? buildUnlimitedChargesStateResponse()
+    : buildChargesStateResponse(
+      chargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES,
+      chargeRow?.lastRechargeAt ?? new Date()
+    );
 
   // Build lookup for status computation
   const guildNodeMap = new Map<string, { currentLevel: number; ducatsInvested: number }>();
@@ -174,6 +193,7 @@ export async function getAcademyTreeState(
 
   const nodes: Record<string, AcademyNodeState> = {};
   let totalDonated = 0;
+  let activeEffects: AcademyActiveEffect[] = [];
 
   for (const nodeConfig of ACADEMY_TREE_CONFIG.nodes) {
     const dbRow = guildNodeMap.get(nodeConfig.id);
@@ -192,11 +212,14 @@ export async function getAcademyTreeState(
     totalDonated += invested;
   }
 
+  activeEffects = resolveAcademyActiveEffectsFromRows(dbNodes);
+
   return {
     guildId,
     config: ACADEMY_TREE_CONFIG,
     nodes,
     totalDonated,
+    activeEffects,
     chargesState
   };
 }
@@ -221,6 +244,11 @@ export async function donateToNode(
   if (!membership) {
     throw new AcademyError("NOT_GUILD_MEMBER", 403);
   }
+  const playerProfile = await prisma.playerProfile.findUnique({
+    where: { id: playerId },
+    select: { unlimitedAcademyDonationsEnabled: true }
+  });
+  const hasUnlimitedAcademyDonations = playerProfile?.unlimitedAcademyDonationsEnabled ?? false;
 
   // Validate node exists in config
   const nodeConfig = ACADEMY_TREE_CONFIG.nodes.find((n) => n.id === nodeId);
@@ -282,7 +310,7 @@ export async function donateToNode(
     const lastRechargeAt = txChargeRow?.lastRechargeAt ?? new Date();
     const { current: currentCharges, lastRechargeAtAdvanced } = resolveChargeState(storedCharges, lastRechargeAt);
 
-    if (chargesSpent > currentCharges) {
+    if (!hasUnlimitedAcademyDonations && chargesSpent > currentCharges) {
       throw new AcademyError("INSUFFICIENT_CHARGES", 400);
     }
 
@@ -316,37 +344,44 @@ export async function donateToNode(
     // This prevents races and correctly persists regenerated charges.
     // For first-time rows: create the row; catch P2002 (concurrent insert) and
     // surface as INSUFFICIENT_CHARGES since the competing request already consumed.
-    if (txChargeRow) {
-      const chargeUpdate = await tx.playerAcademyDonationCharges.updateMany({
-        where: { playerId, lastRechargeAt: txChargeRow.lastRechargeAt, charges: txChargeRow.charges },
-        data: {
-          charges: currentCharges - actualChargesConsumed,
-          lastRechargeAt: lastRechargeAtAdvanced
-        }
-      });
-      if (chargeUpdate.count === 0) {
-        throw new AcademyError("INSUFFICIENT_CHARGES", 400);
-      }
-    } else {
-      try {
-        await tx.playerAcademyDonationCharges.create({
+    if (!hasUnlimitedAcademyDonations) {
+      if (txChargeRow) {
+        const chargeUpdate = await tx.playerAcademyDonationCharges.updateMany({
+          where: { playerId, lastRechargeAt: txChargeRow.lastRechargeAt, charges: txChargeRow.charges },
           data: {
-            playerId,
-            charges: MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed,
+            charges: currentCharges - actualChargesConsumed,
             lastRechargeAt: lastRechargeAtAdvanced
           }
         });
-      } catch (err) {
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-          // A concurrent request created the row and spent charges first.
+        if (chargeUpdate.count === 0) {
           throw new AcademyError("INSUFFICIENT_CHARGES", 400);
         }
-        throw err;
+      } else {
+        try {
+          await tx.playerAcademyDonationCharges.create({
+            data: {
+              playerId,
+              charges: MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed,
+              lastRechargeAt: lastRechargeAtAdvanced
+            }
+          });
+        } catch (err) {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+            // A concurrent request created the row and spent charges first.
+            throw new AcademyError("INSUFFICIENT_CHARGES", 400);
+          }
+          throw err;
+        }
       }
     }
-    const updatedChargeRow = await tx.playerAcademyDonationCharges.findUnique({ where: { playerId } });
-    txStoredCharges = updatedChargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed;
-    txLastRechargeAt = updatedChargeRow?.lastRechargeAt ?? lastRechargeAtAdvanced;
+    if (hasUnlimitedAcademyDonations) {
+      txStoredCharges = MAX_ACADEMY_DONATION_CHARGES;
+      txLastRechargeAt = new Date();
+    } else {
+      const updatedChargeRow = await tx.playerAcademyDonationCharges.findUnique({ where: { playerId } });
+      txStoredCharges = updatedChargeRow?.charges ?? MAX_ACADEMY_DONATION_CHARGES - actualChargesConsumed;
+      txLastRechargeAt = updatedChargeRow?.lastRechargeAt ?? lastRechargeAtAdvanced;
+    }
 
     // 6. Compute new node state
     const newInvested = txInvested + effectiveAmount;
@@ -417,7 +452,9 @@ export async function donateToNode(
     status,
     levelsGained: txLevelsGained,
     remainingDucats,
-    chargesState: buildChargesStateResponse(txStoredCharges, txLastRechargeAt)
+    chargesState: hasUnlimitedAcademyDonations
+      ? buildUnlimitedChargesStateResponse()
+      : buildChargesStateResponse(txStoredCharges, txLastRechargeAt)
   };
 }
 /**

@@ -23,6 +23,8 @@ import {
   getAllowedClassesForArchetype,
   type EquipmentState as InventoryEquipmentState
 } from "@ebonkeep/shared/inventory";
+
+import { getGuildAcademyEffectTotals, mergePlayerStatBonuses } from "../academy/effects.js";
 import { parseStoredInventoryItem } from "../inventory/item-service.js";
 import { syncPlayerProgress } from "./progression-service.js";
 
@@ -236,16 +238,22 @@ export function buildPlayerStatSnapshot(args: {
   level?: number;
   baseStats: StatBlock;
   equipment: InventoryEquipmentState;
+  guildBonuses?: PlayerStatBonuses;
 }): PlayerStatSnapshot {
+  const guildBonuses = args.guildBonuses ?? {};
   const equipmentBonuses = sumEquipmentBonuses(args.equipment);
-  const totalCoreStats = addCoreStatBonuses(args.baseStats, equipmentBonuses);
+  const combinedBonuses = mergePlayerStatBonuses(guildBonuses, equipmentBonuses);
   const level = args.level ?? 1;
+  const guildCoreStats = addCoreStatBonuses(args.baseStats, guildBonuses);
+  const totalCoreStats = addCoreStatBonuses(guildCoreStats, equipmentBonuses);
   const base = resolveStatBlock(args.playerClass, level, args.baseStats, {});
-  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, equipmentBonuses, args.equipment);
+  const baseWithGuild = resolveStatBlock(args.playerClass, level, guildCoreStats, guildBonuses);
+  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, combinedBonuses, args.equipment);
 
   return {
     base,
-    equipment: diffResolvedStats(total, base),
+    equipment: diffResolvedStats(total, baseWithGuild),
+    guild: diffResolvedStats(baseWithGuild, base),
     total
   };
 }
@@ -317,6 +325,11 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     include: {
       stats: true,
       currency: true,
+      guildMembership: {
+        select: {
+          guildId: true
+        }
+      },
       inventoryItems: {
         orderBy: {
           createdAt: "asc"
@@ -385,6 +398,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       itemData: item.itemData
     }))
     .filter((item): item is NonNullable<typeof item> => item !== null);
+  const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: profile.class as PlayerClass,
     level: progress.experience.level,
@@ -396,7 +410,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       initiative: stats.initiative,
       luck: stats.luck
     },
-    equipment
+    equipment,
+    guildBonuses: academyEffects.statBonuses
   });
   const resolvedCurrentHealth = resolveCurrentHealth(profile.hitpointsCurrent, statSnapshot.total.maxHitpoints);
   const cheatSettingsRows = await prisma.$queryRaw<
@@ -406,6 +421,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       fastArenaReplenishEnabled: boolean;
       invincibilityEnabled: boolean;
       fastTrainTimeEnabled: boolean;
+      unlimitedAcademyDonationsEnabled: boolean;
     }>
   >`
     SELECT
@@ -413,7 +429,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       "fastContractReplenishEnabled",
       "fastArenaReplenishEnabled",
       "invincibilityEnabled",
-      "fastTrainTimeEnabled"
+      "fastTrainTimeEnabled",
+      "unlimitedAcademyDonationsEnabled"
     FROM "player_profiles"
     WHERE "id" = ${playerId}
     LIMIT 1
@@ -423,7 +440,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     fastContractReplenishEnabled: false,
     fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
-    fastTrainTimeEnabled: false
+    fastTrainTimeEnabled: false,
+    unlimitedAcademyDonationsEnabled: false
   };
 
   if (profile.hitpointsCurrent !== resolvedCurrentHealth) {
@@ -477,7 +495,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       fastContractReplenishEnabled: cheatSettingsRow.fastContractReplenishEnabled,
       fastArenaReplenishEnabled: cheatSettingsRow.fastArenaReplenishEnabled,
       invincibilityEnabled: cheatSettingsRow.invincibilityEnabled,
-      fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled
+      fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled,
+      unlimitedAcademyDonationsEnabled: cheatSettingsRow.unlimitedAcademyDonationsEnabled
     })
   });
 }
@@ -511,6 +530,7 @@ export async function getPublicPlayerProfile(
     vitality: 10, initiative: 10, luck: 10
   };
   const equipment = buildEquipmentState(profile.equipmentSlots);
+  const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: profile.class as PlayerClass,
     level: profile.level,
@@ -522,7 +542,8 @@ export async function getPublicPlayerProfile(
       initiative: stats.initiative,
       luck: stats.luck
     },
-    equipment
+    equipment,
+    guildBonuses: academyEffects.statBonuses
   });
 
   return publicPlayerProfileSchema.parse({

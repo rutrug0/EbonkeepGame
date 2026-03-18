@@ -27,6 +27,23 @@ describe("arena service helpers", () => {
     expect(selectedIds).toEqual(["near-a", "near-c", "far-a"]);
   });
 
+  it("can return more arena offers when guild academy bonuses increase the option count", () => {
+    const selectedIds = pickArenaOfferCandidates({
+      playerRating: 1000,
+      candidates: [
+        { id: "near-a", rating: 995 },
+        { id: "near-b", rating: 1002 },
+        { id: "near-c", rating: 1012 },
+        { id: "near-d", rating: 1026 },
+        { id: "far-a", rating: 1420 }
+      ],
+      offerCount: 4
+    });
+
+    expect(selectedIds).toHaveLength(4);
+    expect(selectedIds).toEqual(["near-b", "near-a", "near-c", "near-d"]);
+  });
+
   it("grants more rating for beating a stronger opponent than a weaker one", () => {
     const strongerOpponentWin = calculateArenaRatingDelta({
       playerRating: 1000,
@@ -62,6 +79,32 @@ describe("arena service helpers", () => {
 
     expect(normalCooldownEndsAt.getTime() - now.getTime()).toBe(600_000);
     expect(fastCooldownEndsAt.getTime() - now.getTime()).toBe(2_000);
+  });
+
+  it("applies guild academy arena cooldown reductions when no cheat is active", () => {
+    const now = new Date("2026-03-17T09:00:00.000Z");
+
+    const reducedCooldownEndsAt = calculateArenaCooldownEndsAt({
+      now,
+      fastArenaReplenishEnabled: false,
+      academyEffects: {
+        staminaRegenPercent: 0,
+        contractDucatsPercent: 0,
+        contractXpPercent: 0,
+        contractItemDropBps: 0,
+        contractReplenishPercent: 0,
+        contractSlotCountFlat: 0,
+        restCostPercent: 0,
+        maxMembersFlat: 0,
+        arenaOfferCountFlat: 0,
+        arenaCooldownPercent: 15,
+        arenaRatingWinFlat: 0,
+        arenaRatingLossReductionFlat: 0,
+        statBonuses: {}
+      }
+    });
+
+    expect(reducedCooldownEndsAt.getTime() - now.getTime()).toBe(510_000);
   });
 
   it("uses the stored mock class when building combat snapshots", () => {

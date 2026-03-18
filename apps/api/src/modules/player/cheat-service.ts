@@ -88,6 +88,7 @@ export async function updatePlayerCheatSettings(
       "fastArenaReplenishEnabled" = ${settings.fastArenaReplenishEnabled},
       "invincibilityEnabled" = ${settings.invincibilityEnabled},
       "fastTrainTimeEnabled" = ${settings.fastTrainTimeEnabled},
+      "unlimitedAcademyDonationsEnabled" = ${settings.unlimitedAcademyDonationsEnabled},
       "updatedAt" = CURRENT_TIMESTAMP
     WHERE "id" = ${playerId}
   `;

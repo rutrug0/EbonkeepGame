@@ -103,6 +103,63 @@ describe("player state service", () => {
     expect(levelTen.total.extraAttackChance).toBe(141);
   });
 
+  it("tracks guild bonuses separately from equipment bonuses", () => {
+    const equipment = createEmptyEquipmentState();
+    equipment.weapon = {
+      id: "weapon_2",
+      itemCode: "guild_test_blade",
+      itemName: "Guild Test Blade",
+      rarity: "rare",
+      category: "weapon",
+      equipable: true,
+      levelRequirement: 1,
+      allowedSlotIds: ["weapon"],
+      baseLevel: 1,
+      power: 21,
+      archetype: {
+        majorCategory: "weapon",
+        weaponArchetype: "melee",
+        weaponFamily: "sword"
+      },
+      statBonuses: {
+        strength: 4,
+        accuracy: 6
+      },
+      damageRoll: {
+        minRollRange: [8, 10],
+        rolledMin: 9,
+        rolledMax: 11,
+        maxRollRange: [10, 12],
+        averageDamage: 10
+      },
+      description: "Used by guild academy tests."
+    };
+
+    const snapshot = buildPlayerStatSnapshot({
+      playerClass: "juggernaut",
+      level: 1,
+      baseStats: {
+        strength: 10,
+        intelligence: 8,
+        dexterity: 7,
+        vitality: 9,
+        initiative: 6,
+        luck: 5
+      },
+      equipment,
+      guildBonuses: {
+        strength: 2,
+        armor: 3
+      }
+    });
+
+    expect(snapshot.guild.strength).toBe(2);
+    expect(snapshot.equipment.strength).toBe(4);
+    expect(snapshot.guild.armor).toBe(5);
+    expect(snapshot.equipment.armor).toBe(4);
+    expect(snapshot.total.strength).toBe(16);
+  });
+
   it("computes gear score from equipped item power", () => {
     const equipment = createEmptyEquipmentState();
     equipment.weapon = {

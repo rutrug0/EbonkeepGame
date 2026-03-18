@@ -2,7 +2,6 @@ import type { KeyboardEvent } from "react";
 
 import { CombatEncounterPanel } from "../combat";
 import {
-  CONTRACT_SLOT_COUNT,
   getEncounterAnimationRate,
   type ActiveContractEncounterState,
   type ContractEfficiencyTier,
@@ -99,7 +98,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
             <p>
               {i18n.t("contracts.available", {
                 available: props.availableContractCount,
-                total: CONTRACT_SLOT_COUNT,
+                total: props.contractSlots.length,
                 replenishing: props.replenishingContractCount
               })}
             </p>

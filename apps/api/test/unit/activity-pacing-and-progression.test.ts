@@ -7,7 +7,7 @@ import {
   resolveStaminaRegenPercentPerHour
 } from "../../src/config/activity-pacing.js";
 import { getDeveloperContractsStaticCurves } from "../../src/modules/contracts/developer-static-curves.js";
-import { resolveStaminaState } from "../../src/modules/player/progression-service.js";
+import { calculateRestCost, resolveStaminaState } from "../../src/modules/player/progression-service.js";
 
 describe("activity pacing tables", () => {
   it("matches base travel anchors at representative levels", () => {
@@ -104,5 +104,32 @@ describe("stamina regeneration", () => {
     expect(stamina.current).toBe(120);
     expect(stamina.updatedAt.toISOString()).toBe(now.toISOString());
     expect(stamina.nextPointAt).toBeNull();
+  });
+
+  it("accelerates stamina regeneration when academy bonuses are present", () => {
+    const now = new Date("2026-03-13T12:00:00.000Z");
+    const stamina = resolveStaminaState({
+      current: 0,
+      max: 120,
+      updatedAt: new Date("2026-03-13T11:00:00.000Z"),
+      level: 1,
+      bonusRegenPercent: 5,
+      now
+    });
+
+    expect(stamina.current).toBe(21);
+    expect(stamina.updatedAt.toISOString()).toBe(now.toISOString());
+  });
+
+  it("reduces rest costs when academy discounts are active", () => {
+    const discounted = calculateRestCost({
+      currentHealth: 50,
+      maxHealth: 100,
+      currentStamina: 30,
+      maxStamina: 60,
+      discountPercent: 10
+    });
+
+    expect(discounted).toBe(32);
   });
 });

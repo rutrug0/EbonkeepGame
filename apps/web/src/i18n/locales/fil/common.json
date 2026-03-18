@@ -91,6 +91,19 @@
     "health": "Kalusugan",
     "experience": "Karanasan"
   },
+  "training": {
+    "derivedContributions": "Derived Contributions",
+    "bonusSources": "Bonus Sources",
+    "equipmentBonus": "Equipment bonus",
+    "guildBonus": "Guild bonus",
+    "totalBonus": "Total bonus",
+    "train": "Train",
+    "training": "Training",
+    "busy": "Busy",
+    "progressAria": "{{stat}} training progress",
+    "alreadyInProgress": "Training already in progress.",
+    "notEnoughDucats": "Not enough ducats for training."
+  },
   "chat": {
     "world": "World",
     "guild": "Guild",
@@ -254,6 +267,8 @@
       "invincibilityHelp": "Contract enemies can no longer reduce your HP during combat simulation.",
       "fastTrainTimeLabel": "Fast train time",
       "fastTrainTimeHelp": "Active stat training finishes after 2 seconds while enabled.",
+      "unlimitedAcademyDonationsLabel": "Unlimited academy donations",
+      "unlimitedAcademyDonationsHelp": "Guild academy donations always refresh to full charges so you can donate repeatedly.",
       "processing": "Processing...",
       "replenishButton": "Replenish HP / stamina",
       "replenished": "Health and stamina fully replenished.",
@@ -781,6 +796,10 @@
     "rewards": {
       "title": "Mga Gantimpala",
       "completion": "Pagkumpleto"
+    },
+    "activeEffects": {
+      "title": "Mga bonus ng guild",
+      "empty": "Wala pang aktibong bonus para sa buong guild."
     },
     "charges": {
       "label": "Mga Charge",

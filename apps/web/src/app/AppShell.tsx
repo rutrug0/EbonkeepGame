@@ -1786,7 +1786,8 @@ export function AppShell() {
     fastContractReplenishEnabled: false,
     fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
-    fastTrainTimeEnabled: false
+    fastTrainTimeEnabled: false,
+    unlimitedAcademyDonationsEnabled: false
   };
 
   function isCheatActionPending(action: CheatActionKey): boolean {
@@ -4321,6 +4322,7 @@ export function AppShell() {
         currencies={currencies}
         minimumPreviewDucats={TEST_MIN_DUCATS}
         equipmentStatBonuses={equipmentStatBonuses}
+        inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
         inventoryStatFlashes={inventoryStatFlashes}
         activeStatTraining={activeStatTraining}
         nowMs={nowMs}
@@ -4921,6 +4923,23 @@ export function AppShell() {
                   <strong>{i18n.t("settings.cheats.fastTrainTimeLabel")}</strong>
                   <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
                     {i18n.t("settings.cheats.fastTrainTimeHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.unlimitedAcademyDonationsEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) =>
+                    handleCheatSettingToggle("unlimitedAcademyDonationsEnabled", event.currentTarget.checked)
+                  }
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.unlimitedAcademyDonationsLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.unlimitedAcademyDonationsHelp")}
                   </span>
                 </span>
               </label>

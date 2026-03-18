@@ -126,6 +126,10 @@
   },
   "training": {
     "derivedContributions": "Derived Contributions",
+    "bonusSources": "Bonus Sources",
+    "equipmentBonus": "Equipment bonus",
+    "guildBonus": "Guild bonus",
+    "totalBonus": "Total bonus",
     "train": "Train",
     "training": "Training",
     "busy": "Busy",
@@ -406,6 +410,8 @@
       "invincibilityHelp": "Contract enemies can no longer reduce your HP during combat simulation.",
       "fastTrainTimeLabel": "Fast train time",
       "fastTrainTimeHelp": "Active stat training finishes after 2 seconds while enabled.",
+      "unlimitedAcademyDonationsLabel": "Unlimited academy donations",
+      "unlimitedAcademyDonationsHelp": "Guild academy donations always refresh to full charges so you can donate repeatedly.",
       "processing": "Processing...",
       "replenishButton": "Replenish HP / stamina",
       "replenished": "Health and stamina fully replenished.",
@@ -1045,6 +1051,10 @@
     "rewards": {
       "title": "Rewards",
       "completion": "Completion"
+    },
+    "activeEffects": {
+      "title": "Guild-Wide Bonuses",
+      "empty": "No guild-wide bonuses are active yet."
     },
     "charges": {
       "label": "Charges",

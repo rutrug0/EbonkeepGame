@@ -24,6 +24,13 @@ import {
 } from "@ebonkeep/shared/combat";
 import type { PlayerClass } from "@ebonkeep/shared/core";
 
+import {
+  applyAcademyContractReplenishDuration,
+  applyAcademyBonusesToContractRewardPreview,
+  getEffectiveContractSlotCount,
+  getPlayerAcademyEffectTotals,
+  type AcademyEffectTotals
+} from "../academy/effects.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { grantPlayerExperience, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
@@ -103,7 +110,8 @@ function parseStoredRewards(value: Prisma.JsonValue): StoredRewardSpec {
   };
 }
 
-function mapBoardSlot(slot: BoardSlotRecord): ContractBoardSlotView {
+function mapBoardSlot(slot: BoardSlotRecord, academyEffects?: AcademyEffectTotals): ContractBoardSlotView {
+  const rewardsPreview = parseRewardPreview(slot.rewardsPreview);
   return contractBoardSlotViewSchema.parse({
     slotId: slot.slotIndex,
     state: slot.state as ContractBoardSlotState,
@@ -117,7 +125,10 @@ function mapBoardSlot(slot: BoardSlotRecord): ContractBoardSlotView {
     expiresAt: slot.expiresAt?.toISOString() ?? null,
     replenishAt: slot.replenishAt?.toISOString() ?? null,
     startedRunId: slot.activeRunId,
-    rewardsPreview: parseRewardPreview(slot.rewardsPreview)
+    rewardsPreview:
+      rewardsPreview && academyEffects
+        ? applyAcademyBonusesToContractRewardPreview(rewardsPreview, academyEffects)
+        : rewardsPreview
   });
 }
 
@@ -129,13 +140,18 @@ function buildReplenishAt(
   rng: () => number,
   now: Date,
   playerLevel: number,
-  fastContractReplenishEnabled: boolean
+  fastContractReplenishEnabled: boolean,
+  academyEffects?: AcademyEffectTotals
 ): Date {
   if (fastContractReplenishEnabled) {
     return new Date(now.getTime() + FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS);
   }
   const pacing = getContractReplenishPacingRow(playerLevel);
-  return new Date(now.getTime() + randomInt(rng, pacing.replenishMinSeconds * 1000, pacing.replenishMaxSeconds * 1000));
+  const baseDurationMs = randomInt(rng, pacing.replenishMinSeconds * 1000, pacing.replenishMaxSeconds * 1000);
+  const effectiveDurationMs = academyEffects
+    ? applyAcademyContractReplenishDuration(baseDurationMs, academyEffects)
+    : baseDurationMs;
+  return new Date(now.getTime() + effectiveDurationMs);
 }
 
 function isStaleAvailableSlot(slot: BoardSlotRecord): boolean {
@@ -212,13 +228,13 @@ async function getPlayerContractContext(
   };
 }
 
-async function ensureBoardSlots(prisma: PrismaClient, playerId: string): Promise<void> {
+async function ensureBoardSlots(prisma: PrismaClient, playerId: string, slotCount: number): Promise<void> {
   const slots = await prisma.contractBoardSlot.findMany({
     where: { playerId },
     select: { slotIndex: true }
   });
   const existing = new Set(slots.map((slot) => slot.slotIndex));
-  const missing = Array.from({ length: CONTRACT_SLOT_COUNT }, (_, index) => index + 1).filter((slotId) => !existing.has(slotId));
+  const missing = Array.from({ length: slotCount }, (_, index) => index + 1).filter((slotId) => !existing.has(slotId));
   if (missing.length === 0) return;
 
   const now = new Date(0);
@@ -281,10 +297,15 @@ async function syncRunState(prisma: PrismaClient, runId: string, now: Date, grac
 }
 
 async function refreshBoardState(prisma: PrismaClient, playerId: string, now = new Date()): Promise<void> {
-  await ensureBoardSlots(prisma, playerId);
+  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
+  const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
+  await ensureBoardSlots(prisma, playerId, slotCount);
   const context = await getPlayerContractContext(prisma, playerId);
   const slots = await prisma.contractBoardSlot.findMany({
-    where: { playerId },
+    where: {
+      playerId,
+      slotIndex: { lte: slotCount }
+    },
     orderBy: { slotIndex: "asc" }
   });
 
@@ -320,7 +341,7 @@ async function refreshBoardState(prisma: PrismaClient, playerId: string, now = n
           enemyCount: null,
           expiresAt: null,
           rewardsPreview: Prisma.JsonNull,
-          replenishAt: buildReplenishAt(rng, now, context.playerLevel, context.fastContractReplenishEnabled)
+          replenishAt: buildReplenishAt(rng, now, context.playerLevel, context.fastContractReplenishEnabled, academyEffects)
         }
       });
       continue;
@@ -397,10 +418,22 @@ function resolvePlayerCurrentHpFromEvents(run: {
   return Math.max(0, Math.min(player.maxHp, currentHp));
 }
 
-function coerceEncounterForRun(slot: BoardSlotRecord, playerLevel: number): EncounterDefinition {
+function coerceEncounterForRun(
+  slot: BoardSlotRecord,
+  playerLevel: number,
+  academyEffects?: AcademyEffectTotals
+): EncounterDefinition {
   const rng = createSeededRng(`${slot.familyId}:${slot.slotIndex}:${slot.encounterLevel}`);
   const storedRewardPreview = parseRewardPreview(slot.rewardsPreview);
   const levelBand = normalizeContractLevelBand(slot.difficulty) ?? "on_level";
+  const rewardPreviewBase =
+    storedRewardPreview ??
+    buildRewardPreview(
+      slot.encounterLevel ?? playerLevel,
+      playerLevel,
+      "standard_cost"
+    );
+
   return {
     contractName: slot.contractName ?? "Contract",
     levelBand,
@@ -414,26 +447,28 @@ function coerceEncounterForRun(slot: BoardSlotRecord, playerLevel: number): Enco
       .slice(0, slot.enemyCount ?? undefined),
     encounterLevel: slot.encounterLevel ?? playerLevel,
     rewardPreview:
-      storedRewardPreview ??
-      buildRewardPreview(
-        slot.encounterLevel ?? playerLevel,
-        playerLevel,
-        "standard_cost"
-      )
+      academyEffects
+        ? applyAcademyBonusesToContractRewardPreview(rewardPreviewBase, academyEffects)
+        : rewardPreviewBase
   };
 }
 
 export async function getContractBoard(prisma: PrismaClient, playerId: string): Promise<ContractBoardResponse> {
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
+  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
+  const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
   const slots = await prisma.contractBoardSlot.findMany({
-    where: { playerId },
+    where: {
+      playerId,
+      slotIndex: { lte: slotCount }
+    },
     orderBy: { slotIndex: "asc" }
   });
 
   return contractBoardResponseSchema.parse({
     serverTime: now.toISOString(),
-    slots: slots.map((slot) => mapBoardSlot(slot as BoardSlotRecord))
+    slots: slots.map((slot) => mapBoardSlot(slot as BoardSlotRecord, academyEffects))
   });
 }
 
@@ -476,6 +511,12 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
       throw new Error("Another contract run is already active.");
     }
 
+    const academyEffects = await getPlayerAcademyEffectTotals(tx, playerId);
+    const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
+    if (slotId < 1 || slotId > slotCount) {
+      throw new Error("Contract slot is not available.");
+    }
+
     const slot = await tx.contractBoardSlot.findUnique({
       where: {
         playerId_slotIndex: {
@@ -491,7 +532,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
       throw new Error("Contract offer has expired.");
     }
 
-    const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level);
+    const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level, academyEffects);
     runId = `ctr_${randomUUID().replaceAll("-", "")}`;
     const simulationPlayerState = playerState.cheatSettings.invincibilityEnabled
       ? {
@@ -563,6 +604,12 @@ export async function abandonContractOffer(prisma: PrismaClient, playerId: strin
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
   const context = await getPlayerContractContext(prisma, playerId);
+  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
+  const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
+
+  if (slotId < 1 || slotId > slotCount) {
+    throw new Error("Contract slot is not available.");
+  }
 
   const slot = await prisma.contractBoardSlot.findUnique({
     where: {
@@ -590,7 +637,7 @@ export async function abandonContractOffer(prisma: PrismaClient, playerId: strin
       enemyCount: null,
       expiresAt: null,
       rewardsPreview: Prisma.JsonNull,
-      replenishAt: buildReplenishAt(rng, now, context.playerLevel, context.fastContractReplenishEnabled)
+      replenishAt: buildReplenishAt(rng, now, context.playerLevel, context.fastContractReplenishEnabled, academyEffects)
     }
   });
 
@@ -722,7 +769,8 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
           slotRng,
           now,
           playerState.level,
-          playerState.cheatSettings.fastContractReplenishEnabled
+          playerState.cheatSettings.fastContractReplenishEnabled,
+          await getPlayerAcademyEffectTotals(tx, playerId)
         )
       }
     });

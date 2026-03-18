@@ -12,6 +12,7 @@ import type {
   GuildSearchQuery
 } from "@ebonkeep/shared";
 import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared";
+import { getEffectiveGuildMaxMembers } from "../academy/effects.js";
 import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrestId } from "./validation.js";
 import {
   canEditGuildSettings
@@ -134,7 +135,7 @@ export async function createGuild(
   });
 
   return {
-    guild: serializeGuild(result.guild),
+    guild: await serializeGuildWithAcademy(prisma, result.guild),
     membership: serializeMember(result.membership)
   };
 }
@@ -174,7 +175,7 @@ export async function getGuild(
 
   return {
     guild: {
-      ...serializeGuild(guild),
+      ...(await serializeGuildWithAcademy(prisma, guild)),
       memberCount: guild.members.length
     },
     memberCount: guild.members.length,
@@ -274,7 +275,7 @@ export async function updateGuild(
     return updated;
   });
 
-  return serializeGuild(guild);
+  return serializeGuildWithAcademy(prisma, guild);
 }
 
 /**
@@ -327,10 +328,12 @@ export async function searchGuilds(
   }
 
   return {
-    guilds: filtered.map((g) => ({
-      ...serializeGuild(g),
-      memberCount: g._count.members
-    })),
+    guilds: await Promise.all(
+      filtered.map(async (g) => ({
+        ...(await serializeGuildWithAcademy(prisma, g)),
+        memberCount: g._count.members
+      }))
+    ),
     total
   };
 }
@@ -388,6 +391,14 @@ function serializeGuild(guild: any): Guild {
     ...guild,
     createdAt: guild.createdAt.toISOString(),
     updatedAt: guild.updatedAt.toISOString()
+  };
+}
+
+async function serializeGuildWithAcademy(prisma: PrismaClient, guild: any): Promise<Guild> {
+  const serialized = serializeGuild(guild);
+  return {
+    ...serialized,
+    maxMembers: await getEffectiveGuildMaxMembers(prisma, guild.id, guild.maxMembers)
   };
 }
 

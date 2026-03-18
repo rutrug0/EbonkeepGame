@@ -37,6 +37,7 @@ export type InventoryManagementPanelProps = {
   currencies: CurrencyState | null;
   minimumPreviewDucats: number;
   equipmentStatBonuses: Record<TrainableStatKey, number>;
+  inventorySlotCapacity: number;
   inventoryStatFlashes: Partial<Record<InventoryStatFlashKey, InventoryStatFlash>>;
   activeStatTraining: ActiveStatTraining;
   nowMs: number;
@@ -223,6 +224,8 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
               {MAIN_STAT_COLUMNS.map((statColumn, statIndex) => {
                 const baseValue = effectiveBaseStats[statColumn.key];
                 const itemBonus = props.equipmentStatBonuses[statColumn.key];
+                const guildBonus = playerState.statSnapshot.guild[statColumn.key];
+                const totalBonus = itemBonus + guildBonus;
                 const statFlash = props.inventoryStatFlashes[statColumn.key];
                 const statContributionLines = props.getStatContributionLines(
                   statColumn.key,
@@ -266,6 +269,21 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                       role="tooltip"
                     >
                       <p className="statTrainingTooltipTitle">{i18n.t("training.derivedContributions")}</p>
+                      <>
+                        <p className="statTrainingTooltipSectionTitle">{i18n.t("training.bonusSources")}</p>
+                        <p className="statTrainingTooltipLine">
+                          <span>{i18n.t("training.equipmentBonus")}</span>
+                          <strong>{itemBonus >= 0 ? `+${itemBonus}` : itemBonus}</strong>
+                        </p>
+                        <p className="statTrainingTooltipLine">
+                          <span>{i18n.t("training.guildBonus")}</span>
+                          <strong>{guildBonus >= 0 ? `+${guildBonus}` : guildBonus}</strong>
+                        </p>
+                        <p className="statTrainingTooltipLine">
+                          <span>{i18n.t("training.totalBonus")}</span>
+                          <strong>{totalBonus >= 0 ? `+${totalBonus}` : totalBonus}</strong>
+                        </p>
+                      </>
                       {statContributionLines.map((line) => (
                         <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
                           <span>
@@ -281,7 +299,9 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                       }`}
                     >
                       {baseValue}
-                      <span className="itemBonusValue">(+{itemBonus})</span>
+                      {totalBonus !== 0 ? (
+                        <span className="itemBonusValue">({totalBonus >= 0 ? `+${totalBonus}` : totalBonus})</span>
+                      ) : null}
                     </span>
                     <div className="statTrainingAction">
                       <button

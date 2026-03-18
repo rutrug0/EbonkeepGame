@@ -12,6 +12,7 @@ export const ARENA_MIN_RATING = 100;
 export const ARENA_ELO_K_FACTOR = 32;
 export const ARENA_FIND_COOLDOWN_SECONDS = 10 * 60;
 export const ARENA_OFFER_COUNT = 3;
+export const MAX_ARENA_OFFER_COUNT = 5;
 export const ARENA_LADDER_LIMIT = 10;
 export const ARENA_RECENT_MATCH_LIMIT = 8;
 
@@ -102,7 +103,7 @@ export type ArenaEncounter = z.infer<typeof arenaEncounterSchema>;
 export const arenaStateResponseSchema = z.object({
   serverTime: z.string(),
   profile: arenaProfileSchema,
-  offers: z.array(arenaOfferSchema).max(ARENA_OFFER_COUNT),
+  offers: z.array(arenaOfferSchema).max(MAX_ARENA_OFFER_COUNT),
   ladder: arenaLadderSchema,
   recentMatches: z.array(arenaMatchHistoryEntrySchema).max(ARENA_RECENT_MATCH_LIMIT),
   canFindOpponents: z.boolean()

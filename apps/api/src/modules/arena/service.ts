@@ -29,6 +29,12 @@ import {
 import { combatActorSnapshotSchema, type CombatActorSnapshot, type CombatEvent } from "@ebonkeep/shared/combat";
 import { allPlayerClasses, classToStatTree, type PlayerClass } from "@ebonkeep/shared/core";
 
+import {
+  applyAcademyArenaCooldownDuration,
+  getEffectiveArenaOfferCount,
+  getPlayerAcademyEffectTotals,
+  type AcademyEffectTotals
+} from "../academy/effects.js";
 import { buildPlayerActorSnapshot, simulateCombat } from "../contracts/simulator.js";
 import { CHEAT_FAST_ARENA_REPLENISH_DURATION_MS } from "../player/cheat-service.js";
 import { loadPlayerState } from "../player/state-service.js";
@@ -289,6 +295,7 @@ async function loadPlayerArenaContext(prisma: ArenaDbClient, playerId: string) {
   if (!playerState) {
     throw new Error("Player state unavailable.");
   }
+  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
 
   const profile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
@@ -337,7 +344,8 @@ async function loadPlayerArenaContext(prisma: ArenaDbClient, playerId: string) {
   return {
     playerState,
     playerName,
-    entry
+    entry,
+    academyEffects
   };
 }
 
@@ -484,8 +492,10 @@ export function pickArenaOfferCandidates(args: {
   playerRating: number;
   candidates: Array<{ id: string; rating: number }>;
   excludedEntryIds?: ReadonlySet<string>;
+  offerCount?: number;
 }): string[] {
   const excludedEntryIds = args.excludedEntryIds ?? new Set<string>();
+  const offerCount = Math.max(1, args.offerCount ?? ARENA_OFFER_COUNT);
   const filtered = args.candidates
     .filter((candidate) => !excludedEntryIds.has(candidate.id))
     .sort((left, right) => {
@@ -499,12 +509,12 @@ export function pickArenaOfferCandidates(args: {
 
   for (let band = DEFAULT_RATING_BAND; band <= MAX_RATING_BAND; band += DEFAULT_RATING_BAND) {
     const inBand = filtered.filter((candidate) => Math.abs(candidate.rating - args.playerRating) <= band);
-    if (inBand.length >= ARENA_OFFER_COUNT) {
-      return inBand.slice(0, ARENA_OFFER_COUNT).map((candidate) => candidate.id);
+    if (inBand.length >= offerCount) {
+      return inBand.slice(0, offerCount).map((candidate) => candidate.id);
     }
   }
 
-  return filtered.slice(0, ARENA_OFFER_COUNT).map((candidate) => candidate.id);
+  return filtered.slice(0, offerCount).map((candidate) => candidate.id);
 }
 
 export function calculateArenaRatingDelta(args: {
@@ -520,8 +530,15 @@ export function calculateArenaRatingDelta(args: {
 export function calculateArenaCooldownEndsAt(args: {
   now: Date;
   fastArenaReplenishEnabled: boolean;
+  academyEffects?: AcademyEffectTotals;
 }): Date {
-  return new Date(args.now.getTime() + getArenaFindCooldownMs(args.fastArenaReplenishEnabled));
+  const baseDurationMs = getArenaFindCooldownMs(args.fastArenaReplenishEnabled);
+  const effectiveDurationMs = args.fastArenaReplenishEnabled
+    ? baseDurationMs
+    : args.academyEffects
+      ? applyAcademyArenaCooldownDuration(baseDurationMs, args.academyEffects)
+      : baseDurationMs;
+  return new Date(args.now.getTime() + effectiveDurationMs);
 }
 
 async function buildArenaReadModel(prisma: ArenaDbClient, playerId: string, playerEntryId: string) {
@@ -583,8 +600,9 @@ export async function getArenaState(prisma: PrismaClient, playerId: string): Pro
 
 export async function findArenaOpponents(prisma: PrismaClient, playerId: string): Promise<ArenaStateResponse> {
   await prisma.$transaction(async (tx) => {
-    const { playerState, entry } = await loadPlayerArenaContext(tx as ArenaDbClient, playerId);
+    const { playerState, entry, academyEffects } = await loadPlayerArenaContext(tx as ArenaDbClient, playerId);
     const now = new Date();
+    const offerCount = getEffectiveArenaOfferCount(ARENA_OFFER_COUNT, academyEffects);
     const normalizedEntry = await clearExpiredArenaOffersIfNeeded(tx as ArenaDbClient, entry, now);
     const activeEntry = await syncArenaCooldownState({
       prisma: tx as ArenaDbClient,
@@ -619,10 +637,11 @@ export async function findArenaOpponents(prisma: PrismaClient, playerId: string)
     let chosenIds = pickArenaOfferCandidates({
       playerRating: activeEntry.rating,
       candidates: candidateEntries,
-      excludedEntryIds: recentOpponentIds
+      excludedEntryIds: recentOpponentIds,
+      offerCount
     });
 
-    while (chosenIds.length < ARENA_OFFER_COUNT) {
+    while (chosenIds.length < offerCount) {
       const targetRating = clampInt(
         activeEntry.rating + randomInt(-DEFAULT_RATING_BAND, DEFAULT_RATING_BAND),
         ARENA_MIN_RATING,
@@ -640,13 +659,15 @@ export async function findArenaOpponents(prisma: PrismaClient, playerId: string)
       chosenIds = pickArenaOfferCandidates({
         playerRating: activeEntry.rating,
         candidates: candidateEntries,
-        excludedEntryIds: recentOpponentIds
+        excludedEntryIds: recentOpponentIds,
+        offerCount
       });
     }
 
     const cooldownEndsAt = calculateArenaCooldownEndsAt({
       now,
-      fastArenaReplenishEnabled: playerState.cheatSettings.fastArenaReplenishEnabled
+      fastArenaReplenishEnabled: playerState.cheatSettings.fastArenaReplenishEnabled,
+      academyEffects
     });
     const selectedEntries = candidateEntries.filter((candidate) => chosenIds.includes(candidate.id));
     await tx.arenaEntry.update({
@@ -685,7 +706,7 @@ function buildArenaEncounter(args: {
 
 export async function fightArenaOffer(prisma: PrismaClient, playerId: string, offerId: string): Promise<ArenaMatchResult> {
   return prisma.$transaction(async (tx) => {
-    const { playerState, playerName, entry } = await loadPlayerArenaContext(tx as ArenaDbClient, playerId);
+    const { playerState, playerName, entry, academyEffects } = await loadPlayerArenaContext(tx as ArenaDbClient, playerId);
     const now = new Date();
     const normalizedEntry = await clearExpiredArenaOffersIfNeeded(tx as ArenaDbClient, entry, now);
     const activeEntry = await syncArenaCooldownState({
@@ -728,11 +749,14 @@ export async function fightArenaOffer(prisma: PrismaClient, playerId: string, of
     });
     const combatEnded = events[events.length - 1] as Extract<CombatEvent, { type: "CombatEnded" }>;
     const didWin = combatEnded.winnerSide === "player";
-    const ratingDelta = calculateArenaRatingDelta({
+    const baseRatingDelta = calculateArenaRatingDelta({
       playerRating: activeEntry.rating,
       opponentRating: opponentEntry.rating,
       didWin
     });
+    const ratingDelta = didWin
+      ? Math.max(0, baseRatingDelta + academyEffects.arenaRatingWinFlat)
+      : Math.min(0, baseRatingDelta + academyEffects.arenaRatingLossReductionFlat);
     const updatedPlayerRating = Math.max(ARENA_MIN_RATING, activeEntry.rating + ratingDelta);
     const updatedOpponentRating = Math.max(ARENA_MIN_RATING, opponentEntry.rating - ratingDelta);
 

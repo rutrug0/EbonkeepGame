@@ -1,382 +1,550 @@
-/**
- * Guild Academy tech-tree configuration.
- *
- * HOW TO ADD NODES / BRANCHES:
- *   1. Add a new entry to `branches` if you need a new branch.
- *   2. Add node entries to `nodes` with the correct `branchId` and `prerequisites`.
- *   3. All positions use a 1000×1000 coordinate space with centre at (500, 500).
- *   4. `ducatCost` per level = additional ducats needed to unlock THAT specific level.
- *      The service computes cumulative costs automatically.
- *   5. Deploy / restart the API — no DB changes needed for tree structure.
- *
- * DESIGN PRINCIPLES:
- *   • Config-driven: no business logic in this file.
- *   • Reward values are informational; application of effects is done in the game services
- *     that read this config (Phase 2).
- *   • `hiddenUntilUnlocked: true` hides the node on the UI until all prerequisites are met.
- */
-
 import type { AcademyTreeConfig } from "@ebonkeep/shared/guild";
 
 export const ACADEMY_TREE_CONFIG: AcademyTreeConfig = {
-  version: 1,
+  version: 5,
   centerNodeId: "academy_core",
-
-  // ─── Branches ──────────────────────────────────────────────────────────────
   branches: [
     {
       id: "core",
       label: "Academy Core",
-      description: "The foundation of all guild research.",
+      description: "The central charter that lets a guild formalize research and doctrine.",
       iconKey: "branch_core",
-      color: "#D4AF37"
+      color: "#c59a4d"
     },
     {
-      id: "combat",
-      label: "Combat Mastery",
-      description: "Strengthen your guild's warriors through martial training.",
-      iconKey: "branch_combat",
-      color: "#C0392B",
+      id: "general",
+      label: "Guild Commons",
+      description: "Broad guild utility focused on recovery, upkeep, and dependable day-to-day support.",
+      iconKey: "branch_general",
+      color: "#5d9988",
       completionReward: {
-        type: "guild_combat_power_pct",
-        value: 10,
-        description: "+10% Combat Power (Combat branch completion)"
+        type: "contract_xp_percent",
+        value: 2,
+        description: "+2% contract XP for fully mastering Guild Commons"
       }
     },
     {
-      id: "arcane",
-      label: "Arcane Arts",
-      description: "Master the mystical forces for arcane supremacy.",
-      iconKey: "branch_arcane",
-      color: "#8E44AD",
+      id: "expedition",
+      label: "Expedition Office",
+      description: "Scouting, chartering, and dispatch discipline that keeps the contract board richer and busier.",
+      iconKey: "branch_expedition",
+      color: "#809a46",
       completionReward: {
-        type: "guild_arcane_resistance_pct",
-        value: 10,
-        description: "+10% Arcane Resistance (Arcane branch completion)"
+        type: "contract_item_drop_bps",
+        value: 40,
+        description: "+0.40% contract item drop chance for fully mastering Expedition Office"
       }
     },
     {
-      id: "guild",
-      label: "Guild Organization",
-      description: "Improve your guild's structure, capacity, and leadership.",
-      iconKey: "branch_guild",
-      color: "#E67E22",
+      id: "strength",
+      label: "Strength Doctrine",
+      description: "Training for frontline bruisers, shieldbearers, and heavy skirmishers.",
+      iconKey: "branch_strength",
+      color: "#a64f3a",
       completionReward: {
-        type: "guild_max_members",
-        value: 10,
-        description: "+10 Max Members (Guild branch completion)"
+        type: "armor_flat",
+        value: 2,
+        description: "+2 armor for all guild members when the Strength branch is complete"
       }
     },
     {
-      id: "commerce",
-      label: "Commerce",
-      description: "Develop trade networks that enrich every guild member.",
-      iconKey: "branch_commerce",
-      color: "#27AE60",
+      id: "intelligence",
+      label: "Intelligence Doctrine",
+      description: "Scholarly wards, arcane discipline, and defensive casting fundamentals.",
+      iconKey: "branch_intelligence",
+      color: "#497cb6",
       completionReward: {
-        type: "guild_ducat_find_pct",
-        value: 10,
-        description: "+10% Ducat Find (Commerce branch completion)"
+        type: "spell_shield_flat",
+        value: 2,
+        description: "+2 spell shield for all guild members when the Intelligence branch is complete"
+      }
+    },
+    {
+      id: "dexterity",
+      label: "Dexterity Doctrine",
+      description: "Scouting, precision, and evasive movement for agile combatants.",
+      iconKey: "branch_dexterity",
+      color: "#3b8f6c",
+      completionReward: {
+        type: "accuracy_flat",
+        value: 2,
+        description: "+2 accuracy for all guild members when the Dexterity branch is complete"
+      }
+    },
+    {
+      id: "warfare",
+      label: "War Games",
+      description: "Duel culture, mock brackets, and coaching that improve the guild's arena routines.",
+      iconKey: "branch_warfare",
+      color: "#b26f3f",
+      completionReward: {
+        type: "arena_cooldown_percent",
+        value: 3,
+        description: "-3% arena refresh cooldown for fully mastering War Games"
       }
     }
   ],
-
-  // ─── Nodes ─────────────────────────────────────────────────────────────────
   nodes: [
-    // ═══════════════════════════════════════════════════════════════════════
-    // CORE
-    // ═══════════════════════════════════════════════════════════════════════
     {
       id: "academy_core",
       branchId: "core",
-      label: "Academy Core",
-      description:
-        "Establish the Academy as the centre of guild knowledge. Unlocks all research branches.",
+      label: "Founding Charter",
+      description: "Establish the guild academy and unlock every major doctrine branch.",
       iconKey: "node_academy_core",
-      position: { x: 500, y: 500 },
+      position: { x: 700, y: 700 },
       prerequisites: [],
       maxLevel: 1,
       levels: [
         {
           level: 1,
-          ducatCost: 15000,
-          rewards: []
+          ducatCost: 18000,
+          rewards: [
+            {
+              type: "contract_xp_percent",
+              value: 1,
+              description: "+1% contract XP"
+            }
+          ]
         }
       ],
       hiddenUntilUnlocked: false
     },
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // COMBAT BRANCH  →  branches right from centre
-    // ═══════════════════════════════════════════════════════════════════════
     {
-      id: "combat_basics",
-      branchId: "combat",
-      label: "Combat Basics",
-      description: "Fundamental martial training that gives every guild member a combat edge.",
-      iconKey: "node_combat_basics",
-      position: { x: 700, y: 500 },
+      id: "shared_barracks",
+      branchId: "general",
+      label: "Shared Barracks",
+      description: "Better common facilities help everyone recover stamina a little faster between outings.",
+      iconKey: "node_shared_barracks",
+      position: { x: 692, y: 466 },
       prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
-      maxLevel: 5,
+      maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 5000,  rewards: [{ type: "guild_combat_power_pct", value: 1, description: "+1% Combat Power" }] },
-        { level: 2, ducatCost: 8000,  rewards: [{ type: "guild_combat_power_pct", value: 1, description: "+1% Combat Power" }] },
-        { level: 3, ducatCost: 12000, rewards: [{ type: "guild_combat_power_pct", value: 1, description: "+1% Combat Power" }] },
-        { level: 4, ducatCost: 20000, rewards: [{ type: "guild_combat_power_pct", value: 1, description: "+1% Combat Power" }] },
-        { level: 5, ducatCost: 30000, rewards: [{ type: "guild_combat_power_pct", value: 2, description: "+2% Combat Power" }] }
+        { level: 1, ducatCost: 4500, rewards: [{ type: "stamina_regen_percent", value: 1, description: "+1% stamina regeneration" }] },
+        { level: 2, ducatCost: 7000, rewards: [{ type: "stamina_regen_percent", value: 1, description: "+1% stamina regeneration" }] },
+        { level: 3, ducatCost: 10000, rewards: [{ type: "stamina_regen_percent", value: 1, description: "+1% stamina regeneration" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_combat_power_pct", value: 5, description: "+5% Combat Power (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
     {
-      id: "heavy_arms",
-      branchId: "combat",
-      label: "Heavy Arms",
-      description: "Mastery of heavy weapons and armour that grants superior offensive potential.",
-      iconKey: "node_heavy_arms",
-      position: { x: 870, y: 415 },
-      prerequisites: [{ nodeId: "combat_basics", minLevel: 3 }],
+      id: "field_rations",
+      branchId: "general",
+      label: "Field Rations",
+      description: "Cheaper restocking and recovery reduce the cost of patching up after a rough contract.",
+      iconKey: "node_field_rations",
+      position: { x: 492, y: 214 },
+      prerequisites: [{ nodeId: "shared_barracks", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 6500, rewards: [{ type: "rest_cost_percent", value: 1, description: "-1% rest cost" }] },
+        { level: 2, ducatCost: 9500, rewards: [{ type: "rest_cost_percent", value: 1, description: "-1% rest cost" }] },
+        { level: 3, ducatCost: 13000, rewards: [{ type: "rest_cost_percent", value: 2, description: "-2% rest cost" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "contract_ledgers",
+      branchId: "general",
+      label: "Contract Ledgers",
+      description: "Bookkeeping and routing discipline squeeze a little more value from every contract payout.",
+      iconKey: "node_contract_ledgers",
+      position: { x: 906, y: 246 },
+      prerequisites: [{ nodeId: "shared_barracks", minLevel: 3 }],
       maxLevel: 4,
       levels: [
-        { level: 1, ducatCost: 10000, rewards: [{ type: "guild_combat_power_pct", value: 2, description: "+2% Combat Power" }] },
-        { level: 2, ducatCost: 18000, rewards: [{ type: "guild_combat_power_pct", value: 2, description: "+2% Combat Power" }] },
-        { level: 3, ducatCost: 28000, rewards: [{ type: "guild_combat_power_pct", value: 3, description: "+3% Combat Power" }] },
-        { level: 4, ducatCost: 40000, rewards: [{ type: "guild_combat_power_pct", value: 3, description: "+3% Combat Power" }] }
+        { level: 1, ducatCost: 6500, rewards: [{ type: "contract_ducats_percent", value: 1, description: "+1% contract ducats" }] },
+        { level: 2, ducatCost: 9500, rewards: [{ type: "contract_ducats_percent", value: 1, description: "+1% contract ducats" }] },
+        { level: 3, ducatCost: 13000, rewards: [{ type: "contract_ducats_percent", value: 1, description: "+1% contract ducats" }] },
+        { level: 4, ducatCost: 18000, rewards: [{ type: "contract_ducats_percent", value: 2, description: "+2% contract ducats" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_combat_power_pct", value: 8, description: "+8% Combat Power (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
     {
-      id: "swift_strike",
-      branchId: "combat",
-      label: "Swift Strike",
-      description: "Lightweight combat techniques that prioritise speed and precision.",
-      iconKey: "node_swift_strike",
-      position: { x: 870, y: 585 },
-      prerequisites: [{ nodeId: "combat_basics", minLevel: 3 }],
-      maxLevel: 4,
-      levels: [
-        { level: 1, ducatCost: 10000, rewards: [{ type: "member_xp_gain_pct", value: 2, description: "+2% XP Gain" }] },
-        { level: 2, ducatCost: 18000, rewards: [{ type: "member_xp_gain_pct", value: 2, description: "+2% XP Gain" }] },
-        { level: 3, ducatCost: 28000, rewards: [{ type: "member_xp_gain_pct", value: 3, description: "+3% XP Gain" }] },
-        { level: 4, ducatCost: 40000, rewards: [{ type: "member_xp_gain_pct", value: 3, description: "+3% XP Gain" }] }
-      ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "member_xp_gain_pct", value: 5, description: "+5% XP Gain (completion bonus)" }
-    },
-    {
-      id: "warlord_creed",
-      branchId: "combat",
-      label: "Warlord's Creed",
-      description:
-        "The ultimate expression of martial doctrine — reserved for guilds who have mastered both weapons and speed.",
-      iconKey: "node_warlord_creed",
-      position: { x: 990, y: 500 },
+      id: "commonwealth_hall",
+      branchId: "general",
+      label: "Commonwealth Hall",
+      description: "When the commons are fully organized, the whole guild benefits from steadier recovery and stronger reserves.",
+      iconKey: "node_commonwealth_hall",
+      position: { x: 728, y: 58 },
       prerequisites: [
-        { nodeId: "heavy_arms",   minLevel: 4 },
-        { nodeId: "swift_strike", minLevel: 4 }
+        { nodeId: "field_rations", minLevel: 3 },
+        { nodeId: "contract_ledgers", minLevel: 4 }
       ],
+      maxLevel: 1,
+      levels: [
+        {
+          level: 1,
+          ducatCost: 42000,
+          rewards: [
+            { type: "stamina_regen_percent", value: 2, description: "+2% stamina regeneration" },
+            { type: "rest_cost_percent", value: 2, description: "-2% rest cost" },
+            { type: "max_members_flat", value: 1, description: "+1 guild member capacity" }
+          ]
+        }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "dispatch_desk",
+      branchId: "expedition",
+      label: "Dispatch Desk",
+      description: "Dedicated dispatchers keep contracts moving and squeeze a little more experience out of each outing.",
+      iconKey: "node_dispatch_desk",
+      position: { x: 452, y: 542 },
+      prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
       maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 50000, rewards: [{ type: "guild_combat_power_pct", value: 5, description: "+5% Combat Power" }] },
-        { level: 2, ducatCost: 80000, rewards: [{ type: "guild_combat_power_pct", value: 5, description: "+5% Combat Power" }] },
-        { level: 3, ducatCost: 120000, rewards: [{ type: "guild_combat_power_pct", value: 10, description: "+10% Combat Power" }] }
+        { level: 1, ducatCost: 5000, rewards: [{ type: "contract_xp_percent", value: 1, description: "+1% contract XP" }] },
+        { level: 2, ducatCost: 8000, rewards: [{ type: "contract_xp_percent", value: 1, description: "+1% contract XP" }] },
+        { level: 3, ducatCost: 11500, rewards: [{ type: "contract_xp_percent", value: 1, description: "+1% contract XP" }] }
       ],
-      hiddenUntilUnlocked: true,
-      completionReward: { type: "guild_combat_power_pct", value: 15, description: "+15% Combat Power (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // ARCANE BRANCH  →  branches left from centre
-    // ═══════════════════════════════════════════════════════════════════════
     {
-      id: "arcane_basics",
-      branchId: "arcane",
-      label: "Arcane Basics",
-      description: "Introduction to arcane theory that bolsters every mage in the guild.",
-      iconKey: "node_arcane_basics",
-      position: { x: 300, y: 500 },
-      prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
-      maxLevel: 5,
+      id: "trail_markers",
+      branchId: "expedition",
+      label: "Trail Markers",
+      description: "Better routing notes and marker crews shave time off the board's replenishment cycle.",
+      iconKey: "node_trail_markers",
+      position: { x: 120, y: 382 },
+      prerequisites: [{ nodeId: "dispatch_desk", minLevel: 3 }],
+      maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 5000,  rewards: [{ type: "guild_arcane_resistance_pct", value: 1, description: "+1% Arcane Resistance" }] },
-        { level: 2, ducatCost: 8000,  rewards: [{ type: "guild_arcane_resistance_pct", value: 1, description: "+1% Arcane Resistance" }] },
-        { level: 3, ducatCost: 12000, rewards: [{ type: "guild_arcane_resistance_pct", value: 1, description: "+1% Arcane Resistance" }] },
-        { level: 4, ducatCost: 20000, rewards: [{ type: "guild_arcane_resistance_pct", value: 1, description: "+1% Arcane Resistance" }] },
-        { level: 5, ducatCost: 30000, rewards: [{ type: "guild_arcane_resistance_pct", value: 2, description: "+2% Arcane Resistance" }] }
+        { level: 1, ducatCost: 8500, rewards: [{ type: "contract_replenish_percent", value: 3, description: "-3% contract replenishment time" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "contract_replenish_percent", value: 3, description: "-3% contract replenishment time" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "contract_replenish_percent", value: 4, description: "-4% contract replenishment time" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_arcane_resistance_pct", value: 5, description: "+5% Arcane Resistance (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
     {
-      id: "runic_shields",
-      branchId: "arcane",
-      label: "Runic Shields",
-      description: "Ancient runes woven into armour that deflect magical attacks.",
-      iconKey: "node_runic_shields",
-      position: { x: 130, y: 415 },
-      prerequisites: [{ nodeId: "arcane_basics", minLevel: 3 }],
-      maxLevel: 4,
+      id: "bounty_brokers",
+      branchId: "expedition",
+      label: "Bounty Brokers",
+      description: "Trusted brokers help the guild steer toward contracts with slightly richer spoils.",
+      iconKey: "node_bounty_brokers",
+      position: { x: 156, y: 612 },
+      prerequisites: [{ nodeId: "dispatch_desk", minLevel: 3 }],
+      maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 10000, rewards: [{ type: "guild_arcane_resistance_pct", value: 2, description: "+2% Arcane Resistance" }] },
-        { level: 2, ducatCost: 18000, rewards: [{ type: "guild_arcane_resistance_pct", value: 2, description: "+2% Arcane Resistance" }] },
-        { level: 3, ducatCost: 28000, rewards: [{ type: "guild_arcane_resistance_pct", value: 3, description: "+3% Arcane Resistance" }] },
-        { level: 4, ducatCost: 40000, rewards: [{ type: "guild_arcane_resistance_pct", value: 3, description: "+3% Arcane Resistance" }] }
+        { level: 1, ducatCost: 8500, rewards: [{ type: "contract_item_drop_bps", value: 20, description: "+0.20% contract item drop chance" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "contract_item_drop_bps", value: 20, description: "+0.20% contract item drop chance" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "contract_item_drop_bps", value: 30, description: "+0.30% contract item drop chance" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_arcane_resistance_pct", value: 8, description: "+8% Arcane Resistance (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
     {
-      id: "spellweaving",
-      branchId: "arcane",
-      label: "Spellweaving",
-      description: "The art of layering multiple spells to amplify arcane power.",
-      iconKey: "node_spellweaving",
-      position: { x: 130, y: 585 },
-      prerequisites: [{ nodeId: "arcane_basics", minLevel: 3 }],
-      maxLevel: 4,
-      levels: [
-        { level: 1, ducatCost: 10000, rewards: [{ type: "guild_combat_power_pct", value: 2, description: "+2% Combat Power" }] },
-        { level: 2, ducatCost: 18000, rewards: [{ type: "guild_combat_power_pct", value: 2, description: "+2% Combat Power" }] },
-        { level: 3, ducatCost: 28000, rewards: [{ type: "guild_combat_power_pct", value: 3, description: "+3% Combat Power" }] },
-        { level: 4, ducatCost: 40000, rewards: [{ type: "guild_combat_power_pct", value: 3, description: "+3% Combat Power" }] }
-      ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_combat_power_pct", value: 8, description: "+8% Combat Power (completion bonus)" }
-    },
-    {
-      id: "high_sorcery",
-      branchId: "arcane",
-      label: "High Sorcery",
-      description: "The pinnacle of arcane mastery — only attained by guilds who have walked both paths.",
-      iconKey: "node_high_sorcery",
-      position: { x: 10, y: 500 },
+      id: "grand_charters",
+      branchId: "expedition",
+      label: "Grand Charters",
+      description: "Master charter clerks secure a final permanent posting on the board, opening one more serious expedition line for the guild.",
+      iconKey: "node_grand_charters",
+      position: { x: 28, y: 500 },
       prerequisites: [
-        { nodeId: "runic_shields", minLevel: 4 },
-        { nodeId: "spellweaving",  minLevel: 4 }
+        { nodeId: "trail_markers", minLevel: 3 },
+        { nodeId: "bounty_brokers", minLevel: 3 }
       ],
-      maxLevel: 3,
+      maxLevel: 1,
       levels: [
-        { level: 1, ducatCost: 50000,  rewards: [{ type: "guild_arcane_resistance_pct", value: 5, description: "+5% Arcane Resistance" }] },
-        { level: 2, ducatCost: 80000,  rewards: [{ type: "guild_arcane_resistance_pct", value: 5, description: "+5% Arcane Resistance" }] },
-        { level: 3, ducatCost: 120000, rewards: [{ type: "guild_arcane_resistance_pct", value: 10, description: "+10% Arcane Resistance" }] }
+        {
+          level: 1,
+          ducatCost: 42000,
+          rewards: [
+            { type: "contract_slot_count_flat", value: 1, description: "+1 contract board option" },
+            { type: "contract_xp_percent", value: 2, description: "+2% contract XP" }
+          ]
+        }
       ],
-      hiddenUntilUnlocked: true,
-      completionReward: { type: "guild_arcane_resistance_pct", value: 15, description: "+15% Arcane Resistance (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // GUILD BRANCH  ↑  branches upward from centre
-    // ═══════════════════════════════════════════════════════════════════════
     {
-      id: "guild_hall",
-      branchId: "guild",
-      label: "Guild Hall Expansion",
-      description: "Renovate the guild hall to accommodate more members and resources.",
-      iconKey: "node_guild_hall",
-      position: { x: 500, y: 300 },
+      id: "drill_square",
+      branchId: "strength",
+      label: "Drill Square",
+      description: "Daily formation work adds a modest strength edge for every guild member.",
+      iconKey: "node_drill_square",
+      position: { x: 962, y: 540 },
       prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
-      maxLevel: 5,
-      levels: [
-        { level: 1, ducatCost: 6000,  rewards: [{ type: "guild_max_members", value: 2, description: "+2 Max Members" }] },
-        { level: 2, ducatCost: 10000, rewards: [{ type: "guild_max_members", value: 2, description: "+2 Max Members" }] },
-        { level: 3, ducatCost: 16000, rewards: [{ type: "guild_max_members", value: 3, description: "+3 Max Members" }] },
-        { level: 4, ducatCost: 25000, rewards: [{ type: "guild_max_members", value: 3, description: "+3 Max Members" }] },
-        { level: 5, ducatCost: 40000, rewards: [{ type: "guild_max_members", value: 5, description: "+5 Max Members" }] }
-      ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_max_members", value: 5, description: "+5 Max Members (completion bonus)" }
-    },
-    {
-      id: "war_council",
-      branchId: "guild",
-      label: "War Council",
-      description: "A formal council of officers that coordinates guild strategy and rewards veterans.",
-      iconKey: "node_war_council",
-      position: { x: 375, y: 150 },
-      prerequisites: [{ nodeId: "guild_hall", minLevel: 2 }],
       maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 15000, rewards: [{ type: "member_xp_gain_pct", value: 3, description: "+3% XP Gain" }] },
-        { level: 2, ducatCost: 25000, rewards: [{ type: "member_xp_gain_pct", value: 3, description: "+3% XP Gain" }] },
-        { level: 3, ducatCost: 40000, rewards: [{ type: "member_xp_gain_pct", value: 5, description: "+5% XP Gain" }] }
+        { level: 1, ducatCost: 5000, rewards: [{ type: "strength_flat", value: 1, description: "+1 strength" }] },
+        { level: 2, ducatCost: 8000, rewards: [{ type: "strength_flat", value: 1, description: "+1 strength" }] },
+        { level: 3, ducatCost: 11500, rewards: [{ type: "strength_flat", value: 1, description: "+1 strength" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "member_xp_gain_pct", value: 5, description: "+5% XP Gain (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
     {
-      id: "alliance_pact",
-      branchId: "guild",
-      label: "Alliance Pact",
-      description: "Formalise relationships with allied guilds to share resources and intelligence.",
-      iconKey: "node_alliance_pact",
-      position: { x: 625, y: 150 },
-      prerequisites: [{ nodeId: "guild_hall", minLevel: 2 }],
+      id: "plated_forms",
+      branchId: "strength",
+      label: "Plated Forms",
+      description: "Heavy sparring and weight discipline teach members how to fight through armor.",
+      iconKey: "node_plated_forms",
+      position: { x: 1276, y: 380 },
+      prerequisites: [{ nodeId: "drill_square", minLevel: 3 }],
       maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 15000, rewards: [{ type: "guild_ducat_find_pct", value: 3, description: "+3% Ducat Find" }] },
-        { level: 2, ducatCost: 25000, rewards: [{ type: "guild_ducat_find_pct", value: 3, description: "+3% Ducat Find" }] },
-        { level: 3, ducatCost: 40000, rewards: [{ type: "guild_ducat_find_pct", value: 5, description: "+5% Ducat Find" }] }
+        { level: 1, ducatCost: 8500, rewards: [{ type: "armor_flat", value: 2, description: "+2 armor" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "armor_flat", value: 2, description: "+2 armor" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "armor_flat", value: 3, description: "+3 armor" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_ducat_find_pct", value: 5, description: "+5% Ducat Find (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // COMMERCE BRANCH  ↓  branches downward from centre
-    // ═══════════════════════════════════════════════════════════════════════
     {
-      id: "merchant_ties",
-      branchId: "commerce",
-      label: "Merchant Ties",
-      description: "Establish relationships with merchant guilds to increase wealth flow.",
-      iconKey: "node_merchant_ties",
-      position: { x: 500, y: 700 },
+      id: "shield_wall",
+      branchId: "strength",
+      label: "Shield Wall",
+      description: "Defensive drills teach members how to brace against brutal physical pressure.",
+      iconKey: "node_shield_wall",
+      position: { x: 1240, y: 614 },
+      prerequisites: [{ nodeId: "drill_square", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 8500, rewards: [{ type: "physical_defense_flat", value: 1, description: "+1 physical defense" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "physical_defense_flat", value: 1, description: "+1 physical defense" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "physical_defense_flat", value: 2, description: "+2 physical defense" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "bulwark_standard",
+      branchId: "strength",
+      label: "Bulwark Standard",
+      description: "The branch's final banner marks a fully disciplined frontline corps and grants a lasting edge to every bruiser in the guild.",
+      iconKey: "node_bulwark_standard",
+      position: { x: 1384, y: 496 },
+      prerequisites: [
+        { nodeId: "plated_forms", minLevel: 3 },
+        { nodeId: "shield_wall", minLevel: 3 }
+      ],
+      maxLevel: 1,
+      levels: [
+        {
+          level: 1,
+          ducatCost: 42000,
+          rewards: [
+            { type: "strength_flat", value: 1, description: "+1 strength" },
+            { type: "armor_flat", value: 2, description: "+2 armor" },
+            { type: "physical_defense_flat", value: 1, description: "+1 physical defense" }
+          ]
+        }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "scribe_hall",
+      branchId: "intelligence",
+      label: "Scribe Hall",
+      description: "Shared notes, rune tables, and lecture halls lift every member's magical fundamentals.",
+      iconKey: "node_scribe_hall",
+      position: { x: 454, y: 878 },
       prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
-      maxLevel: 5,
-      levels: [
-        { level: 1, ducatCost: 5000,  rewards: [{ type: "guild_ducat_find_pct", value: 1, description: "+1% Ducat Find" }] },
-        { level: 2, ducatCost: 8000,  rewards: [{ type: "guild_ducat_find_pct", value: 1, description: "+1% Ducat Find" }] },
-        { level: 3, ducatCost: 12000, rewards: [{ type: "guild_ducat_find_pct", value: 1, description: "+1% Ducat Find" }] },
-        { level: 4, ducatCost: 20000, rewards: [{ type: "guild_ducat_find_pct", value: 1, description: "+1% Ducat Find" }] },
-        { level: 5, ducatCost: 30000, rewards: [{ type: "guild_ducat_find_pct", value: 2, description: "+2% Ducat Find" }] }
-      ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_ducat_find_pct", value: 5, description: "+5% Ducat Find (completion bonus)" }
-    },
-    {
-      id: "trade_routes",
-      branchId: "commerce",
-      label: "Trade Routes",
-      description: "Secure trade routes that generate steady income for all guild members.",
-      iconKey: "node_trade_routes",
-      position: { x: 375, y: 850 },
-      prerequisites: [{ nodeId: "merchant_ties", minLevel: 2 }],
       maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 12000, rewards: [{ type: "guild_ducat_find_pct", value: 3, description: "+3% Ducat Find" }] },
-        { level: 2, ducatCost: 22000, rewards: [{ type: "guild_ducat_find_pct", value: 3, description: "+3% Ducat Find" }] },
-        { level: 3, ducatCost: 35000, rewards: [{ type: "guild_ducat_find_pct", value: 5, description: "+5% Ducat Find" }] }
+        { level: 1, ducatCost: 5000, rewards: [{ type: "intelligence_flat", value: 1, description: "+1 intelligence" }] },
+        { level: 2, ducatCost: 8000, rewards: [{ type: "intelligence_flat", value: 1, description: "+1 intelligence" }] },
+        { level: 3, ducatCost: 11500, rewards: [{ type: "intelligence_flat", value: 1, description: "+1 intelligence" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "guild_ducat_find_pct", value: 5, description: "+5% Ducat Find (completion bonus)" }
+      hiddenUntilUnlocked: false
     },
     {
-      id: "royal_charter",
-      branchId: "commerce",
-      label: "Royal Charter",
-      description: "Obtain royal patronage that dramatically increases item find for all members.",
-      iconKey: "node_royal_charter",
-      position: { x: 625, y: 850 },
-      prerequisites: [{ nodeId: "merchant_ties", minLevel: 2 }],
+      id: "ward_lattice",
+      branchId: "intelligence",
+      label: "Ward Lattice",
+      description: "Layered warding patterns improve protection against spellfire and arcane pressure.",
+      iconKey: "node_ward_lattice",
+      position: { x: 134, y: 838 },
+      prerequisites: [{ nodeId: "scribe_hall", minLevel: 3 }],
       maxLevel: 3,
       levels: [
-        { level: 1, ducatCost: 12000, rewards: [{ type: "member_item_find_pct", value: 3, description: "+3% Item Find" }] },
-        { level: 2, ducatCost: 22000, rewards: [{ type: "member_item_find_pct", value: 3, description: "+3% Item Find" }] },
-        { level: 3, ducatCost: 35000, rewards: [{ type: "member_item_find_pct", value: 5, description: "+5% Item Find" }] }
+        { level: 1, ducatCost: 8500, rewards: [{ type: "spell_shield_flat", value: 2, description: "+2 spell shield" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "spell_shield_flat", value: 2, description: "+2 spell shield" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "spell_shield_flat", value: 3, description: "+3 spell shield" }] }
       ],
-      hiddenUntilUnlocked: false,
-      completionReward: { type: "member_item_find_pct", value: 5, description: "+5% Item Find (completion bonus)" }
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "null_wards",
+      branchId: "intelligence",
+      label: "Null Wards",
+      description: "Counter-casting drills give members a little more resistance against magical punishment.",
+      iconKey: "node_null_wards",
+      position: { x: 182, y: 1048 },
+      prerequisites: [{ nodeId: "scribe_hall", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 8500, rewards: [{ type: "magic_defense_flat", value: 1, description: "+1 magic defense" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "magic_defense_flat", value: 1, description: "+1 magic defense" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "magic_defense_flat", value: 2, description: "+2 magic defense" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "astral_sanctum",
+      branchId: "intelligence",
+      label: "Astral Sanctum",
+      description: "The branch's final sanctum turns theory into permanent protection, rewarding every scholar and caster in the guild.",
+      iconKey: "node_astral_sanctum",
+      position: { x: 34, y: 934 },
+      prerequisites: [
+        { nodeId: "ward_lattice", minLevel: 3 },
+        { nodeId: "null_wards", minLevel: 3 }
+      ],
+      maxLevel: 1,
+      levels: [
+        {
+          level: 1,
+          ducatCost: 42000,
+          rewards: [
+            { type: "intelligence_flat", value: 1, description: "+1 intelligence" },
+            { type: "spell_shield_flat", value: 2, description: "+2 spell shield" },
+            { type: "magic_defense_flat", value: 1, description: "+1 magic defense" }
+          ]
+        }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "scout_post",
+      branchId: "dexterity",
+      label: "Scout Post",
+      description: "Routine drills in tracking and movement add a small dexterity bump across the guild.",
+      iconKey: "node_scout_post",
+      position: { x: 962, y: 878 },
+      prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 5000, rewards: [{ type: "dexterity_flat", value: 1, description: "+1 dexterity" }] },
+        { level: 2, ducatCost: 8000, rewards: [{ type: "dexterity_flat", value: 1, description: "+1 dexterity" }] },
+        { level: 3, ducatCost: 11500, rewards: [{ type: "dexterity_flat", value: 1, description: "+1 dexterity" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "sightline_calibration",
+      branchId: "dexterity",
+      label: "Sightline Calibration",
+      description: "Range work and spotting practice help members land their hits more consistently.",
+      iconKey: "node_sightline_calibration",
+      position: { x: 1270, y: 850 },
+      prerequisites: [{ nodeId: "scout_post", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 8500, rewards: [{ type: "accuracy_flat", value: 2, description: "+2 accuracy" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "accuracy_flat", value: 2, description: "+2 accuracy" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "accuracy_flat", value: 3, description: "+3 accuracy" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "evasive_routines",
+      branchId: "dexterity",
+      label: "Evasive Routines",
+      description: "Footwork circuits teach members how to shave off the cleanest enemy hits.",
+      iconKey: "node_evasive_routines",
+      position: { x: 1292, y: 1046 },
+      prerequisites: [{ nodeId: "scout_post", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 8500, rewards: [{ type: "dodge_chance_bps", value: 25, description: "+0.25% dodge chance" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "dodge_chance_bps", value: 25, description: "+0.25% dodge chance" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "dodge_chance_bps", value: 50, description: "+0.50% dodge chance" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "windwatch_spire",
+      branchId: "dexterity",
+      label: "Windwatch Spire",
+      description: "The branch's final tower elevates the guild's scouts into true hunters, granting lasting precision and evasive finesse.",
+      iconKey: "node_windwatch_spire",
+      position: { x: 1398, y: 940 },
+      prerequisites: [
+        { nodeId: "sightline_calibration", minLevel: 3 },
+        { nodeId: "evasive_routines", minLevel: 3 }
+      ],
+      maxLevel: 1,
+      levels: [
+        {
+          level: 1,
+          ducatCost: 42000,
+          rewards: [
+            { type: "dexterity_flat", value: 1, description: "+1 dexterity" },
+            { type: "accuracy_flat", value: 2, description: "+2 accuracy" },
+            { type: "dodge_chance_bps", value: 50, description: "+0.50% dodge chance" }
+          ]
+        }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "sparring_rosters",
+      branchId: "warfare",
+      label: "Sparring Rosters",
+      description: "Organized duel rosters make it easier for guild members to cycle fresh arena opportunities.",
+      iconKey: "node_sparring_rosters",
+      position: { x: 706, y: 986 },
+      prerequisites: [{ nodeId: "academy_core", minLevel: 1 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 5000, rewards: [{ type: "arena_cooldown_percent", value: 3, description: "-3% arena refresh cooldown" }] },
+        { level: 2, ducatCost: 8000, rewards: [{ type: "arena_cooldown_percent", value: 3, description: "-3% arena refresh cooldown" }] },
+        { level: 3, ducatCost: 11500, rewards: [{ type: "arena_cooldown_percent", value: 4, description: "-4% arena refresh cooldown" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "duelist_ledgers",
+      branchId: "warfare",
+      label: "Duelist Ledgers",
+      description: "Recorded match notes help members steal one more point of value from their arena wins.",
+      iconKey: "node_duelist_ledgers",
+      position: { x: 492, y: 1232 },
+      prerequisites: [{ nodeId: "sparring_rosters", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 8500, rewards: [{ type: "arena_rating_win_flat", value: 1, description: "+1 arena rating on victory" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "arena_rating_win_flat", value: 1, description: "+1 arena rating on victory" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "arena_rating_win_flat", value: 1, description: "+1 arena rating on victory" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "spectator_rails",
+      branchId: "warfare",
+      label: "Spectator Rails",
+      description: "Studied crowds and watching coaches help soften the sting of narrow arena losses.",
+      iconKey: "node_spectator_rails",
+      position: { x: 894, y: 1208 },
+      prerequisites: [{ nodeId: "sparring_rosters", minLevel: 3 }],
+      maxLevel: 3,
+      levels: [
+        { level: 1, ducatCost: 8500, rewards: [{ type: "arena_rating_loss_reduction_flat", value: 1, description: "-1 arena rating lost on defeat" }] },
+        { level: 2, ducatCost: 12500, rewards: [{ type: "arena_rating_loss_reduction_flat", value: 1, description: "-1 arena rating lost on defeat" }] },
+        { level: 3, ducatCost: 17000, rewards: [{ type: "arena_rating_loss_reduction_flat", value: 1, description: "-1 arena rating lost on defeat" }] }
+      ],
+      hiddenUntilUnlocked: false
+    },
+    {
+      id: "victors_forum",
+      branchId: "warfare",
+      label: "Victor's Forum",
+      description: "The branch's final forum secures one more elite duel opportunity and marks the guild as a serious arena house.",
+      iconKey: "node_victors_forum",
+      position: { x: 744, y: 1376 },
+      prerequisites: [
+        { nodeId: "duelist_ledgers", minLevel: 3 },
+        { nodeId: "spectator_rails", minLevel: 3 }
+      ],
+      maxLevel: 1,
+      levels: [
+        {
+          level: 1,
+          ducatCost: 42000,
+          rewards: [
+            { type: "arena_offer_count_flat", value: 1, description: "+1 arena duel option" },
+            { type: "arena_cooldown_percent", value: 3, description: "-3% arena refresh cooldown" }
+          ]
+        }
+      ],
+      hiddenUntilUnlocked: false
     }
   ]
 };

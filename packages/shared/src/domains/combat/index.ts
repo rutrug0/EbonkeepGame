@@ -66,9 +66,12 @@ export const contractBoardSlotViewSchema = z.object({
 });
 export type ContractBoardSlotView = z.infer<typeof contractBoardSlotViewSchema>;
 
+export const CONTRACT_SLOT_COUNT = 6;
+export const MAX_CONTRACT_SLOT_COUNT = 8;
+
 export const contractBoardResponseSchema = z.object({
   serverTime: z.string(),
-  slots: z.array(contractBoardSlotViewSchema).length(6)
+  slots: z.array(contractBoardSlotViewSchema).min(1).max(MAX_CONTRACT_SLOT_COUNT)
 });
 export type ContractBoardResponse = z.infer<typeof contractBoardResponseSchema>;
 

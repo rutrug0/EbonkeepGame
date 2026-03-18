@@ -4,6 +4,12 @@ import { resolve } from "node:path";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { resolveStaminaRegenPercentPerHour } from "../../config/activity-pacing.js";
 
+import {
+  EMPTY_ACADEMY_EFFECT_TOTALS,
+  applyAcademyRestCostDiscount,
+  getGuildAcademyEffectTotals
+} from "../academy/effects.js";
+
 const MAX_LEVEL = 100;
 const REST_HEALTH_PER_DUCAT = 10;
 const REST_STAMINA_PER_DUCAT = 1;
@@ -152,12 +158,16 @@ export function resolveStaminaState(args: {
   max: number;
   updatedAt: Date;
   level: number;
+  bonusRegenPercent?: number;
   now?: Date;
 }): StaminaState {
   const max = Math.max(0, Math.floor(args.max));
   const current = Math.max(0, Math.min(max, Math.floor(args.current)));
   const now = args.now ?? new Date();
-  const regenPercentPerHour = Math.max(0, resolveStaminaRegenPercentPerHour(args.level));
+  const regenPercentPerHour = Math.max(
+    0,
+    resolveStaminaRegenPercentPerHour(args.level) + Math.max(0, Math.floor(args.bonusRegenPercent ?? 0))
+  );
   const regenPerHour = (max * regenPercentPerHour) / 100;
   const msPerPoint = regenPerHour > 0 ? 3_600_000 / regenPerHour : Number.POSITIVE_INFINITY;
 
@@ -218,6 +228,7 @@ export function resolvePlayerProgressState(args: {
   staminaCurrent: number;
   staminaMax: number;
   staminaUpdatedAt: Date;
+  bonusRegenPercent?: number;
   now?: Date;
 }): PlayerProgressState {
   const experience = resolveExperienceState({
@@ -229,6 +240,7 @@ export function resolvePlayerProgressState(args: {
     max: args.staminaMax,
     updatedAt: args.staminaUpdatedAt,
     level: experience.level,
+    bonusRegenPercent: args.bonusRegenPercent,
     now: args.now
   });
 
@@ -246,7 +258,12 @@ export async function syncPlayerProgress(prisma: PrismaClient | Prisma.Transacti
       experience: true,
       staminaCurrent: true,
       staminaMax: true,
-      staminaUpdatedAt: true
+      staminaUpdatedAt: true,
+      guildMembership: {
+        select: {
+          guildId: true
+        }
+      }
     }
   });
 
@@ -254,12 +271,14 @@ export async function syncPlayerProgress(prisma: PrismaClient | Prisma.Transacti
     throw new Error(`Player not found: ${playerId}`);
   }
 
+  const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
   const progress = resolvePlayerProgressState({
     level: profile.level,
     experience: profile.experience,
     staminaCurrent: profile.staminaCurrent,
     staminaMax: profile.staminaMax,
     staminaUpdatedAt: profile.staminaUpdatedAt,
+    bonusRegenPercent: academyEffects.staminaRegenPercent,
     now
   });
 
@@ -294,7 +313,12 @@ export async function spendPlayerStamina(
       staminaMax: true,
       staminaUpdatedAt: true,
       experience: true,
-      level: true
+      level: true,
+      guildMembership: {
+        select: {
+          guildId: true
+        }
+      }
     }
   });
 
@@ -302,11 +326,13 @@ export async function spendPlayerStamina(
     throw new Error(`Player not found: ${playerId}`);
   }
 
+  const academyEffects = await getGuildAcademyEffectTotals(tx, profile.guildMembership?.guildId);
   const stamina = resolveStaminaState({
     current: profile.staminaCurrent,
     max: profile.staminaMax,
     updatedAt: profile.staminaUpdatedAt,
     level: profile.level,
+    bonusRegenPercent: academyEffects.staminaRegenPercent,
     now
   });
   const spendAmount = Math.max(0, Math.floor(amount));
@@ -335,6 +361,7 @@ export async function spendPlayerStamina(
     max: stamina.max,
     updatedAt: nextUpdatedAt,
     level: profile.level,
+    bonusRegenPercent: academyEffects.staminaRegenPercent,
     now
   });
 }
@@ -393,12 +420,16 @@ export function calculateRestCost(args: {
   maxHealth: number;
   currentStamina: number;
   maxStamina: number;
+  discountPercent?: number;
 }): number {
   const missingHealth = Math.max(0, Math.floor(args.maxHealth) - Math.max(0, Math.floor(args.currentHealth)));
   const missingStamina = Math.max(0, Math.floor(args.maxStamina) - Math.max(0, Math.floor(args.currentStamina)));
   const healthCost = Math.ceil(missingHealth / REST_HEALTH_PER_DUCAT);
   const staminaCost = Math.ceil(missingStamina / REST_STAMINA_PER_DUCAT);
-  return Math.max(0, healthCost + staminaCost);
+  return applyAcademyRestCostDiscount(healthCost + staminaCost, {
+    ...EMPTY_ACADEMY_EFFECT_TOTALS,
+    restCostPercent: Math.max(0, Math.floor(args.discountPercent ?? 0)),
+  });
 }
 
 export async function restPlayerResources(args: {
@@ -416,7 +447,12 @@ export async function restPlayerResources(args: {
       staminaCurrent: true,
       staminaMax: true,
       staminaUpdatedAt: true,
-      level: true
+      level: true,
+      guildMembership: {
+        select: {
+          guildId: true
+        }
+      }
     }
   });
 
@@ -424,6 +460,7 @@ export async function restPlayerResources(args: {
     throw new Error(`Player not found: ${args.playerId}`);
   }
 
+  const academyEffects = await getGuildAcademyEffectTotals(args.tx, profile.guildMembership?.guildId);
   const maxHealth = Math.max(1, Math.floor(args.maxHealth));
   const currentHealth = resolveStoredCurrentHealth(profile.hitpointsCurrent, maxHealth);
   const stamina = resolveStaminaState({
@@ -431,13 +468,15 @@ export async function restPlayerResources(args: {
     max: profile.staminaMax,
     updatedAt: profile.staminaUpdatedAt,
     level: profile.level,
+    bonusRegenPercent: academyEffects.staminaRegenPercent,
     now
   });
   const costDucats = calculateRestCost({
     currentHealth,
     maxHealth,
     currentStamina: stamina.current,
-    maxStamina: stamina.max
+    maxStamina: stamina.max,
+    discountPercent: academyEffects.restCostPercent
   });
 
   if (costDucats > 0) {

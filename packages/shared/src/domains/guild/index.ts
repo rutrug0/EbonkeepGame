@@ -20,6 +20,7 @@ export const guildActivityTypeSchema = z.enum([
   "demoted",
   "transferred_leadership",
   "disbanded",
+  "invited",
   "crest_changed",
   "description_changed",
   "recruiting_toggled",
@@ -267,13 +268,27 @@ export type GuildCrestColor = keyof typeof GUILD_CREST_COLORS;
 // ─── Academy / Guild Tech Tree ────────────────────────────────────────────────
 
 export const academyRewardTypeSchema = z.enum([
-  "guild_combat_power_pct",
-  "guild_max_members",
-  "guild_ducat_find_pct",
-  "member_xp_gain_pct",
-  "member_item_find_pct",
-  "guild_arcane_resistance_pct",
-  "unlock_branch"
+  "stamina_regen_percent",
+  "contract_ducats_percent",
+  "contract_xp_percent",
+  "contract_item_drop_bps",
+  "contract_replenish_percent",
+  "contract_slot_count_flat",
+  "rest_cost_percent",
+  "max_members_flat",
+  "arena_offer_count_flat",
+  "arena_cooldown_percent",
+  "arena_rating_win_flat",
+  "arena_rating_loss_reduction_flat",
+  "strength_flat",
+  "armor_flat",
+  "physical_defense_flat",
+  "intelligence_flat",
+  "spell_shield_flat",
+  "magic_defense_flat",
+  "dexterity_flat",
+  "accuracy_flat",
+  "dodge_chance_bps"
 ]);
 export type AcademyRewardType = z.infer<typeof academyRewardTypeSchema>;
 
@@ -283,6 +298,9 @@ export const academyRewardSchema = z.object({
   description: z.string()
 });
 export type AcademyReward = z.infer<typeof academyRewardSchema>;
+
+export const academyActiveEffectSchema = academyRewardSchema;
+export type AcademyActiveEffect = z.infer<typeof academyActiveEffectSchema>;
 
 export const academyNodePrerequisiteSchema = z.object({
   nodeId: z.string(),
@@ -349,6 +367,7 @@ export const academyTreeStateSchema = z.object({
   config: academyTreeConfigSchema,
   nodes: z.record(z.string(), academyNodeStateSchema),
   totalDonated: z.number().int(),
+  activeEffects: z.array(academyActiveEffectSchema),
   chargesState: z.object({
     charges: z.number().int().min(0).max(20),
     maxCharges: z.literal(20),
