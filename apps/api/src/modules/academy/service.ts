@@ -12,7 +12,9 @@ import type {
 } from "@ebonkeep/shared/guild";
 
 import { ACADEMY_TREE_CONFIG } from "./academy-tree.config.js";
-import { resolveAcademyActiveEffectsFromRows } from "./effects.js";
+import { getAcademyEffectTotalsFromRows, resolveAcademyActiveEffectsFromRows } from "./effects.js";
+import { migrateLegacyAcademyRowsForGuild, normalizeAcademyProgressRows } from "./legacy.js";
+import { rebaseGuildMemberStaminaRegenWindow } from "../player/progression-service.js";
 
 export class AcademyError extends Error {
   constructor(
@@ -154,6 +156,8 @@ export async function getAcademyTreeState(
   playerId: string,
   guildId: string
 ): Promise<AcademyTreeState> {
+  await migrateLegacyAcademyRowsForGuild(prisma, guildId);
+
   // Verify player is a member of the guild
   const membership = await prisma.guildMember.findFirst({
     where: { playerId, guildId }
@@ -162,9 +166,11 @@ export async function getAcademyTreeState(
     throw new AcademyError("NOT_GUILD_MEMBER", 403);
   }
 
-  const dbNodes = await prisma.guildAcademyNode.findMany({
-    where: { guildId }
-  });
+  const dbNodes = normalizeAcademyProgressRows(
+    await prisma.guildAcademyNode.findMany({
+      where: { guildId }
+    })
+  );
   const playerProfile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
     select: { unlimitedAcademyDonationsEnabled: true }
@@ -187,7 +193,7 @@ export async function getAcademyTreeState(
   for (const row of dbNodes) {
     guildNodeMap.set(row.nodeId, {
       currentLevel: row.currentLevel,
-      ducatsInvested: row.ducatsInvested
+      ducatsInvested: row.ducatsInvested ?? 0
     });
   }
 
@@ -237,6 +243,8 @@ export async function donateToNode(
 ): Promise<DonateToNodeResponse> {
   const { nodeId, chargesSpent } = body;
 
+  await migrateLegacyAcademyRowsForGuild(prisma, guildId);
+
   // Verify membership
   const membership = await prisma.guildMember.findFirst({
     where: { playerId, guildId }
@@ -257,11 +265,13 @@ export async function donateToNode(
   }
 
   // Load current node state + prerequisite states outside tx for prereq check
-  const allNodeRows = await prisma.guildAcademyNode.findMany({
-    where: { guildId }
-  });
+  const allNodeRows = normalizeAcademyProgressRows(
+    await prisma.guildAcademyNode.findMany({
+      where: { guildId }
+    })
+  );
   const guildNodeMap = new Map(
-    allNodeRows.map((r) => [r.nodeId, { currentLevel: r.currentLevel, ducatsInvested: r.ducatsInvested }])
+    allNodeRows.map((r) => [r.nodeId, { currentLevel: r.currentLevel, ducatsInvested: r.ducatsInvested ?? 0 }])
   );
 
   const dbNodeOuter = guildNodeMap.get(nodeId) ?? { currentLevel: 0, ducatsInvested: 0 };
@@ -291,6 +301,9 @@ export async function donateToNode(
   let txLastRechargeAt = new Date();
 
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+    const staminaBonusBeforeDonation = (await getGuildAcademyEffectTotalsFromDb(tx, guildId)).staminaRegenPercent;
+
     // 1. Re-read node state inside tx (authoritative, prevents lost-update)
     const txNodeRow = await tx.guildAcademyNode.findUnique({
       where: { guildId_nodeId: { guildId, nodeId } }
@@ -398,12 +411,12 @@ export async function donateToNode(
         nodeId,
         currentLevel: newLevel,
         ducatsInvested: newInvested,
-        completedAt: isNowMaxed ? new Date() : null
+        completedAt: isNowMaxed ? now : null
       },
       update: {
         currentLevel: newLevel,
         ducatsInvested: newInvested,
-        completedAt: isNowMaxed ? new Date() : undefined
+        completedAt: isNowMaxed ? now : undefined
       }
     });
 
@@ -433,6 +446,17 @@ export async function donateToNode(
       }
     });
 
+    const staminaBonusAfterDonation = (await getGuildAcademyEffectTotalsFromDb(tx, guildId)).staminaRegenPercent;
+    if (staminaBonusBeforeDonation !== staminaBonusAfterDonation) {
+      await rebaseGuildMemberStaminaRegenWindow({
+        tx,
+        guildId,
+        previousBonusRegenPercent: staminaBonusBeforeDonation,
+        nextBonusRegenPercent: staminaBonusAfterDonation,
+        now
+      });
+    }
+
     txNodeId = nodeId;
     txNewLevel = newLevel;
     txNewInvested = newInvested;
@@ -457,6 +481,22 @@ export async function donateToNode(
       : buildChargesStateResponse(txStoredCharges, txLastRechargeAt)
   };
 }
+
+async function getGuildAcademyEffectTotalsFromDb(
+  prisma: Prisma.TransactionClient,
+  guildId: string
+) {
+  const rows = await prisma.guildAcademyNode.findMany({
+    where: { guildId },
+    select: {
+      nodeId: true,
+      currentLevel: true
+    }
+  });
+
+  return getAcademyEffectTotalsFromRows(rows);
+}
+
 /**
  * Get donation history for a guild (any member can view).
  */

@@ -6,7 +6,8 @@
 import type { PrismaClient } from "@prisma/client";
 import type { GuildInvite, SendGuildInviteRequest } from "@ebonkeep/shared";
 
-import { getEffectiveGuildMaxMembers } from "../academy/effects.js";
+import { getEffectiveGuildMaxMembers, getGuildAcademyEffectTotals } from "../academy/effects.js";
+import { rebasePlayerStaminaRegenWindow } from "../player/progression-service.js";
 import { canSendInvites } from "./permissions.js";
 
 /**
@@ -256,6 +257,8 @@ export async function acceptGuildInvite(
   playerId: string
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+
     // Get invite
     const invite = await tx.guildInvite.findUnique({
       where: { id: inviteId },
@@ -312,6 +315,17 @@ export async function acceptGuildInvite(
       throw new Error("PLAYER_NOT_FOUND");
     }
 
+    const academyEffects = await getGuildAcademyEffectTotals(tx, guild.id);
+    if (academyEffects.staminaRegenPercent > 0) {
+      await rebasePlayerStaminaRegenWindow({
+        tx,
+        playerId,
+        previousBonusRegenPercent: 0,
+        nextBonusRegenPercent: academyEffects.staminaRegenPercent,
+        now
+      });
+    }
+
     // Create membership
     await tx.guildMember.create({
       data: {
@@ -319,7 +333,7 @@ export async function acceptGuildInvite(
         playerId,
         role: "member",
         contributedPower: player.gearScore,
-        joinedAt: new Date()
+        joinedAt: now
       }
     });
 
@@ -343,7 +357,7 @@ export async function acceptGuildInvite(
         guildId: guild.id,
         actorId: playerId,
         actionType: "joined",
-        timestamp: new Date()
+        timestamp: now
       }
     });
   });

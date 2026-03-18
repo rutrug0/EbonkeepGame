@@ -7,7 +7,11 @@ import {
   resolveStaminaRegenPercentPerHour
 } from "../../src/config/activity-pacing.js";
 import { getDeveloperContractsStaticCurves } from "../../src/modules/contracts/developer-static-curves.js";
-import { calculateRestCost, resolveStaminaState } from "../../src/modules/player/progression-service.js";
+import {
+  calculateRestCost,
+  rebaseStaminaStateForRegenChange,
+  resolveStaminaState
+} from "../../src/modules/player/progression-service.js";
 
 describe("activity pacing tables", () => {
   it("matches base travel anchors at representative levels", () => {
@@ -131,5 +135,32 @@ describe("stamina regeneration", () => {
     });
 
     expect(discounted).toBe(32);
+  });
+
+  it("does not retroactively apply a newly gained academy stamina bonus", () => {
+    const bonusUnlockedAt = new Date("2026-03-13T12:00:00.000Z");
+    const rebased = rebaseStaminaStateForRegenChange({
+      current: 0,
+      max: 120,
+      updatedAt: new Date("2026-03-13T11:00:00.000Z"),
+      level: 1,
+      previousBonusRegenPercent: 0,
+      nextBonusRegenPercent: 5,
+      now: bonusUnlockedAt
+    });
+
+    expect(rebased.current).toBe(15);
+    expect(rebased.updatedAt.toISOString()).toBe(bonusUnlockedAt.toISOString());
+
+    const oneHourAfterUnlock = resolveStaminaState({
+      current: rebased.current,
+      max: 120,
+      updatedAt: rebased.updatedAt,
+      level: 1,
+      bonusRegenPercent: 5,
+      now: new Date("2026-03-13T13:00:00.000Z")
+    });
+
+    expect(oneHourAfterUnlock.current).toBe(36);
   });
 });

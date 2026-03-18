@@ -5,6 +5,7 @@ import type { PlayerStatBonuses } from "@ebonkeep/shared/core";
 import type { AcademyActiveEffect, AcademyReward } from "@ebonkeep/shared/guild";
 
 import { ACADEMY_TREE_CONFIG } from "./academy-tree.config.js";
+import { migrateLegacyAcademyRowsForGuild, normalizeAcademyProgressRows } from "./legacy.js";
 
 type AcademyNodeProgress = {
   currentLevel: number;
@@ -60,7 +61,9 @@ function addStatBonus(
 function buildNodeProgressMap(
   rows: ReadonlyArray<{ nodeId: string; currentLevel: number }>
 ): Map<string, AcademyNodeProgress> {
-  return new Map(rows.map((row) => [row.nodeId, { currentLevel: row.currentLevel }]));
+  return new Map(
+    normalizeAcademyProgressRows(rows).map((row) => [row.nodeId, { currentLevel: row.currentLevel }])
+  );
 }
 
 function collectUnlockedEffects(
@@ -180,6 +183,12 @@ function sumActiveEffects(activeEffects: ReadonlyArray<AcademyReward>): AcademyE
   return totals;
 }
 
+export function getAcademyEffectTotalsFromRows(
+  rows: ReadonlyArray<{ nodeId: string; currentLevel: number }>
+): AcademyEffectTotals {
+  return sumActiveEffects(resolveAcademyActiveEffectsFromRows(rows));
+}
+
 export function mergePlayerStatBonuses(
   primary: PlayerStatBonuses,
   secondary: PlayerStatBonuses
@@ -261,6 +270,8 @@ export async function getGuildAcademyActiveEffects(
     return [];
   }
 
+  await migrateLegacyAcademyRowsForGuild(prisma, guildId);
+
   const rows = await prisma.guildAcademyNode.findMany({
     where: { guildId },
     select: {
@@ -280,7 +291,17 @@ export async function getGuildAcademyEffectTotals(
     return EMPTY_ACADEMY_EFFECT_TOTALS;
   }
 
-  return sumActiveEffects(await getGuildAcademyActiveEffects(prisma, guildId));
+  await migrateLegacyAcademyRowsForGuild(prisma, guildId);
+
+  const rows = await prisma.guildAcademyNode.findMany({
+    where: { guildId },
+    select: {
+      nodeId: true,
+      currentLevel: true
+    }
+  });
+
+  return getAcademyEffectTotalsFromRows(rows);
 }
 
 export async function getPlayerAcademyEffectTotals(

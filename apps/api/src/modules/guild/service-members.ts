@@ -6,13 +6,13 @@
 import type { PrismaClient } from "@prisma/client";
 import type { GuildMember, GuildMembersQuery, UpdateMemberRoleRequest, TransferLeadershipRequest } from "@ebonkeep/shared";
 
-import { getEffectiveGuildMaxMembers } from "../academy/effects.js";
+import { getEffectiveGuildMaxMembers, getGuildAcademyEffectTotals } from "../academy/effects.js";
+import { rebasePlayerStaminaRegenWindow } from "../player/progression-service.js";
 import {
   canKickMember,
   canChangeRole,
   canTransferLeadership,
-  canLeaveGuild,
-  canSendInvites
+  canLeaveGuild
 } from "./permissions.js";
 
 /**
@@ -91,6 +91,8 @@ export async function joinGuild(
   }
 
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+
     // Get guild
     const guild = await tx.guild.findUnique({
       where: { id: guildId },
@@ -127,6 +129,17 @@ export async function joinGuild(
       throw new Error("PLAYER_NOT_FOUND");
     }
 
+    const academyEffects = await getGuildAcademyEffectTotals(tx, guild.id);
+    if (academyEffects.staminaRegenPercent > 0) {
+      await rebasePlayerStaminaRegenWindow({
+        tx,
+        playerId,
+        previousBonusRegenPercent: 0,
+        nextBonusRegenPercent: academyEffects.staminaRegenPercent,
+        now
+      });
+    }
+
     // Create membership
     await tx.guildMember.create({
       data: {
@@ -134,7 +147,7 @@ export async function joinGuild(
         playerId,
         role: "member",
         contributedPower: player.gearScore,
-        joinedAt: new Date()
+        joinedAt: now
       }
     });
 
@@ -152,7 +165,7 @@ export async function joinGuild(
         guildId,
         actorId: playerId,
         actionType: "joined",
-        timestamp: new Date()
+        timestamp: now
       }
     });
   });
@@ -173,6 +186,8 @@ export async function leaveGuild(
   }
 
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+
     // Get member to update guild totalPower
     const member = await tx.guildMember.findFirst({
       where: { guildId, playerId }
@@ -180,6 +195,17 @@ export async function leaveGuild(
 
     if (!member) {
       throw new Error("NOT_GUILD_MEMBER");
+    }
+
+    const academyEffects = await getGuildAcademyEffectTotals(tx, guildId);
+    if (academyEffects.staminaRegenPercent > 0) {
+      await rebasePlayerStaminaRegenWindow({
+        tx,
+        playerId,
+        previousBonusRegenPercent: academyEffects.staminaRegenPercent,
+        nextBonusRegenPercent: 0,
+        now
+      });
     }
 
     // Remove member
@@ -203,7 +229,7 @@ export async function leaveGuild(
         guildId,
         actorId: playerId,
         actionType: "left",
-        timestamp: new Date()
+        timestamp: now
       }
     });
   });
@@ -225,6 +251,8 @@ export async function kickMember(
   }
 
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+
     // Get target member
     const target = await tx.guildMember.findFirst({
       where: { guildId, playerId: targetId }
@@ -232,6 +260,17 @@ export async function kickMember(
 
     if (!target) {
       throw new Error("TARGET_NOT_IN_GUILD");
+    }
+
+    const academyEffects = await getGuildAcademyEffectTotals(tx, guildId);
+    if (academyEffects.staminaRegenPercent > 0) {
+      await rebasePlayerStaminaRegenWindow({
+        tx,
+        playerId: targetId,
+        previousBonusRegenPercent: academyEffects.staminaRegenPercent,
+        nextBonusRegenPercent: 0,
+        now
+      });
     }
 
     // Remove member
@@ -256,7 +295,7 @@ export async function kickMember(
         actorId: kickerId,
         actionType: "kicked",
         targetId,
-        timestamp: new Date()
+        timestamp: now
       }
     });
   });

@@ -39,6 +39,11 @@ type PlayerProgressState = {
   experience: ExperienceState;
 };
 
+type RebasedStaminaState = {
+  current: number;
+  updatedAt: Date;
+};
+
 function resolveDataPath(fileName: string): string {
   const fromRepoRoot = resolve(process.cwd(), "docs", "data", fileName);
   if (existsSync(fromRepoRoot)) {
@@ -222,6 +227,76 @@ export function resolveStaminaState(args: {
   };
 }
 
+function resolveStaminaMsPerPoint(args: {
+  max: number;
+  level: number;
+  bonusRegenPercent?: number;
+}): number {
+  const max = Math.max(0, Math.floor(args.max));
+  const regenPercentPerHour = Math.max(
+    0,
+    resolveStaminaRegenPercentPerHour(args.level) + Math.max(0, Math.floor(args.bonusRegenPercent ?? 0))
+  );
+  const regenPerHour = (max * regenPercentPerHour) / 100;
+  return regenPerHour > 0 ? 3_600_000 / regenPerHour : Number.POSITIVE_INFINITY;
+}
+
+export function rebaseStaminaStateForRegenChange(args: {
+  current: number;
+  max: number;
+  updatedAt: Date;
+  level: number;
+  previousBonusRegenPercent?: number;
+  nextBonusRegenPercent?: number;
+  now?: Date;
+}): RebasedStaminaState {
+  const now = args.now ?? new Date();
+  const syncedPreviousState = resolveStaminaState({
+    current: args.current,
+    max: args.max,
+    updatedAt: args.updatedAt,
+    level: args.level,
+    bonusRegenPercent: args.previousBonusRegenPercent,
+    now
+  });
+
+  if (syncedPreviousState.current >= syncedPreviousState.max) {
+    return {
+      current: syncedPreviousState.current,
+      updatedAt: now
+    };
+  }
+
+  const previousMsPerPoint = resolveStaminaMsPerPoint({
+    max: args.max,
+    level: args.level,
+    bonusRegenPercent: args.previousBonusRegenPercent
+  });
+  const nextMsPerPoint = resolveStaminaMsPerPoint({
+    max: args.max,
+    level: args.level,
+    bonusRegenPercent: args.nextBonusRegenPercent
+  });
+  const elapsedTowardNextPointMs = Number.isFinite(previousMsPerPoint)
+    ? Math.max(0, now.getTime() - syncedPreviousState.updatedAt.getTime())
+    : 0;
+  const progressFraction = Number.isFinite(previousMsPerPoint) && previousMsPerPoint > 0
+    ? Math.min(0.999999, elapsedTowardNextPointMs / previousMsPerPoint)
+    : 0;
+
+  if (!Number.isFinite(nextMsPerPoint) || nextMsPerPoint <= 0) {
+    return {
+      current: syncedPreviousState.current,
+      updatedAt: now
+    };
+  }
+
+  return {
+    current: syncedPreviousState.current,
+    updatedAt: new Date(now.getTime() - Math.floor(nextMsPerPoint * progressFraction))
+  };
+}
+
 export function resolvePlayerProgressState(args: {
   level: number;
   experience: number;
@@ -298,6 +373,75 @@ export async function syncPlayerProgress(prisma: PrismaClient | Prisma.Transacti
   }
 
   return progress;
+}
+
+export async function rebasePlayerStaminaRegenWindow(args: {
+  tx: Prisma.TransactionClient;
+  playerId: string;
+  previousBonusRegenPercent?: number;
+  nextBonusRegenPercent?: number;
+  now?: Date;
+}): Promise<void> {
+  const profile = await args.tx.playerProfile.findUnique({
+    where: { id: args.playerId },
+    select: {
+      level: true,
+      experience: true,
+      staminaCurrent: true,
+      staminaMax: true,
+      staminaUpdatedAt: true
+    }
+  });
+
+  if (!profile) {
+    throw new Error(`Player not found: ${args.playerId}`);
+  }
+
+  const normalizedLevel = resolveExperienceState({
+    level: profile.level,
+    experience: profile.experience
+  }).level;
+  const nextStaminaState = rebaseStaminaStateForRegenChange({
+    current: profile.staminaCurrent,
+    max: profile.staminaMax,
+    updatedAt: profile.staminaUpdatedAt,
+    level: normalizedLevel,
+    previousBonusRegenPercent: args.previousBonusRegenPercent,
+    nextBonusRegenPercent: args.nextBonusRegenPercent,
+    now: args.now
+  });
+
+  await args.tx.playerProfile.update({
+    where: { id: args.playerId },
+    data: {
+      level: normalizedLevel,
+      staminaCurrent: nextStaminaState.current,
+      staminaUpdatedAt: nextStaminaState.updatedAt
+    }
+  });
+}
+
+export async function rebaseGuildMemberStaminaRegenWindow(args: {
+  tx: Prisma.TransactionClient;
+  guildId: string;
+  previousBonusRegenPercent?: number;
+  nextBonusRegenPercent?: number;
+  now?: Date;
+}): Promise<void> {
+  const memberships = await args.tx.guildMember.findMany({
+    where: { guildId: args.guildId },
+    select: { playerId: true }
+  });
+
+  for (const membership of memberships) {
+    await rebasePlayerStaminaRegenWindow({
+      tx: args.tx,
+      playerId: membership.playerId,
+      previousBonusRegenPercent: args.previousBonusRegenPercent,
+      nextBonusRegenPercent: args.nextBonusRegenPercent,
+      now: args.now
+    });
+  }
 }
 
 export async function spendPlayerStamina(

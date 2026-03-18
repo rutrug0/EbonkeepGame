@@ -12,7 +12,8 @@ import type {
   GuildSearchQuery
 } from "@ebonkeep/shared";
 import { DEFAULT_GUILD_CREST_ID } from "@ebonkeep/shared";
-import { getEffectiveGuildMaxMembers } from "../academy/effects.js";
+import { getEffectiveGuildMaxMembers, getGuildAcademyEffectTotals } from "../academy/effects.js";
+import { rebaseGuildMemberStaminaRegenWindow } from "../player/progression-service.js";
 import { validateGuildName, validateGuildTag, validateGuildDescription, validateGuildCrestId } from "./validation.js";
 import {
   canEditGuildSettings
@@ -361,13 +362,25 @@ export async function disbandGuild(
   }
 
   await prisma.$transaction(async (tx) => {
+    const now = new Date();
+    const academyEffects = await getGuildAcademyEffectTotals(tx, guildId);
+    if (academyEffects.staminaRegenPercent > 0) {
+      await rebaseGuildMemberStaminaRegenWindow({
+        tx,
+        guildId,
+        previousBonusRegenPercent: academyEffects.staminaRegenPercent,
+        nextBonusRegenPercent: 0,
+        now
+      });
+    }
+
     // Log final activity
     await tx.guildActivity.create({
       data: {
         guildId,
         actorId: leaderId,
         actionType: "disbanded",
-        timestamp: new Date()
+        timestamp: now
       }
     });
 
