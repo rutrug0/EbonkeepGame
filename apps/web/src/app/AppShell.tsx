@@ -130,7 +130,7 @@ import {
 } from "../features/contracts";
 import { ImperialShop, MerchantPanel } from "../features/economy";
 import { ArenaPanel } from "../features/arena";
-import { GuildMissions, GuildPanel } from "../features/guild";
+import { GuildPanel } from "../features/guild";
 import { Leaderboard } from "../features/leaderboard";
 import {
   DEFAULT_RENOWN_NODE_ID,
@@ -1742,10 +1742,6 @@ export function AppShell() {
   const [canDockInventoryChat, setCanDockInventoryChat] = useState(false);
   const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
   const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
-
-  useEffect(() => {
-    setExpandedMenuGroup(getMenuGroupForTab(activeTab));
-  }, [activeTab]);
   const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
   const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
@@ -2342,7 +2338,7 @@ export function AppShell() {
     
     if (paypalToken) {
       // Automatically switch to shop tab to trigger payment capture
-      setActiveTab("shop");
+      selectLandingTab("shop");
     }
   }, [token]);
 
@@ -3230,8 +3226,7 @@ export function AppShell() {
       setError(null);
       const loginResponse = await devGuestLogin();
       window.localStorage.setItem("ebonkeep.dev.token", loginResponse.accessToken);
-      setActiveTab("inventory");
-      setCharacterHubTab("character");
+      selectLandingTab("inventory");
       setToken(loginResponse.accessToken);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : i18n.t("errors.loginFailed"));
@@ -3269,8 +3264,7 @@ export function AppShell() {
         backgroundId: authBackgroundId
       });
       window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
-      setActiveTab("inventory");
-      setCharacterHubTab("character");
+      selectLandingTab("inventory");
       setToken(response.accessToken);
       // Check email verification status
       try {
@@ -3294,8 +3288,7 @@ export function AppShell() {
         password: authPassword
       });
       window.localStorage.setItem("ebonkeep.dev.token", response.accessToken);
-      setActiveTab("inventory");
-      setCharacterHubTab("character");
+      selectLandingTab("inventory");
       setToken(response.accessToken);
       // Check email verification status
       try {
@@ -3368,8 +3361,7 @@ export function AppShell() {
     window.localStorage.removeItem("ebonkeep.dev.token");
     setToken(null);
     applyAuthoritativePlayerState(null);
-    setActiveTab("inventory");
-    setCharacterHubTab("character");
+    selectLandingTab("inventory");
     setError(null);
     setDraggingInventoryCardId(null);
     setDraggingEquipmentSlotId(null);
@@ -5081,6 +5073,18 @@ export function AppShell() {
   }
 
   function renderActivePanel() {
+    const guildPanelProps = {
+      token,
+      currentPlayerId: playerState?.playerId ?? null,
+      playerLevel: playerState?.level ?? null,
+      playerName: profileName,
+      playerClass: playerState?.class ?? null,
+      playerPower: playerState?.gearScore ?? null,
+      playerDucats: currencies?.ducats ?? 0,
+      onActiveMissionChange: setIsGuildMissionActive,
+      onDucatsChanged: (n: number) => setCurrencies((c) => (c ? { ...c, ducats: n } : null))
+    } as const;
+
     switch (activeTab) {
       case "inventory":
         return renderCharacterHubActivePanel();
@@ -5090,11 +5094,14 @@ export function AppShell() {
         return renderContractsPanel();
       case "missions":
         return (
-          <GuildMissions
-            playerName={profileName}
-            playerClass={playerState?.class ?? "juggernaut"}
-            playerPower={playerState?.gearScore ?? 80}
-            playerLevel={playerState?.level ?? 1}
+          <GuildPanel
+            {...guildPanelProps}
+            requestedTab="missions"
+            onDetailTabChange={(nextDetailTab) => {
+              if (nextDetailTab !== "missions") {
+                selectLandingTab("guild");
+              }
+            }}
           />
         );
       case "arena":
@@ -5108,7 +5115,7 @@ export function AppShell() {
           />
         );
       case "guild":
-        return <GuildPanel token={token} currentPlayerId={playerState?.playerId ?? null} playerLevel={playerState?.level ?? null} playerName={profileName} playerClass={playerState?.class ?? null} playerPower={playerState?.gearScore ?? null} playerDucats={currencies?.ducats ?? 0} onActiveMissionChange={setIsGuildMissionActive} onDucatsChanged={(n) => setCurrencies((c) => c ? { ...c, ducats: n } : null)} />;
+        return <GuildPanel {...guildPanelProps} />;
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
@@ -5132,7 +5139,7 @@ export function AppShell() {
     }
   }
 
-  function handleMenuTabSelect(nextTab: LandingTab) {
+  function selectLandingTab(nextTab: LandingTab) {
     setActiveTab(nextTab);
     setExpandedMenuGroup(getMenuGroupForTab(nextTab));
     if (nextTab === "inventory") {
@@ -5511,7 +5518,7 @@ export function AppShell() {
                                 type="button"
                                 className={`menuButton menuSubButton${activeTab === menuItemId ? " active" : ""}`}
                                 data-testid={`menu-${menuItemId}`}
-                                onClick={() => handleMenuTabSelect(menuItemId)}
+                                onClick={() => selectLandingTab(menuItemId)}
                               >
                                 <span className="menuButtonIcon" aria-hidden="true">
                                   {renderMenuIcon(menuItemId)}

@@ -56,12 +56,14 @@ export interface GuildPanelProps {
   playerClass?: PlayerClass | null;
   playerPower?: number | null;
   playerDucats?: number | null;
+  requestedTab?: GuildDetailTab | null;
   onActiveMissionChange?: (active: boolean) => void;
   onDucatsChanged?: (newAmount: number) => void;
+  onDetailTabChange?: (tab: GuildDetailTab) => void;
 }
 
 type GuildView = "myGuild" | "search";
-type GuildDetailTab = "members" | "activity" | "academy" | "invites" | "settings" | "missions";
+export type GuildDetailTab = "members" | "activity" | "academy" | "invites" | "settings" | "missions";
 
 // ── Shared shield icon ──────────────────────────────────────────────────
 function ShieldIcon({ size = 48 }: { size?: number }) {
@@ -126,7 +128,19 @@ function ConfirmModal({
 }
 
 // ── Top-Level ────────────────────────────────────────────────────────────
-export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, playerClass, playerPower, playerDucats, onActiveMissionChange, onDucatsChanged }: GuildPanelProps) {
+export function GuildPanel({
+  token,
+  currentPlayerId,
+  playerLevel,
+  playerName,
+  playerClass,
+  playerPower,
+  playerDucats,
+  requestedTab,
+  onActiveMissionChange,
+  onDucatsChanged,
+  onDetailTabChange
+}: GuildPanelProps) {
   const { t } = useTranslation("common");
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
   const [hasGuild, setHasGuild] = useState(false);
@@ -140,6 +154,15 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
         .catch(() => setHasGuild(false));
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!requestedTab) {
+      return;
+    }
+
+    setCurrentView("myGuild");
+    setMyGuildActiveTab(requestedTab);
+  }, [requestedTab]);
 
   function handleMissionActiveChange(active: boolean) {
     setIsActiveMission(active);
@@ -208,7 +231,11 @@ export function GuildPanel({ token, currentPlayerId, playerLevel, playerName, pl
             onActiveMissionChange={handleMissionActiveChange}
             onSearchClick={() => setCurrentView("search")}
             onDucatsChanged={onDucatsChanged}
-            onTabChange={setMyGuildActiveTab}
+            requestedTab={requestedTab}
+            onTabChange={(tab) => {
+              setMyGuildActiveTab(tab);
+              onDetailTabChange?.(tab);
+            }}
           />
         )}
         {!isActiveMission && currentView === "search" && (
@@ -234,6 +261,7 @@ function MyGuildView({
   onActiveMissionChange,
   onSearchClick,
   onDucatsChanged,
+  requestedTab,
   onTabChange,
 }: {
   token: string;
@@ -247,6 +275,7 @@ function MyGuildView({
   onActiveMissionChange?: (active: boolean) => void;
   onSearchClick: () => void;
   onDucatsChanged?: (newAmount: number) => void;
+  requestedTab?: GuildDetailTab | null;
   onTabChange?: (tab: GuildDetailTab) => void;
 }) {
   const { t } = useTranslation("common");
@@ -261,6 +290,14 @@ function MyGuildView({
   useEffect(() => {
     loadGuildData();
   }, [token]);
+
+  useEffect(() => {
+    if (!requestedTab) {
+      return;
+    }
+
+    setActiveTab(requestedTab);
+  }, [requestedTab]);
 
   const loadGuildData = async () => {
     try {
