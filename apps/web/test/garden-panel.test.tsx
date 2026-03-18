@@ -160,6 +160,80 @@ describe("garden panel", () => {
     expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_seed.png"]')).toBeTruthy();
   });
 
+  it("renders fenroot seed and plant art when fenroot assets are available", async () => {
+    gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
+      plots: [
+        {
+          slotIndex: 1,
+          plantId: "fenroot",
+          phase: "growing",
+          plantedAt: "2026-03-18T10:00:00.000Z",
+          growthEndsAt: "2026-03-18T10:00:05.000Z",
+          bloomStartsAt: "2026-03-18T10:00:05.000Z",
+          bloomEndsAt: "2026-03-18T10:00:10.000Z",
+          wiltAt: "2026-03-18T10:00:15.000Z",
+          nextTransitionAt: "2026-03-18T10:00:05.000Z",
+          harvestYield: null
+        },
+        ...createGardenState().plots.slice(1)
+      ],
+      inventory: [
+        {
+          inventoryEntryId: "seed_2",
+          plantId: "fenroot",
+          kind: "seed",
+          itemCode: "seed_fenroot",
+          displayName: "Fenroot Seeds",
+          rarity: "common",
+          quantity: 999
+        }
+      ]
+    }));
+
+    render(<GardenPanel token="token" />);
+
+    expect(await screen.findByText("Fenroot Seeds")).toBeTruthy();
+    expect(document.querySelector('img[src="/assets/items/generated/garden/fenroot/fenroot_growing.png"]')).toBeTruthy();
+    expect(document.querySelector('img[src="/assets/items/generated/garden/fenroot/fenroot_seed.png"]')).toBeTruthy();
+  });
+
+  it("renders ironbloom seed and plant art when ironbloom assets are available", async () => {
+    gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
+      plots: [
+        {
+          slotIndex: 1,
+          plantId: "ironbloom",
+          phase: "growing",
+          plantedAt: "2026-03-18T10:00:00.000Z",
+          growthEndsAt: "2026-03-18T10:00:05.000Z",
+          bloomStartsAt: "2026-03-18T10:00:05.000Z",
+          bloomEndsAt: "2026-03-18T10:00:10.000Z",
+          wiltAt: "2026-03-18T10:00:15.000Z",
+          nextTransitionAt: "2026-03-18T10:00:05.000Z",
+          harvestYield: null
+        },
+        ...createGardenState().plots.slice(1)
+      ],
+      inventory: [
+        {
+          inventoryEntryId: "seed_3",
+          plantId: "ironbloom",
+          kind: "seed",
+          itemCode: "seed_ironbloom",
+          displayName: "Ironbloom Seeds",
+          rarity: "common",
+          quantity: 999
+        }
+      ]
+    }));
+
+    render(<GardenPanel token="token" />);
+
+    expect(await screen.findByText("Ironbloom Seeds")).toBeTruthy();
+    expect(document.querySelector('img[src="/assets/items/generated/garden/ironbloom/ironbloom_growing.png"]')).toBeTruthy();
+    expect(document.querySelector('img[src="/assets/items/generated/garden/ironbloom/ironbloom_seed.png"]')).toBeTruthy();
+  });
+
   it("harvests a ready crop when the plot card is clicked", async () => {
     const nowMs = Date.now();
     gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
