@@ -288,7 +288,7 @@ describe("shared contracts", () => {
             nextTransitionAt: "2026-03-18T10:01:30.000Z",
             harvestYield: null
           },
-          ...Array.from({ length: 4 }, (_, index) => ({
+          ...Array.from({ length: 7 }, (_, index) => ({
             slotIndex: index + 2,
             plantId: null,
             phase: "empty",
