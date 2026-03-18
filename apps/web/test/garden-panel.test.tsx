@@ -210,26 +210,26 @@ describe("garden panel", () => {
     });
   });
 
-  it("promotes a plot to harvestable without leaving the garden panel", async () => {
+  it("keeps phase updates anchored to server time after the initial load", async () => {
     vi.useFakeTimers();
-    const baseTime = new Date("2026-03-18T10:00:00.000Z");
-    const baseMs = baseTime.getTime();
-    vi.setSystemTime(baseTime);
+    const localBaseTime = new Date("2026-03-18T10:00:00.000Z");
+    const serverBaseMs = localBaseTime.getTime() + 10_000;
+    vi.setSystemTime(localBaseTime);
 
     try {
       gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
-        serverTime: baseTime.toISOString(),
+        serverTime: toIso(serverBaseMs),
         plots: [
           {
             slotIndex: 1,
             plantId: "bloodleaf",
             phase: "growing",
-            plantedAt: toIso(baseMs),
-            growthEndsAt: toIso(baseMs + 5_000),
-            bloomStartsAt: toIso(baseMs + 5_000),
-            bloomEndsAt: toIso(baseMs + 10_000),
-            wiltAt: toIso(baseMs + 15_000),
-            nextTransitionAt: toIso(baseMs + 5_000),
+            plantedAt: toIso(serverBaseMs),
+            growthEndsAt: toIso(serverBaseMs + 5_000),
+            bloomStartsAt: toIso(serverBaseMs + 5_000),
+            bloomEndsAt: toIso(serverBaseMs + 10_000),
+            wiltAt: toIso(serverBaseMs + 15_000),
+            nextTransitionAt: toIso(serverBaseMs + 5_000),
             harvestYield: null
           },
           ...createGardenState().plots.slice(1)

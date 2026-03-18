@@ -36,6 +36,42 @@ describe("garden routes", () => {
     expect(body.inventory.every((entry: { kind: string; quantity: number }) => entry.kind === "seed" && entry.quantity === 5)).toBe(true);
   });
 
+  it("handles concurrent first-load bootstrap without duplicate plot or seed rows", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const [firstResponse, secondResponse] = await Promise.all([
+      context.app.inject({
+        method: "GET",
+        url: "/v1/garden/state",
+        headers
+      }),
+      context.app.inject({
+        method: "GET",
+        url: "/v1/garden/state",
+        headers
+      })
+    ]);
+
+    expect(firstResponse.statusCode).toBe(200);
+    expect(secondResponse.statusCode).toBe(200);
+
+    const plotCount = await context.prisma.gardenPlot.count({
+      where: {
+        playerId: guest.body.playerId
+      }
+    });
+    const seedCount = await context.prisma.gardenInventoryEntry.count({
+      where: {
+        playerId: guest.body.playerId,
+        kind: "seed"
+      }
+    });
+
+    expect(plotCount).toBe(5);
+    expect(seedCount).toBe(5);
+  });
+
   it("plants seeds, tracks phases, and keeps starter seeds available", async () => {
     const guest = await loginAsGuest(context.app);
     const headers = authHeaders(guest.body.accessToken);
@@ -161,6 +197,74 @@ describe("garden routes", () => {
     });
     expect(playerState.statusCode).toBe(200);
     expect(playerState.json().inventory.some((item: { itemCode: string }) => item.itemCode === "ingredient_bloodleaf")).toBe(false);
+  });
+
+  it("grants bloom harvest ingredients only once under concurrent harvest requests", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await context.app.inject({
+      method: "GET",
+      url: "/v1/garden/state",
+      headers
+    });
+
+    await context.app.inject({
+      method: "POST",
+      url: "/v1/garden/slots/1/plant",
+      headers,
+      payload: {
+        plantId: "bloodleaf"
+      }
+    });
+
+    const nowMs = Date.now();
+    await context.prisma.gardenPlot.update({
+      where: {
+        playerId_slotIndex: {
+          playerId: guest.body.playerId,
+          slotIndex: 1
+        }
+      },
+      data: {
+        plantedAt: new Date(nowMs - 5_000),
+        growthEndsAt: new Date(nowMs - 4_000),
+        bloomStartsAt: new Date(nowMs - 1_000),
+        bloomEndsAt: new Date(nowMs + 4_000),
+        wiltAt: new Date(nowMs + 9_000)
+      }
+    });
+
+    const [firstResponse, secondResponse] = await Promise.all([
+      context.app.inject({
+        method: "POST",
+        url: "/v1/garden/slots/1/harvest",
+        headers,
+        payload: {}
+      }),
+      context.app.inject({
+        method: "POST",
+        url: "/v1/garden/slots/1/harvest",
+        headers,
+        payload: {}
+      })
+    ]);
+
+    const statusCodes = [firstResponse.statusCode, secondResponse.statusCode];
+    expect(statusCodes.filter((statusCode) => statusCode === 200)).toHaveLength(1);
+    expect(statusCodes.some((statusCode) => statusCode === 400 || statusCode === 409)).toBe(true);
+
+    const ingredientEntry = await context.prisma.gardenInventoryEntry.findUnique({
+      where: {
+        playerId_plantId_kind: {
+          playerId: guest.body.playerId,
+          plantId: "bloodleaf",
+          kind: "ingredient"
+        }
+      }
+    });
+
+    expect(ingredientEntry?.quantity).toBe(4);
   });
 
   it("rejects harvesting wilted crops and allows clearing them", async () => {

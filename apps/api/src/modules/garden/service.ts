@@ -74,63 +74,39 @@ async function assertPlayerExists(prisma: GardenDbClient, playerId: string): Pro
 async function ensureGardenBootstrapped(prisma: GardenDbClient, playerId: string): Promise<void> {
   await assertPlayerExists(prisma, playerId);
 
-  const [plots, inventoryEntries] = await Promise.all([
-    prisma.gardenPlot.findMany({
-      where: { playerId },
-      select: { slotIndex: true }
-    }),
-    prisma.gardenInventoryEntry.findMany({
-      where: { playerId, kind: "seed" },
-      select: { plantId: true, quantity: true }
-    })
-  ]);
+  await prisma.gardenPlot.createMany({
+    data: Array.from({ length: MAX_GARDEN_SLOT_COUNT }, (_, index) => ({
+      playerId,
+      slotIndex: index + 1
+    })),
+    skipDuplicates: true
+  });
 
-  const existingSlotIndexes = new Set(plots.map((plot) => plot.slotIndex));
-  const missingSlotIndexes = Array.from({ length: MAX_GARDEN_SLOT_COUNT }, (_, index) => index + 1)
-    .filter((slotIndex) => !existingSlotIndexes.has(slotIndex));
+  await prisma.gardenInventoryEntry.createMany({
+    data: starterGardenPlantIds.map((plantId) => ({
+      playerId,
+      plantId,
+      kind: "seed",
+      quantity: STARTER_GARDEN_SEED_QUANTITY
+    })),
+    skipDuplicates: true
+  });
 
-  if (missingSlotIndexes.length > 0) {
-    await prisma.gardenPlot.createMany({
-      data: missingSlotIndexes.map((slotIndex) => ({
-        playerId,
-        slotIndex
-      }))
-    });
-  }
-
-  const seedEntriesByPlantId = new Map(inventoryEntries.map((entry) => [entry.plantId as GardenPlantId, entry.quantity]));
-  const missingStarterSeedPlantIds = starterGardenPlantIds.filter((plantId) => !seedEntriesByPlantId.has(plantId));
-  const depletedStarterSeedPlantIds = starterGardenPlantIds.filter(
-    (plantId) => (seedEntriesByPlantId.get(plantId) ?? 0) < STARTER_GARDEN_SEED_QUANTITY
-  );
-
-  if (missingStarterSeedPlantIds.length > 0) {
-    await prisma.gardenInventoryEntry.createMany({
-      data: missingStarterSeedPlantIds.map((plantId) => ({
-        playerId,
-        plantId,
-        kind: "seed",
-        quantity: STARTER_GARDEN_SEED_QUANTITY
-      }))
-    });
-  }
-
-  if (depletedStarterSeedPlantIds.length > 0) {
-    await Promise.all(depletedStarterSeedPlantIds.map((plantId) =>
-      prisma.gardenInventoryEntry.update({
-        where: {
-          playerId_plantId_kind: {
-            playerId,
-            plantId,
-            kind: "seed"
-          }
-        },
-        data: {
-          quantity: STARTER_GARDEN_SEED_QUANTITY
-        }
-      })
-    ));
-  }
+  await prisma.gardenInventoryEntry.updateMany({
+    where: {
+      playerId,
+      kind: "seed",
+      plantId: {
+        in: Array.from(starterGardenPlantIds)
+      },
+      quantity: {
+        lt: STARTER_GARDEN_SEED_QUANTITY
+      }
+    },
+    data: {
+      quantity: STARTER_GARDEN_SEED_QUANTITY
+    }
+  });
 }
 
 function mapInventoryEntry(entry: GardenInventoryRecord) {
@@ -272,6 +248,38 @@ async function clearPlot(prisma: GardenDbClient, playerId: string, slotIndex: nu
   });
 }
 
+async function claimPlotForHarvest(
+  prisma: GardenDbClient,
+  playerId: string,
+  slotIndex: number,
+  plot: GardenPlotRecord
+): Promise<void> {
+  const result = await prisma.gardenPlot.updateMany({
+    where: {
+      playerId,
+      slotIndex,
+      plantId: plot.plantId,
+      plantedAt: plot.plantedAt,
+      growthEndsAt: plot.growthEndsAt,
+      bloomStartsAt: plot.bloomStartsAt,
+      bloomEndsAt: plot.bloomEndsAt,
+      wiltAt: plot.wiltAt
+    },
+    data: {
+      plantId: null,
+      plantedAt: null,
+      growthEndsAt: null,
+      bloomStartsAt: null,
+      bloomEndsAt: null,
+      wiltAt: null
+    }
+  });
+
+  if (result.count !== 1) {
+    throw new GardenError("PLOT_ALREADY_CHANGED", 409, "This plot changed before harvest completed.");
+  }
+}
+
 export async function getGardenState(prisma: GardenDbClient, playerId: string): Promise<GardenStateResponse> {
   await ensureGardenBootstrapped(prisma, playerId);
   return loadGardenStateInternal(prisma, playerId, new Date());
@@ -354,6 +362,7 @@ export async function harvestGardenPlot(
       throw new GardenError("PLANT_NOT_READY", 409, "This plant is not ready to harvest.");
     }
 
+    await claimPlotForHarvest(tx, playerId, slotIndex, plot);
     await addGardenInventoryQuantity({
       prisma: tx,
       playerId,
@@ -361,7 +370,6 @@ export async function harvestGardenPlot(
       kind: "ingredient",
       quantity
     });
-    await clearPlot(tx, playerId, slotIndex);
 
     const garden = await loadGardenStateInternal(tx, playerId, now);
     const definition = getGardenPlantDefinition(plantId);

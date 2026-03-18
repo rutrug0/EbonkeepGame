@@ -179,7 +179,16 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
+  const [serverClockOffsetMs, setServerClockOffsetMs] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
+
+  function syncServerClock(serverTime: string) {
+    const receivedAtMs = Date.now();
+    const nextServerClockOffsetMs = Date.parse(serverTime) - receivedAtMs;
+
+    setServerClockOffsetMs(nextServerClockOffsetMs);
+    setNowMs(receivedAtMs + nextServerClockOffsetMs);
+  }
 
   const loadState = useEffectEvent(async (isInitialLoad = false) => {
     if (isInitialLoad) {
@@ -200,7 +209,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
       startTransition(() => {
         setGardenState(state);
         setSelectedSlotIndex((current) => getDefaultSelectedSlotIndex(state, current));
-        setNowMs(Date.parse(state.serverTime));
+        syncServerClock(state.serverTime);
       });
       setError(null);
     } catch (nextError) {
@@ -218,13 +227,13 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
-      setNowMs(Date.now());
+      setNowMs(Date.now() + serverClockOffsetMs);
     }, 1_000);
 
     return () => {
       window.clearInterval(timerId);
     };
-  }, []);
+  }, [serverClockOffsetMs]);
 
   const plots = (gardenState?.plots ?? []).map((plot) => deriveLivePlotState(plot, nowMs));
   const seedEntries = (gardenState?.inventory ?? []).filter((entry) => entry.kind === "seed");
@@ -248,6 +257,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
       const response = await plantGardenSeed(token, slotIndex, { plantId });
       setGardenState(response.garden);
       setSelectedSlotIndex(getDefaultSelectedSlotIndex(response.garden, null));
+      syncServerClock(response.garden.serverTime);
       setError(null);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("gardenPanel.unavailable"));
@@ -271,6 +281,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
       setSelectedSlotIndex((current) =>
         current === slotIndex ? getDefaultSelectedSlotIndex(response.garden, current) : current
       );
+      syncServerClock(response.garden.serverTime);
       setError(null);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("gardenPanel.unavailable"));
@@ -292,6 +303,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
       const response = await clearGardenPlot(token, slotIndex);
       setGardenState(response.garden);
       setSelectedSlotIndex((current) => current === slotIndex ? response.clearedSlotIndex : current);
+      syncServerClock(response.garden.serverTime);
       setError(null);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("gardenPanel.unavailable"));
