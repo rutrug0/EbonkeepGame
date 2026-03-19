@@ -35,6 +35,7 @@ import {
   getPlayerAcademyEffectTotals,
   type AcademyEffectTotals
 } from "../academy/effects.js";
+import { assertJobsActivityIdle } from "../jobs/service.js";
 import { buildPlayerActorSnapshot, simulateCombat } from "../contracts/simulator.js";
 import { CHEAT_FAST_ARENA_REPLENISH_DURATION_MS } from "../player/cheat-service.js";
 import { loadPlayerState } from "../player/state-service.js";
@@ -620,6 +621,7 @@ export async function getArenaState(prisma: PrismaClient, playerId: string): Pro
 
 export async function findArenaOpponents(prisma: PrismaClient, playerId: string): Promise<ArenaStateResponse> {
   await prisma.$transaction(async (tx) => {
+    await assertJobsActivityIdle(tx as ArenaDbClient, playerId);
     const { playerState, entry, academyEffects } = await loadPlayerArenaContext(tx as ArenaDbClient, playerId);
     const now = new Date();
     const offerCount = getEffectiveArenaOfferCount(ARENA_OFFER_COUNT, academyEffects);
@@ -726,6 +728,7 @@ function buildArenaEncounter(args: {
 
 export async function fightArenaOffer(prisma: PrismaClient, playerId: string, offerId: string): Promise<ArenaMatchResult> {
   return prisma.$transaction(async (tx) => {
+    await assertJobsActivityIdle(tx as ArenaDbClient, playerId);
     const { playerState, playerName, entry, academyEffects } = await loadPlayerArenaContext(tx as ArenaDbClient, playerId);
     const now = new Date();
     const normalizedEntry = await clearExpiredArenaOffersIfNeeded(tx as ArenaDbClient, entry, now);

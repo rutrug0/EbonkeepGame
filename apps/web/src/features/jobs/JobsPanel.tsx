@@ -31,6 +31,7 @@ type JobsPanelProps = {
   hasPlayerState: boolean;
   currentDucats: number;
   playerLevel: number | null;
+  developerToolsEnabled: boolean;
   onGrantDucats: (amount: number) => void;
   onLockReleaseAtChange: (releaseAtMs: number | null) => void;
 };
@@ -199,7 +200,7 @@ function JobCard(props: {
 }
 
 export function JobsPanel(props: JobsPanelProps): ReactElement {
-  const { token, hasPlayerState, currentDucats, playerLevel, onGrantDucats, onLockReleaseAtChange } = props;
+  const { token, hasPlayerState, currentDucats, playerLevel, developerToolsEnabled, onGrantDucats, onLockReleaseAtChange } = props;
   const [jobsState, setJobsState] = useState<JobsStateResponse | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [durationHours, setDurationHours] = useState<number>(DEFAULT_DURATION_HOURS);
@@ -328,6 +329,7 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
   const activeTemplate = activeRunRuntime ? JOB_TEMPLATES_BY_ID[activeRunRuntime.jobId] ?? null : null;
   const activeFocusOptions = activeTemplate?.focusOptions ?? [];
   const isRunComplete = activeRunRuntime ? activeCompletedHours >= activeRunRuntime.durationHours : false;
+  const canInterruptActiveRun = Boolean(activeRunRuntime) && !isRunComplete;
 
   async function runMutation(action: () => Promise<{ jobs: JobsStateResponse; ducatsGranted: number }>, successMessage?: string) {
     if (!token) {
@@ -474,7 +476,7 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
                       body={
                         <>
                           <p>This is only a preview of possible bonuses for the selected job.</p>
-                          <p>Longer runs unlock 1-2 charges during the shift.</p>
+                          <p>Longer runs unlock up to 3 charges during the shift.</p>
                           <p>You lock them later in Active Run after reaching the required completed hours.</p>
                           {selectedEntry.template.focusOptions.map((option) => (
                             <span key={option.id} className="jobsBonusPreviewPopupItem">
@@ -537,12 +539,14 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
             </div>
 
             <div className="jobsRewardPreviewGrid">
-              <div className="jobsPreviewCard jobsSetupPreviewCard">
-                <div className="jobsPreviewHeader">
-                  <strong>Interrupt now</strong>
+              {canInterruptActiveRun ? (
+                <div className="jobsPreviewCard jobsSetupPreviewCard">
+                  <div className="jobsPreviewHeader">
+                    <strong>Interrupt now</strong>
+                  </div>
+                  <RewardChipRow bundle={activeInterruptRewards} />
                 </div>
-                <RewardChipRow bundle={activeInterruptRewards} />
-              </div>
+              ) : null}
               <div className="jobsPreviewCard jobsSetupPreviewCard">
                 <div className="jobsPreviewHeader">
                   <strong>Finish clean</strong>
@@ -616,19 +620,21 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
             </details>
 
             <div className="jobsActionRow">
-              <button
-                type="button"
-                className="jobsActionButton jobsActionButtonDanger"
-                disabled={isMutating}
-                onClick={() =>
-                  runMutation(
-                    () => claimJobsRunApi(token!, { claimType: "interrupted" }),
-                    `${jobsState.activeRun?.jobName ?? "Job"} interrupted.`
-                  )
-                }
-              >
-                Interrupt
-              </button>
+              {canInterruptActiveRun ? (
+                <button
+                  type="button"
+                  className="jobsActionButton jobsActionButtonDanger"
+                  disabled={isMutating}
+                  onClick={() =>
+                    runMutation(
+                      () => claimJobsRunApi(token!, { claimType: "interrupted" }),
+                      `${jobsState.activeRun?.jobName ?? "Job"} interrupted.`
+                    )
+                  }
+                >
+                  Interrupt
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="jobsActionButton jobsActionButtonPrimary"
@@ -644,30 +650,32 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
               </button>
             </div>
 
-            <details className="jobsFoldout">
-              <summary className="jobsFoldoutSummary">
-                <span>Prototype Controls</span>
-                <span className="jobsFoldoutHint">Fast test</span>
-              </summary>
-              <div className="jobsFoldoutBody jobsPrototypeButtons">
-                <button
-                  type="button"
-                  className="jobsPrototypeButton"
-                  disabled={isMutating}
-                  onClick={() => runMutation(() => advanceJobsDebugApi(token!, { hours: 1 }))}
-                >
-                  +1h
-                </button>
-                <button
-                  type="button"
-                  className="jobsPrototypeButton"
-                  disabled={isMutating}
-                  onClick={() => runMutation(() => advanceJobsDebugApi(token!, { hours: activeRunRuntime.durationHours }))}
-                >
-                  Complete now
-                </button>
-              </div>
-            </details>
+            {developerToolsEnabled ? (
+              <details className="jobsFoldout">
+                <summary className="jobsFoldoutSummary">
+                  <span>Prototype Controls</span>
+                  <span className="jobsFoldoutHint">Fast test</span>
+                </summary>
+                <div className="jobsFoldoutBody jobsPrototypeButtons">
+                  <button
+                    type="button"
+                    className="jobsPrototypeButton"
+                    disabled={isMutating}
+                    onClick={() => runMutation(() => advanceJobsDebugApi(token!, { hours: 1 }))}
+                  >
+                    +1h
+                  </button>
+                  <button
+                    type="button"
+                    className="jobsPrototypeButton"
+                    disabled={isMutating}
+                    onClick={() => runMutation(() => advanceJobsDebugApi(token!, { hours: activeRunRuntime.durationHours }))}
+                  >
+                    Complete now
+                  </button>
+                </div>
+              </details>
+            ) : null}
           </div>
         ) : null}
 

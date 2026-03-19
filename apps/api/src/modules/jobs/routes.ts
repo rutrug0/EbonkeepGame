@@ -79,7 +79,7 @@ export const jobsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/v1/jobs/debug/advance", { preHandler: fastify.authenticate }, async (request, reply) => {
+  fastify.post("/v1/jobs/debug/advance", { preHandler: fastify.requireDeveloperTools }, async (request, reply) => {
     try {
       const body = advanceJobsDebugBodySchema.parse(request.body ?? {});
       return reply.send(jobsMutationResponseSchema.parse(await advanceJobsDebug(fastify.prisma, request.user.playerId, body.hours)));

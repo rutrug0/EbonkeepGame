@@ -22,11 +22,12 @@ import {
   type RewardBundle
 } from "@ebonkeep/shared/jobs";
 
-type JobsDbClient = PrismaClient | Prisma.TransactionClient;
+export type JobsDbClient = PrismaClient | Prisma.TransactionClient;
 
 const JOBS_EVENT_CODE = "jobs_state_v1";
 const JOBS_HISTORY_LIMIT = 8;
 const JOBS_DAILY_REROLLS = 2;
+export const JOBS_ACTIVITY_LOCKED_MESSAGE = "Finish the active job before starting another activity.";
 
 type PersistedJobsState = {
   boardCycle: number;
@@ -276,6 +277,17 @@ function assertBoardHasJob(state: PersistedJobsState, now: Date, jobId: string) 
   }
 }
 
+export async function assertJobsActivityIdle(prisma: JobsDbClient, playerId: string, now = new Date()): Promise<void> {
+  const state = await loadPersistedState(prisma, playerId, now);
+  if (!state.activeRun) {
+    return;
+  }
+
+  if (buildRunReleaseAtMs(state.activeRun) > now.getTime()) {
+    throw new JobsError("ACTIVITY_LOCKED", 409, JOBS_ACTIVITY_LOCKED_MESSAGE);
+  }
+}
+
 export async function getJobsState(prisma: PrismaClient, playerId: string): Promise<JobsStateResponse> {
   const now = new Date();
   await assertPlayerExists(prisma, playerId);
@@ -410,6 +422,9 @@ export async function claimJobsRun(
     }
 
     const isComplete = getCompletedHours(state.activeRun, now.getTime()) >= state.activeRun.durationHours;
+    if (claimType === "interrupted" && isComplete) {
+      throw new JobsError("RUN_ALREADY_COMPLETE", 409, "This job is already complete. Claim the full rewards instead.");
+    }
     if (claimType === "completed" && !isComplete) {
       throw new JobsError("RUN_NOT_COMPLETE", 409, "This job is not complete yet.");
     }

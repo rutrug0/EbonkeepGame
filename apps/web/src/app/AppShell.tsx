@@ -5177,6 +5177,7 @@ export function AppShell() {
             hasPlayerState={Boolean(playerState)}
             currentDucats={currencies?.ducats ?? playerState?.currency.ducats ?? 0}
             playerLevel={playerState?.level ?? null}
+            developerToolsEnabled={Boolean(accountInfo?.developerToolsEnabled)}
             onGrantDucats={handleJobsDucatsGain}
             onLockReleaseAtChange={setJobsLockReleaseAtMs}
           />

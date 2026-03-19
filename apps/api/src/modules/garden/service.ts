@@ -21,6 +21,7 @@ import {
   type HarvestGardenPlotResponse,
   type PlantGardenSeedResponse
 } from "@ebonkeep/shared/garden";
+import { assertJobsActivityIdle } from "../jobs/service.js";
 
 type GardenDbClient = PrismaClient | Prisma.TransactionClient;
 const LEGACY_INFINITE_GARDEN_SEED_QUANTITY = 5;
@@ -352,6 +353,7 @@ export async function plantGardenSeed(
   const timing = buildGardenPlotTiming(plantId, now);
 
   const garden = await prisma.$transaction(async (tx) => {
+    await assertJobsActivityIdle(tx, playerId, now);
     await ensureGardenBootstrapped(tx, playerId);
 
     const plot = await getRequiredPlot(tx, playerId, slotIndex);
