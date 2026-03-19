@@ -132,6 +132,7 @@ import {
 import { ImperialShop, MerchantPanel } from "../features/economy";
 import { ArenaPanel } from "../features/arena";
 import { GardenPanel } from "../features/garden";
+import { RefineryPanel } from "../features/refinery";
 import { GuildPanel } from "../features/guild";
 import { Leaderboard } from "../features/leaderboard";
 import {
@@ -5127,12 +5128,12 @@ export function AppShell() {
         return renderMerchantPanel();
       case "shop":
         return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
-      case "garden":
-        return <GardenPanel token={token} />;
-      case "apothecary":
-        return renderPlaceholderPanel(i18n.t("menu.apothecary"), i18n.t("placeholders.apothecary"));
-      case "workshop":
-        return renderPlaceholderPanel(i18n.t("menu.workshop"), i18n.t("placeholders.workshop"));
+    case "garden":
+      return <GardenPanel token={token} />;
+    case "refinery":
+      return <RefineryPanel token={token} />;
+    case "forge":
+      return renderPlaceholderPanel(i18n.t("menu.forge"), i18n.t("placeholders.forge"));
       case "leaderboards":
         return <Leaderboard token={token} currentPlayerId={playerState?.playerId ?? null} />;
       case "settings":

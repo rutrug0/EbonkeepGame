@@ -7232,6 +7232,24 @@ button:focus-visible {
   }
 }
 
+@keyframes refinerySlotPulse {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  22% {
+    transform: translate3d(-1px, 0, 0) scale(1.01) rotate(-1.6deg);
+  }
+  44% {
+    transform: translate3d(1.5px, -1px, 0) scale(1.02) rotate(1.5deg);
+  }
+  68% {
+    transform: translate3d(-1px, -2px, 0) scale(0.98) rotate(-1deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+
 
 .gardenStatusMessage {
   margin: 0;
@@ -7259,5 +7277,544 @@ button:focus-visible {
 
   .gardenSeedGrid {
     justify-content: center;
+  }
+}
+
+.refineryViewportShell {
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.refineryViewportStack {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.refineryViewportStack > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.refineryPanelCard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: 1.25rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.refineryCraftInventoryBar {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  min-height: 76px;
+  margin: 0 4%;
+  padding: 12px 0;
+  border-radius: 16px;
+  background: rgba(5, 8, 10, 0.3);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+}
+
+.refineryCraftInventoryScroller {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  min-height: 52px;
+  width: 100%;
+  overflow: visible;
+}
+
+.refineryInventoryChip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+  z-index: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.refineryInventoryChipIcon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.refineryInventoryChipIcon img {
+  display: block;
+  width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
+  user-select: none;
+  pointer-events: none;
+}
+
+.refineryInventoryChipIcon span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-main);
+}
+
+.refineryInventoryChipCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.16rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-main);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
+}
+
+.refineryLaneList {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 4%;
+  min-height: 0;
+}
+
+.refineryLaneCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 228px;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.refineryLaneBody {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    calc((var(--inventory-compact-card-width, 92px) * 3) + 1.5rem)
+    minmax(0, 1fr)
+    var(--inventory-compact-card-width, 92px)
+    var(--inventory-compact-card-width, 92px);
+  width: 100%;
+  gap: 0.85rem;
+  align-items: stretch;
+}
+
+.refinerySlotRow {
+  display: grid;
+  grid-template-columns: repeat(3, var(--inventory-compact-card-width, 92px));
+  justify-content: flex-start;
+  gap: 0.75rem;
+}
+
+.refinerySlot {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: var(--inventory-compact-card-width, 92px);
+  max-width: var(--inventory-compact-card-width, 92px);
+  min-width: 0;
+  padding: 0;
+  border-radius: 12px;
+  border: 0;
+  background: none;
+}
+
+.refineryOutputSlot {
+  width: var(--inventory-compact-card-width, 92px);
+  max-width: var(--inventory-compact-card-width, 92px);
+  min-height: 100%;
+}
+
+.refineryOutputSlot.isClaimable {
+  cursor: pointer;
+}
+
+.refineryOutputSlot.isClaimable:hover .refinerySlotVisual,
+.refineryOutputSlot.isClaimable:focus-visible .refinerySlotVisual {
+  border-color: rgba(239, 210, 141, 0.36);
+  box-shadow:
+    inset 0 0 0 1px rgba(239, 210, 141, 0.16),
+    0 0 16px rgba(239, 193, 107, 0.1);
+}
+
+.refineryOutputSlot:focus-visible {
+  outline: none;
+}
+
+.refinerySlotVisual {
+  position: relative;
+  width: 100%;
+  min-height: var(--inventory-compact-card-height, 92px);
+  height: var(--inventory-compact-card-height, 92px);
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 56%), rgba(17, 21, 29, 0.92);
+  overflow: hidden;
+}
+
+.refinerySlot.rarity-common .refinerySlotVisual {
+  border-color: rgba(168, 181, 194, 0.36);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(173, 184, 194, 0.16), transparent 54%),
+    linear-gradient(170deg, rgba(27, 35, 43, 0.92), rgba(17, 24, 31, 0.96));
+}
+
+.refinerySlotVisual img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.refinerySlotVisualContent {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.refinerySlotVisualContent.isInsert:not(.isClaiming) {
+  animation: gardenPlantFadeIn 0.42s ease-out both;
+}
+
+.refinerySlotVisualContent.isPulse:not(.isClaiming) {
+  animation: refinerySlotPulse 0.56s ease-out;
+}
+
+.refineryOutputVisualContent {
+  transform-origin: center center;
+}
+
+.refineryOutputVisualContent.isClaiming {
+  animation: gardenPlantHarvestOut 0.56s ease-out both;
+}
+
+.refinerySlotFallback,
+.refineryRecipeTileIcon,
+.refinerySlotPlaceholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f4ead5;
+  background: rgba(31, 38, 49, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.refinerySlotPlaceholder {
+  width: auto;
+  min-width: 42px;
+  padding: 0 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.refinerySlotCountBadge {
+  position: absolute;
+  right: 0.45rem;
+  bottom: 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  color: var(--text-main);
+  font-size: 1.56rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow:
+    0 2px 4px rgba(3, 5, 8, 0.92),
+    0 0 10px rgba(3, 5, 8, 0.68),
+    0 0 18px rgba(0, 0, 0, 0.4);
+}
+
+.refineryOutputSlot.isClaiming .refinerySlotCountBadge {
+  animation: gardenPlantFadeOut 0.32s ease-out both;
+}
+
+.refineryProgressSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  gap: 0.8rem;
+  min-width: 0;
+  padding: 0.8rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid rgba(220, 198, 156, 0.14);
+  background: rgba(9, 14, 20, 0.72);
+}
+
+.refineryProgressTrack {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(34, 45, 58, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.refineryProgressTrackSecondary {
+  height: 7px;
+  background: rgba(27, 36, 48, 0.92);
+}
+
+.refineryProgressFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(180, 93, 44, 0.98), rgba(239, 193, 107, 0.98));
+  box-shadow: 0 0 18px rgba(239, 193, 107, 0.18);
+}
+
+.refineryProgressFillSecondary {
+  background: linear-gradient(90deg, rgba(94, 132, 198, 0.96), rgba(176, 218, 255, 0.96));
+  box-shadow: 0 0 10px rgba(142, 195, 255, 0.18);
+}
+
+.refineryProgressMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.refineryProgressMeta strong {
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+.refineryLaneActions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: var(--inventory-compact-card-width, 92px);
+}
+
+.refineryRecipesButton {
+  width: var(--inventory-compact-card-width, 92px);
+  min-width: var(--inventory-compact-card-width, 92px);
+  min-height: var(--inventory-compact-card-height, 92px);
+  padding: 0.65rem;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.refineryRecipeMenu {
+  position: absolute;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  z-index: 8;
+  width: min(460px, calc(100vw - 3rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border-radius: 16px;
+  border: 1px solid rgba(225, 204, 162, 0.2);
+  background: linear-gradient(160deg, rgba(14, 18, 25, 0.98), rgba(26, 19, 15, 0.98));
+  box-shadow: 0 26px 58px rgba(0, 0, 0, 0.45);
+}
+
+.refineryRecipeCategoryRow {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-self: flex-start;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: rgba(8, 11, 16, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.refineryRecipeCategoryButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refineryRecipeCategoryButton.isActive {
+  color: #12161d;
+  background: linear-gradient(135deg, #d9c196, #f1dcae);
+}
+
+.refineryRecipeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 0.75rem;
+}
+
+.refineryRecipeTileWrap {
+  min-width: 0;
+}
+
+.refineryRecipeTile {
+  width: 100%;
+  min-height: 158px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(221, 196, 143, 0.16);
+  background: rgba(10, 14, 21, 0.9);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.refineryRecipeTile:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(239, 210, 141, 0.36);
+}
+
+.refineryRecipeTile:disabled,
+.refineryRecipeTileWrap.isDisabled .refineryRecipeTile {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.38);
+}
+
+.refineryRecipeTileName {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.refineryRecipeTileCount {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.refineryRecipeTooltip {
+  width: max-content;
+  min-width: 220px;
+  max-width: 280px;
+}
+
+.refineryRecipeRequirement.isSufficient {
+  color: #9ee1b0;
+}
+
+.refineryRecipeRequirement.isInsufficient {
+  color: #ef9a9a;
+}
+
+.refineryPanelHint {
+  margin: auto 0 0;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.refinerySlot.tone-garden .refinerySlotFallback,
+.refineryInventoryChip.tone-garden .refineryInventoryChipIcon {
+  background: linear-gradient(135deg, rgba(64, 98, 57, 0.95), rgba(105, 137, 75, 0.95));
+}
+
+.refinerySlot.tone-reagent .refinerySlotFallback,
+.refineryInventoryChip.tone-reagent .refineryInventoryChipIcon,
+.refineryRecipeTile.tone-potion .refineryRecipeTileIcon {
+  background: linear-gradient(135deg, rgba(71, 84, 118, 0.95), rgba(111, 143, 191, 0.95));
+}
+
+.refinerySlot.tone-scrap .refinerySlotFallback,
+.refineryInventoryChip.tone-scrap .refineryInventoryChipIcon,
+.refineryRecipeTile.tone-salvage .refineryRecipeTileIcon {
+  background: linear-gradient(135deg, rgba(104, 84, 60, 0.95), rgba(146, 118, 78, 0.95));
+}
+
+.refinerySlot.tone-potion .refinerySlotFallback,
+.refineryInventoryChip.tone-potion .refineryInventoryChipIcon {
+  background: linear-gradient(135deg, rgba(123, 69, 77, 0.95), rgba(181, 107, 120, 0.95));
+}
+
+.refinerySlot.tone-salvage .refinerySlotFallback,
+.refineryInventoryChip.tone-salvage .refineryInventoryChipIcon {
+  background: linear-gradient(135deg, rgba(112, 88, 53, 0.95), rgba(179, 145, 81, 0.95));
+}
+
+@media (max-width: 1180px) {
+  .refineryLaneCard {
+    max-height: none;
+  }
+
+  .refineryLaneBody {
+    grid-template-columns: 1fr;
+  }
+
+  .refineryLaneActions {
+    justify-content: flex-start;
+  }
+
+  .refineryRecipeMenu {
+    left: 0;
+    right: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .refinerySlotRow {
+    grid-template-columns: repeat(3, var(--inventory-compact-card-width, 92px));
+  }
+
+  .refineryRecipeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .refineryRecipeMenu {
+    width: min(100vw - 2.4rem, 420px);
   }
 }

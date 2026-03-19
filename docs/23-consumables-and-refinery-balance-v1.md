@@ -1,15 +1,15 @@
-# Consumables and Apothecary Balance v1
+# Consumables and Refinery Balance v1
 
 ## Purpose
 Define a concrete v1 consumables design for Ebonkeep that:
 - keeps early-game potion play simple
 - expands herb and potion variety across level bands
 - uses exactly `3` ingredients per recipe
-- requires exactly `2` ingredients from the Apothecary Garden
+- requires exactly `2` ingredients from the Garden
 - requires exactly `1` ingredient from contracts, missions, shops, or elite drops
 - creates meaningful resource-allocation tension instead of linear "craft best potion" behavior
 
-This document extends the Garden and Stillroom foundation in [16-non-combat-progression-systems.md](./16-non-combat-progression-systems.md).
+This document extends the Garden and Refinery foundation in [16-non-combat-progression-systems.md](./16-non-combat-progression-systems.md).
 
 ## Core Assumptions
 - Consumables are primarily potions, draughts, philters, and tonics.
@@ -19,6 +19,7 @@ This document extends the Garden and Stillroom foundation in [16-non-combat-prog
 - `Efficiency` potions use real-time duration in hours and are intentionally expensive.
 - `Cleansing` may remove persistent afflictions that survive combat or provide short-run resistance to new afflictions.
 - The first implemented Garden slice uses only `5` starter herbs with fast development timings; see [24-garden-growth-and-starter-catalog-v1.md](./24-garden-growth-and-starter-catalog-v1.md).
+- v1 consumables are crafted through the Refinery consumables category rather than a separate consumable-only panel.
 
 ## Families
 Consumables are split into `4` families:
@@ -38,7 +39,7 @@ Every potion recipe uses:
 - `2` Garden ingredients
 - `1` Contract ingredient
 
-This structure is locked for v1 to keep the Stillroom readable and to ensure contracts remain relevant to crafting.
+This structure is locked for v1 to keep the Refinery consumables branch readable and to ensure contracts remain relevant to crafting.
 
 ## Scarcity Model
 Use internal crafting-point values to tune recipe cost before final economy numbers:
@@ -84,7 +85,7 @@ Early-game rule:
 
 Garden v1 note:
 - the initial Garden runtime ships only these `4` common herbs plus `Kingsfoil`
-- Emberbud, Shadecap, Gravebloom, and Sunspike remain future Garden expansions even though their apothecary roles are already planned here
+- Emberbud, Shadecap, Gravebloom, and Sunspike remain future Garden expansions even though their refinery roles are already planned here
 
 ### Level 15-29 Herbs
 
@@ -105,7 +106,7 @@ Garden v1 note:
 
 | Reagent | Rarity | Main use |
 |---|---|---|
-| Binder Salts | common | basic stillroom binding reagent |
+| Binder Salts | common | basic refinery binding reagent |
 | Ward Resin | uncommon | stable prep and greater recovery |
 | Black Ichor | uncommon | cleansing and affliction-related brews |
 | Aether Catalyst | rare | efficiency and top-end compounds |
@@ -211,7 +212,7 @@ Recommended efficiency effects:
 
 Reasoning:
 - XP potions quickly become mandatory-feeling
-- contract-focused efficiency better fits the project’s timer-and-session identity
+- contract-focused efficiency better fits the project's timer-and-session identity
 
 ## Resource-Allocation Tension Map
 The potion economy should be intentionally overlapping.
@@ -257,12 +258,3 @@ Implement in this order:
 4. Efficiency potions
 
 This preserves early-game clarity while keeping the full system direction intact.
-
-## Defaults Chosen
-- `3` ingredients per recipe, locked
-- `2` herbs from Garden + `1` contract reagent, locked
-- `4` potion families, locked
-- prep duration: next `3` contracts
-- efficiency duration: `2h`
-- no in-combat manual potion use in v1
-- more herbs and recipes unlock as level bands rise

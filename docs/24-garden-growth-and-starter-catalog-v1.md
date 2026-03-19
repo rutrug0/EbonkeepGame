@@ -8,7 +8,7 @@ Define the first implemented Garden slice for Estate:
 - seed-only Garden inventory
 - harvest timing that rewards bloom windows without adding care actions yet
 
-This document intentionally describes the narrow runtime slice that exists before contracts seed rewards, slot unlocks, and apothecary seed conversion are implemented.
+This document intentionally describes the narrow runtime slice that exists before contracts seed rewards, slot unlocks, and refinery seed conversion are implemented.
 
 ## Scope
 Included in Garden v1:
@@ -16,13 +16,13 @@ Included in Garden v1:
 - starter seed bootstrap on first Garden load
 - planting, harvesting, and clearing wilted crops
 - countdown and progress display for each phase
-- ingredient persistence for future apothecary use
+- ingredient persistence for future refinery use
 
 Explicitly deferred:
 - plot unlock progression
 - watering, pruning, blight, or other care actions
 - seed rewards from contracts or jobs
-- apothecary recipes that turn plants back into seeds
+- refinery recipes that turn plants back into seeds
 - a dedicated harvested-ingredient inventory panel
 
 ## Lifecycle
@@ -48,7 +48,7 @@ Rules:
 
 ## Starter Catalog
 
-| Plant | Rarity | Seed item code | Ingredient item code | Growth | Pre-bloom | Bloom | Post-bloom | Base yield | Bloom yield | Apothecary references |
+| Plant | Rarity | Seed item code | Ingredient item code | Growth | Pre-bloom | Bloom | Post-bloom | Base yield | Bloom yield | Refinery recipe references |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|---|
 | Bloodleaf | common | `seed_bloodleaf` | `ingredient_bloodleaf` | `90s` | `30s` | `60s` | `60s` | `2` | `4` | Field Tonic, Healing Potion, Warden's Draft |
 | Fenroot | common | `seed_fenroot` | `ingredient_fenroot` | `120s` | `30s` | `60s` | `60s` | `2` | `4` | Field Tonic |
@@ -84,7 +84,7 @@ It is converted by `tools/generate_garden_catalog.mjs` into the shared runtime c
 
 ## Follow-Up Work
 - replace starter bootstrap with contract/job seed sources
-- introduce seed conversion recipes in Apothecary
+- introduce seed conversion recipes in the Refinery
 - add additional herbs beyond the starter five
 - add plot progression and care actions
 - decide whether harvested ingredients need a dedicated Estate inventory surface

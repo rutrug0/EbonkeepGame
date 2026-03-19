@@ -144,8 +144,7 @@ const RENOWN_NODES: RenownNode[] = [
     icon: "sprout",
     description:
       "Steady patronage keeps beds fertile, water stores filled, and cuttings alive between campaigns.",
-    effect:
-      "Apothecary Garden plots mature slightly faster and suffer less minor yield loss from missed tending windows.",
+    effect: "Garden plots mature slightly faster and suffer less minor yield loss from missed tending windows.",
     requirements: ["First Charter"],
     cost: 1,
     tier: 1,
@@ -203,13 +202,13 @@ const RENOWN_NODES: RenownNode[] = [
   },
   {
     id: "stillroom_measures",
-    label: "Stillroom Measures",
+    label: "Refinery Measures",
     branch: "Garden",
     tone: "garden",
     icon: "vial",
     description:
-      "Stillroom measures are standardized, reducing waste and keeping every pressing or draught more predictable.",
-    effect: "Stillroom crafting has a small chance to refund part of the ingredient cost on simple consumables.",
+      "Refinery measures are standardized, reducing waste and keeping every pressing or draught more predictable.",
+    effect: "Refinery crafting has a small chance to refund part of the ingredient cost on simple consumables.",
     requirements: ["Garden Patronage"],
     cost: 2,
     tier: 2,
@@ -223,8 +222,7 @@ const RENOWN_NODES: RenownNode[] = [
     branch: "Garden",
     tone: "garden",
     icon: "satchel",
-    description:
-      "Sealed stores keep rare cuttings viable longer, giving your apothecary work more reliable follow-through.",
+    description: "Sealed stores keep rare cuttings viable longer, giving your refinery work more reliable follow-through.",
     effect: "Rare and slow-growing seeds keep better condition while idle and lose less quality from delay.",
     requirements: ["Garden Patronage"],
     cost: 2,
@@ -290,7 +288,7 @@ const RENOWN_NODES: RenownNode[] = [
     description:
       "A better reserve culture keeps stocks of finished tonics ready for the next hard run rather than the last one.",
     effect: "Selected consumable categories can hold slightly deeper reserve caps.",
-    requirements: ["Stillroom Measures", "Seed Vaults"],
+    requirements: ["Refinery Measures", "Seed Vaults"],
     cost: 3,
     tier: 3,
     status: "locked",

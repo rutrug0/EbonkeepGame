@@ -85,8 +85,8 @@
     "merchant": "Merchant",
     "shop": "Imperial Shop",
     "garden": "Garden",
-    "apothecary": "Apothecary",
-    "workshop": "Workshop",
+    "refinery": "Refinery",
+    "forge": "Forge",
     "leaderboards": "Leaderboards",
     "settings": "Settings",
     "logout": "Logout"
@@ -724,8 +724,8 @@
     "auctionHouse": "Marketplace listings will appear here. This is a placeholder panel for the first iteration.",
     "merchant": "Merchant offers, rerolls, and purchases will appear here.",
     "garden": "Cultivate herbs, fungi, and rare botanicals here for your future preparation loops.",
-    "apothecary": "Brew tonics, draughts, and salves here using garden harvests and mission reagents.",
-    "workshop": "Refine battlefield materials and temper equipment here once the workshop systems come online.",
+    "refinery": "Brew tonics, process salvage, and mock recipe queues here using garden harvests and refinement materials.",
+    "forge": "Tempering and future gear-improvement systems will appear here.",
     "leaderboards": "Season rankings and score ladders will appear here.",
     "panelUnavailable": "Panel unavailable."
   },
@@ -1145,12 +1145,12 @@
     "seedBloomYield": "Bloom yield: {{yield}}",
     "seedTooltipSelect": "Click to select",
     "seedTooltipSelected": "Selected",
-    "recipeRefs": "Apothecary uses: {{recipes}}",
+    "recipeRefs": "Refinery uses: {{recipes}}",
     "noSeedsTitle": "No seeds available",
     "noSeedsDescription": "Starter seeds are granted on first load. Future rewards will come from contracts and jobs.",
     "ingredientStashTitle": "Stored Ingredients",
     "ingredientChipLabel": "{{plant}}: {{quantity}}",
-    "ingredientStashCount": "{{count}} harvested stacks stored for future apothecary recipes.",
+    "ingredientStashCount": "{{count}} harvested stacks stored for future refinery recipes.",
     "milestone": {
       "growthDone": "Growth completes in {{duration}}",
       "bloomStarts": "Bloom starts in {{duration}}",
@@ -1169,6 +1169,38 @@
       "planted": "Planted {{plant}} in Slot {{slot}}.",
       "harvested": "Harvested {{count}} {{plant}}.",
       "cleared": "Cleared Slot {{slot}}."
+    }
+  },
+  "refineryPanel": {
+    "loading": "Loading refinery materials...",
+    "unavailable": "Refinery inventory unavailable. Login again to refresh your data.",
+    "subtitle": "Queue mock potion and recycling recipes with shared materials across three active lanes.",
+    "materialStashTitle": "Available Materials",
+    "materialChipLabel": "{{item}}: {{quantity}}",
+    "laneLabel": "Lane {{lane}}",
+    "idleRecipeLabel": "No recipe selected",
+    "recipes": "Recipes",
+    "progressLabel": "Refinery progress",
+    "queueLabel": "{{completed}} / {{total}} crafted",
+    "nextCraftIn": "Next item in {{duration}}",
+    "queueComplete": "Queue complete",
+    "awaitingRecipe": "Awaiting recipe",
+    "inputSlotLabel": "{{item}}: {{quantity}}",
+    "outputSlotLabel": "{{item}}: {{quantity}}",
+    "emptyInput": "Input slot",
+    "emptyOutput": "Output slot",
+    "inputPlaceholder": "IN",
+    "outputPlaceholder": "OUT",
+    "maxCraftable": "{{count}} queued",
+    "noGardenIngredientsHint": "Harvest Garden ingredients to unlock more potion recipes in this mockup.",
+    "status": {
+      "idle": "Idle",
+      "running": "Processing",
+      "complete": "Complete"
+    },
+    "category": {
+      "potions": "Potions",
+      "recycling": "Recycling"
     }
   },
   "renown": {

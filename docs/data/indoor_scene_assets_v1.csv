@@ -1,3 +1,4 @@
 scene_id,ui_surface,scene_name,asset_subpath,notes
 auction_house,auction,Auction House,indoors/auction_house/auction_house.png,Auction tab interior backdrop for the panel shell
 merchant,merchant,Merchant,indoors/merchant/merchant.png,Merchant tab indoor backdrop for the inventory and player grids
+refinery,refinery,Refinery,indoors/refinery/refinery.png,Refinery tab interior backdrop for the panel shell
