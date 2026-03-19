@@ -6312,7 +6312,7 @@ button:focus-visible {
   gap: var(--space-4);
   min-height: 0;
   background: transparent;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .gardenPanelCard::after {
@@ -6351,21 +6351,32 @@ button:focus-visible {
 .gardenRefreshButton,
 .gardenActionButton {
   appearance: none;
-  border: 1px solid rgba(177, 161, 109, 0.34);
+  border: 1px solid rgba(170, 154, 125, 0.26);
   border-radius: var(--soft-radius);
-  background: linear-gradient(180deg, rgba(67, 61, 42, 0.72), rgba(33, 31, 22, 0.96));
+  background:
+    linear-gradient(180deg, rgba(45, 53, 62, 0.74), rgba(24, 29, 35, 0.94)),
+    linear-gradient(135deg, rgba(84, 71, 48, 0.08), rgba(39, 48, 58, 0.08));
   color: var(--text-main);
   padding: 10px 14px;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.04),
+    0 8px 18px rgba(0, 0, 0, 0.16);
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
 
 .gardenRefreshButton:hover,
 .gardenActionButton:hover {
   transform: translateY(-1px);
-  border-color: rgba(211, 193, 129, 0.5);
+  border-color: rgba(197, 178, 140, 0.38);
+  background:
+    linear-gradient(180deg, rgba(50, 59, 69, 0.78), rgba(27, 33, 40, 0.96)),
+    linear-gradient(135deg, rgba(96, 81, 54, 0.1), rgba(43, 52, 61, 0.1));
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.05),
+    0 10px 20px rgba(0, 0, 0, 0.18);
 }
 
 .gardenRefreshButton:disabled,
@@ -6376,8 +6387,10 @@ button:focus-visible {
 }
 
 .gardenActionButtonMuted {
-  border-color: rgba(171, 121, 121, 0.3);
-  background: linear-gradient(180deg, rgba(63, 39, 39, 0.72), rgba(29, 19, 19, 0.96));
+  border-color: rgba(140, 104, 104, 0.28);
+  background:
+    linear-gradient(180deg, rgba(55, 40, 42, 0.74), rgba(30, 22, 24, 0.96)),
+    linear-gradient(135deg, rgba(90, 56, 56, 0.08), rgba(44, 31, 34, 0.08));
 }
 
 .gardenLayout {
@@ -6386,6 +6399,98 @@ button:focus-visible {
   gap: var(--space-4);
   min-height: 0;
   height: 100%;
+}
+
+.gardenIngredientInventoryBar {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  min-height: 76px;
+  margin: 0;
+  padding: 12px 0;
+  border-radius: 16px;
+  background: rgba(5, 8, 10, 0.3);
+  backdrop-filter: blur(6px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 18px rgba(0, 0, 0, 0.12);
+}
+
+.gardenIngredientInventoryScroller {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  min-height: 52px;
+  width: 100%;
+  overflow: visible;
+}
+
+.gardenIngredientInventoryItem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+  z-index: 1;
+}
+
+.gardenIngredientInventoryIcon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.gardenIngredientInventoryIcon img {
+  display: block;
+  width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
+  user-select: none;
+  pointer-events: none;
+}
+
+.gardenIngredientInventoryIcon-positive {
+  animation: gardenIngredientIconPositive 0.58s ease-out;
+}
+
+.gardenIngredientFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-main);
+}
+
+.gardenIngredientInventoryCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.16rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-main);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.24);
+}
+
+.gardenIngredientTooltip {
+  min-width: 0;
+  width: max-content;
+  max-width: 180px;
+  padding: 8px 10px;
+  z-index: 120;
 }
 
 .gardenPlotsColumn,
@@ -6462,7 +6567,8 @@ button:focus-visible {
   appearance: none;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  align-items: center;
   gap: var(--space-2);
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -6542,6 +6648,7 @@ button:focus-visible {
   border: none;
   background: transparent;
   overflow: visible;
+  margin-top: auto;
 }
 
 .gardenPlotVisual::before {
@@ -6623,8 +6730,8 @@ button:focus-visible {
 }
 
 .gardenPlantImage.phase-growing {
-  width: min(100%, 99px);
-  max-height: 99px;
+  width: min(100%, 74px);
+  max-height: 74px;
 }
 
 .gardenPlantImage.fx-enter,
@@ -6684,35 +6791,54 @@ button:focus-visible {
   padding: 0 8px 8px;
 }
 
-.gardenProgressBlock {
+.gardenPlotProgressDots {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
+  min-height: 16px;
+  margin-top: 8px;
+  margin-bottom: auto;
 }
 
-.gardenProgressTrack {
-  overflow: hidden;
+.gardenPlotProgressDots.isHidden {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.gardenPlotProgressDot {
+  width: 10px;
   height: 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  background: rgba(238, 232, 214, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.16);
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
-.gardenProgressFill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, rgba(120, 170, 96, 0.84), rgba(211, 188, 97, 0.9));
+.gardenPlotProgressDot.isActive {
+  background: linear-gradient(180deg, rgba(142, 208, 104, 0.96), rgba(82, 153, 66, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(235, 255, 224, 0.4),
+    0 0 10px rgba(108, 189, 84, 0.34),
+    0 2px 6px rgba(0, 0, 0, 0.18);
+  transform: scale(1.02);
 }
 
-.gardenProgressFill.isWilted {
-  background: linear-gradient(90deg, rgba(151, 80, 74, 0.92), rgba(94, 33, 33, 0.96));
+.gardenPlotProgressDots.isWilted .gardenPlotProgressDot {
+  background: linear-gradient(180deg, rgba(176, 79, 74, 0.96), rgba(108, 37, 33, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 214, 0.16),
+    0 0 10px rgba(146, 54, 49, 0.26),
+    0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-.gardenProgressMeta {
-  margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: var(--text-soft);
+.gardenPlotProgressDots.fx-harvest-out {
+  animation: gardenPlotDotsHarvestOut 0.52s ease-out both;
 }
 
 .gardenSeedGrid {
@@ -6738,18 +6864,33 @@ button:focus-visible {
   min-height: var(--garden-seed-slot-size);
   padding: 10px;
   border-radius: 18px;
-  border: 1px solid rgba(191, 174, 145, 0.18);
-  background: rgba(11, 14, 13, 0.12);
+  border: 1px solid rgba(171, 156, 128, 0.18);
+  background:
+    linear-gradient(180deg, rgba(24, 30, 34, 0.34), rgba(14, 18, 21, 0.18)),
+    rgba(11, 14, 13, 0.08);
   backdrop-filter: blur(2px);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.03),
+    0 8px 16px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
 }
 
 .gardenSeedSlot:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--accent-focus) 55%, rgba(191, 174, 145, 0.18));
+  border-color: rgba(189, 171, 138, 0.28);
+  background:
+    linear-gradient(180deg, rgba(28, 35, 40, 0.38), rgba(17, 21, 24, 0.22)),
+    rgba(11, 14, 13, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.04),
+    0 10px 18px rgba(0, 0, 0, 0.12);
 }
 
 .gardenSeedSlot:focus-visible {
@@ -6759,11 +6900,13 @@ button:focus-visible {
 
 .gardenSeedSlot.isSelected,
 .gardenSeedSlot[aria-pressed="true"] {
-  border-color: rgba(211, 188, 97, 0.68);
+  border-color: rgba(183, 165, 123, 0.46);
   box-shadow:
-    inset 0 0 0 1px rgba(211, 188, 97, 0.32),
-    0 14px 28px rgba(5, 8, 6, 0.28);
-  background: rgba(26, 32, 27, 0.18);
+    inset 0 0 0 1px rgba(183, 165, 123, 0.2),
+    0 12px 24px rgba(5, 8, 6, 0.2);
+  background:
+    linear-gradient(180deg, rgba(34, 40, 37, 0.42), rgba(19, 23, 21, 0.26)),
+    rgba(18, 22, 19, 0.1);
 }
 
 .gardenSeedEmptyState {
@@ -6797,14 +6940,14 @@ button:focus-visible {
   min-width: 26px;
   padding: 2px 6px;
   border-radius: 999px;
-  background: rgba(7, 10, 8, 0.86);
-  border: 1px solid rgba(191, 174, 145, 0.22);
+  background: rgba(10, 13, 15, 0.76);
+  border: 1px solid rgba(171, 156, 128, 0.18);
   color: var(--text-main);
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 1;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
   pointer-events: none;
 }
 
@@ -6831,7 +6974,7 @@ button:focus-visible {
 .gardenSeedSlot.isSelected .gardenSeedFallback,
 .gardenSeedSlot[aria-pressed="true"] .gardenSeedFallback {
   transform: translate3d(0, -2px, 0) scale(1.08) rotate(2.5deg);
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 8px rgba(211, 188, 97, 0.16));
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 6px rgba(183, 165, 123, 0.12));
 }
 
 .gardenSeedTooltipHeader h4,
@@ -6890,12 +7033,12 @@ button:focus-visible {
 .gardenSeedTooltipBadge {
   flex: 0 0 auto;
   border-radius: 999px;
-  background: rgba(191, 174, 145, 0.1);
+  background: rgba(171, 156, 128, 0.08);
   padding: 5px 9px;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-main);
+  color: var(--text-soft);
 }
 
 .gardenSeedTooltipBody {
@@ -7060,6 +7203,42 @@ button:focus-visible {
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) translateY(-36px) scale(1.02);
+  }
+}
+
+@keyframes gardenPlotDotsHarvestOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes gardenIngredientIconPositive {
+  0% {
+    transform: rotate(0deg);
+  }
+  18% {
+    transform: rotate(-6deg);
+  }
+  38% {
+    transform: rotate(5deg);
+  }
+  58% {
+    transform: rotate(-4deg);
+  }
+  78% {
+    transform: rotate(2deg);
+  }
+  100% {
+    transform: rotate(0deg);
   }
 }
 

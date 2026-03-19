@@ -970,6 +970,7 @@
     "noSeedsTitle": "No seeds available",
     "noSeedsDescription": "Starter seeds are granted on first load. Future rewards will come from contracts and jobs.",
     "ingredientStashTitle": "Stored Ingredients",
+    "ingredientChipLabel": "{{plant}}: {{quantity}}",
     "ingredientStashCount": "{{count}} harvested stacks stored for future apothecary recipes.",
     "milestone": {
       "growthDone": "Growth completes in {{duration}}",
