@@ -556,8 +556,9 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
   function handleRecipeSelect(laneIndex: number, recipe: RefineryRecipe) {
     const lane = laneStates[laneIndex];
     const isClaimingOutput = laneIndex in claimingOutputCountsByLane;
+    const hasUnclaimedOutput = Boolean(lane?.outputCount) || isClaimingOutput;
 
-    if (!lane || lane.status === "running" || isClaimingOutput) {
+    if (!lane || lane.status === "running" || hasUnclaimedOutput) {
       return;
     }
 
@@ -631,6 +632,16 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
       ...current,
       [laneIndex]: claimedCount
     }));
+    setAvailableInventory((current) => {
+      if (!lane.outputItemId) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [lane.outputItemId]: (current[lane.outputItemId] ?? 0) + claimedCount
+      };
+    });
 
     setLaneStates((current) =>
       current.map((entry, entryIndex) =>
@@ -742,6 +753,7 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
             {laneStates.map((lane) => {
               const outputDefinition = lane.outputItemId ? ITEM_DEFINITION_BY_ID[lane.outputItemId] ?? null : null;
               const isClaimingOutput = lane.laneIndex in claimingOutputCountsByLane;
+              const hasUnclaimedOutput = lane.outputCount > 0 || isClaimingOutput;
               const claimingOutputCount = claimingOutputCountsByLane[lane.laneIndex] ?? 0;
               const outputPulseToken = outputPulseTokensByLane[lane.laneIndex] ?? 0;
               const showOutputItem = Boolean(outputDefinition) && (lane.outputCount > 0 || isClaimingOutput);
@@ -867,7 +879,7 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
                         type="button"
                         className="gardenActionButton refineryRecipesButton"
                         onClick={() => toggleLaneMenu(lane.laneIndex, lane.selectedCategory)}
-                        disabled={lane.status === "running" || isClaimingOutput}
+                        disabled={lane.status === "running" || hasUnclaimedOutput}
                         aria-expanded={openMenuLaneIndex === lane.laneIndex}
                       >
                         {t("refineryPanel.recipes")}
@@ -891,7 +903,7 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
                           <div className="refineryRecipeGrid">
                             {activeMenuRecipes.map((recipe) => {
                               const maxCraftable = getMaxCraftable(recipe, availableInventory);
-                              const isDisabled = maxCraftable <= 0;
+                              const isDisabled = maxCraftable <= 0 || hasUnclaimedOutput;
                               const outputItem = ITEM_DEFINITION_BY_ID[recipe.outputItemId] ?? null;
 
                               return (
