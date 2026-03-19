@@ -4,14 +4,13 @@
 Define a player-input-driven non-combat layer that:
 - fills downtime between contracts, missions, arena, and other timers
 - creates additional economy sinks and sources
-- supports consumable preparation and long-tail gear optimization
+- supports consumable preparation, refinement, and long-tail gear optimization
 - adds strategic account planning without requiring direct combat
 
-This document defines four connected systems:
-- Apothecary Garden
-- Stillroom
-- Refinery Bench
-- Tempering
+This document defines three connected systems:
+- Garden
+- Refinery
+- Forge
 
 ## Design Intent
 - These systems should feel like meaningful side progression, not idle filler.
@@ -23,16 +22,14 @@ This document defines four connected systems:
 ## System Relationship Summary
 High-level flow:
 1. Missions, contracts, shops, and events supply seeds, raw materials, reagents, and tempering inputs.
-2. Apothecary Garden grows botanical ingredients over time.
-3. Stillroom converts harvested ingredients into consumables instantly.
-4. Refinery Bench processes raw materials through timed workshop orders into refined components.
-5. Tempering consumes refined components and tempering materials to improve equipped items through a controlled-risk enhancement loop.
+2. Garden grows botanical ingredients over time.
+3. Refinery consumes garden harvests, raw materials, monster reagents, and item-focused materials through recipes. Some recipes are instant; others run as timed jobs.
+4. Forge consumes refined components and tempering materials to improve equipped items through tempering and future item-improvement actions.
 
-## Why These Four Systems Fit Together
-- Apothecary Garden gives an active check-in loop.
-- Stillroom provides immediate payoff after planning and harvesting.
-- Refinery Bench provides timer-driven background progression.
-- Tempering gives a high-tension optimization sink for the outputs of the other systems.
+## Why These Three Systems Fit Together
+- Garden gives an active check-in loop.
+- Refinery provides one readable place for consumable crafting and material processing.
+- Forge gives a high-tension optimization sink for the outputs of the other systems.
 
 Together they add:
 - downtime play
@@ -44,35 +41,33 @@ Together they add:
 These systems sit beside the main combat loop rather than replacing it.
 
 Example 5-minute session:
-- claim workshop orders
-- water or tend planted crops
-- craft 1-2 consumables in the stillroom
-- start a new refinery order
+- claim finished refinery jobs
+- check or harvest planted crops
+- craft 1-2 consumables in the refinery
+- queue one new timed recipe
 - run one contract or mission
 
 Example 15-minute session:
 - harvest mature plots
 - craft a fresh batch of consumables
 - queue new material refinement
-- attempt one tempering action
+- attempt one forge action
 - spend stamina in missions
 
 ## Unlock Philosophy
-- Apothecary Garden unlocks early to teach check-in behavior.
-- Stillroom unlocks immediately with or shortly after the garden.
-- Refinery Bench unlocks after the player has enough mission/contract materials to understand resource conversion.
-- Tempering unlocks later, after the player has stable equipment turnover and understands item rarity/value.
+- Garden unlocks early to teach check-in behavior.
+- Refinery unlocks immediately with or shortly after the garden so harvested plants have a clear first use.
+- Forge unlocks later, after the player has stable equipment turnover and understands item rarity and value.
 
 Suggested unlock pacing:
 - Garden: early game
-- Stillroom: early game, same feature band as garden
-- Refinery Bench: early-mid game
-- Tempering: mid game
+- Refinery: early game, same feature band as garden
+- Forge: mid game
 
-## 1. Apothecary Garden
+## 1. Garden
 
 ### Role
-Grow biological ingredients used for consumables and selected refinement recipes.
+Grow biological ingredients used by Refinery recipes for consumables, catalysts, and future gear-support formulas.
 
 ### Fantasy
 The player maintains a small cultivated plot of herbs, fungi, roots, and battlefield botanicals rather than a cheerful farm. The tone should remain semi-dark fantasy and practical rather than pastoral.
@@ -126,7 +121,7 @@ Player choices should include:
 - fast-growth common herbs versus slow rare ingredients
 - raw healing-focused crops versus buff-focused crops
 - reliable volume versus risky premium ingredients
-- immediate needs versus stockpiling for later stillroom use
+- immediate needs versus stockpiling for later refinery use
 
 ### Failure / Friction
 - crop neglect reduces output quality
@@ -154,95 +149,59 @@ Garden v1 does not yet include:
 - care actions such as watering, pruning, or blight response
 - plot unlock progression
 - contracts/jobs seed sourcing
-- apothecary seed conversion recipes
+- refinery seed conversion recipes
 
 See [24-garden-growth-and-starter-catalog-v1.md](./24-garden-growth-and-starter-catalog-v1.md) for the concrete starter timing and catalog defaults that match the current implementation slice.
 
-## 2. Stillroom
+## 2. Refinery
 
 ### Role
-Craft consumables instantly from prepared botanical ingredients and selected refined materials.
+Operate the single recipe station for turning plants, raw materials, monster reagents, and item-focused materials into consumables, refined components, and gear-support items.
+
+### Interaction Model
+The Refinery is one panel with recipe families rather than multiple specialized stations.
+
+Recipe modes:
+- `Instant recipes`: direct consumables and simple compounds crafted immediately.
+- `Timed recipes`: bulk processing and premium support materials that resolve through limited job slots.
+
+This keeps the system:
+- readable as one place for refinement
+- flexible enough for both fast consumable prep and background progression
+- easier to teach than splitting the loop across multiple surfaces
 
 ### Fantasy
-The stillroom is the player's preparation station for draughts, tonics, salves, catalysts, and battlefield mixtures.
-
-### Why Instant Crafting Works
-The Garden already provides time tension. The Stillroom should feel like payoff, not another timer wall.
+The refinery is a practical preparation and processing station with presses, trays, stills, and work surfaces for turning gathered materials into usable goods.
 
 ### Player Actions
-- choose a recipe
-- spend harvested ingredients
-- craft immediately
-- decide whether to consume ingredients now or save for rarer recipes
+- choose a recipe family such as consumables, materials, or gear support
+- spend harvested ingredients, raw materials, or reagents
+- craft instant recipes or queue timed recipes
+- choose which limited timed slots to occupy
+- decide whether to spend scarce inputs on immediate consumables or long-tail item support
+- claim completed timed jobs
 
 ### Inputs
 - garden harvests
-- selected refined outputs from the refinery bench
+- ore
+- wood
+- hides
+- cloth
 - mission-dropped reagents
-- monster parts for advanced recipes
+- monster remains
+- resin
+- salts
+- botanical byproducts
+- tempering support materials
 
 ### Outputs
-Suggested categories:
+Suggested recipe families:
 - healing draughts
 - stamina tonics
 - offensive buffs
 - defensive buffs
 - cleansing / antidote consumables
 - contract efficiency consumables
-- mission prep consumables
-
-### Recipe Design Rules
-- keep recipe count curated
-- recipes should be understandable at a glance
-- higher-tier consumables should compete for overlapping ingredients
-- avoid allowing players to mass-produce too many categories at once
-
-### Good Strategic Tension
-- craft broadly useful common items now
-- save rare reagents for higher-impact mission runs
-- convert rare harvests into fewer strong consumables or more weak consumables
-
-### Progression Hooks
-- more recipe unlocks
-- improved output quantity on selected recipes
-- reduced ingredient cost on lower-tier consumables
-- unlocks for advanced compound consumables
-
-## 3. Refinery Bench
-
-### Role
-Process raw materials through timed workshop orders into refined components used by crafting, tempering, and future support systems.
-
-### Interaction Model
-The player does not craft every item manually. Instead, they place orders that complete after a fixed timer.
-
-This keeps the system:
-- strategic
-- timer-friendly
-- distinct from the instant Stillroom
-
-### Fantasy
-The refinery bench is a practical workshop station for processing battlefield spoils and gathered materials into usable refined goods.
-
-### Player Actions
-- select a recipe/order
-- allocate raw materials
-- choose which limited order slot to occupy
-- decide whether to spend slots on fast utility outputs or long premium outputs
-- claim completed orders
-
-### Inputs
-- ore
-- wood
-- hides
-- cloth
-- monster remains
-- resin
-- salts
-- botanical byproducts
-
-### Outputs
-Recommended refinement families:
 - metal ingots
 - treated leather
 - prepared timber
@@ -251,43 +210,49 @@ Recommended refinement families:
 - catalysts
 - stabilizers
 - binding agents
+- polishing oils, quenching salts, and future reforging aids
 
 ### Timer Model
-- each order consumes a slot
-- each order has a completion timer
-- better recipes take longer
-- order slots are limited
+- only timed recipes consume a slot
+- each timed recipe has a completion timer
+- instant recipes resolve immediately
+- better timed recipes take longer
+- timed slots are limited
 
 This creates useful tradeoffs:
 - one long rare refinement
 - several fast common refinements
+- immediate consumable prep now versus better item support later
 
 ### Recipe Rules
 - recipes should be clear one-step or two-step conversions
-- the bench should focus on refinement, not full end-item crafting
-- some stillroom recipes should require refinery outputs
-- tempering should require selected refinery outputs
+- consumable recipes should stay curated and understandable at a glance
+- material recipes should focus on refinement, not full equipment crafting
+- some recipes should feed tempering directly
+- some recipes should prepare components for future reforge-style item systems
 
 ### Strategic Layer
 Player choices should include:
+- spending garden harvests on immediate consumables or on higher-tier compounds
 - refining for immediate consumable support
 - refining for future tempering attempts
 - refining scarce rare materials now versus waiting for better gear
 
 ### Progression Hooks
-- more order slots
-- faster order completion
+- more recipe unlocks
+- more timed recipe slots
+- faster timed completion
 - lower input waste
 - chance for bonus output
-- access to advanced stabilizers and catalysts
+- access to advanced stabilizers, catalysts, and future reforging aids
 
-## 4. Tempering
+## 3. Forge
 
 ### Role
-Optional item enhancement system for players who want controlled-risk progression on chosen equipment pieces.
+Equipment-improvement building for players who want controlled-risk progression on chosen equipment pieces.
 
 ### Positioning
-Tempering should be:
+The Forge should be:
 - exciting
 - high-tension
 - materially expensive
@@ -299,7 +264,20 @@ It should not be:
 - directly monetized as raw power
 
 ### Fantasy
-The player reinforces or tempers favored gear through controlled enhancement attempts using refined materials and stabilizing agents.
+The player brings favored gear to the forge for controlled enhancement using refined materials and stabilizing agents.
+
+### Core Actions
+The Forge should begin with:
+- tempering
+- stabilization
+
+The Forge may later expand into:
+- reforging
+- socketing or rune-setting
+- affix-directed refinement
+
+### Tempering
+Tempering is the Forge's primary v1 mechanic.
 
 ### Enhancement Model
 Recommended structure:
@@ -359,7 +337,7 @@ Possible model:
 - every item has a hidden or visible stability value
 - failed attempts lower stability
 - low stability worsens future odds or blocks volatile modes
-- stabilizers from the refinery bench restore or protect stability
+- stabilizers from the refinery restore or protect stability
 
 This creates a secondary planning layer:
 - raw push for power now
@@ -368,7 +346,7 @@ This creates a secondary planning layer:
 ### Inputs
 - base equipment
 - tempering stones or similar core material from missions/contracts
-- stabilizers from refinery bench
+- stabilizers from the refinery
 - rare catalysts from harder content
 - gold/ducat sink
 
@@ -426,9 +404,9 @@ These systems should create valid activity when the player is:
 
 They should also reinforce return behavior:
 - check crop state
-- claim finished orders
+- claim finished jobs
 - craft supplies
-- attempt one tempering action
+- attempt one forge action
 
 ## Economy Role
 
@@ -439,7 +417,7 @@ They should also reinforce return behavior:
 - tempering materials
 
 ### New Sinks
-- ducats for recipes, orders, and tempering attempts
+- ducats for recipes, jobs, and tempering attempts
 - raw material consumption
 - rare reagent consumption
 - stabilizer consumption
@@ -457,47 +435,43 @@ They should also reinforce return behavior:
 
 Acceptable future convenience examples:
 - extra garden plot unlocks within a cap
-- extra refinery order slot within a cap
-- cosmetic skins for the garden/stillroom/workshop
+- extra refinery timed slot within a cap
+- cosmetic skins for the garden and refinery
 
 ## Recommended First Iteration Scope
 Keep v1 focused.
 
-### Apothecary Garden v1
-- 3-4 plot types
-- small seed pool
-- simple care actions
-- low to moderate recipe complexity
+### Garden v1
+- `5` fixed plots
+- `5` starter plant families
+- no care actions yet
+- low to moderate recipe complexity downstream
 
-### Stillroom v1
-- 8-12 consumable recipes
-- instant crafting
+### Refinery v1
+- `8-12` consumable recipes
+- `10-15` material and support recipes
+- mixed instant and timed recipe model
+- `2-3` timed job slots
 - no recipe minigame
-
-### Refinery Bench v1
-- 2-3 order slots
-- 10-15 refinement recipes
-- single-timer completion model
 
 ### Tempering v1
 - bounded enhancement range
-- 3 stability modes
+- `3` stability modes
 - recoverable failures only
 - no item destruction
 
 ## Open Questions
 - Should the garden use individual plot care or account-wide daily care actions?
-- Should stillroom crafting remain always instant or gain a short batching option later?
-- How much overlap should exist between refinement outputs and future gear crafting systems?
+- How much of the Refinery should be instant versus timed in the first live version?
+- How much overlap should exist between Refinery outputs and future gear crafting or reforging systems?
 - Should tempering apply only to weapons and armor, or also jewelry later?
 - Should cache rewards feed seeds and tempering materials directly?
 
 ## Recommendation
-Adopt all four systems as one connected non-combat progression layer:
-- Apothecary Garden for cultivation
-- Stillroom for instant consumable crafting
-- Refinery Bench for timed refinement orders
-- Tempering for controlled-risk gear optimization
+Adopt these three systems as one connected non-combat progression layer:
+- Garden for cultivation
+- Refinery for consumables and material recipes
+- Forge for controlled-risk gear optimization
 
 This gives Ebonkeep:
 - a strong downtime activity loop

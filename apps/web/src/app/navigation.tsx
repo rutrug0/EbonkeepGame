@@ -15,8 +15,8 @@ export type LandingTab =
   | "merchant"
   | "shop"
   | "garden"
-  | "apothecary"
-  | "workshop"
+  | "refinery"
+  | "forge"
   | "leaderboards"
   | "settings";
 export type MenuGroupId = "profile" | "adventures" | "market" | "estate" | "realm";
@@ -55,7 +55,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     id: "estate",
     iconTab: "garden",
-    tabs: ["garden", "jobs", "apothecary", "workshop"]
+    tabs: ["garden", "jobs", "refinery", "forge"]
   },
   {
     id: "realm",
@@ -77,8 +77,8 @@ const MENU_GROUP_BY_TAB: Record<LandingTab, MenuGroupId> = {
   auctionHouse: "market",
   shop: "market",
   garden: "estate",
-  apothecary: "estate",
-  workshop: "estate",
+  refinery: "estate",
+  forge: "estate",
   guild: "realm",
   castles: "realm"
 };
@@ -194,20 +194,22 @@ export function renderMenuIcon(tab: LandingTab): ReactElement | null {
           <path d="M7 20h10" />
         </svg>
       );
-    case "apothecary":
+    case "refinery":
       return (
         <svg {...iconProps}>
-          <path d="M10 4v4l-3.5 6.1A3 3 0 0 0 9.1 19h5.8a3 3 0 0 0 2.6-4.9L14 8V4" />
-          <path d="M9 8h6" />
-          <path d="M10 13h4" />
+          <path d="M6 18h12" />
+          <path d="M8 18V9l2-3h4l2 3v9" />
+          <path d="M9 12h6" />
+          <path d="M10 4h4" />
         </svg>
       );
-    case "workshop":
+    case "forge":
       return (
         <svg {...iconProps}>
-          <path d="M14 5 6 13l-1 4 4-1 8-8" />
-          <path d="M13 6 18 11" />
-          <path d="M15 3h6v6" />
+          <path d="M6 18h12" />
+          <path d="M8 18v-4h8v4" />
+          <path d="M10 6h4l1 4H9z" />
+          <path d="M12 6V3" />
         </svg>
       );
     case "leaderboards":

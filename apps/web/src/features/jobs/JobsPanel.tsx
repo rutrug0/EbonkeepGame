@@ -103,7 +103,7 @@ function rewardBundleToChips(bundle: RewardBundle): RewardChip[] {
       return [];
     }
 
-    return [{ key, label, value }];
+    return [{ key: String(key), label, value }];
   });
 }
 

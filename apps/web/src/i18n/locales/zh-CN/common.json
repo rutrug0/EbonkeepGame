@@ -82,8 +82,8 @@
     "merchant": "商人",
     "shop": "帝国商店",
     "garden": "花园",
-    "apothecary": "药房",
-    "workshop": "工坊",
+    "refinery": "精炼坊",
+    "forge": "锻炉",
     "leaderboards": "排行榜",
     "settings": "设置",
     "logout": "退出登录"
@@ -885,8 +885,8 @@
   },
   "placeholders": {
     "garden": "这里将用于培育草药、菌类和稀有植物，服务你后续的筹备循环。",
-    "apothecary": "这里将使用花园收获物与任务试剂调配药剂、酊剂和药膏。",
-    "workshop": "这里将在工坊系统上线后用于精炼战场材料并淬炼装备。"
+    "refinery": "Brew tonics, process salvage, and mock recipe queues here using garden harvests and refinement materials.",
+    "forge": "Tempering and future gear-improvement systems will appear here."
   },
   "gardenPanel": {
     "loading": "Loading garden state...",
@@ -929,12 +929,12 @@
     "seedBloomYield": "Bloom yield: {{yield}}",
     "seedTooltipSelect": "Click to select",
     "seedTooltipSelected": "Selected",
-    "recipeRefs": "Apothecary uses: {{recipes}}",
+    "recipeRefs": "Refinery uses: {{recipes}}",
     "noSeedsTitle": "No seeds available",
     "noSeedsDescription": "Starter seeds are granted on first load. Future rewards will come from contracts and jobs.",
     "ingredientStashTitle": "Stored Ingredients",
     "ingredientChipLabel": "{{plant}}: {{quantity}}",
-    "ingredientStashCount": "{{count}} harvested stacks stored for future apothecary recipes.",
+    "ingredientStashCount": "{{count}} harvested stacks stored for future refinery recipes.",
     "milestone": {
       "growthDone": "Growth completes in {{duration}}",
       "bloomStarts": "Bloom starts in {{duration}}",
@@ -953,6 +953,38 @@
       "planted": "Planted {{plant}} in Slot {{slot}}.",
       "harvested": "Harvested {{count}} {{plant}}.",
       "cleared": "Cleared Slot {{slot}}."
+    }
+  },
+  "refineryPanel": {
+    "loading": "Loading refinery materials...",
+    "unavailable": "Refinery inventory unavailable. Login again to refresh your data.",
+    "subtitle": "Queue mock potion and recycling recipes with shared materials across three active lanes.",
+    "materialStashTitle": "Available Materials",
+    "materialChipLabel": "{{item}}: {{quantity}}",
+    "laneLabel": "Lane {{lane}}",
+    "idleRecipeLabel": "No recipe selected",
+    "recipes": "Recipes",
+    "progressLabel": "Refinery progress",
+    "queueLabel": "{{completed}} / {{total}} crafted",
+    "nextCraftIn": "Next item in {{duration}}",
+    "queueComplete": "Queue complete",
+    "awaitingRecipe": "Awaiting recipe",
+    "inputSlotLabel": "{{item}}: {{quantity}}",
+    "outputSlotLabel": "{{item}}: {{quantity}}",
+    "emptyInput": "Input slot",
+    "emptyOutput": "Output slot",
+    "inputPlaceholder": "IN",
+    "outputPlaceholder": "OUT",
+    "maxCraftable": "{{count}} queued",
+    "noGardenIngredientsHint": "Harvest Garden ingredients to unlock more potion recipes in this mockup.",
+    "status": {
+      "idle": "Idle",
+      "running": "Processing",
+      "complete": "Complete"
+    },
+    "category": {
+      "potions": "Potions",
+      "recycling": "Recycling"
     }
   },
   "jobsPanel": {
