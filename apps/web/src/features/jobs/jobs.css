@@ -1,0 +1,1041 @@
+.jobsSceneShell {
+  --jobs-surface-blur: 0px;
+  --jobs-surface-bg: linear-gradient(180deg, rgba(12, 16, 20, 0.72), rgba(12, 16, 20, 0.84));
+  --jobs-surface-bg-soft: linear-gradient(180deg, rgba(16, 21, 26, 0.56), rgba(16, 21, 26, 0.68));
+  --jobs-surface-border: 1px solid rgba(255, 241, 214, 0.09);
+  --jobs-radius-panel: 14px;
+  --jobs-radius-card: 12px;
+  --jobs-radius-control: 10px;
+  --jobs-radius-chip: 8px;
+  --jobs-surface-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+}
+
+.jobsSceneShell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(7, 10, 13, 0.84), rgba(7, 10, 13, 0.97)),
+    url("/assets/jobs/jobs-hall-bg.jpg");
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  border: none;
+}
+
+.jobsSceneShell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top center, rgba(255, 214, 138, 0.05), transparent 30%),
+    linear-gradient(180deg, rgba(8, 11, 14, 0.48), rgba(8, 11, 14, 0.68) 40%, rgba(8, 11, 14, 0.9));
+}
+
+.jobsSceneShell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(5, 8, 10, 0.16), rgba(5, 8, 10, 0.34));
+}
+
+.jobsPanelStack {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  gap: var(--space-4);
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.jobsPanelStack::-webkit-scrollbar {
+  display: none;
+}
+
+.jobsHeroCard,
+.jobsBoardCard,
+.jobsSetupCard {
+  display: none;
+}
+
+.jobsHeroCard,
+.jobsBoardCard,
+.jobsSetupCard,
+.jobsActiveCard,
+.jobsHistoryCard {
+  border-bottom: none;
+  border-radius: var(--jobs-radius-panel);
+  padding: 1rem;
+  background: var(--jobs-surface-bg-soft);
+  box-shadow: var(--jobs-surface-shadow);
+  backdrop-filter: none;
+}
+
+.jobsHeroHeader,
+.jobsSectionHeader,
+.jobsRunHero,
+.jobsChoiceHeader,
+.jobsPreviewHeader,
+.jobsFocusChoiceHeader,
+.jobsPrototypeRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.jobsSectionHeaderCompact {
+  gap: 0.75rem;
+}
+
+.jobsHeroCard {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.jobsHeroActions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.jobsEyebrow,
+.jobsSectionEyebrow,
+.jobsChoiceEyebrow,
+.jobsInlineLabel {
+  display: inline-flex;
+  margin: 0 0 0.3rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.jobsHeroChipRow,
+.jobsRewardChipRow,
+.jobsChoiceTagRow,
+.jobsRuleRow,
+.jobsCheckpointRow,
+.jobsPrototypeButtons,
+.jobsActionRow,
+.jobsHistoryRewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.jobsHeroChip,
+.jobsRewardChip,
+.jobsChoiceTag,
+.jobsRuleRow span,
+.jobsCheckpointPill,
+.jobsStateBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0.26rem 0.65rem;
+  border-radius: var(--jobs-radius-chip);
+  border: 1px solid rgba(255, 241, 214, 0.08);
+  background: rgba(10, 14, 18, 0.54);
+  color: var(--text-main);
+  font-size: 0.83rem;
+}
+
+.jobsChoiceTag,
+.jobsRuleRow span,
+.jobsCheckpointPill,
+.jobsStateBadge {
+  color: var(--text-soft);
+}
+
+.jobsStateBadge.complete,
+.jobsCheckpointPill.unlocked {
+  border-color: color-mix(in srgb, var(--accent-success) 50%, transparent);
+  color: color-mix(in srgb, var(--accent-success) 70%, #f7f4ec 30%);
+}
+
+.jobsHeroMeta,
+.jobsPreviewCard,
+.jobsMetricCard,
+.jobsStashCard,
+.jobsSupportCard,
+.jobsFocusPreviewItem,
+.jobsFocusChoice,
+.jobsFoldout {
+  position: relative;
+  border: var(--jobs-surface-border);
+  border-radius: var(--jobs-radius-card);
+  background: var(--jobs-surface-bg-soft);
+  backdrop-filter: none;
+}
+
+.jobsHeroMeta {
+  min-width: 148px;
+  padding: 0.85rem 0.95rem;
+  text-align: right;
+}
+
+.jobsHeroMeta span,
+.jobsMetricCard span,
+.jobsStashCard span,
+.jobsRunProgressMeta span {
+  display: block;
+  color: var(--text-muted);
+}
+
+.jobsHeroMeta span,
+.jobsMetricCard span,
+.jobsStashCard span {
+  margin-bottom: 0.2rem;
+}
+
+.jobsHeroMeta strong,
+.jobsMetricCard strong,
+.jobsStashCard strong,
+.jobsRunProgressMeta strong {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text-main);
+}
+
+.jobsInfoPanel {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 40;
+}
+
+.jobsInfoPanel[open] {
+  z-index: 240;
+}
+
+.jobsInfoButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--jobs-radius-chip);
+  border: 1px solid rgba(255, 241, 214, 0.12);
+  background: rgba(10, 14, 18, 0.84);
+  color: var(--text-main);
+  list-style: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.jobsInfoButton::-webkit-details-marker {
+  display: none;
+}
+
+.jobsInfoCard {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 260;
+  width: min(290px, 76vw);
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--jobs-radius-card);
+  border: 1px solid rgba(255, 241, 214, 0.12);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 30, 0.98), rgba(12, 17, 22, 0.99)),
+    linear-gradient(145deg, rgba(113, 85, 45, 0.12), rgba(44, 60, 71, 0.06));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.jobsInfoCard strong {
+  display: block;
+  margin-bottom: 0.45rem;
+}
+
+.jobsInfoCard p {
+  margin: 0.35rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.jobsMainGrid,
+.jobsLowerGrid,
+.jobsSideStack,
+.jobsCardGrid,
+.jobsStashGrid,
+.jobsRunMetrics,
+.jobsRewardPreviewGrid,
+.jobsFocusPreviewList,
+.jobsHistoryList,
+.jobsDurationRow,
+.jobsSetupBody,
+.jobsActiveCard,
+.jobsHistoryCard,
+.jobsEmptyState {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.jobsMainGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jobsLowerGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.jobsSideStack {
+  align-content: start;
+}
+
+.jobsLandingCard {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  min-height: 520px;
+  padding: 1rem;
+  overflow: visible;
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.jobsLandingCard.jobsActiveCard {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.jobsLandingCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(8, 11, 14, 0.3), rgba(8, 11, 14, 0.46) 38%, rgba(8, 11, 14, 0.62));
+}
+
+.jobsLandingTop,
+.jobsLandingChoices,
+.jobsLandingControls {
+  position: relative;
+  z-index: 2;
+}
+
+.jobsLandingChoices {
+  z-index: 8;
+}
+
+.jobsLandingControls {
+  z-index: 3;
+}
+
+.jobsLandingTop {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.jobsLandingChoices {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: clamp(4rem, 18vh, 10rem);
+}
+
+.jobsLandingChoice {
+  position: relative;
+  width: min(26vw, 220px);
+  min-width: 120px;
+  padding: 0.45rem;
+  background: var(--jobs-surface-bg-soft);
+  border-color: rgba(255, 241, 214, 0.14);
+  backdrop-filter: none;
+}
+
+.jobsLandingChoice.selected {
+  box-shadow: 0 0 0 2px rgba(255, 241, 214, 0.12);
+}
+
+.jobsLandingChoiceVisual {
+  aspect-ratio: 1 / 1;
+  background-size: 100% 100%, 88% auto, 82% auto;
+  background-color: rgba(8, 12, 15, 0.2);
+}
+
+.jobsLandingChoiceBody {
+  gap: 0.2rem;
+  text-align: center;
+}
+
+.jobsLandingChoiceBody .jobsChoiceHeader {
+  justify-content: center;
+}
+
+.jobsLandingChoiceBody .jobsChoiceHeader strong {
+  font-size: 0.95rem;
+}
+
+.jobsLandingChoiceNote {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.jobsLandingControls {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0 auto;
+  width: min(760px, 100%);
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--jobs-radius-panel);
+  border: var(--jobs-surface-border);
+  background: var(--jobs-surface-bg);
+  box-shadow: var(--jobs-surface-shadow);
+  backdrop-filter: none;
+}
+
+.jobsLandingMeta {
+  justify-content: center;
+}
+
+.jobsLandingFooter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.jobsLandingRewards {
+  justify-content: center;
+}
+
+.jobsLandingStart {
+  width: 100%;
+}
+
+.jobsChoiceFeaturedBadge {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0.18rem 0.55rem;
+  border-radius: var(--jobs-radius-chip);
+  border: 1px solid rgba(255, 241, 214, 0.2);
+  background: rgba(10, 14, 18, 0.76);
+  color: #f7f0e1;
+  font-size: 0.76rem;
+  font-weight: 700;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+}
+
+.jobsChoiceFeaturedBadge.tone-ember,
+.jobsChoiceTagFeatured {
+  border-color: rgba(213, 166, 105, 0.46);
+  color: #e6c188;
+}
+
+.jobsChoiceFeaturedBadge.tone-coin {
+  border-color: rgba(217, 200, 127, 0.46);
+  color: #eadc99;
+}
+
+.jobsChoiceFeaturedBadge.tone-verdant {
+  border-color: rgba(142, 176, 122, 0.46);
+  color: #b8d59a;
+}
+
+.jobsCardGridMobile {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.jobsChoiceCard {
+  position: relative;
+  overflow: visible;
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.55rem;
+  border: var(--jobs-surface-border);
+  border-radius: var(--jobs-radius-card);
+  background: var(--jobs-surface-bg-soft);
+  backdrop-filter: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.jobsChoiceCard:hover:not(:disabled),
+.jobsDurationButton:hover:not(:disabled),
+.jobsStartButton:hover:not(:disabled),
+.jobsActionButton:hover:not(:disabled),
+.jobsPrototypeButton:hover:not(:disabled),
+.jobsFocusChoice:hover:not(:disabled) {
+  border-color: rgba(255, 241, 214, 0.15);
+}
+
+.jobsChoiceCard:disabled,
+.jobsDurationButton:disabled,
+.jobsStartButton:disabled,
+.jobsActionButton:disabled,
+.jobsPrototypeButton:disabled,
+.jobsFocusChoice:disabled {
+  cursor: default;
+  opacity: 0.66;
+}
+
+.jobsChoiceCard.selected {
+  border-width: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 241, 214, 0.08);
+}
+
+.jobsChoiceCard.tone-ember.selected,
+.jobsSetupCard.tone-ember {
+  border-color: rgba(213, 166, 105, 0.72);
+}
+
+.jobsChoiceCard.tone-coin.selected,
+.jobsSetupCard.tone-coin {
+  border-color: rgba(217, 200, 127, 0.72);
+}
+
+.jobsChoiceCard.tone-verdant.selected,
+.jobsSetupCard.tone-verdant {
+  border-color: rgba(142, 176, 122, 0.72);
+}
+
+.jobsChoiceCard.tone-ember strong,
+.jobsSetupCard.tone-ember h3,
+.jobsEyebrow.tone-ember {
+  color: #d5a669;
+}
+
+.jobsChoiceCard.tone-coin strong,
+.jobsSetupCard.tone-coin h3,
+.jobsEyebrow.tone-coin {
+  color: #d9c87f;
+}
+
+.jobsChoiceCard.tone-verdant strong,
+.jobsSetupCard.tone-verdant h3,
+.jobsEyebrow.tone-verdant {
+  color: #8eb07a;
+}
+
+.jobsChoiceVisual,
+.jobsSetupVisual,
+.jobsActiveVisual,
+.jobsEmptyVisual {
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  background-position: center, center, center;
+  background-size: 100% 100%, 82% auto, 78% auto;
+  background-color: transparent;
+}
+
+.jobsChoiceVisual {
+  width: 100%;
+  aspect-ratio: 1 / 0.9;
+  border-radius: var(--jobs-radius-control);
+  border: none;
+  box-shadow: none;
+}
+
+.jobsChoiceBody {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.jobsSetupCard {
+  padding: 0.75rem;
+}
+
+.jobsSetupBody {
+  gap: 0.7rem;
+}
+
+.jobsSetupVisual,
+.jobsActiveVisual,
+.jobsEmptyVisual {
+  min-height: 248px;
+  border-radius: var(--jobs-radius-card);
+}
+
+.jobsSetupTop {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.jobsSetupIntro {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.jobsSetupVisual {
+  min-height: 112px;
+  border-radius: var(--jobs-radius-control);
+}
+
+.jobsPreviewCard,
+.jobsMetricCard,
+.jobsStashCard,
+.jobsSupportCard,
+.jobsFocusPreviewItem,
+.jobsFocusChoice,
+.jobsFoldout {
+  padding: 0.85rem 0.95rem;
+}
+
+.jobsPreviewCardMuted,
+.jobsSupportCardMuted {
+  background:
+    linear-gradient(180deg, rgba(24, 31, 38, 0.9), rgba(14, 19, 25, 0.96)),
+    linear-gradient(145deg, rgba(69, 90, 100, 0.08), rgba(35, 44, 54, 0.08));
+  backdrop-filter: none;
+}
+
+.jobsFeaturePreviewCard p {
+  margin: 0.25rem 0 0;
+  color: var(--text-soft);
+  line-height: 1.35;
+}
+
+.jobsDurationGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.jobsDurationSliderWrap {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.jobsDurationSlider {
+  width: 100%;
+  height: 1.5rem;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+}
+
+.jobsDurationSlider:focus {
+  outline: none;
+}
+
+.jobsDurationSlider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: var(--jobs-radius-chip);
+  background:
+    linear-gradient(90deg, rgba(120, 96, 62, 0.92), rgba(196, 158, 97, 0.96)),
+    rgba(18, 24, 30, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 241, 214, 0.08);
+}
+
+.jobsDurationSlider::-webkit-slider-thumb {
+  width: 22px;
+  height: 22px;
+  margin-top: -7px;
+  border: 2px solid rgba(255, 241, 214, 0.55);
+  border-radius: var(--jobs-radius-chip);
+  background: linear-gradient(180deg, #f4d8a6, #b78b4e);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  appearance: none;
+}
+
+.jobsDurationSlider::-moz-range-track {
+  height: 8px;
+  border: none;
+  border-radius: var(--jobs-radius-chip);
+  background:
+    linear-gradient(90deg, rgba(120, 96, 62, 0.92), rgba(196, 158, 97, 0.96)),
+    rgba(18, 24, 30, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 241, 214, 0.08);
+}
+
+.jobsDurationSlider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255, 241, 214, 0.55);
+  border-radius: var(--jobs-radius-chip);
+  background: linear-gradient(180deg, #f4d8a6, #b78b4e);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+}
+
+.jobsDurationSlider:disabled {
+  opacity: 0.62;
+}
+
+.jobsDurationScale {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.jobsSetupActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.jobsBonusPreviewCard {
+  min-height: 46px;
+}
+
+.jobsBonusPreviewPopupItem {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(255, 241, 214, 0.08);
+}
+
+.jobsBonusPreviewPopupItem:first-of-type {
+  margin-top: 0.8rem;
+}
+
+.jobsBonusPreviewPopupItem strong {
+  margin-bottom: 0;
+}
+
+.jobsRefreshButton {
+  align-self: start;
+  min-height: 46px;
+}
+
+.jobsActiveCard,
+.jobsHistoryCard,
+.jobsHeroMeta,
+.jobsPreviewCard,
+.jobsMetricCard,
+.jobsStashCard,
+.jobsSupportCard,
+.jobsFocusPreviewItem,
+.jobsFocusChoice,
+.jobsFoldout,
+.jobsLandingChoice,
+.jobsLandingControls,
+.jobsPreviewCardMuted,
+.jobsSupportCardMuted,
+.jobsDurationButton,
+.jobsStartButton,
+.jobsActionButton,
+.jobsPrototypeButton,
+.jobsHistoryFoldout,
+.jobsInfoCard {
+  backdrop-filter: none;
+}
+
+.jobsDurationButton,
+.jobsStartButton,
+.jobsActionButton,
+.jobsPrototypeButton,
+.jobsFocusChoice {
+  font: inherit;
+}
+
+.jobsDurationButton,
+.jobsStartButton,
+.jobsActionButton,
+.jobsPrototypeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0.45rem 0.6rem;
+  border: var(--jobs-surface-border);
+  border-radius: var(--jobs-radius-control);
+  background:
+    linear-gradient(180deg, rgba(37, 48, 58, 0.7), rgba(18, 24, 30, 0.88)),
+    linear-gradient(140deg, rgba(103, 79, 45, 0.06), rgba(44, 60, 71, 0.05));
+  color: var(--text-main);
+  backdrop-filter: none;
+}
+
+.jobsDurationButton.active,
+.jobsPrototypeButton,
+.jobsActionButtonPrimary,
+.jobsStartButton {
+  border-color: color-mix(in srgb, var(--accent-warn) 42%, transparent);
+  background:
+    linear-gradient(180deg, rgba(93, 73, 45, 0.88), rgba(54, 41, 28, 0.98)),
+    linear-gradient(145deg, rgba(173, 135, 78, 0.12), rgba(94, 117, 120, 0.08));
+}
+
+.jobsActionButtonDanger {
+  border-color: color-mix(in srgb, var(--accent-danger) 44%, transparent);
+  background:
+    linear-gradient(180deg, rgba(101, 58, 53, 0.88), rgba(53, 31, 29, 0.98)),
+    linear-gradient(145deg, rgba(151, 80, 74, 0.16), rgba(85, 55, 52, 0.08));
+}
+
+.jobsStartButton {
+  width: 100%;
+  min-height: 46px;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.jobsSetupPreviewCard {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+.jobsFoldout {
+  overflow: hidden;
+}
+
+.jobsFoldoutSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.jobsFoldoutSummary::-webkit-details-marker {
+  display: none;
+}
+
+.jobsFoldoutHint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.jobsSetupCard .jobsFoldoutHint {
+  display: none;
+}
+
+.jobsFoldoutBody {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.jobsFocusChoice,
+.jobsFocusPreviewItem {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.jobsFocusChoice.picked {
+  border-color: color-mix(in srgb, var(--accent-success) 48%, transparent);
+}
+
+.jobsRunMetrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.jobsRewardPreviewGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.jobsRunProgressMeta {
+  min-width: 120px;
+  text-align: right;
+}
+
+.jobsRunTitle {
+  display: block;
+  font-size: 1.1rem;
+  color: var(--text-main);
+}
+
+.jobsProgressBar {
+  height: 14px;
+  border-radius: var(--jobs-radius-chip);
+  background: rgba(9, 12, 15, 0.72);
+  overflow: hidden;
+}
+
+.jobsProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(138, 176, 121, 0.92), rgba(215, 170, 110, 0.96));
+}
+
+.jobsStashGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.jobsHistoryItem {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 241, 214, 0.08);
+}
+
+.jobsHistoryCard {
+  position: relative;
+  padding: 0.5rem;
+  z-index: 1;
+}
+
+.jobsHistoryFoldout {
+  background: var(--jobs-surface-bg-soft);
+  backdrop-filter: none;
+}
+
+.jobsHistoryMeta span,
+.jobsHistoryRewards span,
+.jobsStatusMessage,
+.jobsEmptyState p {
+  color: var(--text-soft);
+}
+
+.jobsHistoryRewards span {
+  padding: 0.22rem 0.56rem;
+  border-radius: var(--jobs-radius-chip);
+  background: rgba(12, 18, 23, 0.74);
+}
+
+@media (max-width: 980px) {
+  .jobsCardGridMobile {
+    grid-template-columns: 1fr;
+  }
+
+  .jobsLandingChoices {
+    gap: 0.75rem;
+  }
+
+  .jobsLandingChoice {
+    width: min(30vw, 190px);
+  }
+
+  .jobsRunMetrics,
+  .jobsRewardPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .jobsPanelStack {
+    gap: 0.75rem;
+    padding: 0;
+  }
+
+  .jobsHeroCard,
+  .jobsBoardCard,
+  .jobsSetupCard,
+  .jobsActiveCard,
+  .jobsHistoryCard {
+    border-radius: var(--jobs-radius-panel);
+    padding: 0.85rem;
+  }
+
+  .jobsHeroHeader,
+  .jobsSectionHeader,
+  .jobsRunHero,
+  .jobsChoiceHeader,
+  .jobsPreviewHeader,
+  .jobsFocusChoiceHeader,
+  .jobsPrototypeRow,
+  .jobsHeroActions {
+    flex-direction: column;
+  }
+
+  .jobsHeroMeta,
+  .jobsRunProgressMeta {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .jobsDurationGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .jobsLandingCard {
+    min-height: 460px;
+    padding: 0.85rem;
+  }
+
+  .jobsLandingChoices {
+    gap: 0.55rem;
+    padding-top: 6rem;
+  }
+
+  .jobsLandingChoice {
+    width: min(31vw, 140px);
+    min-width: 88px;
+    padding: 0.3rem;
+  }
+
+  .jobsLandingChoiceBody .jobsChoiceHeader strong {
+    font-size: 0.82rem;
+  }
+
+  .jobsLandingControls {
+    gap: 0.65rem;
+    padding: 0.7rem 0.75rem;
+  }
+
+  .jobsLandingFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .jobsChoiceVisual {
+    aspect-ratio: 1 / 0.92;
+  }
+
+  .jobsSetupVisual,
+  .jobsActiveVisual,
+  .jobsEmptyVisual {
+    min-height: 188px;
+  }
+
+  .jobsSetupTop {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .jobsSetupActions {
+    grid-template-columns: 1fr;
+  }
+
+  .jobsBonusPreviewCard {
+    min-height: 0;
+  }
+
+  .jobsSetupVisual {
+    min-height: 88px;
+  }
+
+  .jobsStashGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .jobsHeroChip,
+  .jobsRewardChip,
+  .jobsChoiceTag,
+  .jobsRuleRow span,
+  .jobsCheckpointPill,
+  .jobsStateBadge {
+    min-height: 28px;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.79rem;
+  }
+
+  .jobsInfoCard {
+    right: auto;
+    left: 0;
+    width: min(290px, calc(100vw - 2.5rem));
+  }
+}

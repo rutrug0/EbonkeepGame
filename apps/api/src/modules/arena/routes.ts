@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 
 import { fightArenaOffer, findArenaOpponents, getArenaState } from "./service.js";
+import { JobsError } from "../jobs/service.js";
 
 export const arenaRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get("/v1/arena/state", { preHandler: fastify.authenticate }, async (request, reply) => {
@@ -17,6 +18,9 @@ export const arenaRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       return reply.send(await findArenaOpponents(fastify.prisma, request.user.playerId));
     } catch (error) {
+      if (error instanceof JobsError) {
+        return reply.code(error.statusCode).send({ error: error.message });
+      }
       const message = error instanceof Error ? error.message : "Failed to find arena opponents.";
       const statusCode = message.includes("cooldown") || message.includes("active") ? 409 : 500;
       return reply.code(statusCode).send({ error: message });
@@ -29,6 +33,9 @@ export const arenaRoutes: FastifyPluginAsync = async (fastify) => {
         await fightArenaOffer(fastify.prisma, request.user.playerId, (request.params as { offerId: string }).offerId)
       );
     } catch (error) {
+      if (error instanceof JobsError) {
+        return reply.code(error.statusCode).send({ error: error.message });
+      }
       const message = error instanceof Error ? error.message : "Failed to resolve arena fight.";
       const statusCode = message.includes("not found") || message.includes("expired") ? 404 : 500;
       return reply.code(statusCode).send({ error: message });

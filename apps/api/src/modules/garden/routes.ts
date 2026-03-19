@@ -10,6 +10,7 @@ import {
   harvestGardenPlot,
   plantGardenSeed
 } from "./service.js";
+import { JobsError } from "../jobs/service.js";
 
 function parseSlotIndex(raw: string): number | null {
   const slotIndex = Number.parseInt(raw, 10);
@@ -20,6 +21,9 @@ function parseSlotIndex(raw: string): number | null {
 }
 
 function replyForGardenError(reply: FastifyReply, error: unknown) {
+  if (error instanceof JobsError) {
+    return reply.code(error.statusCode).send({ error: error.message, code: error.code });
+  }
   if (error instanceof GardenError) {
     return reply.code(error.statusCode).send({ error: error.message, code: error.code });
   }
