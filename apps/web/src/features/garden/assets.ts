@@ -32,6 +32,12 @@ const seedAssetPaths: Partial<Record<GardenPlantId, string>> = {
   ironbloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_seed.png`
 };
 
+const ingredientAssetPaths: Partial<Record<GardenPlantId, string>> = {
+  bloodleaf: `${GARDEN_ASSET_BASE_PATH}/bloodleaf/bloodleaf_ingredient.png`,
+  fenroot: `${GARDEN_ASSET_BASE_PATH}/fenroot/fenroot_ingredient.png`,
+  ironbloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_ingredient.png`
+};
+
 export function getGardenPlantImagePath(plantId: GardenPlantId | null, phase: GardenPlotPhase): string | null {
   if (!plantId || phase === "empty") {
     return null;
@@ -42,4 +48,8 @@ export function getGardenPlantImagePath(plantId: GardenPlantId | null, phase: Ga
 
 export function getGardenSeedImagePath(plantId: GardenPlantId): string | null {
   return seedAssetPaths[plantId] ?? null;
+}
+
+export function getGardenIngredientImagePath(plantId: GardenPlantId): string | null {
+  return ingredientAssetPaths[plantId] ?? null;
 }

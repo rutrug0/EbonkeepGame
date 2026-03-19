@@ -3,7 +3,7 @@
 ## Source Summary
 
 - Source CSV: `docs/data/garden_plant_and_seed_icon_prompts_v1.csv`
-- Scope: `5` plants, `4` plant-state prompts each, plus `1` seed prompt per plant
+- Scope: `5` plants, `4` plant-state prompts each, plus `1` seed prompt and `1` harvested inventory-item prompt per plant
 - Render intent: `1024x1024`, transparent background, UI-ready isolated assets
 - The prompts below are copied from the CSV prompt column for manual review or manual art generation.
 
@@ -232,4 +232,49 @@
 - stage: `seed`
 ```text
 2D game asset illustration, medium cel shading, clean ink-style linework, bold readable silhouette, simplified detail, transparent background with true alpha, background completely empty, no container, no environment, no floor, no text, no hands, no cast shadow outside silhouette, muted earthy palette, no magical glow. Camera is top-down leaning overhead, like a garden-tile view, not side-on. One Kingsfoil seed cluster only: three premium-looking elongated seeds with pale gold-brown shells and a neat dry crown-like husk fragment.
+```
+
+### 26. Bloodleaf Ingredient
+- asset_key: `garden_bloodleaf_inventory_item`
+- plant_id: `bloodleaf`
+- asset_kind: `ingredient`
+- stage: `inventory_item`
+```text
+2D game asset illustration, medium cel shading, clean ink-style linework, bold readable silhouette, simplified detail, transparent background with true alpha, background completely empty, no container, no environment, no floor, no text, no hands, no cast shadow outside silhouette, muted earthy palette, no magical glow. Camera is top-down leaning overhead, like an inventory-icon view, not side-on. No soil, no roots, no whole planted silhouette. One harvested Bloodleaf ingredient only: a close readable cluster of broad herb leaves with rich wine-red veins, slightly layered and freshly cut, designed to read clearly as a single inventory item at small icon size.
+```
+
+### 27. Fenroot Ingredient
+- asset_key: `garden_fenroot_inventory_item`
+- plant_id: `fenroot`
+- asset_kind: `ingredient`
+- stage: `inventory_item`
+```text
+2D game asset illustration, medium cel shading, clean ink-style linework, bold readable silhouette, simplified detail, transparent background with true alpha, background completely empty, no container, no environment, no floor, no text, no hands, no cast shadow outside silhouette, muted earthy palette, no magical glow. Camera is top-down leaning overhead, like an inventory-icon view, not side-on. No soil, no roots, no whole planted silhouette. One harvested Fenroot ingredient only: a close readable fan of narrow marsh-green leaves with pale trimmed stem ends and a tidy gathered shape, designed to read clearly as a single inventory item at small icon size.
+```
+
+### 28. Ironbloom Ingredient
+- asset_key: `garden_ironbloom_inventory_item`
+- plant_id: `ironbloom`
+- asset_kind: `ingredient`
+- stage: `inventory_item`
+```text
+2D game asset illustration, medium cel shading, clean ink-style linework, bold readable silhouette, simplified detail, transparent background with true alpha, background completely empty, no container, no environment, no floor, no text, no hands, no cast shadow outside silhouette, muted earthy palette, no magical glow. Camera is top-down leaning overhead, like an inventory-icon view, not side-on. No soil, no roots, no whole planted silhouette. One harvested Ironbloom ingredient only: a close readable cluster of thick blue-grey leaves with iron-toned surfaces and one clipped hard-petaled bloom accent, designed to read clearly as a single inventory item at small icon size.
+```
+
+### 29. Duskmint Ingredient
+- asset_key: `garden_duskmint_inventory_item`
+- plant_id: `duskmint`
+- asset_kind: `ingredient`
+- stage: `inventory_item`
+```text
+2D game asset illustration, medium cel shading, clean ink-style linework, bold readable silhouette, simplified detail, transparent background with true alpha, background completely empty, no container, no environment, no floor, no text, no hands, no cast shadow outside silhouette, muted earthy palette, no magical glow. Camera is top-down leaning overhead, like an inventory-icon view, not side-on. No soil, no roots, no whole planted silhouette. One harvested Duskmint ingredient only: a close readable aromatic herb cluster of serrated mint leaves with faint dusky-purple edging and a few short clipped bloom tips, designed to read clearly as a single inventory item at small icon size.
+```
+
+### 30. Kingsfoil Ingredient
+- asset_key: `garden_kingsfoil_inventory_item`
+- plant_id: `kingsfoil`
+- asset_kind: `ingredient`
+- stage: `inventory_item`
+```text
+2D game asset illustration, medium cel shading, clean ink-style linework, bold readable silhouette, simplified detail, transparent background with true alpha, background completely empty, no container, no environment, no floor, no text, no hands, no cast shadow outside silhouette, muted earthy palette, no magical glow. Camera is top-down leaning overhead, like an inventory-icon view, not side-on. No soil, no roots, no whole planted silhouette. One harvested Kingsfoil ingredient only: a close readable premium herb cluster of layered three-lobed leaves with refined cream-gold accents and a noble clean silhouette, designed to read clearly as a single inventory item at small icon size.
 ```

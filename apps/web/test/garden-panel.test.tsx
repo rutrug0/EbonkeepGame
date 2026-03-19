@@ -234,6 +234,62 @@ describe("garden panel", () => {
     expect(document.querySelector('img[src="/assets/items/generated/garden/ironbloom/ironbloom_seed.png"]')).toBeTruthy();
   });
 
+  it("shows three stage progress dots and marks wilted plots red", async () => {
+    vi.useFakeTimers();
+    const localBaseTime = new Date("2026-03-19T09:00:00.000Z");
+    vi.setSystemTime(localBaseTime);
+
+    try {
+      gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
+        serverTime: localBaseTime.toISOString(),
+        plots: [
+          {
+            slotIndex: 1,
+            plantId: "bloodleaf",
+            phase: "growing",
+            plantedAt: new Date(localBaseTime.getTime() - 1_500).toISOString(),
+            growthEndsAt: new Date(localBaseTime.getTime() + 3_500).toISOString(),
+            bloomStartsAt: new Date(localBaseTime.getTime() + 3_500).toISOString(),
+            bloomEndsAt: new Date(localBaseTime.getTime() + 8_500).toISOString(),
+            wiltAt: new Date(localBaseTime.getTime() + 13_500).toISOString(),
+            nextTransitionAt: new Date(localBaseTime.getTime() + 3_500).toISOString(),
+            harvestYield: null
+          },
+          {
+            slotIndex: 2,
+            plantId: "bloodleaf",
+            phase: "wilted",
+            plantedAt: new Date(localBaseTime.getTime() - 15_000).toISOString(),
+            growthEndsAt: new Date(localBaseTime.getTime() - 10_000).toISOString(),
+            bloomStartsAt: new Date(localBaseTime.getTime() - 10_000).toISOString(),
+            bloomEndsAt: new Date(localBaseTime.getTime() - 5_000).toISOString(),
+            wiltAt: new Date(localBaseTime.getTime() - 500).toISOString(),
+            nextTransitionAt: null,
+            harvestYield: 0
+          },
+          ...createGardenState().plots.slice(2)
+        ]
+      }));
+
+      const { container } = render(<GardenPanel token="token" />);
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      const progressGroups = container.querySelectorAll(".gardenPlotProgressDots");
+      expect(progressGroups.length).toBeGreaterThanOrEqual(2);
+
+      const growingDots = progressGroups[0]?.querySelectorAll(".gardenPlotProgressDot.isActive") ?? [];
+      expect(growingDots.length).toBe(1);
+
+      const wiltedGroup = progressGroups[1];
+      expect(wiltedGroup?.className.includes("isWilted")).toBe(true);
+      expect(wiltedGroup?.querySelectorAll(".gardenPlotProgressDot.isActive").length).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("harvests a ready crop when the plot card is clicked", async () => {
     const nowMs = Date.now();
     gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
@@ -301,6 +357,17 @@ describe("garden panel", () => {
     await waitFor(() => {
       expect(document.querySelector(".gardenPlantImage.fx-harvest-out")).toBeTruthy();
     });
+    expect(document.querySelector(".gardenPlotProgressDots.fx-harvest-out")).toBeTruthy();
+    expect(document.querySelector('img[src="/assets/items/generated/garden/bloodleaf/bloodleaf_ingredient.png"]')).toBeTruthy();
+    await waitFor(() => {
+      expect(document.querySelector(".gardenIngredientInventoryIcon-positive")).toBeTruthy();
+    });
+    await waitFor(() => {
+      expect(document.querySelector(".gardenIngredientInventoryCount.inventoryStatFlashValue-positive")).toBeTruthy();
+    });
+    expect(Array.from(document.querySelectorAll(".gardenIngredientInventoryCount")).some((node) => node.textContent === "4")).toBe(
+      true
+    );
     expect(screen.getByText("+4")).toBeTruthy();
   });
 
