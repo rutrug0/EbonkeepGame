@@ -685,17 +685,25 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
           ))}
 
           <div className="gardenLayout">
-            <section className="gardenIngredientInventoryBar" aria-label="Harvested ingredients">
+            <section className="gardenIngredientInventoryBar" aria-label={t("gardenPanel.ingredientStashTitle")}>
               <div className="gardenIngredientInventoryScroller">
                 {ingredientEntries.map((entry) => {
                   const ingredientImagePath = getGardenIngredientImagePath(entry.plantId);
                   const plantName = gardenPlantCatalogById[entry.plantId]?.displayName ?? entry.displayName;
                   const ingredientFeedback = ingredientFeedbackByPlant[entry.plantId];
+                  const tooltipId = `garden-ingredient-tooltip-${entry.plantId}`;
 
                   return (
                     <div
                       key={`${entry.kind}-${entry.plantId}`}
                       className={`uiHoverTooltipTrigger gardenIngredientInventoryItem rarity-${entry.rarity}`}
+                      role="img"
+                      tabIndex={0}
+                      aria-label={t("gardenPanel.ingredientChipLabel", {
+                        plant: plantName,
+                        quantity: entry.quantity
+                      })}
+                      aria-describedby={tooltipId}
                     >
                       <div
                         className={`gardenIngredientInventoryIcon${ingredientFeedback ? " gardenIngredientInventoryIcon-positive" : ""}`}
@@ -711,7 +719,11 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                       >
                         {entry.quantity.toLocaleString()}
                       </span>
-                      <div className="uiHoverTooltip uiHoverTooltipBottom gardenIngredientTooltip" role="tooltip">
+                      <div
+                        id={tooltipId}
+                        className="uiHoverTooltip uiHoverTooltipBottom gardenIngredientTooltip"
+                        role="tooltip"
+                      >
                         <p className="uiHoverTooltipLine">
                           <strong>{plantName}</strong>
                         </p>
