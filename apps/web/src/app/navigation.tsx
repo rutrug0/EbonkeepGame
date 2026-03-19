@@ -8,6 +8,7 @@ export type LandingTab =
   | "contracts"
   | "missions"
   | "arena"
+  | "jobs"
   | "guild"
   | "castles"
   | "auctionHouse"
@@ -54,7 +55,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     id: "estate",
     iconTab: "garden",
-    tabs: ["garden", "apothecary", "workshop"]
+    tabs: ["garden", "jobs", "apothecary", "workshop"]
   },
   {
     id: "realm",
@@ -71,6 +72,7 @@ const MENU_GROUP_BY_TAB: Record<LandingTab, MenuGroupId> = {
   contracts: "adventures",
   missions: "adventures",
   arena: "adventures",
+  jobs: "estate",
   merchant: "market",
   auctionHouse: "market",
   shop: "market",
@@ -137,6 +139,15 @@ export function renderMenuIcon(tab: LandingTab): ReactElement | null {
           <path d="m8 5 3 3-5 5-2 1 1-2 5-5" />
           <path d="m16 5-3 3 5 5 2 1-1-2-5-5" />
           <path d="M9 19h6" />
+        </svg>
+      );
+    case "jobs":
+      return (
+        <svg {...iconProps}>
+          <path d="m5 19 6-6" />
+          <path d="m9 5 10 10" />
+          <path d="m14 4 6 6-2 2-6-6z" />
+          <path d="M4 20h5" />
         </svg>
       );
     case "guild":
