@@ -8,3 +8,4 @@ export * from "./domains/economy/index.js";
 export * from "./domains/guild/index.js";
 export * from "./domains/leaderboard/index.js";
 export * from "./domains/garden/index.js";
+export * from "./domains/jobs/index.js";

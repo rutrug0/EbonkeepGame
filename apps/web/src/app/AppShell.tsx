@@ -132,6 +132,7 @@ import {
 import { ImperialShop, MerchantPanel } from "../features/economy";
 import { ArenaPanel } from "../features/arena";
 import { GardenPanel } from "../features/garden";
+import { JobsPanel, fetchJobsState, getStoredJobsLockReleaseAtMs } from "../features/jobs";
 import { GuildPanel } from "../features/guild";
 import { Leaderboard } from "../features/leaderboard";
 import {
@@ -1645,6 +1646,12 @@ function formatDurationFromMs(value: number): string {
   return `${minutes.toString().padStart(2, "0")}m ${seconds.toString().padStart(2, "0")}s`;
 }
 
+const JOB_ACTIVITY_LOCKED_TABS: LandingTab[] = ["contracts", "missions", "arena", "garden", "apothecary", "workshop"];
+
+function isTabLockedByJobs(lockReleaseAtMs: number | null, nowMs: number, tab: LandingTab): boolean {
+  return lockReleaseAtMs !== null && nowMs < lockReleaseAtMs && JOB_ACTIVITY_LOCKED_TABS.includes(tab);
+}
+
 export function AppShell() {
   useTranslation();
   const landingPageRef = useRef<HTMLDivElement | null>(null);
@@ -1720,6 +1727,7 @@ export function AppShell() {
   const [activeContractRunId, setActiveContractRunId] = useState<string | null>(null);
   const [pendingContractResultPlayerState, setPendingContractResultPlayerState] =
     useState<PendingContractResultPlayerState | null>(null);
+  const [jobsLockReleaseAtMs, setJobsLockReleaseAtMs] = useState<number | null>(() => getStoredJobsLockReleaseAtMs());
   const [isGuildMissionActive, setIsGuildMissionActive] = useState(false);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
@@ -1756,6 +1764,33 @@ export function AppShell() {
   } | null>(null);
   const [activeCheatAction, setActiveCheatAction] = useState<CheatActionKey | null>(null);
   const [cheatStatusMessage, setCheatStatusMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token || !playerState) {
+      setJobsLockReleaseAtMs(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void fetchJobsState(token)
+      .then((jobsState) => {
+        if (cancelled) {
+          return;
+        }
+
+        setJobsLockReleaseAtMs(jobsState.activeRun ? Date.parse(jobsState.activeRun.releaseAt) : null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setJobsLockReleaseAtMs(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [playerState, token]);
   const [cheatLevelInput, setCheatLevelInput] = useState("");
   const [cheatEquipmentRarity, setCheatEquipmentRarity] = useState<ItemRarity>("rare");
   const [inventoryStatFlashes, setInventoryStatFlashes] = useState<Partial<Record<InventoryStatFlashKey, InventoryStatFlash>>>({});
@@ -5073,6 +5108,24 @@ export function AppShell() {
     );
   }
 
+  function handleJobsDucatsGain(addedDucats: number) {
+    setCurrencies((previous) => ({
+      ducats: (previous?.ducats ?? playerState?.currency.ducats ?? 0) + addedDucats,
+      imperials: previous?.imperials ?? playerState?.currency.imperials ?? 0
+    }));
+    setPlayerState((previous) =>
+      previous
+        ? {
+            ...previous,
+            currency: {
+              ...previous.currency,
+              ducats: previous.currency.ducats + addedDucats
+            }
+          }
+        : previous
+    );
+  }
+
   function renderActivePanel() {
     const guildPanelProps = {
       token,
@@ -5117,6 +5170,18 @@ export function AppShell() {
             formatDurationFromMs={formatDurationFromMs}
           />
         );
+      case "jobs":
+        return (
+          <JobsPanel
+            token={token}
+            hasPlayerState={Boolean(playerState)}
+            currentDucats={currencies?.ducats ?? playerState?.currency.ducats ?? 0}
+            playerLevel={playerState?.level ?? null}
+            developerToolsEnabled={Boolean(accountInfo?.developerToolsEnabled)}
+            onGrantDucats={handleJobsDucatsGain}
+            onLockReleaseAtChange={setJobsLockReleaseAtMs}
+          />
+        );
       case "guild":
         return <GuildPanel {...guildPanelProps} />;
       case "castles":
@@ -5143,8 +5208,15 @@ export function AppShell() {
   }
 
   function selectLandingTab(nextTab: LandingTab) {
+    if (isTabLockedByJobs(jobsLockReleaseAtMs, nowMs, nextTab)) {
+      setError(i18n.t("jobsPanel.lockedNavigation"));
+      return;
+    }
     setActiveTab(nextTab);
     setExpandedMenuGroup(getMenuGroupForTab(nextTab));
+    if (error === i18n.t("jobsPanel.lockedNavigation")) {
+      setError(null);
+    }
     if (nextTab === "inventory") {
       setCharacterHubTab("character");
     }
@@ -5517,20 +5589,27 @@ export function AppShell() {
                         </button>
                         {isExpanded ? (
                           <div className="menuSubList">
-                            {menuGroup.tabs.map((menuItemId) => (
-                              <button
-                                key={menuItemId}
-                                type="button"
-                                className={`menuButton menuSubButton${activeTab === menuItemId ? " active" : ""}`}
-                                data-testid={`menu-${menuItemId}`}
-                                onClick={() => selectLandingTab(menuItemId)}
-                              >
-                                <span className="menuButtonIcon" aria-hidden="true">
-                                  {renderMenuIcon(menuItemId)}
-                                </span>
-                                <span className="menuButtonLabel">{formatMenuLabel(menuItemId)}</span>
-                              </button>
-                            ))}
+                            {menuGroup.tabs.map((menuItemId) => {
+                              const isMenuTabLocked = isTabLockedByJobs(jobsLockReleaseAtMs, nowMs, menuItemId);
+
+                              return (
+                                <button
+                                  key={menuItemId}
+                                  type="button"
+                                  className={`menuButton menuSubButton${activeTab === menuItemId ? " active" : ""}`}
+                                  data-testid={`menu-${menuItemId}`}
+                                  aria-disabled={isMenuTabLocked}
+                                  data-locked={isMenuTabLocked ? "true" : undefined}
+                                  title={isMenuTabLocked ? i18n.t("jobsPanel.lockedNavigation") : undefined}
+                                  onClick={() => selectLandingTab(menuItemId)}
+                                >
+                                  <span className="menuButtonIcon" aria-hidden="true">
+                                    {renderMenuIcon(menuItemId)}
+                                  </span>
+                                  <span className="menuButtonLabel">{formatMenuLabel(menuItemId)}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         ) : null}
                       </div>

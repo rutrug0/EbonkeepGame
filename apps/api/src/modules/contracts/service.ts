@@ -33,6 +33,7 @@ import {
   type AcademyEffectTotals
 } from "../academy/effects.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
+import { assertJobsActivityIdle } from "../jobs/service.js";
 import { grantPlayerExperience, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
@@ -527,6 +528,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
 
   await prisma.$transaction(async (tx) => {
     await lockPlayerContractState(tx, playerId);
+    await assertJobsActivityIdle(tx, playerId, now);
     const playerState = await loadPlayerState(tx, playerId);
     if (!playerState) {
       throw new Error("Player state not found.");

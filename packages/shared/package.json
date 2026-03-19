@@ -49,6 +49,10 @@
     "./garden": {
       "types": "./src/domains/garden/index.ts",
       "default": "./src/domains/garden/index.ts"
+    },
+    "./jobs": {
+      "types": "./src/domains/jobs/index.ts",
+      "default": "./src/domains/jobs/index.ts"
     }
   },
   "scripts": {

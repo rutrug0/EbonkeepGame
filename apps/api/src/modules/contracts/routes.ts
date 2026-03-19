@@ -10,6 +10,7 @@ import {
 import { abandonContractOffer, claimContractRunResult, getContractBoard, getContractRun, startContractRun } from "./service.js";
 import { getDeveloperContractsStaticCurves } from "./developer-static-curves.js";
 import { createDeveloperContractSimulationJob, getDeveloperContractSimulationJob } from "./developer-simulation.js";
+import { JobsError } from "../jobs/service.js";
 
 function parseSlotId(raw: string): number | null {
   const slotId = Number.parseInt(raw, 10);
@@ -38,6 +39,9 @@ export const contractRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       return reply.send(await startContractRun(fastify.prisma, request.user.playerId, slotId));
     } catch (error) {
+      if (error instanceof JobsError) {
+        return reply.code(error.statusCode).send({ error: error.message });
+      }
       const message = error instanceof Error ? error.message : "Failed to start contract.";
       const statusCode =
         message.includes("stamina") ? 400 :

@@ -2,6 +2,7 @@
 @import "./features/combat/combat.css";
 @import "./features/arena/arena.css";
 @import "./features/guild/guild.css";
+@import "./features/jobs/jobs.css";
 @import "./features/auction/auction.css";
 @import "./features/leaderboard/leaderboard.css";
 @import "./features/guild/missions.css";
@@ -975,6 +976,15 @@ button:focus-visible {
   background:
     linear-gradient(180deg, rgba(101, 78, 47, 0.88), rgba(62, 49, 33, 0.94)),
     linear-gradient(140deg, rgba(173, 135, 78, 0.16), rgba(94, 117, 120, 0.08));
+}
+
+.menuButton[data-locked="true"] {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.menuButton[data-locked="true"]:hover {
+  filter: none;
 }
 
 .menuSubButton .menuButtonIcon {
