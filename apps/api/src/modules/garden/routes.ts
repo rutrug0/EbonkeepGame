@@ -1,14 +1,19 @@
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { ZodError } from "zod";
 
-import { MAX_GARDEN_SLOT_COUNT, plantGardenSeedBodySchema } from "@ebonkeep/shared/garden";
+import {
+  MAX_GARDEN_SLOT_COUNT,
+  plantGardenSeedBodySchema,
+  updateGardenUnlockedSlotsBodySchema
+} from "@ebonkeep/shared/garden";
 
 import {
   GardenError,
   clearWiltedGardenPlot,
   getGardenState,
   harvestGardenPlot,
-  plantGardenSeed
+  plantGardenSeed,
+  updateGardenUnlockedSlotsForCheats
 } from "./service.js";
 import { JobsError } from "../jobs/service.js";
 
@@ -80,6 +85,15 @@ export const gardenRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       return reply.send(await clearWiltedGardenPlot(fastify.prisma, request.user.playerId, slotIndex));
+    } catch (error) {
+      return replyForGardenError(reply, error);
+    }
+  });
+
+  fastify.post("/v1/garden/cheats/unlocked-slots", { preHandler: fastify.authenticate }, async (request, reply) => {
+    try {
+      const body = updateGardenUnlockedSlotsBodySchema.parse(request.body ?? {});
+      return reply.send(await updateGardenUnlockedSlotsForCheats(fastify.prisma, request.user.playerId, body.unlockedSlotCount));
     } catch (error) {
       return replyForGardenError(reply, error);
     }

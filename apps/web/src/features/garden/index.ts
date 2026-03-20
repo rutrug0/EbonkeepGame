@@ -3,5 +3,6 @@ export {
   clearGardenPlot,
   fetchGardenState,
   harvestGardenPlot,
-  plantGardenSeed
+  plantGardenSeed,
+  updateGardenUnlockedSlots
 } from "./api";

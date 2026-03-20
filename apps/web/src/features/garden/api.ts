@@ -3,13 +3,16 @@ import type {
   GardenStateResponse,
   HarvestGardenPlotResponse,
   PlantGardenSeedBody,
-  PlantGardenSeedResponse
+  PlantGardenSeedResponse,
+  UpdateGardenUnlockedSlotsBody,
+  UpdateGardenUnlockedSlotsResponse
 } from "@ebonkeep/shared/garden";
 import {
   clearGardenPlotResponseSchema,
   gardenStateResponseSchema,
   harvestGardenPlotResponseSchema,
-  plantGardenSeedResponseSchema
+  plantGardenSeedResponseSchema,
+  updateGardenUnlockedSlotsResponseSchema
 } from "@ebonkeep/shared/garden";
 
 import { API_URL, authHeaders, readErrorMessage } from "../../lib/api/http";
@@ -86,4 +89,24 @@ export async function clearGardenPlot(
   }
 
   return clearGardenPlotResponseSchema.parse(await response.json());
+}
+
+export async function updateGardenUnlockedSlots(
+  token: string,
+  body: UpdateGardenUnlockedSlotsBody
+): Promise<UpdateGardenUnlockedSlotsResponse> {
+  const response = await fetch(`${API_URL}/v1/garden/cheats/unlocked-slots`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Garden slot unlock failed"));
+  }
+
+  return updateGardenUnlockedSlotsResponseSchema.parse(await response.json());
 }

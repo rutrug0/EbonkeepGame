@@ -1,6 +1,7 @@
 import type { GardenPlantId, GardenPlotPhase } from "@ebonkeep/shared/garden";
 
 const GARDEN_ASSET_BASE_PATH = "/assets/items/generated/garden";
+const GARDEN_SHARED_ASSET_BASE_PATH = `${GARDEN_ASSET_BASE_PATH}/shared`;
 
 const plantPhaseAssetPaths: Partial<Record<GardenPlantId, Partial<Record<GardenPlotPhase, string>>>> = {
   bloodleaf: {
@@ -23,19 +24,28 @@ const plantPhaseAssetPaths: Partial<Record<GardenPlantId, Partial<Record<GardenP
     bloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_blooming.png`,
     post_bloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_grown.png`,
     wilted: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_wilted.png`
+  },
+  kingsfoil: {
+    growing: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_growing.png`,
+    pre_bloom: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_grown.png`,
+    bloom: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_blooming.png`,
+    post_bloom: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_grown.png`,
+    wilted: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_wilted.png`
   }
 };
 
 const seedAssetPaths: Partial<Record<GardenPlantId, string>> = {
   bloodleaf: `${GARDEN_ASSET_BASE_PATH}/bloodleaf/bloodleaf_seed.png`,
   fenroot: `${GARDEN_ASSET_BASE_PATH}/fenroot/fenroot_seed.png`,
-  ironbloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_seed.png`
+  ironbloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_seed.png`,
+  kingsfoil: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_seed.png`
 };
 
 const ingredientAssetPaths: Partial<Record<GardenPlantId, string>> = {
   bloodleaf: `${GARDEN_ASSET_BASE_PATH}/bloodleaf/bloodleaf_ingredient.png`,
   fenroot: `${GARDEN_ASSET_BASE_PATH}/fenroot/fenroot_ingredient.png`,
-  ironbloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_ingredient.png`
+  ironbloom: `${GARDEN_ASSET_BASE_PATH}/ironbloom/ironbloom_ingredient.png`,
+  kingsfoil: `${GARDEN_ASSET_BASE_PATH}/kingsfoil/kingsfoil_ingredient.png`
 };
 
 export function getGardenPlantImagePath(plantId: GardenPlantId | null, phase: GardenPlotPhase): string | null {
@@ -52,4 +62,8 @@ export function getGardenSeedImagePath(plantId: GardenPlantId): string | null {
 
 export function getGardenIngredientImagePath(plantId: GardenPlantId): string | null {
   return ingredientAssetPaths[plantId] ?? null;
+}
+
+export function getGardenEmptyPlotImagePath(): string {
+  return `${GARDEN_SHARED_ASSET_BASE_PATH}/empty_slot.png`;
 }

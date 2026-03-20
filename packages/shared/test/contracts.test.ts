@@ -275,9 +275,11 @@ describe("shared contracts", () => {
     expect(
       gardenStateResponseSchema.parse({
         serverTime: "2026-03-18T10:00:00.000Z",
+        unlockedSlotCount: 7,
         plots: [
           {
             slotIndex: 1,
+            isUnlocked: true,
             plantId: "bloodleaf",
             phase: "growing",
             plantedAt: "2026-03-18T10:00:00.000Z",
@@ -288,8 +290,9 @@ describe("shared contracts", () => {
             nextTransitionAt: "2026-03-18T10:01:30.000Z",
             harvestYield: null
           },
-          ...Array.from({ length: 7 }, (_, index) => ({
+          ...Array.from({ length: 17 }, (_, index) => ({
             slotIndex: index + 2,
+            isUnlocked: index < 6,
             plantId: null,
             phase: "empty",
             plantedAt: null,

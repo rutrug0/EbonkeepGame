@@ -67,6 +67,7 @@ import {
   type WeaponDamageRoll
 } from "@ebonkeep/shared/inventory";
 import { type MerchantState as SharedMerchantState, type MerchantTransactionResponse } from "@ebonkeep/shared/economy";
+import { MAX_GARDEN_SLOT_COUNT, MIN_GARDEN_UNLOCKED_SLOT_COUNT } from "@ebonkeep/shared/garden";
 import { type PlayerState } from "@ebonkeep/shared/player";
 
 import {
@@ -96,6 +97,7 @@ import { buyMerchantOffer, fetchMerchantState, restockMerchant, sellMerchantItem
 import {
   AuctionHouse
 } from "../features/auction";
+import { fetchGardenState, updateGardenUnlockedSlots } from "../features/garden";
 import {
   CombatEncounterArenaPanel,
   CombatEncounterLogPanel,
@@ -335,7 +337,7 @@ type PendingContractResultPlayerState = {
   ducats: number;
 };
 
-type CheatActionKey = "settings" | "replenish" | "levelUp" | "generateEquipment" | "grantCurrency";
+type CheatActionKey = "settings" | "replenish" | "levelUp" | "generateEquipment" | "grantCurrency" | "gardenUnlocks";
 
 const INVENTORY_ITEM_LIMIT = 20;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
@@ -1801,6 +1803,9 @@ export function AppShell() {
   }, [playerState, token]);
   const [cheatLevelInput, setCheatLevelInput] = useState("");
   const [cheatEquipmentRarity, setCheatEquipmentRarity] = useState<ItemRarity>("rare");
+  const [cheatGardenUnlockedSlotsInput, setCheatGardenUnlockedSlotsInput] = useState(
+    String(MIN_GARDEN_UNLOCKED_SLOT_COUNT)
+  );
   const [inventoryStatFlashes, setInventoryStatFlashes] = useState<Partial<Record<InventoryStatFlashKey, InventoryStatFlash>>>({});
   const inventoryStatFlashTimeoutsRef = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
   const inventoryStatFlashFrameRefs = useRef<Partial<Record<InventoryStatFlashKey, number>>>({});
@@ -2759,6 +2764,7 @@ export function AppShell() {
       setCurrencies(null);
       setActiveStatTraining(null);
       setCheatLevelInput("");
+      setCheatGardenUnlockedSlotsInput(String(MIN_GARDEN_UNLOCKED_SLOT_COUNT));
       setCheatStatusMessage(null);
       return;
     }
@@ -2787,6 +2793,30 @@ export function AppShell() {
     setCheatLevelInput(String(playerState.level));
     setCheatStatusMessage(null);
   }, [playerState?.playerId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!token || !playerState) {
+      return () => {
+        active = false;
+      };
+    }
+
+    void fetchGardenState(token)
+      .then((state) => {
+        if (!active) {
+          return;
+        }
+
+        setCheatGardenUnlockedSlotsInput(String(state.unlockedSlotCount));
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [playerState?.playerId, token]);
 
   useEffect(() => {
     if (!playerState) {
@@ -3549,6 +3579,36 @@ export function AppShell() {
           i18n.t("settings.cheats.currencyGranted", {
             ducats: response.ducatsGranted.toLocaleString(),
             imperials: response.imperialsGranted.toLocaleString()
+          })
+        );
+      }
+    );
+  }
+
+  function handleCheatUnlockGardenSlots() {
+    const unlockedSlotCount = Number.parseInt(cheatGardenUnlockedSlotsInput, 10);
+    if (
+      !Number.isFinite(unlockedSlotCount) ||
+      unlockedSlotCount < MIN_GARDEN_UNLOCKED_SLOT_COUNT ||
+      unlockedSlotCount > MAX_GARDEN_SLOT_COUNT
+    ) {
+      setError(
+        i18n.t("settings.cheats.invalidGardenSlotCount", {
+          min: MIN_GARDEN_UNLOCKED_SLOT_COUNT,
+          max: MAX_GARDEN_SLOT_COUNT
+        })
+      );
+      return;
+    }
+
+    void runCheatAction(
+      "gardenUnlocks",
+      () => updateGardenUnlockedSlots(token!, { unlockedSlotCount }),
+      (response) => {
+        setCheatGardenUnlockedSlotsInput(String(response.garden.unlockedSlotCount));
+        setCheatStatusMessage(
+          i18n.t("settings.cheats.gardenSlotsUnlocked", {
+            count: response.garden.unlockedSlotCount
           })
         );
       }
@@ -5034,6 +5094,27 @@ export function AppShell() {
               </button>
               <button type="button" onClick={handleCheatGrantCurrency} disabled={isCheatActionPending("grantCurrency")}>
                 {isCheatActionPending("grantCurrency") ? i18n.t("settings.cheats.processing") : i18n.t("settings.cheats.grantCurrencyButton")}
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "end" }}>
+              <div className="settingsRow" style={{ flex: "1 1 220px", margin: 0 }}>
+                <label htmlFor="cheat-garden-slots-input">{i18n.t("settings.cheats.gardenSlotCountLabel")}</label>
+                <input
+                  id="cheat-garden-slots-input"
+                  type="number"
+                  min={MIN_GARDEN_UNLOCKED_SLOT_COUNT}
+                  max={MAX_GARDEN_SLOT_COUNT}
+                  value={cheatGardenUnlockedSlotsInput}
+                  onChange={(event) => setCheatGardenUnlockedSlotsInput(event.currentTarget.value)}
+                  disabled={isCheatActionPending("gardenUnlocks")}
+                  style={cheatFieldStyle}
+                />
+              </div>
+              <button type="button" onClick={handleCheatUnlockGardenSlots} disabled={isCheatActionPending("gardenUnlocks")}>
+                {isCheatActionPending("gardenUnlocks")
+                  ? i18n.t("settings.cheats.processing")
+                  : i18n.t("settings.cheats.unlockGardenSlotsButton")}
               </button>
             </div>
 
