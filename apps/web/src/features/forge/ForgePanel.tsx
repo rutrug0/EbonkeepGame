@@ -2,6 +2,7 @@ import {
   startTransition,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties
 } from "react";
@@ -18,7 +19,7 @@ import {
   getForgeDamageBonusBps,
   getForgeSuccessChancePct
 } from "@ebonkeep/shared/forge";
-import type { InventoryItem } from "@ebonkeep/shared/inventory";
+import { isItemUsableByClass, type InventoryItem, type ItemModifier, type ModifierTier } from "@ebonkeep/shared/inventory";
 import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
@@ -34,6 +35,41 @@ export type ForgePanelProps = {
 type ForgeWeaponEntry = {
   item: InventoryItem;
   location: "equipped" | "inventory";
+};
+
+type ForgeResolvePhase =
+  | "idle"
+  | "charge"
+  | "chaos"
+  | "feint"
+  | "eclipse"
+  | "reveal-success"
+  | "reveal-failure"
+  | "settle";
+
+type ForgeResolveBeat = {
+  startAngleDeg: number;
+  targetAngleDeg: number;
+  overshootDeg: number;
+  durationMs: number;
+};
+
+type ForgeResolveSequence = {
+  chargeMs: number;
+  chaosMs: number;
+  chaosStartAngleDeg: number;
+  chaosEndAngleDeg: number;
+  eclipseMs: number;
+  revealMs: number;
+  settleMs: number;
+  feints: ForgeResolveBeat[];
+};
+
+type ForgeItemModifierLine = {
+  id: string;
+  tier: ModifierTier;
+  label: string;
+  value: string;
 };
 
 function normalizeItemNameForArtLookup(itemName: string): string {
@@ -64,12 +100,109 @@ function getBaseDamageAverage(item: InventoryItem): number {
   return Math.round((averageDamage / (1 + bonusScaleBps / 10_000)) * 100) / 100;
 }
 
+function formatOneDecimal(value: number): string {
+  return value.toFixed(1).replace(/\.0$/, "");
+}
+
+function getModifierTierClassName(tier: ModifierTier): string {
+  if (tier === "T1") {
+    return "modifierTier-t1";
+  }
+  if (tier === "T2") {
+    return "modifierTier-t2";
+  }
+  return "modifierTier-t3";
+}
+
 function formatPercentFromBps(value: number): string {
   return `${(value / 100).toFixed(value % 100 === 0 ? 0 : 2)}%`;
 }
 
 function formatRarityLabel(value: InventoryItem["rarity"]): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function randomBetween(min: number, max: number): number {
+  return Math.round(min + ((max - min) * Math.random()));
+}
+
+function normalizeAngleDeg(angleDeg: number): number {
+  return ((angleDeg % 360) + 360) % 360;
+}
+
+function createForgeResolveSequence(prefersReducedMotion: boolean): ForgeResolveSequence {
+  if (prefersReducedMotion) {
+    return {
+      chargeMs: randomBetween(160, 220),
+      chaosMs: 0,
+      chaosStartAngleDeg: 0,
+      chaosEndAngleDeg: 0,
+      eclipseMs: 0,
+      revealMs: randomBetween(220, 280),
+      settleMs: randomBetween(160, 220),
+      feints: []
+    };
+  }
+
+  const chargeMs = randomBetween(700, 1100);
+  const chaosMs = randomBetween(1400, 2400);
+  const chaosStartAngleDeg = randomBetween(-30, 30);
+  const chaosDirection = Math.random() < 0.5 ? -1 : 1;
+  const chaosRevolutions = randomBetween(6, 10);
+  const chaosEndAngleDeg = chaosStartAngleDeg + (chaosDirection * chaosRevolutions * 360) + randomBetween(-24, 24);
+  const feintCount = randomBetween(2, 4);
+  const feintTotalMs = randomBetween(1200, 2800);
+  const baseFeintMs = Math.max(320, Math.round(feintTotalMs / feintCount));
+  const startTarget: "top" | "bottom" = Math.random() < 0.5 ? "top" : "bottom";
+  const feints: ForgeResolveBeat[] = [];
+  let currentStartAngle = normalizeAngleDeg(chaosEndAngleDeg);
+
+  for (let index = 0; index < feintCount; index += 1) {
+    const target = index % 2 === 0
+      ? startTarget
+      : startTarget === "top"
+        ? "bottom"
+        : "top";
+
+    const targetAngleDeg = normalizeAngleDeg((target === "top" ? 0 : 180) + randomBetween(-18, 18));
+    const overshootDeg = (Math.random() < 0.5 ? -1 : 1) * randomBetween(16, 34);
+    const durationMs = Math.max(300, baseFeintMs + randomBetween(-140, 180));
+
+    feints.push({
+      startAngleDeg: currentStartAngle,
+      targetAngleDeg,
+      overshootDeg,
+      durationMs
+    });
+
+    currentStartAngle = targetAngleDeg;
+  }
+
+  return {
+    chargeMs,
+    chaosMs,
+    chaosStartAngleDeg,
+    chaosEndAngleDeg,
+    eclipseMs: randomBetween(280, 360),
+    revealMs: randomBetween(600, 800),
+    settleMs: randomBetween(400, 600),
+    feints
+  };
+}
+
+function renderForgeOrb(className: string) {
+  return (
+    <div className={className}>
+      <span className="forgeOrbAura" />
+      <span className="forgeOrbHalo" />
+      <span className="forgeOrbRune" />
+      <span className="forgeOrbRune forgeOrbRune--echo" />
+      <span className="forgeOrbTail" />
+      <span className="forgeOrbTail forgeOrbTail--echo" />
+      <span className="forgeOrbTailRibbon forgeOrbTailRibbon--one" />
+      <span className="forgeOrbTailRibbon forgeOrbTailRibbon--two" />
+    </div>
+  );
 }
 
 export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePanelProps) {
@@ -79,17 +212,176 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
   const [selectedWeaponId, setSelectedWeaponId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCleansing, setIsCleansing] = useState(false);
-  const [spinResult, setSpinResult] = useState<ForgeAttemptResult | null>(null);
+  const [pendingResult, setPendingResult] = useState<ForgeAttemptResult | null>(null);
   const [resolvedResult, setResolvedResult] = useState<ForgeAttemptResult | null>(null);
+  const [resolveSequence, setResolveSequence] = useState<ForgeResolveSequence | null>(null);
+  const [resolvePhase, setResolvePhase] = useState<ForgeResolvePhase>("idle");
+  const [resolveBeatIndex, setResolveBeatIndex] = useState<number>(-1);
+  const [orbMotionKey, setOrbMotionKey] = useState(0);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
   const [showEnchantPicker, setShowEnchantPicker] = useState(false);
   const [showRulesPanel, setShowRulesPanel] = useState(false);
   const [forgeHover, setForgeHover] = useState<{ kind: "weapon" | "enchant"; style: CSSProperties } | null>(null);
+  const resolveTimeoutsRef = useRef<number[]>([]);
+  const activeResolveRunRef = useRef(0);
+  const pendingPlayerStateRef = useRef<PlayerState | null>(null);
+  const pendingForgeStateRef = useRef<ForgeState | null>(null);
+
+  function clearResolveTimeline() {
+    for (const timeoutId of resolveTimeoutsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    resolveTimeoutsRef.current = [];
+    activeResolveRunRef.current += 1;
+    pendingPlayerStateRef.current = null;
+    pendingForgeStateRef.current = null;
+  }
+
+  function restartOrbMotion() {
+    setOrbMotionKey((currentKey) => currentKey + 1);
+  }
+
+  function queueResolveStep(runId: number, delayMs: number, callback: () => void) {
+    const timeoutId = window.setTimeout(() => {
+      if (activeResolveRunRef.current !== runId) {
+        return;
+      }
+      callback();
+    }, Math.max(0, delayMs));
+
+    resolveTimeoutsRef.current.push(timeoutId);
+  }
+
+  function commitPendingResolveState() {
+    const nextPlayerState = pendingPlayerStateRef.current;
+    const nextForgeState = pendingForgeStateRef.current;
+
+    if (!nextPlayerState || !nextForgeState) {
+      return;
+    }
+
+    startTransition(() => {
+      onPlayerStateChange(nextPlayerState);
+      setForgeState(nextForgeState);
+    });
+
+    pendingPlayerStateRef.current = null;
+    pendingForgeStateRef.current = null;
+  }
+
+  function beginResolveSequence(args: {
+    result: ForgeAttemptResult;
+    playerState: PlayerState;
+    forge: ForgeState;
+  }) {
+    clearResolveTimeline();
+
+    const runId = activeResolveRunRef.current;
+    const nextSequence = createForgeResolveSequence(prefersReducedMotion);
+    const { result } = args;
+
+    pendingPlayerStateRef.current = args.playerState;
+    pendingForgeStateRef.current = args.forge;
+
+    setResolvedResult(null);
+    setPendingResult(result);
+    setResolveSequence(nextSequence);
+    setResolveBeatIndex(-1);
+    setResolvePhase("charge");
+    restartOrbMotion();
+
+    const beginEclipse = () => {
+      setResolveBeatIndex(-1);
+      setResolvePhase("eclipse");
+      restartOrbMotion();
+
+      queueResolveStep(runId, nextSequence.eclipseMs, () => {
+        commitPendingResolveState();
+        setResolvedResult(result);
+        setResolvePhase(result.outcome === "success" ? "reveal-success" : "reveal-failure");
+        restartOrbMotion();
+
+        queueResolveStep(runId, nextSequence.revealMs, () => {
+          setResolvePhase("settle");
+          restartOrbMotion();
+
+          queueResolveStep(runId, nextSequence.settleMs, () => {
+            setPendingResult(null);
+            setResolveSequence(null);
+            setResolveBeatIndex(-1);
+            setResolvePhase("idle");
+          });
+        });
+      });
+    };
+
+    const playFeint = (beatIndex: number) => {
+      if (beatIndex >= nextSequence.feints.length) {
+        beginEclipse();
+        return;
+      }
+
+      setResolveBeatIndex(beatIndex);
+      setResolvePhase("feint");
+      restartOrbMotion();
+
+      queueResolveStep(runId, nextSequence.feints[beatIndex]?.durationMs ?? 0, () => {
+        playFeint(beatIndex + 1);
+      });
+    };
+
+    const beginChaos = () => {
+      if (nextSequence.chaosMs <= 0) {
+        if (nextSequence.feints.length > 0) {
+          playFeint(0);
+          return;
+        }
+
+        beginEclipse();
+        return;
+      }
+
+      setResolvePhase("chaos");
+      restartOrbMotion();
+
+      queueResolveStep(runId, nextSequence.chaosMs, () => {
+        if (nextSequence.feints.length > 0) {
+          playFeint(0);
+          return;
+        }
+
+        beginEclipse();
+      });
+    };
+
+    queueResolveStep(runId, nextSequence.chargeMs, beginChaos);
+  }
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncMotionPreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    syncMotionPreference();
+    mediaQuery.addEventListener("change", syncMotionPreference);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncMotionPreference);
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) {
+      clearResolveTimeline();
       setForgeState(null);
+      setPendingResult(null);
+      setResolvedResult(null);
+      setResolveSequence(null);
+      setResolveBeatIndex(-1);
+      setResolvePhase("idle");
       return;
     }
     let active = true;
@@ -101,6 +393,10 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
       });
     return () => { active = false; };
   }, [token, t]);
+
+  useEffect(() => () => {
+    clearResolveTimeline();
+  }, []);
 
   const weaponEntries = useMemo<ForgeWeaponEntry[]>(() => {
     if (!playerState) return [];
@@ -138,33 +434,180 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
       ? Math.round(baseDamageAverage * (1 + nextBonusBps / 10_000) * 100) / 100
       : null;
   const hasInstability = Boolean(forgeState?.instability);
+  const unstableWeaponItemId = forgeState?.instability?.weaponItemId ?? null;
   const canAffordAttempt = attemptCostDucats !== null && (playerState?.currency.ducats ?? 0) >= attemptCostDucats;
   const canAffordCleanse = (forgeState?.instability?.cleanseCostDucats ?? 0) <= (playerState?.currency.ducats ?? 0);
+  const selectedWeaponIsUnstable = Boolean(selectedWeapon && unstableWeaponItemId === selectedWeapon.id);
 
-  const animState = spinResult
-    ? "spinning"
-    : resolvedResult
-      ? resolvedResult.outcome === "success" ? "success" : "failure"
-      : "idle";
+  const isResolving = pendingResult !== null;
+  const currentFeint = resolveBeatIndex >= 0 ? resolveSequence?.feints[resolveBeatIndex] ?? null : null;
+  const resolveStyle = {
+    "--forge-chaos-duration": `${resolveSequence?.chaosMs ?? 1800}ms`,
+    "--forge-chaos-start-angle": `${resolveSequence?.chaosStartAngleDeg ?? 0}deg`,
+    "--forge-chaos-end-angle": `${resolveSequence?.chaosEndAngleDeg ?? 2520}deg`,
+    "--forge-feint-from-angle": `${currentFeint?.startAngleDeg ?? 0}deg`,
+    "--forge-feint-angle": `${currentFeint?.targetAngleDeg ?? 180}deg`,
+    "--forge-feint-overshoot": `${currentFeint?.overshootDeg ?? 20}deg`,
+    "--forge-feint-duration": `${currentFeint?.durationMs ?? 480}ms`
+  } as CSSProperties;
+  const anvilClassName = `forgeAnvil forgeAnvil--phase-${resolvePhase}${
+    resolvedResult ? ` forgeAnvil--result-${resolvedResult.outcome === "success" ? "success" : "failure"}` : ""
+  }${isResolving ? " forgeAnvil--isResolving" : ""}`;
+  const resolveOutcomeClassName = resolvedResult
+    ? ` forgeSlot--result-${resolvedResult.outcome === "success" ? "success" : "failure"}`
+    : "";
+  const weaponSlotClassName = `forgeSlot forgeSlot--role-weapon forgeSlot--phase-${resolvePhase}${
+    selectedWeapon ? ` forgeSlot--filled rarity-${selectedWeapon.rarity}` : ""
+  }${isResolving ? " forgeSlot--isResolving" : ""}${resolveOutcomeClassName}${
+    selectedWeaponIsUnstable ? " forgeSlot--unstable" : ""
+  }`;
+  const catalystSlotClassName = `forgeSlot forgeSlot--role-catalyst forgeSlot--phase-${resolvePhase}${
+    catalystRarity ? ` forgeSlot--filled rarity-${catalystRarity}` : ""
+  }${!selectedWeapon ? " forgeSlot--locked" : ""}${isResolving ? " forgeSlot--isResolving" : ""}${resolveOutcomeClassName}`;
 
-  const spinStyle = spinResult
-    ? ({
-        "--forge-orbit-end-angle": `${spinResult.spinTurns * 360 + (spinResult.landedAt === "weapon" ? 180 : 0)}deg`,
-        "--forge-orbit-duration": `${Math.min(6.4, 3 + spinResult.spinTurns * 0.32).toFixed(2)}s`
-      } as CSSProperties)
-    : undefined;
+  const renderForgeItemStatusBadge = (item: InventoryItem) => {
+    if (unstableWeaponItemId === item.id) {
+      return (
+        <span className="itemVisualEnchantBadge isUnstable" aria-hidden="true">
+          !
+        </span>
+      );
+    }
+
+    return item.enchanting?.level ? (
+      <span className="itemVisualEnchantBadge" aria-hidden="true">{`+${item.enchanting.level}`}</span>
+    ) : null;
+  };
+
+  const formatModifierStatLabel = (stat: string): string => {
+    const knownLabels: Record<string, string> = {
+      strength: "Strength",
+      intelligence: "Intelligence",
+      dexterity: "Dexterity",
+      vitality: "Vitality",
+      initiative: "Initiative",
+      luck: "Luck",
+      armor: t("profile.armor"),
+      spellShield: t("profile.spellShield"),
+      missileResistance: t("profile.missileResistance"),
+      meleeDamage: t("profile.meleeDamage"),
+      rangedDamage: t("profile.rangedDamage"),
+      spellDamage: t("profile.spellDamage"),
+      critChance: t("profile.critChance"),
+      critDamage: t("profile.critDamage"),
+      extraAttackChance: t("profile.extraAttackChance"),
+      maxHitpoints: t("profile.maxHitpoints"),
+      healingPower: t("profile.healingPower"),
+      lifeOnHit: t("profile.lifeOnHit"),
+      moveSpeed: t("profile.moveSpeed"),
+      physicalDefense: t("profile.physicalDefense"),
+      magicDefense: t("profile.magicDefense")
+    };
+
+    return knownLabels[stat] ?? stat;
+  };
+
+  const formatModifierValue = (value: number, unit: ItemModifier["unit"]): string => {
+    if (unit === "basis_points") {
+      return `+${formatOneDecimal(value / 100)}%`;
+    }
+    return `+${value}`;
+  };
+
+  const formatArchetypeLabel = (value: string): string => {
+    const translated = t(`archetype.${value}`);
+    return translated && translated !== `archetype.${value}`
+      ? translated
+      : value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  const getItemSubtypeLabel = (item: InventoryItem): string => {
+    if (item.archetype?.majorCategory === "armor" && item.archetype.armorArchetype) {
+      return `${formatArchetypeLabel(item.archetype.armorArchetype)} ${t("profile.armor")}`;
+    }
+    if (item.archetype?.majorCategory === "weapon" && item.archetype.weaponArchetype) {
+      return `${formatArchetypeLabel(item.archetype.weaponArchetype)} ${t("slots.weapon")}`;
+    }
+    return item.category;
+  };
+
+  const getItemModifierStatLines = (item: InventoryItem): ForgeItemModifierLine[] => {
+    const lines: ForgeItemModifierLine[] = [];
+    if (item.prefix) {
+      lines.push({
+        id: `${item.id}-prefix`,
+        tier: item.prefix.tier,
+        label: formatModifierStatLabel(item.prefix.statKey),
+        value: formatModifierValue(item.prefix.value, item.prefix.unit)
+      });
+    }
+    if (item.affix) {
+      lines.push({
+        id: `${item.id}-affix`,
+        tier: item.affix.tier,
+        label: formatModifierStatLabel(item.affix.statKey),
+        value: formatModifierValue(item.affix.value, item.affix.unit)
+      });
+    }
+    return lines;
+  };
+
+  const getWeaponDamageSummary = (item: InventoryItem): { damageLine: string; rollLine: string } | null => {
+    if (!item.damageRoll) {
+      return null;
+    }
+    const { minRollRange, maxRollRange, rolledMin, rolledMax, averageDamage } = item.damageRoll;
+    return {
+      damageLine: t("item.damage", { value: formatOneDecimal(averageDamage) }),
+      rollLine: t("item.roll", {
+        minLow: minRollRange[0],
+        minHigh: minRollRange[1],
+        rolledMin,
+        rolledMax,
+        maxLow: maxRollRange[0],
+        maxHigh: maxRollRange[1]
+      })
+    };
+  };
+
+  const getDefenseSummary = (item: InventoryItem): { primaryLine: string; secondaryLine?: string } | null => {
+    const physicalDefense = item.statBonuses?.physicalDefense;
+    if (typeof physicalDefense === "number" && physicalDefense > 0) {
+      return {
+        primaryLine: `${t("profile.physicalDefense")}: ${physicalDefense}`
+      };
+    }
+
+    const magicDefense = item.statBonuses?.magicDefense;
+    if (typeof magicDefense === "number" && magicDefense > 0) {
+      return {
+        primaryLine: `${t("profile.magicDefense")}: ${magicDefense}`
+      };
+    }
+
+    return null;
+  };
+
+  const canUseForgeItem = (item: InventoryItem): boolean => {
+    if (!item.equipable || !item.archetype || !playerState) {
+      return true;
+    }
+    const archetypeClassKey = item.archetype.weaponArchetype ?? item.archetype.armorArchetype;
+    return isItemUsableByClass(playerState.class, item.archetype.majorCategory, archetypeClassKey)
+      && playerState.level >= item.levelRequirement;
+  };
 
   async function handleEnchant() {
-    if (!token || !selectedWeapon || !nextEnchantLevel || isSubmitting || hasInstability) return;
+    if (!token || !selectedWeapon || !nextEnchantLevel || isSubmitting || hasInstability || isResolving) return;
     setError(null);
     setResolvedResult(null);
     setIsSubmitting(true);
     try {
       const response = await attemptForgeEnchant(token, { weaponItemId: selectedWeapon.id });
-      startTransition(() => {
-        onPlayerStateChange(response.playerState);
-        setForgeState(response.forge);
-        setSpinResult(response.result);
+      beginResolveSequence({
+        result: response.result,
+        playerState: response.playerState,
+        forge: response.forge
       });
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("forge.attemptFailed"));
@@ -221,26 +664,6 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
           <article className="contentCard forgeErrorCard"><p>{error}</p></article>
         ) : null}
 
-        {/* ── Instability banner ───────────────────────── */}
-        {forgeState?.instability ? (
-          <div className="forgeInstabilityBanner">
-            <div className="forgeInstabilityBannerBody">
-              <span className="sectionEyebrow">{t("forge.instabilityTitle")}</span>
-              <strong>{forgeState.instability.weaponName}</strong>
-              <span>{t("forge.damagePenaltyLabel", { value: formatPercentFromBps(forgeState.instability.damagePenaltyBps) })}</span>
-            </div>
-            <button
-              type="button"
-              className="primaryButton forgeCleanseButton"
-              onClick={handleCleanse}
-              disabled={isCleansing || !canAffordCleanse}
-            >
-              {isCleansing
-                ? t("forge.cleansing")
-                : `${t("forge.cleanse")} (${forgeState.instability.cleanseCostDucats.toLocaleString()} ${t("currencies.ducats")})`}
-            </button>
-          </div>
-        ) : null}
 
         {/* ── Main slot grid ───────────────────────────── */}
         <div className="forgeSlotGrid">
@@ -249,9 +672,9 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
           <div className="forgeSlotColumn">
             <button
               type="button"
-              className={`forgeSlot${selectedWeapon ? ` forgeSlot--filled rarity-${selectedWeapon.rarity}` : ""}`}
+              className={weaponSlotClassName}
               onClick={() => setShowWeaponPicker(true)}
-              disabled={spinResult !== null || isSubmitting}
+              disabled={isResolving || isSubmitting}
               onMouseEnter={(e) => {
                 if (!selectedWeapon) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -266,10 +689,24 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
                 <>
                   <div className="forgeSlotVisual">
                     {getWeaponIconPath(selectedWeapon) ? (
-                      <img src={getWeaponIconPath(selectedWeapon)} alt="" className="forgeSlotImage" draggable={false} />
+                      <span className="itemVisualFrame itemVisualFrame--imageOnly forgeSlotItemFrame" aria-hidden="true">
+                        <img
+                          src={getWeaponIconPath(selectedWeapon)}
+                          alt=""
+                          className="itemVisualImage itemVisualImageCard"
+                          draggable={false}
+                        />
+                        {renderForgeItemStatusBadge(selectedWeapon)}
+                      </span>
                     ) : (
-                      <span className="forgeSlotFallback">{selectedWeapon.itemName.charAt(0)}</span>
+                      <span className="itemVisualFrame forgeSlotItemFrame" aria-hidden="true">
+                        <span className="forgeSlotFallback">{selectedWeapon.itemName.charAt(0)}</span>
+                        {renderForgeItemStatusBadge(selectedWeapon)}
+                      </span>
                     )}
+                    <span className="equipmentSlotPower forgeSlotPower" aria-hidden="true">
+                      {selectedWeapon.power}
+                    </span>
                   </div>
                   <div className="forgeSlotMeta">
                     <strong>+{currentEnchantLevel} {selectedWeapon.itemName}</strong>
@@ -286,42 +723,128 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
 
           {/* Center: Animation + controls */}
           <div className="forgeCenterColumn">
-            <div className={`forgeAnvil forgeAnvil--${animState}`} style={spinStyle}>
-              <div className="forgeRing forgeRing--outer" />
-              <div className="forgeRing forgeRing--mid" />
-              <div className="forgeRing forgeRing--inner" />
-              <div
-                className={`forgeOrbitTrack${spinResult ? " isSpinning" : ""}`}
-                onAnimationEnd={() => {
-                  if (spinResult) {
-                    setResolvedResult(spinResult);
-                    setSpinResult(null);
-                  }
-                }}
-              >
-                <div
-                  className={`forgeOrbitOrb${
-                    spinResult
-                      ? ` is${spinResult.outcome === "success" ? "Success" : "Failure"}`
-                      : resolvedResult
-                        ? ` is${resolvedResult.outcome === "success" ? "Success" : "Failure"}`
-                        : ""
-                  }`}
-                />
+            <div className={anvilClassName} style={resolveStyle}>
+              <div className="forgeAtmosphere">
+                <div className="forgeHeatHaze forgeHeatHaze--one" />
+                <div className="forgeHeatHaze forgeHeatHaze--two" />
               </div>
-              <div className="forgeAnvilCore">
-                {spinResult ? (
-                  <span className="forgeAnvilCoreText">{t("forge.resolving")}</span>
-                ) : resolvedResult ? (
-                  <span className={`forgeAnvilCoreResult${resolvedResult.outcome === "success" ? " isSuccess" : " isFailure"}`}>
-                    {resolvedResult.outcome === "success" ? "✓" : "✕"}
-                  </span>
+              <div className="forgeRing forgeRing--outer">
+                <div className="forgeRingTicks" />
+              </div>
+              <div className="forgeRing forgeRing--mid" />
+              <div className="forgeRing forgeRing--inner">
+                {[...Array(8)].map((_, index) => (
+                  <span
+                    key={index}
+                    className="forgeRingSegment"
+                    style={{ "--segment-index": index } as CSSProperties}
+                  />
+                ))}
+              </div>
+              <div className="forgeStabilizers" aria-hidden="true">
+                {[...Array(3)].map((_, index) => (
+                  <span
+                    key={index}
+                    className={`forgeStabilizer forgeStabilizer--${index + 1}`}
+                  />
+                ))}
+                <span className="forgeStabilityField forgeStabilityField--outer" />
+                <span className="forgeStabilityField forgeStabilityField--inner" />
+                <span className="forgeLockReticle forgeLockReticle--ring" />
+                <span className="forgeLockReticle forgeLockReticle--cross" />
+              </div>
+              <div className="forgeOrbitLayer" key={orbMotionKey}>
+                {resolvePhase === "charge" ? (
+                  renderForgeOrb("forgeOrb forgeOrb--charging")
+                ) : null}
+                {resolvePhase === "chaos" ? (
+                  <div className="forgeOrbitMotion forgeOrbitMotion--chaos">
+                    {renderForgeOrb("forgeOrbitOrb")}
+                  </div>
+                ) : null}
+                {resolvePhase === "feint" && currentFeint ? (
+                  <div className="forgeOrbitMotion forgeOrbitMotion--feint">
+                    {renderForgeOrb("forgeOrbitOrb")}
+                  </div>
+                ) : null}
+                {resolvePhase === "eclipse" ? (
+                  renderForgeOrb("forgeOrb forgeOrb--eclipse")
+                ) : null}
+                {resolvePhase === "reveal-success" ? (
+                  renderForgeOrb("forgeOrb forgeOrb--successFinish")
+                ) : null}
+                {resolvePhase === "reveal-failure" ? (
+                  renderForgeOrb("forgeOrb forgeOrb--failureFinish")
                 ) : null}
               </div>
+              <div className="forgeAnvilCore">
+                <div className="forgeAnvilEmber" />
+                <div className="forgeAnvilShutters" aria-hidden="true">
+                  {[...Array(4)].map((_, index) => (
+                    <span key={index} className={`forgeAnvilShutter forgeAnvilShutter--${index + 1}`} />
+                  ))}
+                </div>
+                <div className="forgeAnvilCoreInner">
+                  {isResolving && !resolvedResult ? (
+                    <span className="forgeAnvilCoreText">{t("forge.resolving")}</span>
+                  ) : resolvedResult ? (
+                    <span className={`forgeAnvilCoreResult${resolvedResult.outcome === "success" ? " isSuccess" : " isFailure"}`}>
+                      {resolvedResult.outcome === "success" ? "\u2713" : "\u2715"}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
               <div className="forgeSparks">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="forgeSpark" style={{ "--spark-index": i } as CSSProperties} />
+                {[...Array(10)].map((_, index) => (
+                  <div key={index} className="forgeSpark" style={{ "--spark-index": index } as CSSProperties} />
                 ))}
+              </div>
+              <div className="forgeAsh" aria-hidden="true">
+                {[...Array(6)].map((_, index) => (
+                  <span key={index} className="forgeAshParticle" style={{ "--ash-index": index } as CSSProperties} />
+                ))}
+              </div>
+              <div className="forgeFinishFx" aria-hidden="true">
+                {resolvePhase === "reveal-success" ? (
+                  <>
+                    <span className="forgeFinishWave forgeFinishWave--success" />
+                    <span className="forgeFinishSigil forgeFinishSigil--success" />
+                    {[...Array(6)].map((_, index) => (
+                      <span
+                        key={`success-ray-${index}`}
+                        className="forgeFinishRay"
+                        style={{ "--finish-index": index } as CSSProperties}
+                      />
+                    ))}
+                    {[...Array(6)].map((_, index) => (
+                      <span
+                        key={`success-mote-${index}`}
+                        className="forgeFinishMote forgeFinishMote--success"
+                        style={{ "--finish-index": index } as CSSProperties}
+                      />
+                    ))}
+                  </>
+                ) : null}
+                {resolvePhase === "reveal-failure" ? (
+                  <>
+                    <span className="forgeFinishWave forgeFinishWave--failure" />
+                    <span className="forgeFinishSigil forgeFinishSigil--failure" />
+                    {[...Array(8)].map((_, index) => (
+                      <span
+                        key={`failure-shard-${index}`}
+                        className="forgeFinishShard"
+                        style={{ "--finish-index": index } as CSSProperties}
+                      />
+                    ))}
+                    {[...Array(6)].map((_, index) => (
+                      <span
+                        key={`failure-ember-${index}`}
+                        className="forgeFinishMote forgeFinishMote--failure"
+                        style={{ "--finish-index": index } as CSSProperties}
+                      />
+                    ))}
+                  </>
+                ) : null}
               </div>
             </div>
 
@@ -337,7 +860,7 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
                 type="button"
                 className="primaryButton forgeAttemptButton"
                 onClick={handleEnchant}
-                disabled={!nextEnchantLevel || hasInstability || isSubmitting || spinResult !== null || !canAffordAttempt}
+                disabled={!nextEnchantLevel || hasInstability || isSubmitting || isResolving || !canAffordAttempt}
               >
                 {isSubmitting ? t("forge.enchanting") : t("forge.enchantNow")}
               </button>
@@ -346,29 +869,35 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
               <span className="forgeActionMeta">{t("forge.attemptCostLabel", { cost: attemptCostDucats.toLocaleString() })}</span>
             ) : null}
 
-            {resolvedResult ? (
-              <div className={`forgeResultBanner${resolvedResult.outcome === "success" ? " isSuccess" : " isFailure"}`}>
-                <strong>
-                  {resolvedResult.outcome === "success"
-                    ? t("forge.resultSuccess", { level: resolvedResult.currentEnchantLevel })
-                    : t("forge.resultReset")}
-                </strong>
-                <span>
-                  {resolvedResult.outcome === "success"
-                    ? t("forge.resultSuccessBody", { before: resolvedResult.damageBefore, after: resolvedResult.damageAfter })
-                    : t("forge.resultResetBody", { penalty: formatPercentFromBps(forgeState?.instability?.damagePenaltyBps ?? 0) })}
-                </span>
+            {forgeState?.instability ? (
+              <div className={`forgeInstabilityInline${selectedWeaponIsUnstable ? " isSelectedWeapon" : ""}`}>
+                <div className="forgeInstabilityInlineBody">
+                  <span className="forgeInstabilityInlineTitle">{t("forge.instabilityTitle")}</span>
+                  <strong>{forgeState.instability.weaponName}</strong>
+                  <span>{t("forge.damagePenaltyLabel", { value: formatPercentFromBps(forgeState.instability.damagePenaltyBps) })}</span>
+                </div>
+                <button
+                  type="button"
+                  className="primaryButton forgeCleanseButton"
+                  onClick={handleCleanse}
+                  disabled={isCleansing || !canAffordCleanse}
+                >
+                  {isCleansing
+                    ? t("forge.cleansing")
+                    : `${t("forge.cleanse")} (${forgeState.instability.cleanseCostDucats.toLocaleString()} ${t("currencies.ducats")})`}
+                </button>
               </div>
             ) : null}
+
           </div>
 
           {/* Right: Enchant slot */}
           <div className="forgeSlotColumn">
             <button
               type="button"
-              className={`forgeSlot${catalystRarity ? ` forgeSlot--filled rarity-${catalystRarity}` : ""}${!selectedWeapon ? " forgeSlot--locked" : ""}`}
+              className={catalystSlotClassName}
               onClick={() => { if (selectedWeapon && nextEnchantLevel) setShowEnchantPicker(true); }}
-              disabled={!selectedWeapon || !nextEnchantLevel || spinResult !== null || isSubmitting}
+              disabled={!selectedWeapon || !nextEnchantLevel || isResolving || isSubmitting}
               onMouseEnter={(e) => {
                 if (!catalystRarity) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -429,13 +958,19 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
                       className={`forgeWeaponCard rarity-${entry.item.rarity}${isSelected ? " isSelected" : ""}`}
                       onClick={() => { setSelectedWeaponId(entry.item.id); setShowWeaponPicker(false); }}
                     >
-                      <div className="forgeWeaponCardVisual">
-                        {iconPath ? (
-                          <img src={iconPath} alt="" className="forgeWeaponCardImage" draggable={false} />
-                        ) : (
-                          <span className="forgeWeaponCardFallback">{entry.item.itemName.charAt(0)}</span>
-                        )}
-                      </div>
+                        <div className="forgeWeaponCardVisual">
+                          {iconPath ? (
+                            <span className="itemVisualFrame itemVisualFrame--imageOnly" aria-hidden="true">
+                              <img src={iconPath} alt="" className="forgeWeaponCardImage" draggable={false} />
+                              {renderForgeItemStatusBadge(entry.item)}
+                            </span>
+                          ) : (
+                            <span className="itemVisualFrame" aria-hidden="true">
+                              <span className="forgeWeaponCardFallback">{entry.item.itemName.charAt(0)}</span>
+                              {renderForgeItemStatusBadge(entry.item)}
+                            </span>
+                          )}
+                        </div>
                       <div className="forgeWeaponCardBody">
                         <strong>{getItemDisplayName(entry.item)}</strong>
                         <span>{entry.location === "equipped" ? t("forge.equipped") : t("forge.inventory")}</span>
@@ -530,36 +1065,84 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
     {/* ── Item hover card portal ───────────────────── */}
     {forgeHover && createPortal(
       forgeHover.kind === "weapon" && selectedWeapon ? (
-        <article className={`inventoryDetailCard rarity-${selectedWeapon.rarity}`} style={forgeHover.style}>
-          <div className="inventoryCardTop">
-            <div className="inventoryCardMeta">
-              <h4>{getItemDisplayName(selectedWeapon)}</h4>
-              {selectedWeapon.archetype?.weaponArchetype ? (
-                <p className="inventoryCardCategory">{selectedWeapon.archetype.weaponArchetype}</p>
-              ) : null}
-            </div>
-            <div className="inventoryCardTopAside">
-              <span className="inventoryCardRarity">{formatRarityLabel(selectedWeapon.rarity)}</span>
-            </div>
-          </div>
-          {getWeaponIconPath(selectedWeapon) ? (
-            <div className="inventoryCardVisual">
-              <img className="itemVisualImageCard" src={getWeaponIconPath(selectedWeapon)} alt="" />
-            </div>
-          ) : null}
-          <div className="inventoryCardContent">
-            {currentDamageAverage > 0 ? (
-              <div className="inventoryCardDamageBlock">
-                <p className="inventoryCardDamagePrimary">{t("forge.weaponDamageLabel")}: {currentDamageAverage}</p>
-              </div>
-            ) : null}
-          </div>
-          <div className="inventoryCardDetails">
-            <div className="inventoryCardFooter">
-              <span className="inventoryCardPower">{t("inventory.power", { value: selectedWeapon.power })}</span>
-              <span className="inventoryCardLevel">{t("inventory.requiredLevel", { value: selectedWeapon.levelRequirement })}</span>
-            </div>
-          </div>
+        <article className={`inventoryDetailCard inventoryHoverDetailCard rarity-${selectedWeapon.rarity}`} style={forgeHover.style}>
+          {(() => {
+            const canUseItem = canUseForgeItem(selectedWeapon);
+            const displayItemName = getItemDisplayName(selectedWeapon);
+            const useImageOnlyIcon = Boolean(getWeaponIconPath(selectedWeapon));
+            const modifierLines = getItemModifierStatLines(selectedWeapon);
+            const weaponDamageSummary = getWeaponDamageSummary(selectedWeapon);
+            const defenseSummary = getDefenseSummary(selectedWeapon);
+
+            return (
+              <>
+                <div className="inventoryCardTop">
+                  <div className="inventoryCardMeta">
+                    <h4>
+                      {selectedWeapon.enchanting?.level ? <span>{`+${selectedWeapon.enchanting.level} `}</span> : null}
+                      {selectedWeapon.prefix ? <>{selectedWeapon.prefix.name} </> : null}
+                      <span>{selectedWeapon.itemName}</span>
+                      {selectedWeapon.affix ? <> {selectedWeapon.affix.name}</> : null}
+                    </h4>
+                    <p className="inventoryCardCategory">{getItemSubtypeLabel(selectedWeapon)}</p>
+                  </div>
+                  <div className="inventoryCardTopAside">
+                    <span className="inventoryCardRarity">{formatRarityLabel(selectedWeapon.rarity)}</span>
+                  </div>
+                </div>
+                <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}`}>
+                  {getWeaponIconPath(selectedWeapon) ? (
+                    <span className="itemVisualFrame itemVisualFrame--imageOnly" aria-hidden="true">
+                      <img className="itemVisualImage itemVisualImageCard" src={getWeaponIconPath(selectedWeapon)} alt="" />
+                      {renderForgeItemStatusBadge(selectedWeapon)}
+                    </span>
+                  ) : (
+                    <span className={`itemVisualFrame${useImageOnlyIcon ? " itemVisualFrame--imageOnly" : ""}`} aria-hidden="true">
+                      <span className={`itemVisualIcon itemVisual-weapon${canUseItem ? " inventoryCardIcon" : " inventoryCardIcon isRestricted"}`}>
+                        {displayItemName.charAt(0)}
+                      </span>
+                      {renderForgeItemStatusBadge(selectedWeapon)}
+                    </span>
+                  )}
+                </div>
+                <div className="inventoryCardContent">
+                  {weaponDamageSummary ? (
+                    <div className="inventoryCardDamageBlock">
+                      <p className="inventoryCardDamagePrimary">{weaponDamageSummary.damageLine}</p>
+                      <p className="inventoryCardDamageRollMeta">{weaponDamageSummary.rollLine}</p>
+                    </div>
+                  ) : null}
+                  {defenseSummary ? (
+                    <div className="inventoryCardDamageBlock">
+                      <p className="inventoryCardDamagePrimary">{defenseSummary.primaryLine}</p>
+                      {defenseSummary.secondaryLine ? (
+                        <p className="inventoryCardDamageRollMeta">{defenseSummary.secondaryLine}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {modifierLines.length > 0 ? (
+                    <div className="inventoryCardModifierList">
+                      {modifierLines.map((line) => (
+                        <p key={line.id} className="inventoryCardModifierLine">
+                          <span className={`inventoryModifierTier ${getModifierTierClassName(line.tier)}`}>({line.tier})</span>{" "}
+                          <span>{line.label} {line.value}</span>
+                        </p>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="inventoryCardDetails">
+                  <p className="inventoryCardDescription inventoryCardFlavor">{selectedWeapon.description}</p>
+                  <div className="inventoryCardFooter">
+                    <span className="inventoryCardPower">{t("inventory.power", { value: selectedWeapon.power })}</span>
+                    <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>
+                      {t("inventory.requiredLevel", { value: selectedWeapon.levelRequirement })}
+                    </span>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </article>
       ) : forgeHover.kind === "enchant" && catalystRarity && nextEnchantLevel ? (
         <article className={`inventoryDetailCard rarity-${catalystRarity}`} style={forgeHover.style}>

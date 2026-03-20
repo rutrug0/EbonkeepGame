@@ -83,6 +83,7 @@ interface ParsedItemData {
     value: number;
     unit: string;
   };
+  enchanting?: InventoryItem["enchanting"];
   archetype?: {
     majorCategory?: string;
     weaponArchetype?: string;
@@ -207,6 +208,10 @@ function sanitizeParsedItemData(input: Partial<ParsedItemData> & { itemCode?: st
     affix:
       input.affix && typeof input.affix === "object" && !Array.isArray(input.affix)
         ? input.affix
+        : undefined,
+    enchanting:
+      input.enchanting && typeof input.enchanting === "object" && !Array.isArray(input.enchanting)
+        ? input.enchanting
         : undefined,
     archetype:
       input.archetype && typeof input.archetype === "object" && !Array.isArray(input.archetype)
@@ -855,6 +860,10 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
             parsed.affix && typeof parsed.affix === "object" && !Array.isArray(parsed.affix)
               ? (parsed.affix as ParsedItemData["affix"])
               : undefined,
+          enchanting:
+            parsed.enchanting && typeof parsed.enchanting === "object" && !Array.isArray(parsed.enchanting)
+              ? (parsed.enchanting as ParsedItemData["enchanting"])
+              : undefined,
           archetype:
             parsed.archetype && typeof parsed.archetype === "object" && !Array.isArray(parsed.archetype)
               ? (parsed.archetype as ParsedItemData["archetype"])
@@ -1081,6 +1090,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
             category: itemData.category,
             itemName: itemData.itemName,
             iconAssetPath,
+            enchantLevel: itemData.enchanting?.level,
             renderMode: iconAssetPath ? "imageOnly" : "default",
             className: iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
           })}
@@ -1330,22 +1340,36 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     category?: string;
     itemName?: string | null;
     iconAssetPath?: string;
+    enchantLevel?: number | null;
     className?: string;
     renderMode?: "default" | "imageOnly";
   }) => {
     const iconVisual = resolveItemIconVisual(args);
+    const extraClass = args.className ? ` ${args.className}` : "";
+    const enchantLevel = Math.max(0, Math.floor(args.enchantLevel ?? 0));
+    const enchantBadge = enchantLevel > 0 ? (
+      <span className="itemVisualEnchantBadge" aria-hidden="true">{`+${enchantLevel}`}</span>
+    ) : null;
+
     if (args.iconAssetPath && args.renderMode === "imageOnly") {
-      return <img className="itemVisualImage itemVisualImageCard" src={args.iconAssetPath} alt="" loading="lazy" />;
+      return (
+        <span className="itemVisualFrame itemVisualFrame--imageOnly" aria-hidden="true">
+          <img className="itemVisualImage itemVisualImageCard" src={args.iconAssetPath} alt="" loading="lazy" />
+          {enchantBadge}
+        </span>
+      );
     }
 
-    const extraClass = args.className ? ` ${args.className}` : "";
     return (
-      <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`} aria-hidden="true">
-        {args.iconAssetPath ? (
-          <img className="itemVisualImage" src={args.iconAssetPath} alt="" loading="lazy" />
-        ) : (
-          iconVisual.label
-        )}
+      <span className="itemVisualFrame" aria-hidden="true">
+        <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`}>
+          {args.iconAssetPath ? (
+            <img className="itemVisualImage" src={args.iconAssetPath} alt="" loading="lazy" />
+          ) : (
+            iconVisual.label
+          )}
+        </span>
+        {enchantBadge}
       </span>
     );
   };
@@ -1397,6 +1421,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                   category: itemData.category,
                   itemName: itemData.itemName,
                   iconAssetPath,
+                  enchantLevel: itemData.enchanting?.level,
                   renderMode: iconAssetPath ? "imageOnly" : "default",
                   className: iconAssetPath ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`
                 })}
@@ -1577,6 +1602,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                     category: itemData.category,
                     itemName: itemData.itemName,
                     iconAssetPath: itemData.iconAssetPath,
+                    enchantLevel: itemData.enchanting?.level,
                     className: itemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
                   })}
                 </div>
@@ -1736,6 +1762,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     category: itemData.category,
     itemName: itemData.itemName,
     iconAssetPath: itemData.iconAssetPath,
+    enchantLevel: itemData.enchanting?.level,
     className: itemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
   })}
 </div>
@@ -1809,6 +1836,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
                       category: selectedItemData.category,
                       itemName: selectedItemData.itemName,
                       iconAssetPath: selectedItemData.iconAssetPath,
+                      enchantLevel: selectedItemData.enchanting?.level,
                       className: selectedItemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseSelectedItem ? "" : " isRestricted"}`
                     })}
                   </div>
@@ -1968,6 +1996,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
     category: itemData.category,
     itemName: itemData.itemName,
     iconAssetPath: itemData.iconAssetPath,
+    enchantLevel: itemData.enchanting?.level,
     className: itemData.iconAssetPath ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`
   })}
 </div>

@@ -1,4 +1,13 @@
-import type { ItemRarity } from "@ebonkeep/shared";
+import { getForgeDamageBonusBps } from "@ebonkeep/shared/forge";
+import {
+  inventoryItemSchema,
+  itemEnchantingSchema,
+  weaponDamageRollSchema,
+  type InventoryItem,
+  type ItemEnchanting,
+  type ItemRarity,
+  type WeaponDamageRoll
+} from "@ebonkeep/shared/inventory";
 
 import { allDefinedItemTemplates, rollInventoryItem } from "../../inventory/item-service.js";
 import { AuctionConfigService } from "./config.service.js";
@@ -7,6 +16,23 @@ type AuctionItemTemplateScope = "all" | "warriorHeavyAndMelee";
 
 const AUCTION_SYSTEM_PLAYER_ID = "auction_system";
 const AUCTION_PLAYER_CLASSES = ["warrior", "mage", "ranger"] as const;
+
+function scaleDamageRollByBonus(
+  damageRoll: WeaponDamageRoll,
+  bonusScaleBps: number
+): WeaponDamageRoll {
+  const multiplier = 1 + (Math.max(0, bonusScaleBps) / 10_000);
+  const scaleInt = (value: number) => Math.max(0, Math.round(value * multiplier));
+  const scaleFloat = (value: number) => Math.max(0, Math.round(value * multiplier * 100) / 100);
+
+  return weaponDamageRollSchema.parse({
+    minRollRange: [scaleInt(damageRoll.minRollRange[0]), scaleInt(damageRoll.minRollRange[1])],
+    rolledMin: scaleInt(damageRoll.rolledMin),
+    rolledMax: scaleInt(damageRoll.rolledMax),
+    maxRollRange: [scaleInt(damageRoll.maxRollRange[0]), scaleInt(damageRoll.maxRollRange[1])],
+    averageDamage: scaleFloat(damageRoll.averageDamage)
+  });
+}
 
 /**
  * Service for generating auction items from the canonical CSV-backed item tables.
@@ -35,12 +61,13 @@ export class AuctionItemGeneratorService {
       const preferredClass = this.getLeastRepresentedClass(classCounts);
       const template = this.pickTemplateForClass(eligibleTemplates, preferredClass) ?? this.randomChoice(eligibleTemplates);
       const itemLevel = this.rollItemLevel(template, levelBracketMin, levelBracketMax);
-      const itemData = rollInventoryItem({
+      const baseItemData = rollInventoryItem({
         playerId: AUCTION_SYSTEM_PLAYER_ID,
         templateId: template.id,
         rarity,
         itemLevel
       });
+      const itemData = this.applyAuctionEnchant(baseItemData, this.rollAuctionEnchantLevel());
 
       const classCountKey = template.allowedClass === "all" ? preferredClass : template.allowedClass;
       classCounts.set(classCountKey, (classCounts.get(classCountKey) ?? 0) + 1);
@@ -73,6 +100,59 @@ export class AuctionItemGeneratorService {
     if (roll < (cumulative += dist.uncommon)) return "uncommon";
     if (roll < (cumulative += dist.rare)) return "rare";
     return "epic";
+  }
+
+  private rollAuctionEnchantLevel(): number {
+    const roll = Math.random() * 100;
+
+    if (roll < 50) return 0;
+    if (roll < 75) return 1;
+    if (roll < 85) return 2;
+    if (roll < 95) return 3;
+    return 4;
+  }
+
+  private applyAuctionEnchant(item: InventoryItem, enchantLevel: number): InventoryItem {
+    if (enchantLevel <= 0) {
+      return item;
+    }
+
+    const track = this.getEnchantTrack(item);
+    if (!track) {
+      return item;
+    }
+
+    const bonusScaleBps = getForgeDamageBonusBps(enchantLevel);
+    const powerMultiplier = 1 + (bonusScaleBps / 10_000);
+    const nextPower = Math.max(item.power, Math.round(item.power * powerMultiplier));
+    const nextDamageRoll =
+      track === "weapon" && item.damageRoll
+        ? scaleDamageRollByBonus(item.damageRoll, bonusScaleBps)
+        : item.damageRoll;
+
+    return inventoryItemSchema.parse({
+      ...item,
+      power: nextPower,
+      damageRoll: nextDamageRoll,
+      enchanting: itemEnchantingSchema.parse({
+        track,
+        level: enchantLevel,
+        bonusScaleBps
+      } satisfies ItemEnchanting)
+    });
+  }
+
+  private getEnchantTrack(item: InventoryItem): ItemEnchanting["track"] | null {
+    switch (item.archetype.majorCategory) {
+      case "weapon":
+        return "weapon";
+      case "armor":
+        return "armor";
+      case "jewelry":
+        return "jewelry";
+      default:
+        return null;
+    }
   }
 
   private getEligibleTemplates(
