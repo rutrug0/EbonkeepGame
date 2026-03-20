@@ -16,6 +16,7 @@ type AuctionItemTemplateScope = "all" | "warriorHeavyAndMelee";
 
 const AUCTION_SYSTEM_PLAYER_ID = "auction_system";
 const AUCTION_PLAYER_CLASSES = ["warrior", "mage", "ranger"] as const;
+const WEAPON_DAMAGE_POWER_SCALE = 0.35;
 
 function scaleDamageRollByBonus(
   damageRoll: WeaponDamageRoll,
@@ -113,46 +114,25 @@ export class AuctionItemGeneratorService {
   }
 
   private applyAuctionEnchant(item: InventoryItem, enchantLevel: number): InventoryItem {
-    if (enchantLevel <= 0) {
-      return item;
-    }
-
-    const track = this.getEnchantTrack(item);
-    if (!track) {
+    if (enchantLevel <= 0 || item.archetype.majorCategory !== "weapon" || !item.damageRoll) {
       return item;
     }
 
     const bonusScaleBps = getForgeDamageBonusBps(enchantLevel);
-    const powerMultiplier = 1 + (bonusScaleBps / 10_000);
-    const nextPower = Math.max(item.power, Math.round(item.power * powerMultiplier));
-    const nextDamageRoll =
-      track === "weapon" && item.damageRoll
-        ? scaleDamageRollByBonus(item.damageRoll, bonusScaleBps)
-        : item.damageRoll;
+    const nextDamageRoll = scaleDamageRollByBonus(item.damageRoll, bonusScaleBps);
+    const damageDelta = Math.max(0, nextDamageRoll.averageDamage - item.damageRoll.averageDamage);
+    const nextPower = Math.max(item.power, Math.round(item.power + (damageDelta * WEAPON_DAMAGE_POWER_SCALE)));
 
     return inventoryItemSchema.parse({
       ...item,
       power: nextPower,
       damageRoll: nextDamageRoll,
       enchanting: itemEnchantingSchema.parse({
-        track,
+        track: "weapon",
         level: enchantLevel,
         bonusScaleBps
       } satisfies ItemEnchanting)
     });
-  }
-
-  private getEnchantTrack(item: InventoryItem): ItemEnchanting["track"] | null {
-    switch (item.archetype.majorCategory) {
-      case "weapon":
-        return "weapon";
-      case "armor":
-        return "armor";
-      case "jewelry":
-        return "jewelry";
-      default:
-        return null;
-    }
   }
 
   private getEligibleTemplates(

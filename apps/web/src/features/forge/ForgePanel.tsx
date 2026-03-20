@@ -229,14 +229,17 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
   const pendingPlayerStateRef = useRef<PlayerState | null>(null);
   const pendingForgeStateRef = useRef<ForgeState | null>(null);
 
-  function clearResolveTimeline() {
+  function clearResolveTimeline(options?: { preservePendingState?: boolean }) {
     for (const timeoutId of resolveTimeoutsRef.current) {
       window.clearTimeout(timeoutId);
     }
     resolveTimeoutsRef.current = [];
     activeResolveRunRef.current += 1;
-    pendingPlayerStateRef.current = null;
-    pendingForgeStateRef.current = null;
+
+    if (!options?.preservePendingState) {
+      pendingPlayerStateRef.current = null;
+      pendingForgeStateRef.current = null;
+    }
   }
 
   function restartOrbMotion() {
@@ -267,6 +270,18 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
       setForgeState(nextForgeState);
     });
 
+    pendingPlayerStateRef.current = null;
+    pendingForgeStateRef.current = null;
+  }
+
+  function commitPendingResolveStateOnUnmount() {
+    const nextPlayerState = pendingPlayerStateRef.current;
+
+    if (!nextPlayerState) {
+      return;
+    }
+
+    onPlayerStateChange(nextPlayerState);
     pendingPlayerStateRef.current = null;
     pendingForgeStateRef.current = null;
   }
@@ -395,6 +410,7 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
   }, [token, t]);
 
   useEffect(() => () => {
+    commitPendingResolveStateOnUnmount();
     clearResolveTimeline();
   }, []);
 
