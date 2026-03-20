@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import { type GardenInventoryEntry, type GardenPlantId, type GardenStateResponse } from "@ebonkeep/shared/garden";
 
-import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 import { getGardenIngredientImagePath } from "../garden/assets";
 import { fetchGardenState } from "../garden/api";
 
@@ -73,7 +73,6 @@ export type RefineryPanelProps = {
   token: string | null;
 };
 
-const REFINERY_BACKGROUND_KEY = "indoors:refinery";
 const REFINERY_LANE_COUNT = 3;
 const REFINERY_CRAFT_DURATION_MS = 5_000;
 const REFINERY_OUTPUT_CLAIM_DURATION_MS = 560;
@@ -422,12 +421,7 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
   const claimTimeoutsRef = useRef<Record<number, number>>({});
   const previousCompletedCountsRef = useRef<number[]>(createInitialLaneStates().map((lane) => lane.completedCount));
 
-  const refineryBackgroundPath = GENERATED_ITEM_ICON_PATHS[REFINERY_BACKGROUND_KEY];
-  const sceneStyle = refineryBackgroundPath
-    ? ({
-        "--indoor-scene-image": `url("${refineryBackgroundPath}")`
-      } as CSSProperties)
-    : undefined;
+  const sceneStyle = getViewBackgroundStyle("refinery") as CSSProperties;
 
   useEffect(() => {
     let isDisposed = false;

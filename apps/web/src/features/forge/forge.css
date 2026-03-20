@@ -1,0 +1,997 @@
+/* ── Shell ────────────────────────────────────────────────── */
+
+.forgeSceneShell {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.forgePanelRoot {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+
+/* ── Top Bar ──────────────────────────────────────────────── */
+
+.forgeTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  flex: 0 0 auto;
+}
+
+.forgeTopBarLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.forgeTopTitle {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.forgeTopBarRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.forgeBalanceChip,
+.forgeHeroChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 219, 193, 0.12);
+  background: rgba(10, 15, 21, 0.72);
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.forgeRulesButton {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 219, 193, 0.22);
+  background: rgba(10, 15, 21, 0.72);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 140ms, background 140ms;
+}
+
+.forgeRulesButton:hover {
+  border-color: rgba(240, 217, 166, 0.42);
+  background: rgba(20, 26, 35, 0.92);
+}
+
+/* ── Error / Unavailable ──────────────────────────────────── */
+
+.forgeErrorCard,
+.forgeUnavailableCard {
+  background: var(--scene-card-surface);
+  border-color: var(--scene-card-border-strong);
+}
+
+/* ── Instability Banner ───────────────────────────────────── */
+
+.forgeInstabilityBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(230, 100, 100, 0.28);
+  background: rgba(80, 20, 20, 0.42);
+  flex: 0 0 auto;
+}
+
+.forgeInstabilityBannerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.24rem;
+}
+
+.forgeInstabilityBannerBody strong {
+  color: var(--text-main);
+}
+
+.forgeInstabilityBannerBody span {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.forgeCleanseButton {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* ── Main Slot Grid ───────────────────────────────────────── */
+
+.forgeSlotGrid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr) minmax(200px, 260px);
+  gap: var(--space-3);
+  align-items: center;
+  align-content: center;
+}
+
+.forgeSlotColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Success chip ─────────────────────────────────────────── */
+
+.forgeSuccessChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 219, 193, 0.14);
+  background: rgba(10, 15, 21, 0.72);
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.forgeSuccessChip strong {
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.forgeSlot {
+  width: 100%;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 2px dashed rgba(230, 219, 193, 0.14);
+  background: rgba(10, 15, 21, 0.52);
+  color: inherit;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 180ms, background 180ms, transform 140ms;
+  box-sizing: border-box;
+}
+
+.forgeSlot:hover:not(:disabled) {
+  border-color: rgba(240, 217, 166, 0.32);
+  background: rgba(14, 20, 28, 0.72);
+  transform: translateY(-2px);
+}
+
+.forgeSlot--filled {
+  border-style: solid;
+  border-color: rgba(230, 219, 193, 0.16);
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.forgeSlot--locked {
+  opacity: 0.45;
+}
+
+.forgeSlot:disabled {
+  cursor: default;
+}
+
+.forgeSlotVisual {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 80px;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 40% 24%, rgba(255, 255, 255, 0.06), transparent 56%),
+    rgba(10, 15, 21, 0.92);
+  overflow: hidden;
+}
+
+.forgeCatalystVisual {
+  max-width: 68px;
+}
+
+.forgeSlotImage {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.35));
+}
+
+.forgeSlotFallback {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--text-main);
+}
+
+.forgeSlotMeta {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  text-align: center;
+}
+
+.forgeSlotMeta strong {
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+.forgeSlotMeta span {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.forgeSlotEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.forgeSlotEmptyIcon {
+  font-size: 2.2rem;
+  opacity: 0.28;
+}
+
+.forgeSlotEmpty span:last-child {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+/* ── Center Column ────────────────────────────────────────── */
+
+.forgeCenterColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ── Forge Anvil Animation ────────────────────────────────── */
+
+.forgeAnvil {
+  position: relative;
+  width: min(100%, 340px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+}
+
+.forgeRing {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 235, 214, 0.18);
+}
+
+.forgeRing--outer {
+  inset: 4%;
+  animation: forgeRingRotate 22s linear infinite;
+  border-color: rgba(245, 235, 214, 0.10);
+  box-shadow: 0 0 20px rgba(242, 205, 126, 0.04);
+}
+
+.forgeRing--mid {
+  inset: 18%;
+  animation: forgeRingRotate 16s linear infinite reverse;
+  border-color: rgba(245, 235, 214, 0.18);
+  box-shadow: 0 0 14px rgba(242, 205, 126, 0.06);
+}
+
+.forgeRing--inner {
+  inset: 33%;
+  animation: forgeRingRotate 10s linear infinite;
+  border-color: rgba(245, 235, 214, 0.28);
+  box-shadow:
+    0 0 10px rgba(242, 205, 126, 0.10),
+    inset 0 0 10px rgba(242, 205, 126, 0.04);
+}
+
+/* Spinning state: HECTIC — rings blur with speed, whole anvil shakes */
+.forgeAnvil--spinning {
+  animation: forgeAnvilHectic 0.09s linear infinite;
+}
+
+.forgeAnvil--spinning .forgeRing--outer {
+  animation-duration: 0.55s;
+  border-width: 2px;
+  border-color: rgba(255, 210, 80, 0.46);
+  box-shadow:
+    0 0 26px rgba(255, 170, 30, 0.20),
+    0 0 52px rgba(255, 140, 10, 0.08);
+}
+
+.forgeAnvil--spinning .forgeRing--mid {
+  animation-duration: 0.32s;
+  border-width: 2px;
+  border-color: rgba(255, 225, 120, 0.72);
+  box-shadow:
+    0 0 22px rgba(255, 200, 50, 0.36),
+    0 0 46px rgba(255, 165, 20, 0.16);
+}
+
+.forgeAnvil--spinning .forgeRing--inner {
+  animation-duration: 0.18s;
+  border-width: 3px;
+  border-color: rgba(255, 252, 200, 0.96);
+  box-shadow:
+    0 0 22px rgba(255, 240, 80, 0.68),
+    0 0 48px rgba(255, 210, 40, 0.38),
+    inset 0 0 18px rgba(255, 230, 80, 0.28);
+}
+
+/* Success state: rings shift green */
+.forgeAnvil--success .forgeRing {
+  border-color: rgba(130, 230, 130, 0.38);
+  box-shadow: 0 0 22px rgba(100, 220, 100, 0.18);
+  animation-duration: 5s;
+}
+
+/* Failure state: rings shift red */
+.forgeAnvil--failure .forgeRing {
+  border-color: rgba(230, 100, 100, 0.38);
+  box-shadow: 0 0 22px rgba(220, 80, 80, 0.18);
+  animation-duration: 5s;
+}
+
+/* ── Orbiting orb ─────────────────────────────────────────── */
+
+.forgeOrbitTrack {
+  position: absolute;
+  inset: 4%;
+}
+
+.forgeOrbitTrack.isSpinning {
+  animation: forgeOrbitSpin var(--forge-orbit-duration, 4.8s) cubic-bezier(0.08, 0.86, 0.16, 1) forwards;
+}
+
+.forgeOrbitOrb {
+  position: absolute;
+  top: 50%;
+  left: calc(50% - 18px);
+  width: 36px;
+  height: 36px;
+  margin-top: calc(-50% + 18px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.96), rgba(255, 222, 154, 0.88) 36%, rgba(231, 157, 72, 0.1) 70%, transparent 78%);
+  box-shadow:
+    0 0 20px rgba(255, 218, 137, 0.46),
+    0 0 42px rgba(255, 194, 96, 0.28);
+}
+
+.isSpinning .forgeOrbitOrb {
+  box-shadow:
+    0 0 28px rgba(255, 218, 137, 0.82),
+    0 0 60px rgba(255, 194, 96, 0.52),
+    0 0 90px rgba(255, 160, 40, 0.26);
+}
+
+.forgeOrbitOrb.isSuccess {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.96), rgba(171, 244, 170, 0.92) 36%, rgba(56, 183, 88, 0.1) 70%, transparent 78%);
+  box-shadow:
+    0 0 28px rgba(151, 230, 150, 0.72),
+    0 0 60px rgba(84, 204, 112, 0.42);
+}
+
+.forgeOrbitOrb.isFailure {
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.96), rgba(244, 148, 148, 0.92) 36%, rgba(183, 56, 56, 0.1) 70%, transparent 78%);
+  box-shadow:
+    0 0 28px rgba(235, 129, 129, 0.72),
+    0 0 60px rgba(204, 84, 84, 0.42);
+}
+
+/* ── Anvil core ───────────────────────────────────────────── */
+
+.forgeAnvilCore {
+  position: absolute;
+  inset: 34%;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 235, 214, 0.14);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.05), transparent 64%),
+    rgba(9, 14, 20, 0.90);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 0.5rem;
+  animation: forgeCorePulse 3s ease-in-out infinite;
+}
+
+.forgeAnvil--spinning .forgeAnvilCore {
+  animation: forgeCoreFlicker 1.1s steps(1) infinite;
+  border-color: rgba(255, 210, 80, 0.55);
+}
+
+.forgeAnvil--success .forgeAnvilCore {
+  border-color: rgba(130, 230, 130, 0.30);
+  animation: forgeCoreSuccessFlash 0.6s ease-out forwards;
+}
+
+.forgeAnvil--failure .forgeAnvilCore {
+  border-color: rgba(230, 100, 100, 0.30);
+  animation: forgeCoreFailureFlash 0.6s ease-out forwards;
+}
+
+.forgeAnvilCoreText {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.forgeAnvilCoreResult {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.forgeAnvilCoreResult.isSuccess {
+  color: rgb(120, 225, 120);
+  text-shadow: 0 0 24px rgba(100, 240, 100, 0.80);
+}
+
+.forgeAnvilCoreResult.isFailure {
+  color: rgb(225, 100, 100);
+  text-shadow: 0 0 24px rgba(240, 80, 80, 0.80);
+}
+
+/* ── Sparks ───────────────────────────────────────────────── */
+
+.forgeSparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+.forgeAnvil--spinning .forgeSparks {
+  opacity: 1;
+}
+
+.forgeAnvil--spinning .forgeSpark {
+  animation-duration: 0.46s;
+  width: 7px;
+  height: 7px;
+  background: rgba(255, 248, 160, 1);
+  box-shadow:
+    0 0 5px rgba(255, 225, 60, 0.92),
+    0 0 12px rgba(255, 190, 30, 0.68);
+}
+
+.isSpinning .forgeOrbitOrb {
+  animation: forgeOrbFlare 0.26s ease-in-out infinite alternate;
+}
+
+.forgeSpark {
+  --spark-index: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 220, 100, 0.92);
+  animation: forgeSpark 0.9s ease-out infinite;
+  animation-delay: calc(var(--spark-index) * 0.11s);
+}
+
+/* ── Stats grid ───────────────────────────────────────────── */
+
+.forgeMeterGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.forgeStatCard {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--scene-card-border);
+  background: var(--scene-card-surface-soft);
+}
+
+.forgeStatCard span {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+}
+
+.forgeStatCard strong {
+  color: var(--text-main);
+  font-size: 1.05rem;
+}
+
+/* ── Action row ───────────────────────────────────────────── */
+
+.forgeActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  width: 100%;
+}
+
+.forgeAttemptButton {
+  min-width: 180px;
+}
+
+.forgeActionMeta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 219, 193, 0.12);
+  background: rgba(10, 15, 21, 0.72);
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+/* ── Result banner ────────────────────────────────────────── */
+
+.forgeResultBanner {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--scene-card-border);
+  background: var(--scene-card-surface-soft);
+  width: 100%;
+  text-align: center;
+}
+
+.forgeResultBanner strong {
+  color: var(--text-main);
+}
+
+.forgeResultBanner span {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.forgeResultBanner.isSuccess {
+  border-color: rgba(113, 192, 115, 0.36);
+  background: rgba(18, 48, 18, 0.42);
+}
+
+.forgeResultBanner.isFailure {
+  border-color: rgba(192, 113, 113, 0.36);
+  background: rgba(48, 18, 18, 0.42);
+}
+
+/* ── Rarity badge ─────────────────────────────────────────── */
+
+.forgeRarityBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 15, 21, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7rem;
+}
+
+/* ── Weapon card (inside picker) ──────────────────────────── */
+
+.forgeWeaponCard {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 12px;
+  border: 1px solid var(--scene-card-border);
+  background: var(--scene-card-surface-soft);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.forgeWeaponCard:hover,
+.forgeWeaponCard.isSelected {
+  transform: translateY(-2px);
+  border-color: rgba(240, 217, 166, 0.28);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+
+.forgeWeaponCardVisual {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 15, 21, 0.92);
+  overflow: hidden;
+}
+
+.forgeWeaponCardImage {
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.3));
+}
+
+.forgeWeaponCardFallback {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--text-main);
+}
+
+.forgeWeaponCardBody {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.forgeWeaponCardBody strong {
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+.forgeWeaponCardBody span {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+/* ── Picker Modal ─────────────────────────────────────────── */
+
+.forgePickerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.58);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.forgePickerModal {
+  width: 100%;
+  max-width: 440px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid rgba(230, 219, 193, 0.16);
+  background: var(--surface-2, rgba(14, 20, 28, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.52);
+  overflow: hidden;
+  animation: forgeModalIn 180ms ease-out forwards;
+}
+
+.forgeEnchantPickerModal {
+  max-width: 400px;
+}
+
+.forgePickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(230, 219, 193, 0.10);
+  flex: 0 0 auto;
+}
+
+.forgePickerHeader h3 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1.05rem;
+}
+
+.forgePickerClose {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(230, 219, 193, 0.16);
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: grid;
+  place-items: center;
+  transition: border-color 140ms, background 140ms;
+}
+
+.forgePickerClose:hover {
+  border-color: rgba(230, 219, 193, 0.36);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.forgePickerList {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.forgePickerList::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Enchant picker ───────────────────────────────────────── */
+
+.forgeEnchantOption {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forgeEnchantOptionCard {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(230, 219, 193, 0.14);
+  background: rgba(10, 15, 21, 0.60);
+}
+
+.forgeEnchantOptionImage {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.32));
+}
+
+.forgeEnchantOptionDetails {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.forgeEnchantOptionDetails strong {
+  color: var(--text-main);
+}
+
+.forgeEnchantOptionDetails span {
+  color: var(--text-soft);
+  font-size: 0.85rem;
+}
+
+.forgeEnchantOptionWarning {
+  color: rgba(220, 160, 80, 0.92) !important;
+  font-size: 0.82rem !important;
+}
+
+/* ── Rules panel (world-chat style slide-in) ──────────────── */
+
+.forgeRulesPanelBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.40);
+  z-index: 200;
+}
+
+.forgeRulesPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 100vw);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(230, 219, 193, 0.14);
+  background: var(--surface-2, rgba(14, 20, 28, 0.99));
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.42);
+  animation: forgeRulesPanelSlide 220ms ease-out forwards;
+}
+
+.forgeRulesPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid rgba(230, 219, 193, 0.10);
+  flex: 0 0 auto;
+}
+
+.forgeRulesPanelHeader h3 {
+  margin: 0;
+  color: var(--text-main);
+}
+
+.forgeRulesPanelBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forgeRulesPanelBody p {
+  color: var(--text-soft);
+  line-height: 1.58;
+  margin: 0;
+}
+
+.forgeRulesPanelChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.forgeRuleList {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.55rem;
+  color: var(--text-soft);
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+
+.forgeEmptyState {
+  border-radius: 12px;
+  border: 1px dashed rgba(226, 213, 186, 0.18);
+  background: rgba(10, 15, 21, 0.42);
+  padding: 1.2rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+/* ── Keyframes ────────────────────────────────────────────── */
+
+@keyframes forgeRingRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes forgeOrbitSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(var(--forge-orbit-end-angle, 1260deg)); }
+}
+
+@keyframes forgeCorePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(242, 205, 126, 0.04) inset; }
+  50%       { box-shadow: 0 0 20px rgba(242, 205, 126, 0.12) inset; }
+}
+
+@keyframes forgeCoreFlicker {
+  0%  { box-shadow: 0 0 14px rgba(255,200,60,0.18) inset; background: rgba(9,14,20,0.94); }
+  12% { box-shadow: 0 0 58px rgba(255,220,80,0.84) inset, 0 0 22px rgba(255,200,60,0.54) inset; background: rgba(55,38,5,0.95); }
+  14% { box-shadow: 0 0 8px  rgba(255,200,60,0.08) inset; background: rgba(9,14,20,0.94); }
+  28% { box-shadow: 0 0 44px rgba(255,230,100,0.68) inset; background: rgba(40,28,4,0.94); }
+  30% { box-shadow: 0 0 6px  rgba(255,200,60,0.06) inset; background: rgba(9,14,20,0.94); }
+  50% { box-shadow: 0 0 80px rgba(255,248,130,0.95) inset, 0 0 32px rgba(255,220,70,0.68) inset; background: rgba(72,52,8,0.96); }
+  52% { box-shadow: 0 0 10px rgba(255,200,60,0.10) inset; background: rgba(9,14,20,0.94); }
+  70% { box-shadow: 0 0 52px rgba(255,225,90,0.75) inset; background: rgba(48,34,5,0.95); }
+  72% { box-shadow: 0 0 8px  rgba(255,200,60,0.08) inset; background: rgba(9,14,20,0.94); }
+  86% { box-shadow: 0 0 68px rgba(255,235,110,0.90) inset, 0 0 26px rgba(255,210,60,0.60) inset; background: rgba(62,44,7,0.95); }
+  88% { box-shadow: 0 0 6px  rgba(255,200,60,0.06) inset; background: rgba(9,14,20,0.94); }
+}
+
+@keyframes forgeCoreSuccessFlash {
+  0%   { background: rgba(80, 230, 80, 0.32); box-shadow: 0 0 44px rgba(80, 230, 80, 0.56) inset; }
+  100% { background: rgba(9, 14, 20, 0.90);   box-shadow: 0 0 10px rgba(100, 230, 100, 0.08) inset; }
+}
+
+@keyframes forgeCoreFailureFlash {
+  0%   { background: rgba(230, 60, 60, 0.32); box-shadow: 0 0 44px rgba(230, 60, 60, 0.56) inset; }
+  100% { background: rgba(9, 14, 20, 0.90);   box-shadow: 0 0 10px rgba(230, 80, 80, 0.06) inset; }
+}
+
+@keyframes forgeSpark {
+  0% {
+    transform: rotate(calc(var(--spark-index) * 45deg)) translateY(0) scale(1.5);
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.85;
+  }
+  100% {
+    transform:
+      rotate(calc(var(--spark-index) * 45deg))
+      translateY(calc(-130px - var(--spark-index) * 10px))
+      scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes forgeAnvilHectic {
+  0%, 100% { transform: translate(0,    0   ); }
+  11%       { transform: translate(-2px, -2px); }
+  22%       { transform: translate( 3px,  1px); }
+  33%       { transform: translate(-1px,  3px); }
+  44%       { transform: translate( 2px, -3px); }
+  55%       { transform: translate(-3px,  1px); }
+  66%       { transform: translate( 2px,  2px); }
+  77%       { transform: translate(-2px, -3px); }
+  88%       { transform: translate( 3px, -1px); }
+}
+
+@keyframes forgeOrbFlare {
+  from {
+    box-shadow:
+      0 0 22px rgba(255, 218, 137, 0.76),
+      0 0 46px rgba(255, 194,  96, 0.48),
+      0 0 72px rgba(255, 160,  40, 0.22);
+  }
+  to {
+    box-shadow:
+      0 0 40px rgba(255, 242, 165, 1.00),
+      0 0 76px rgba(255, 212, 100, 0.80),
+      0 0 120px rgba(255, 172,  48, 0.48);
+  }
+}
+
+@keyframes forgeRulesPanelSlide {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes forgeModalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  .forgeSlotGrid {
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(180px, 220px);
+  }
+}
+
+@media (max-width: 840px) {
+  .forgeSlotGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .forgeCenterColumn {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .forgeMeterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .forgeSlotGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .forgeTopBar {
+    flex-wrap: wrap;
+  }
+}

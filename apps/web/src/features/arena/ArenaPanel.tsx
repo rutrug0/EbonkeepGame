@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ArenaLadderEntry, ArenaMatchResult, ArenaOffer, ArenaStateResponse } from "@ebonkeep/shared/arena";
@@ -25,6 +25,7 @@ import {
 } from "./playback";
 import { buildArenaCombatState } from "./serverPlayback";
 import { ClassIcon } from "../../app/ClassIcon";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 export type ArenaPanelProps = {
   token: string | null;
@@ -173,6 +174,12 @@ function renderOfferCard(args: {
 
 export function ArenaPanel(props: ArenaPanelProps) {
   const { t } = useTranslation();
+  const arenaSceneStyle = {
+    ...getViewBackgroundStyle("arena"),
+    "--adaptive-scene-scrim": "linear-gradient(180deg, rgba(7, 11, 16, 0.42), rgba(8, 13, 18, 0.62))",
+    "--adaptive-scene-backdrop-scrim": "linear-gradient(180deg, rgba(7, 11, 16, 0.56), rgba(8, 13, 18, 0.78))",
+    "--adaptive-scene-backdrop-filter": "brightness(0.48) saturate(0.88)"
+  } as CSSProperties;
   const [arenaState, setArenaState] = useState<ArenaStateResponse | null>(null);
   const [combatState, setCombatState] = useState<ActiveArenaEncounterState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -571,7 +578,7 @@ export function ArenaPanel(props: ArenaPanelProps) {
 
   if (!props.hasPlayerState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell arenaPanelShell indoorSceneShell" style={arenaSceneStyle}>
         <section className="contentStack">
           <article className="contentCard">
             <h2>{t("menu.arena")}</h2>
@@ -584,7 +591,7 @@ export function ArenaPanel(props: ArenaPanelProps) {
 
   if (isLoading && !arenaState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell arenaPanelShell indoorSceneShell" style={arenaSceneStyle}>
         <section className="contentStack">
           <article className="contentCard">
             <h2>{t("menu.arena")}</h2>
@@ -597,7 +604,7 @@ export function ArenaPanel(props: ArenaPanelProps) {
 
   if (!arenaState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell arenaPanelShell indoorSceneShell" style={arenaSceneStyle}>
         <section className="contentStack">
           <article className="contentCard">
             <h2>{t("menu.arena")}</h2>
@@ -610,7 +617,7 @@ export function ArenaPanel(props: ArenaPanelProps) {
 
   if (combatState) {
     return (
-      <section className="contentShell arenaPanelShell">
+      <section className="contentShell arenaPanelShell indoorSceneShell" style={arenaSceneStyle}>
         <section className="contentStack arenaReplayRoot">
           <article className="contentCard arenaHeaderCard">
             <div className="arenaHeaderRow">
@@ -684,7 +691,7 @@ export function ArenaPanel(props: ArenaPanelProps) {
   }
 
   return (
-    <section className="contentShell arenaPanelShell">
+    <section className="contentShell arenaPanelShell indoorSceneShell" style={arenaSceneStyle}>
       <section className="contentStack arenaPanelRoot">
         {error ? (
           <article className="contentCard arenaErrorCard">

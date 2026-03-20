@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactElement, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import {
   EMPTY_BUNDLE,
@@ -24,6 +25,7 @@ import {
   selectJobsBonusApi,
   startJobsRunApi
 } from "./api";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 import "./jobs.css";
 
 type JobsPanelProps = {
@@ -119,17 +121,62 @@ function getNextUnlockHour(unlockHours: number[], completedHours: number): numbe
   return unlockHours.find((hour) => completedHours < hour) ?? null;
 }
 
-function JobInfoPopover(props: { title: string; body: ReactNode }): ReactElement {
+function JobInfoHover(props: { title: string; body: ReactNode; children: ReactNode; placement?: "top" | "bottom" }): ReactElement {
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [popupStyle, setPopupStyle] = useState<CSSProperties | null>(null);
+
+  function showPopup() {
+    if (!anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    const w = 290;
+    const spaceRight = window.innerWidth - rect.right;
+    const spaceLeft = rect.left;
+    const isTop = props.placement === "top";
+    const left = spaceRight >= w + 16
+      ? rect.right + 10
+      : spaceLeft >= w + 16
+        ? rect.left - w - 10
+        : Math.max(8, Math.min(rect.left, window.innerWidth - w - 8));
+    const top = isTop
+      ? Math.max(8, rect.top - 8)
+      : Math.max(8, rect.bottom + 8);
+    setPopupStyle({
+      position: "fixed",
+      top,
+      left: Math.max(8, Math.min(left, window.innerWidth - w - 8)),
+      width: w,
+      zIndex: 9999,
+      pointerEvents: "none"
+    });
+  }
+
+  function hidePopup() {
+    setPopupStyle(null);
+  }
+
   return (
-    <details className="jobsInfoPanel">
-      <summary className="jobsInfoButton" aria-label={props.title}>
-        i
-      </summary>
-      <div className="jobsInfoCard" role="dialog" aria-label={props.title}>
-        <strong>{props.title}</strong>
-        <div>{props.body}</div>
-      </div>
-    </details>
+    <div
+      ref={anchorRef}
+      className="jobsInfoAnchor"
+      onMouseEnter={showPopup}
+      onMouseLeave={hidePopup}
+      onFocus={showPopup}
+      onBlur={hidePopup}
+    >
+      {props.children}
+      {popupStyle && createPortal(
+        <div
+          className="jobsInfoCard"
+          role="tooltip"
+          aria-label={props.title}
+          style={popupStyle}
+        >
+          <strong>{props.title}</strong>
+          <div>{props.body}</div>
+        </div>,
+        document.body
+      )}
+    </div>
   );
 }
 
@@ -179,8 +226,7 @@ function JobCard(props: {
       />
       <div className="jobsLandingChoiceBody jobsChoiceBody">
         <div className="jobsChoiceHeader">
-          <strong>{entry.template.name}</strong>
-          <JobInfoPopover
+          <JobInfoHover
             title={entry.template.name}
             body={
               <>
@@ -192,7 +238,9 @@ function JobCard(props: {
                 ) : null}
               </>
             }
-          />
+          >
+            <strong>{entry.template.name}</strong>
+          </JobInfoHover>
         </div>
       </div>
     </button>
@@ -209,6 +257,7 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
   const [isMutating, setIsMutating] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [showRulesPanel, setShowRulesPanel] = useState(false);
 
   async function loadState(showSpinner = false) {
     if (!token || !hasPlayerState) {
@@ -305,6 +354,10 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
 
   const activeRunRuntime = useMemo(() => parseRun(jobsState?.activeRun ?? null), [jobsState?.activeRun]);
   const activeReleaseAtMs = jobsState?.activeRun ? Date.parse(jobsState.activeRun.releaseAt) : null;
+  const jobsSceneStyle = getViewBackgroundStyle("jobs") as CSSProperties;
+  const jobsLandingSceneStyle = {
+    "--adaptive-scene-image": `url("${JOBS_HERO_BACKGROUND_PATH}")`
+  } as CSSProperties;
   const activeCompletedHours = activeRunRuntime ? getCompletedHours(activeRunRuntime, nowMs) : 0;
   const activeElapsedMs = activeRunRuntime ? getElapsedMs(activeRunRuntime, nowMs) : 0;
   const activeUnlockHours = activeRunRuntime ? getFocusUnlockHours(activeRunRuntime.durationHours) : [];
@@ -360,7 +413,7 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
 
   if (!hasPlayerState) {
     return (
-      <section className="jobsSceneShell jobsPanelStack">
+      <section className="jobsSceneShell jobsPanelStack" style={jobsSceneStyle}>
         <div className="jobsActiveCard">
           <p className="jobsStatusMessage">Load a character to access Jobs.</p>
         </div>
@@ -369,7 +422,8 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
   }
 
   return (
-    <section className="jobsSceneShell">
+    <>
+    <section className="jobsSceneShell" style={jobsSceneStyle}>
       <div className="jobsPanelStack">
         {errorMessage ? (
           <div className="jobsActiveCard">
@@ -388,21 +442,17 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
           </div>
         ) : (
           <div
-            className="jobsLandingCard jobsActiveCard"
-            style={{ backgroundImage: `url("${JOBS_HERO_BACKGROUND_PATH}")` }}
+            className="jobsLandingCard jobsActiveCard adaptiveSceneShell"
+            style={jobsLandingSceneStyle}
           >
             <div className="jobsLandingTop">
-              <JobInfoPopover
-                title="Jobs"
-                body={
-                  <>
-                    <p>Pick one lane at a time for 1-10 hours.</p>
-                    <p>Interrupting pays 50% of banked rewards.</p>
-                    <p>Bonus Picks unlock mid-run and can tilt the final payout.</p>
-                    <p>Board rerolls: {jobsState.refreshesRemaining}/2 left today.</p>
-                  </>
-                }
-              />
+              <button
+                type="button"
+                className="jobsRulesButton"
+                onClick={() => setShowRulesPanel(true)}
+              >
+                Rules
+              </button>
             </div>
 
             <div className="jobsLandingChoices jobsCardGridMobile">
@@ -466,28 +516,30 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
 
               <div className="jobsSetupActions">
                 <div className="jobsPreviewCard jobsBonusPreviewCard">
-                  <div className="jobsChoiceHeader">
-                    <div>
-                      <strong>Bonus Picks</strong>
-                      <p className="jobsStatusMessage">{selectedBonusChargeText} - {formatBonusUnlocks(selectedUnlockHours)}</p>
+                  <JobInfoHover
+                    title="Bonus Picks"
+                    placement="top"
+                    body={
+                      <>
+                        <p>This is only a preview of possible bonuses for the selected job.</p>
+                        <p>Longer runs unlock up to 3 charges during the shift.</p>
+                        <p>You lock them later in Active Run after reaching the required completed hours.</p>
+                        {selectedEntry.template.focusOptions.map((option) => (
+                          <span key={option.id} className="jobsBonusPreviewPopupItem">
+                            <strong>{option.label}</strong>
+                            <p>{option.description}</p>
+                          </span>
+                        ))}
+                      </>
+                    }
+                  >
+                    <div className="jobsChoiceHeader">
+                      <div>
+                        <strong>Bonus Picks</strong>
+                        <p className="jobsStatusMessage">{selectedBonusChargeText} - {formatBonusUnlocks(selectedUnlockHours)}</p>
+                      </div>
                     </div>
-                    <JobInfoPopover
-                      title="Bonus Picks"
-                      body={
-                        <>
-                          <p>This is only a preview of possible bonuses for the selected job.</p>
-                          <p>Longer runs unlock up to 3 charges during the shift.</p>
-                          <p>You lock them later in Active Run after reaching the required completed hours.</p>
-                          {selectedEntry.template.focusOptions.map((option) => (
-                            <span key={option.id} className="jobsBonusPreviewPopupItem">
-                              <strong>{option.label}</strong>
-                              <p>{option.description}</p>
-                            </span>
-                          ))}
-                        </>
-                      }
-                    />
-                  </div>
+                  </JobInfoHover>
                 </div>
                 <button
                   type="button"
@@ -563,19 +615,20 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
                 </span>
               </summary>
               <div className="jobsFoldoutBody">
-                <div className="jobsChoiceHeader">
-                  <span className="jobsStatusMessage">{formatBonusUnlocks(activeUnlockHours)}</span>
-                  <JobInfoPopover
-                    title="Bonus Picks"
-                    body={
-                      <>
-                        <p>Charges unlock after completed checkpoints.</p>
-                        <p>Each charge can be spent once on one bonus below.</p>
-                        <p>Picked bonuses are added on claim and are halved if you interrupt.</p>
-                      </>
-                    }
-                  />
-                </div>
+                <JobInfoHover
+                  title="Bonus Picks"
+                  body={
+                    <>
+                      <p>Charges unlock after completed checkpoints.</p>
+                      <p>Each charge can be spent once on one bonus below.</p>
+                      <p>Picked bonuses are added on claim and are halved if you interrupt.</p>
+                    </>
+                  }
+                >
+                  <div className="jobsChoiceHeader">
+                    <span className="jobsStatusMessage">{formatBonusUnlocks(activeUnlockHours)}</span>
+                  </div>
+                </JobInfoHover>
                 <p className="jobsStatusMessage">
                   {activeAvailableCharges > 0
                     ? `You can lock ${activeAvailableCharges} bonus pick${activeAvailableCharges === 1 ? "" : "s"} now.`
@@ -682,7 +735,7 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
         <div className="jobsHistoryCard">
           <details className="jobsFoldout jobsHistoryFoldout">
             <summary className="jobsFoldoutSummary">
-              <span>History & Stash</span>
+              <span>History &amp; Stash</span>
               <span className="jobsFoldoutHint">{jobsState?.history.length ?? 0} recent runs</span>
             </summary>
             <div className="jobsFoldoutBody">
@@ -738,7 +791,33 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
             </div>
           </details>
         </div>
+
       </div>
     </section>
+
+    {/* ── Rules panel ─────────────────────────────────── */}
+    {showRulesPanel ? createPortal(
+      <div className="jobsRulesPanelBackdrop" onClick={() => setShowRulesPanel(false)}>
+        <aside className="jobsRulesPanel" onClick={(e) => e.stopPropagation()}>
+          <div className="jobsRulesPanelHeader">
+            <h3>Jobs – Rules</h3>
+            <button type="button" className="jobsRulesPanelClose" onClick={() => setShowRulesPanel(false)}>×</button>
+          </div>
+          <div className="jobsRulesPanelBody">
+            <p>Pick one job lane at a time for 1–10 hours.</p>
+            <p>Interrupting a run pays out <strong>50%</strong> of banked rewards.</p>
+            <p>Bonus Picks unlock mid-run after reaching required completed hours, and can tilt the final payout.</p>
+            <p>Board rerolls: {jobsState?.refreshesRemaining ?? 0}/2 left today. Resets every 12 hours.</p>
+            <ul className="jobsRuleList">
+              <li>Longer runs = more total reward.</li>
+              <li>Bonus Pick charges are locked in during the run — plan ahead.</li>
+              <li>Rewards are halved on interrupt after bonus picks are used.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>,
+      document.body
+    ) : null}
+  </>
   );
 }

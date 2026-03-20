@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
 
 import { CombatEncounterPanel } from "../combat";
 import {
@@ -10,6 +10,7 @@ import {
   type ContractSlotState
 } from "./mockData";
 import i18n from "../../i18n";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 export type ContractsPanelProps = {
   isLoadingState: boolean;
@@ -35,9 +36,11 @@ export type ContractsPanelProps = {
 };
 
 export function ContractsPanel(props: ContractsPanelProps) {
+  const contractsSceneStyle = getViewBackgroundStyle("contracts") as CSSProperties;
+
   if (props.isLoadingState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell contractsPanelShell indoorSceneShell" style={contractsSceneStyle}>
         <section className="contentStack">
           <article className="contentCard">
             <h2>{i18n.t("menu.contracts")}</h2>
@@ -50,7 +53,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
 
   if (!props.hasPlayerState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell contractsPanelShell indoorSceneShell" style={contractsSceneStyle}>
         <section className="contentStack">
           <article className="contentCard">
             <h2>{i18n.t("menu.contracts")}</h2>
@@ -90,7 +93,7 @@ export function ContractsPanel(props: ContractsPanelProps) {
   }
 
   return (
-    <section className="contentShell">
+    <section className="contentShell contractsPanelShell indoorSceneShell" style={contractsSceneStyle}>
       <section className="contentStack">
         <article className="contentCard">
           <div className="contractsHeader">

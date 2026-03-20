@@ -1996,21 +1996,28 @@
 .guildRosterAvatar {
   width: 56px;
   height: 56px;
+  position: relative;
+  overflow: visible;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 40% 30%, rgba(232, 199, 144, 0.22), transparent 60%),
-    linear-gradient(135deg, rgba(64, 56, 42, 0.9), rgba(42, 36, 28, 0.95));
-  border: 2px solid rgba(190, 150, 81, 0.35);
+    radial-gradient(circle at 40% 30%, rgba(255, 255, 255, 0.22), transparent 60%),
+    linear-gradient(135deg, rgba(94, 98, 107, 0.92), rgba(52, 57, 64, 0.96));
+  border: 2px solid rgba(246, 248, 251, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   box-shadow:
-    inset 0 1px 0 rgba(249, 232, 201, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.3);
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
 .guildRosterClassIcon {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+  transform: translateY(2%) scale(1.48);
+  transform-origin: center 58%;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.28));
 }
 

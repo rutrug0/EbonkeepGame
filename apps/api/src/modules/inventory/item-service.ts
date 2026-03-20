@@ -20,9 +20,12 @@ import {
   type WeaponFamily
 } from "@ebonkeep/shared/core";
 import {
+  itemEnchantingSchema,
   inventoryItemSchema,
   itemModifierSchema,
+  weaponDamageRollSchema,
   type InventoryItem,
+  type ItemEnchanting,
   type ItemModifier,
   type ItemRarity,
   type WeaponDamageRoll
@@ -59,6 +62,16 @@ const legacyStoredItemSchema = z.object({
   prefix: itemModifierSchema.optional(),
   affix: itemModifierSchema.optional()
 });
+
+const storedWeaponForgeDataSchema = z.object({
+  track: z.literal("weapon"),
+  level: z.number().int().min(0).max(10),
+  bonusScaleBps: z.number().int().min(0),
+  basePower: z.number().int().min(0),
+  baseDamageRoll: weaponDamageRollSchema
+});
+
+type StoredWeaponForgeData = z.infer<typeof storedWeaponForgeDataSchema>;
 
 type ItemTemplate = {
   id: string;
@@ -1558,6 +1571,93 @@ function buildItemCode(template: ItemTemplate, rarity: ItemRarity, itemLevel: nu
   return `${template.itemCode}_lvl${itemLevel}_${rarity}_${randomUUID().slice(0, 8)}`;
 }
 
+function scaleDamageRollByBonus(
+  damageRoll: WeaponDamageRoll,
+  bonusScaleBps: number
+): WeaponDamageRoll {
+  const multiplier = 1 + (Math.max(0, bonusScaleBps) / 10_000);
+  const scaleInt = (value: number) => Math.max(0, Math.round(value * multiplier));
+  const scaleFloat = (value: number) => Math.max(0, Math.round(value * multiplier * 100) / 100);
+
+  return weaponDamageRollSchema.parse({
+    minRollRange: [scaleInt(damageRoll.minRollRange[0]), scaleInt(damageRoll.minRollRange[1])],
+    rolledMin: scaleInt(damageRoll.rolledMin),
+    rolledMax: scaleInt(damageRoll.rolledMax),
+    maxRollRange: [scaleInt(damageRoll.maxRollRange[0]), scaleInt(damageRoll.maxRollRange[1])],
+    averageDamage: scaleFloat(damageRoll.averageDamage)
+  });
+}
+
+function applyWeaponForgeDataToItem(
+  item: InventoryItem,
+  forgeData: StoredWeaponForgeData | null
+): InventoryItem {
+  if (item.archetype.majorCategory !== "weapon" || !item.damageRoll || !forgeData || forgeData.level <= 0) {
+    return item;
+  }
+
+  const effectiveDamageRoll = scaleDamageRollByBonus(forgeData.baseDamageRoll, forgeData.bonusScaleBps);
+  const damageDelta = Math.max(0, effectiveDamageRoll.averageDamage - forgeData.baseDamageRoll.averageDamage);
+  const effectivePower = Math.max(
+    forgeData.basePower,
+    Math.round(forgeData.basePower + (damageDelta * WEAPON_DAMAGE_POWER_SCALE))
+  );
+
+  return inventoryItemSchema.parse({
+    ...item,
+    damageRoll: effectiveDamageRoll,
+    power: effectivePower,
+    enchanting: itemEnchantingSchema.parse({
+      track: "weapon",
+      level: forgeData.level,
+      bonusScaleBps: forgeData.bonusScaleBps
+    } satisfies ItemEnchanting)
+  });
+}
+
+export function getStoredWeaponForgeData(
+  itemData: unknown,
+  fallbackItem: Pick<InventoryItem, "archetype" | "damageRoll" | "power">
+): StoredWeaponForgeData | null {
+  if (fallbackItem.archetype.majorCategory !== "weapon" || !fallbackItem.damageRoll) {
+    return null;
+  }
+
+  if (itemData && typeof itemData === "object" && !Array.isArray(itemData)) {
+    const parsed = storedWeaponForgeDataSchema.safeParse((itemData as Record<string, unknown>).forgeData);
+    if (parsed.success) {
+      return parsed.data;
+    }
+  }
+
+  return {
+    track: "weapon",
+    level: 0,
+    bonusScaleBps: 0,
+    basePower: fallbackItem.power,
+    baseDamageRoll: fallbackItem.damageRoll
+  };
+}
+
+export function withStoredWeaponForgeData(
+  itemData: unknown,
+  forgeData: StoredWeaponForgeData | null
+): Record<string, unknown> {
+  const baseRecord =
+    itemData && typeof itemData === "object" && !Array.isArray(itemData)
+      ? { ...(itemData as Record<string, unknown>) }
+      : {};
+  delete baseRecord.enchanting;
+
+  if (!forgeData || forgeData.level <= 0) {
+    delete baseRecord.forgeData;
+    return baseRecord;
+  }
+
+  baseRecord.forgeData = storedWeaponForgeDataSchema.parse(forgeData);
+  return baseRecord;
+}
+
 function buildItemId(playerId: string, itemCode: string, deterministic: boolean, explicitId?: string): string {
   if (explicitId) {
     return explicitId;
@@ -1696,7 +1796,7 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
     itemCode: item.itemCode
   });
   if (parsedCurrent.success) {
-    return inventoryItemSchema.parse({
+    const normalizedCurrent = inventoryItemSchema.parse({
       ...parsedCurrent.data,
       statBonuses: normalizeStoredStatBonuses({
         archetype: parsedCurrent.data.archetype,
@@ -1709,6 +1809,10 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
         itemLevel: parsedCurrent.data.baseLevel ?? parsedCurrent.data.levelRequirement
       })
     });
+    return applyWeaponForgeDataToItem(
+      normalizedCurrent,
+      getStoredWeaponForgeData(item.itemData, normalizedCurrent)
+    );
   }
 
   const parsedLegacy = legacyStoredItemSchema.safeParse({
@@ -1720,7 +1824,7 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
     return null;
   }
 
-  return inventoryItemSchema.parse({
+  const normalizedLegacy = inventoryItemSchema.parse({
     id: item.id,
     itemCode: item.itemCode,
     itemName: parsedLegacy.data.itemName,
@@ -1747,6 +1851,10 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
     affix: parsedLegacy.data.affix,
     description: parsedLegacy.data.description ?? ""
   });
+  return applyWeaponForgeDataToItem(
+    normalizedLegacy,
+    getStoredWeaponForgeData(item.itemData, normalizedLegacy)
+  );
 }
 
 export function canItemEquipInSlot(item: Pick<InventoryItem, "allowedSlotIds">, slotId: EquipmentSlotId): boolean {

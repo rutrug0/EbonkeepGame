@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import DOMPurify from "dompurify";
 import type { PlayerClass, PlayerStatTree } from "@ebonkeep/shared/core";
@@ -13,6 +13,7 @@ import type { PublicPlayerProfile } from "@ebonkeep/shared/player";
 import { getGuildById, getMyGuild, sendGuildInvite } from "../guild";
 import { fetchLeaderboard, getGuildLeaderboard, fetchPublicPlayerProfile } from "./api";
 import { ClassIcon } from "../../app/ClassIcon";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 function safeHtml(raw: string): string {
   return String(DOMPurify.sanitize(raw, {
@@ -129,7 +130,6 @@ interface PlayerProfileModalProps {
   token: string;
   onClose: () => void;
   canInvite: boolean;
-  myGuildId: string | null;
   inviteStatuses: Record<string, "sending" | "sent" | "failed">;
   onInvite: (playerId: string, playerName: string) => void;
   onViewGuild: (guildId: string) => void;
@@ -302,6 +302,7 @@ type GuildLeaderboardType = "totalPower" | "level" | "memberCount";
 
 export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
   const { t } = useTranslation("common");
+  const leaderboardSceneStyle = getViewBackgroundStyle("leaderboard") as CSSProperties;
   const [category, setCategory] = useState<LeaderboardCategory>("players");
   const [leaderboardType, setLeaderboardType] = useState<LeaderboardType>("power");
   const [classFilter, setClassFilter] = useState<ClassFilter>("all");
@@ -412,7 +413,7 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
 
   if (!token) {
     return (
-      <section className="contentShell">
+      <section className="contentShell leaderboardShell indoorSceneShell" style={leaderboardSceneStyle}>
         <section className="contentStack">
           <article className="contentCard">
             <h2>{t("leaderboards.title")}</h2>
@@ -424,8 +425,8 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
   }
 
   return (
-    <section className="contentShell">
-      <section className="contentStack">
+    <section className="contentShell leaderboardShell indoorSceneShell" style={leaderboardSceneStyle}>
+      <section className="contentStack leaderboardRoot">
         {selectedGuildId && (
           <GuildDetailModal
             guildId={selectedGuildId}
@@ -439,7 +440,6 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
             token={token}
             onClose={() => setSelectedPlayerEntry(null)}
             canInvite={canInviteToGuild && selectedPlayerEntry.guildId === null && selectedPlayerEntry.playerId !== currentPlayerId}
-            myGuildId={myGuildId}
             inviteStatuses={inviteStatuses}
             onInvite={requestInvite}
             onViewGuild={(guildId) => { setSelectedPlayerEntry(null); setSelectedGuildId(guildId); }}
@@ -453,7 +453,7 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
           />
         )}
         {/* Category tabs: Players vs Guilds */}
-        <article className="contentCard">
+        <article className="contentCard leaderboardCategoryCard">
           <div className="profileSwitchBar">
             <div className="profileSwitchButtons">
               <button
@@ -575,10 +575,8 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
                     <tr>
                       <th className="leaderboardColumnRank">{t("leaderboards.rank")}</th>
                       <th className="leaderboardColumnPlayer">{t("leaderboards.player")}</th>
-                      <th className="leaderboardColumnClass">{t("leaderboards.class")}</th>
                       <th className="leaderboardColumnLevel">{t("leaderboards.level")}</th>
                       <th className="leaderboardColumnPower">{t("leaderboards.power")}</th>
-                      {canInviteToGuild && <th className="leaderboardColumnActions">{t("leaderboards.actions")}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -599,15 +597,15 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
                             </span>
                             <span className="leaderboardPlayerIdentityText">
                               <strong>{entry.username}</strong>
-                              {entry.guildTag && (
-                                <span className="leaderboardGuildTag">[{entry.guildTag}]</span>
-                              )}
+                              <span className="leaderboardPlayerSubline">
+                                <span className={`leaderboardClass leaderboardClass-${entry.class}`}>
+                                  {formatClassName(entry.class)}
+                                </span>
+                                {entry.guildTag && (
+                                  <span className="leaderboardGuildTag">[{entry.guildTag}]</span>
+                                )}
+                              </span>
                             </span>
-                          </span>
-                        </td>
-                        <td data-label={t("leaderboards.class")} className="leaderboardCellClass">
-                          <span className={`leaderboardClass leaderboardClass-${entry.class}`}>
-                            {formatClassName(entry.class)}
                           </span>
                         </td>
                         <td data-label={t("leaderboards.level")} className="leaderboardCellLevel">
@@ -616,28 +614,6 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
                         <td data-label={t("leaderboards.power")} className="leaderboardCellPower">
                           <strong>{entry.gearScore}</strong>
                         </td>
-                        {canInviteToGuild && (
-                          <td
-                            className="leaderboardCellActions"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {entry.guildId === null && entry.playerId !== currentPlayerId ? (
-                              <button
-                                type="button"
-                                className="leaderboardInviteButton"
-                                disabled={!!inviteStatuses[entry.playerId]}
-                                onClick={() => requestInvite(entry.playerId, entry.username)}
-                              >
-                                {inviteStatuses[entry.playerId] === "sending" ? t("leaderboards.inviting") :
-                                 inviteStatuses[entry.playerId] === "sent" ? "✓" :
-                                 inviteStatuses[entry.playerId] === "failed" ? "✗" :
-                                 t("leaderboards.invite")}
-                              </button>
-                            ) : entry.playerId !== currentPlayerId ? (
-                              <span className="leaderboardHasGuild">{t("leaderboards.hasGuild")}</span>
-                            ) : null}
-                          </td>
-                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -778,3 +754,4 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
     </section>
   );
 }
+

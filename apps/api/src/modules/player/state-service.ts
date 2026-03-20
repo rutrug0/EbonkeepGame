@@ -26,6 +26,7 @@ import {
 } from "@ebonkeep/shared/inventory";
 
 import { getGuildAcademyEffectTotals, mergePlayerStatBonuses } from "../academy/effects.js";
+import { getForgeInstabilityDamagePenaltyBps } from "../forge/state.js";
 import { parseStoredInventoryItem } from "../inventory/item-service.js";
 import { syncPlayerProgress } from "./progression-service.js";
 
@@ -167,13 +168,23 @@ function resolveStatBlock(
   level: number,
   coreStats: StatBlock,
   bonuses: PlayerStatBonuses,
-  equipment?: InventoryEquipmentState
+  equipment?: InventoryEquipmentState,
+  damageMultiplierBps = 10_000
 ): PlayerStatBlock {
   const mainOffenseStatKey = getMainOffenseStatKey(playerClass);
   const mainOffenseStat = coreStats[mainOffenseStatKey];
   const weaponAverageDamage = Math.round(equipment?.weapon?.damageRoll?.averageDamage ?? 0);
   const levelGrowth = getLevelGrowthMultiplier(level);
   const resolvedInitiative = coreStats.initiative + (levelGrowth * LEVEL_INITIATIVE_BONUS);
+  const damageMultiplier = Math.max(0, damageMultiplierBps) / 10_000;
+  const resolvedDamage = roundStat(
+    (
+      weaponAverageDamage +
+      (mainOffenseStat * mainStatToFlatDamageRatio) +
+      (bonuses.damage ?? 0) +
+      (levelGrowth * LEVEL_DAMAGE_BONUS)
+    ) * damageMultiplier
+  );
 
   return {
     strength: coreStats.strength,
@@ -189,15 +200,7 @@ function resolveStatBlock(
     magicDefense: Math.max(0, bonuses.magicDefense ?? 0),
     maxHitpoints: Math.max(0, roundStat((coreStats.vitality * HP_PER_VITALITY) + (bonuses.maxHitpoints ?? 0) + (levelGrowth * LEVEL_HP_BONUS))),
     dodgeChance: clampInt(coreStats.dexterity * CHANCE_PER_STAT + (bonuses.dodgeChance ?? 0), DODGE_CHANCE_CAP),
-    damage: Math.max(
-      0,
-      roundStat(
-        weaponAverageDamage +
-        (mainOffenseStat * mainStatToFlatDamageRatio) +
-        (bonuses.damage ?? 0) +
-        (levelGrowth * LEVEL_DAMAGE_BONUS)
-      )
-    ),
+    damage: Math.max(0, resolvedDamage),
     critChance: clampInt(BASE_CRIT_CHANCE + coreStats.luck * CHANCE_PER_STAT + (bonuses.critChance ?? 0), CRIT_CHANCE_CAP),
     critMultiplier: clampInt(
       BASE_CRIT_MULTIPLIER + coreStats.luck * CHANCE_PER_STAT + (bonuses.critMultiplier ?? 0),
@@ -240,16 +243,18 @@ export function buildPlayerStatSnapshot(args: {
   baseStats: StatBlock;
   equipment: InventoryEquipmentState;
   guildBonuses?: PlayerStatBonuses;
+  forgeDamagePenaltyBps?: number;
 }): PlayerStatSnapshot {
   const guildBonuses = args.guildBonuses ?? {};
   const equipmentBonuses = sumEquipmentBonuses(args.equipment);
   const combinedBonuses = mergePlayerStatBonuses(guildBonuses, equipmentBonuses);
   const level = args.level ?? 1;
+  const damageMultiplierBps = Math.max(0, 10_000 - (args.forgeDamagePenaltyBps ?? 0));
   const guildCoreStats = addCoreStatBonuses(args.baseStats, guildBonuses);
   const totalCoreStats = addCoreStatBonuses(guildCoreStats, equipmentBonuses);
   const base = resolveStatBlock(args.playerClass, level, args.baseStats, {});
   const baseWithGuild = resolveStatBlock(args.playerClass, level, guildCoreStats, guildBonuses);
-  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, combinedBonuses, args.equipment);
+  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, combinedBonuses, args.equipment, damageMultiplierBps);
 
   return {
     base,
@@ -401,6 +406,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     .filter((item): item is NonNullable<typeof item> => item !== null);
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
+  const forgeDamagePenaltyBps = await getForgeInstabilityDamagePenaltyBps(prisma, playerId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: progress.experience.level,
@@ -413,7 +419,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       luck: stats.luck
     },
     equipment,
-    guildBonuses: academyEffects.statBonuses
+    guildBonuses: academyEffects.statBonuses,
+    forgeDamagePenaltyBps
   });
   const resolvedCurrentHealth = resolveCurrentHealth(profile.hitpointsCurrent, statSnapshot.total.maxHitpoints);
   const cheatSettingsRows = await prisma.$queryRaw<
@@ -534,6 +541,7 @@ export async function getPublicPlayerProfile(
   const equipment = buildEquipmentState(profile.equipmentSlots);
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
+  const forgeDamagePenaltyBps = await getForgeInstabilityDamagePenaltyBps(prisma, playerId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: profile.level,
@@ -546,7 +554,8 @@ export async function getPublicPlayerProfile(
       luck: stats.luck
     },
     equipment,
-    guildBonuses: academyEffects.statBonuses
+    guildBonuses: academyEffects.statBonuses,
+    forgeDamagePenaltyBps
   });
 
   return publicPlayerProfileSchema.parse({

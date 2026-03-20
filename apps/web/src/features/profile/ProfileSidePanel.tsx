@@ -1,8 +1,9 @@
-import type { DragEventHandler, ReactElement, RefObject, UIEventHandler } from "react";
+import type { CSSProperties, DragEventHandler, ReactElement, RefObject } from "react";
 
 import type { PlayerState } from "@ebonkeep/shared/player";
 
 import i18n from "../../i18n";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 type InventoryItemLike = {
   category: string;
@@ -41,6 +42,8 @@ export type ProfileSidePanelProps = {
 };
 
 export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
+  const inventorySceneStyle = getViewBackgroundStyle("inventory") as CSSProperties;
+
   if (props.isLoadingState) {
     return props.renderUnavailablePanel(i18n.t("profile.panel"), i18n.t("profile.loading"));
   }
@@ -75,7 +78,7 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
           </div>
         </article>
 
-        <article className="contentCard statsViewportBody sidePanelBodyCard">
+        <article className="contentCard statsViewportBody sidePanelBodyCard indoorSceneShell" style={inventorySceneStyle}>
           <div
             className="sidePanelScroll"
             ref={props.sidePanelScrollRef}

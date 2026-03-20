@@ -2,10 +2,8 @@ import type { CSSProperties, ReactElement } from "react";
 
 import type { PlayerState } from "@ebonkeep/shared/player";
 
-import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import i18n from "../../i18n";
-
-const MERCHANT_BACKGROUND_KEY = "indoors:merchant";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 type MerchantStateLike = {
   offers: unknown[];
@@ -74,12 +72,7 @@ export function MerchantPanel(props: MerchantPanelProps): ReactElement {
   }
 
   const inventorySellEntries = props.filteredMerchantInventoryItems;
-  const merchantBackgroundPath = GENERATED_ITEM_ICON_PATHS[MERCHANT_BACKGROUND_KEY];
-  const merchantSceneStyle = merchantBackgroundPath
-    ? ({
-        "--indoor-scene-image": `url("${merchantBackgroundPath}")`
-      } as CSSProperties)
-    : undefined;
+  const merchantSceneStyle = getViewBackgroundStyle("merchant") as CSSProperties;
 
   return (
     <section className="contentShell merchantShell indoorSceneShell" style={merchantSceneStyle}>
