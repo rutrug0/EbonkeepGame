@@ -1184,6 +1184,7 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean, p
         category: item.category,
         itemName: displayItemName,
         iconAssetPath: item.iconAssetPath,
+        enchantLevel: item.enchanting?.level,
         className: useImageOnlyIcon ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`,
         renderMode: useImageOnlyIcon ? "imageOnly" : "default"
       })}
@@ -1234,6 +1235,7 @@ function renderInventoryItemDetailCardBody(
           category: item.category,
           itemName: displayItemName,
           iconAssetPath: item.iconAssetPath,
+          enchantLevel: item.enchanting?.level,
           className: useImageOnlyIcon ? undefined : `inventoryCardIcon${canUseItem ? "" : " isRestricted"}`,
           renderMode: useImageOnlyIcon ? "imageOnly" : "default"
         })}
@@ -1344,21 +1346,36 @@ function renderItemIcon(args: {
   category?: string;
   itemName?: string | null;
   iconAssetPath?: string;
+  enchantLevel?: number | null;
   className?: string;
   renderMode?: "default" | "imageOnly";
 }): ReactElement {
   const iconVisual = resolveItemIconVisual(args);
-  if (args.iconAssetPath && args.renderMode === "imageOnly") {
-    return <img className="itemVisualImage itemVisualImageCard" src={args.iconAssetPath} alt="" loading="lazy" />;
-  }
   const extraClass = args.className ? ` ${args.className}` : "";
+  const enchantLevel = Math.max(0, Math.floor(args.enchantLevel ?? 0));
+  const enchantBadge = enchantLevel > 0 ? (
+    <span className="itemVisualEnchantBadge" aria-hidden="true">{`+${enchantLevel}`}</span>
+  ) : null;
+
+  if (args.iconAssetPath && args.renderMode === "imageOnly") {
+    return (
+      <span className="itemVisualFrame itemVisualFrame--imageOnly" aria-hidden="true">
+        <img className="itemVisualImage itemVisualImageCard" src={args.iconAssetPath} alt="" loading="lazy" />
+        {enchantBadge}
+      </span>
+    );
+  }
+
   return (
-    <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`} aria-hidden="true">
-      {args.iconAssetPath ? (
-        <img className="itemVisualImage" src={args.iconAssetPath} alt="" loading="lazy" />
-      ) : (
-        iconVisual.label
-      )}
+    <span className="itemVisualFrame" aria-hidden="true">
+      <span className={`itemVisualIcon itemVisual-${iconVisual.variant}${extraClass}`}>
+        {args.iconAssetPath ? (
+          <img className="itemVisualImage" src={args.iconAssetPath} alt="" loading="lazy" />
+        ) : (
+          iconVisual.label
+        )}
+      </span>
+      {enchantBadge}
     </span>
   );
 }
@@ -4245,6 +4262,7 @@ export function AppShell() {
               category: equippedItem?.category ?? slotLabel,
               itemName: displayItemName ?? slotLabel,
               iconAssetPath: equippedItem?.iconAssetPath,
+              enchantLevel: equippedItem?.enchanting?.level,
               className: useImageOnlyIcon ? undefined : "equipmentItemIcon",
               renderMode: useImageOnlyIcon ? "imageOnly" : "default"
             })}
