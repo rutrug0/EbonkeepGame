@@ -157,6 +157,13 @@ export const weaponDamageRollSchema = z.object({
 });
 export type WeaponDamageRoll = z.infer<typeof weaponDamageRollSchema>;
 
+export const itemEnchantingSchema = z.object({
+  track: z.enum(["weapon", "armor", "jewelry"]),
+  level: z.number().int().min(0).max(10),
+  bonusScaleBps: z.number().int().min(0)
+});
+export type ItemEnchanting = z.infer<typeof itemEnchantingSchema>;
+
 export const inventoryItemSchema = z.object({
   id: z.string(),
   itemCode: z.string(),
@@ -173,6 +180,7 @@ export const inventoryItemSchema = z.object({
   damageRoll: weaponDamageRollSchema.optional(),
   prefix: itemModifierSchema.optional(),
   affix: itemModifierSchema.optional(),
+  enchanting: itemEnchantingSchema.optional(),
   description: z.string()
 });
 export type InventoryItem = z.infer<typeof inventoryItemSchema>;

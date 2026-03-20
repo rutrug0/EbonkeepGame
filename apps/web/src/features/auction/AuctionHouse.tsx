@@ -4,12 +4,11 @@ import type { EquipmentSlotId, PlayerClass } from "@ebonkeep/shared/core";
 import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/inventory";
 import { DUCATS_ICON_PATH } from "../../constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
 type WeaponArchetype = "melee" | "ranged" | "arcane";
 type ArmorArchetype = "heavy" | "light" | "robe";
-
-const AUCTION_HOUSE_BACKGROUND_KEY = "indoors:auction_house";
 
 export interface AuctionHouseProps {
   token: string | null;
@@ -165,6 +164,60 @@ interface AuctionHoverState {
 
 type AuctionView = "browse" | "submit" | "mySubmissions";
 
+function sanitizeParsedItemData(input: Partial<ParsedItemData> & { itemCode?: string }): ParsedItemData {
+  const rarity = typeof input.rarity === "string" && input.rarity.trim() ? input.rarity : "common";
+  const category = typeof input.category === "string" && input.category.trim() ? input.category : "misc";
+  const itemName = typeof input.itemName === "string" && input.itemName.trim() ? input.itemName : "Unknown item";
+  const levelRequirement =
+    typeof input.levelRequirement === "number" && Number.isFinite(input.levelRequirement)
+      ? Math.max(1, input.levelRequirement)
+      : typeof input.baseLevel === "number" && Number.isFinite(input.baseLevel)
+        ? Math.max(1, input.baseLevel)
+        : 1;
+
+  return {
+    itemCode: typeof input.itemCode === "string" && input.itemCode.trim() ? input.itemCode : itemName,
+    itemName,
+    levelRequirement,
+    baseLevel:
+      typeof input.baseLevel === "number" && Number.isFinite(input.baseLevel)
+        ? input.baseLevel
+        : undefined,
+    rarity,
+    category,
+    power: typeof input.power === "number" && Number.isFinite(input.power) ? input.power : 0,
+    equipable: input.equipable !== false,
+    allowedSlotIds: Array.isArray(input.allowedSlotIds)
+      ? input.allowedSlotIds.filter((slotId): slotId is string => typeof slotId === "string" && slotId.length > 0)
+      : undefined,
+    statBonuses:
+      input.statBonuses && typeof input.statBonuses === "object" && !Array.isArray(input.statBonuses)
+        ? input.statBonuses
+        : undefined,
+    damageRoll:
+      input.damageRoll && typeof input.damageRoll === "object" && !Array.isArray(input.damageRoll)
+        ? input.damageRoll
+        : undefined,
+    description: typeof input.description === "string" ? input.description : "",
+    iconAssetPath: typeof input.iconAssetPath === "string" && input.iconAssetPath.trim() ? input.iconAssetPath : undefined,
+    prefix:
+      input.prefix && typeof input.prefix === "object" && !Array.isArray(input.prefix)
+        ? input.prefix
+        : undefined,
+    affix:
+      input.affix && typeof input.affix === "object" && !Array.isArray(input.affix)
+        ? input.affix
+        : undefined,
+    archetype:
+      input.archetype && typeof input.archetype === "object" && !Array.isArray(input.archetype)
+        ? input.archetype
+        : undefined,
+    weaponType: typeof input.weaponType === "string" ? input.weaponType : undefined,
+    armorType: typeof input.armorType === "string" ? input.armorType : undefined,
+    jewelryType: typeof input.jewelryType === "string" ? input.jewelryType : undefined
+  };
+}
+
 function preserveAuctionItemOrder(nextAuctions: AuctionInstance[], previousAuctions: AuctionInstance[]): AuctionInstance[] {
   const previousOrderByAuctionId = new Map(
     previousAuctions.map((auction) => [
@@ -204,12 +257,7 @@ function preserveAuctionItemOrder(nextAuctions: AuctionInstance[], previousAucti
 
 export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, equipmentBySlot, onDucatsChange }: AuctionHouseProps) {
   const { t } = useTranslation("common");
-  const auctionHouseBackgroundPath = GENERATED_ITEM_ICON_PATHS[AUCTION_HOUSE_BACKGROUND_KEY];
-  const auctionHouseShellStyle = auctionHouseBackgroundPath
-    ? ({
-        "--indoor-scene-image": `url("${auctionHouseBackgroundPath}")`
-      } as CSSProperties)
-    : undefined;
+  const auctionHouseShellStyle = getViewBackgroundStyle("auction_house") as CSSProperties;
   const [activeView, setActiveView] = useState<AuctionView>("browse");
   const [auctions, setAuctions] = useState<AuctionInstance[]>([]);
   const [selectedAuction, setSelectedAuction] = useState<AuctionInstance | null>(null);
@@ -772,7 +820,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       }
 
       if (typeof parsed.itemName === "string") {
-        return {
+        return sanitizeParsedItemData({
           itemCode: typeof parsed.itemCode === "string" ? parsed.itemCode : itemCode,
           itemName: parsed.itemName,
           levelRequirement:
@@ -814,10 +862,10 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
           weaponType: typeof parsed.weaponType === "string" ? parsed.weaponType : undefined,
           armorType: typeof parsed.armorType === "string" ? parsed.armorType : undefined,
           jewelryType: typeof parsed.jewelryType === "string" ? parsed.jewelryType : undefined
-        };
+        });
       }
 
-      return {
+      return sanitizeParsedItemData({
         itemCode: typeof parsed.itemCode === "string" ? parsed.itemCode : itemCode,
         itemName: typeof parsed.name === "string" ? parsed.name : t("profile.unknown"),
         levelRequirement: typeof parsed.level === "number" ? parsed.level : 1,
@@ -833,9 +881,9 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         armorType: typeof parsed.armorType === "string" ? parsed.armorType : undefined,
         jewelryType: typeof parsed.jewelryType === "string" ? parsed.jewelryType : undefined,
         description: typeof parsed.description === "string" ? parsed.description : ""
-      };
+      });
     } catch {
-      return {
+      return sanitizeParsedItemData({
         itemCode,
         itemName: t("profile.unknown"),
         levelRequirement: 1,
@@ -844,12 +892,12 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         power: 0,
         statBonuses: {},
         description: ""
-      };
+      });
     }
   };
 
   const getAuctionItemData = (item: Pick<AuctionItem, "itemCode"> & { itemData?: ParsedItemData }): ParsedItemData => {
-    return item.itemData ?? parseItemData(item.itemCode);
+    return item.itemData ? sanitizeParsedItemData(item.itemData) : parseItemData(item.itemCode);
   };
 
   const buildWeaponLookupKey = (itemData: ParsedItemData): WeaponArchetype | undefined => {
@@ -949,7 +997,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       equipSlotId: preferredSlotId
     });
 
-    return {
+    return sanitizeParsedItemData({
       itemCode: item.itemCode ?? item.itemName,
       itemName: item.itemName,
       levelRequirement: item.levelRequirement ?? item.baseLevel ?? 1,
@@ -967,12 +1015,26 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       weaponType: item.archetype?.weaponFamily,
       armorType: item.archetype?.armorArchetype,
       jewelryType: item.archetype?.majorCategory === "jewelry" ? "jewelry" : undefined
-    };
+    });
   };
 
   const canPlayerUseAuctionItem = (itemData: ParsedItemData): boolean => {
-    if (!itemData.equipable || !itemData.archetype || !playerClass || playerLevel == null) {
-      return itemData.equipable !== false;
+    if (!itemData.equipable) {
+      return false;
+    }
+
+    if (!itemData.archetype || !playerClass || playerLevel == null) {
+      return true;
+    }
+
+    const majorCategory = itemData.archetype.majorCategory;
+    if (
+      majorCategory !== "weapon" &&
+      majorCategory !== "armor" &&
+      majorCategory !== "jewelry" &&
+      majorCategory !== "vestige"
+    ) {
+      return true;
     }
 
     const archetypeClassKey = (itemData.archetype.weaponArchetype ?? itemData.archetype.armorArchetype) as
@@ -981,7 +1043,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       | undefined;
     const isClassEligible = isItemUsableByClass(
       playerClass,
-      itemData.archetype.majorCategory as "weapon" | "armor" | "jewelry" | "vestige",
+      majorCategory,
       archetypeClassKey
     );
     const isLevelEligible = playerLevel >= itemData.levelRequirement;
@@ -1467,8 +1529,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
       <>
         {selectedAuction && selectedAuction.items && selectedAuction.items.length > 0 && (
           <article
-            className="auctionBrowseSection indoorSceneShell auctionBrowseSceneCard"
-            style={auctionHouseShellStyle}
+            className="auctionBrowseSection auctionBrowseSceneCard"
           >
             <div className="auctionBrowseGrid">
               {selectedAuction.items.map((item) => renderAuctionItem(item))}
@@ -2013,7 +2074,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
   if (!token) {
     return (
-      <section className="contentShell auctionHouseShell">
+      <section className="contentShell auctionHouseShell indoorSceneShell" style={auctionHouseShellStyle}>
         <section className="contentStack auctionHouseStack">
           <article className="contentCard">
             <h2>{t("auction.title")}</h2>
@@ -2160,7 +2221,7 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
         </div>
       )}
 
-      <section className="contentShell auctionHouseShell">
+      <section className="contentShell auctionHouseShell indoorSceneShell" style={auctionHouseShellStyle}>
         <section className="contentStack auctionHouseStack">
           <article className="contentCard">
             <div className="profileSwitchBar">

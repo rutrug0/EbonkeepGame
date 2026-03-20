@@ -25,12 +25,12 @@ import {
 
 import { clearGardenPlot, fetchGardenState, harvestGardenPlot, plantGardenSeed } from "./api";
 import { getGardenIngredientImagePath, getGardenPlantImagePath, getGardenSeedImagePath } from "./assets";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 export type GardenPanelProps = {
   token: string | null;
 };
 
-const GARDEN_BACKGROUND_PATH = "/assets/items/generated/garden/garden.png";
 const GARDEN_PLOT_SHAKE_DURATION_MS = 520;
 const GARDEN_PLOT_PLANTING_DURATION_MS = 680;
 const GARDEN_PLOT_HARVESTING_DURATION_MS = 560;
@@ -270,9 +270,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const ingredientFeedbackTimersRef = useRef<Partial<Record<GardenPlantId, number>>>({});
   const ingredientFeedbackFrameRefs = useRef<Partial<Record<GardenPlantId, number>>>({});
   const gardenPanelCardRef = useRef<HTMLElement | null>(null);
-  const gardenSceneStyle = {
-    "--indoor-scene-image": `url("${GARDEN_BACKGROUND_PATH}")`
-  } as CSSProperties;
+  const gardenSceneStyle = getViewBackgroundStyle("garden") as CSSProperties;
 
   function syncServerClock(serverTime: string) {
     const receivedAtMs = Date.now();

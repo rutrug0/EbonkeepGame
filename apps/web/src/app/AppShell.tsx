@@ -12,6 +12,7 @@
   type ReactNode,
   type WheelEvent as ReactWheelEvent
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import { AuthScreen } from "./AuthScreen";
@@ -57,6 +58,7 @@ import {
   isItemUsableByClass,
   type DevWeapon,
   type EquipmentState as SharedEquipmentState,
+  type ItemEnchanting as SharedItemEnchanting,
   type InventoryItem as SharedInventoryItem,
   type ItemRarity,
   type ItemModifier as SharedItemModifier,
@@ -131,6 +133,7 @@ import {
 } from "../features/contracts";
 import { ImperialShop, MerchantPanel } from "../features/economy";
 import { ArenaPanel } from "../features/arena";
+import { ForgePanel } from "../features/forge";
 import { GardenPanel } from "../features/garden";
 import { RefineryPanel } from "../features/refinery";
 import { JobsPanel, fetchJobsState, getStoredJobsLockReleaseAtMs } from "../features/jobs";
@@ -220,6 +223,7 @@ type InventoryItem = {
   damageRoll?: WeaponDamageRoll;
   prefix?: ItemModifier;
   affix?: ItemModifier;
+  enchanting?: SharedItemEnchanting;
   power: number;
   description: string;
 };
@@ -791,6 +795,7 @@ function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
     damageRoll: item.damageRoll,
     prefix: toLocalItemModifier(item.prefix),
     affix: toLocalItemModifier(item.affix),
+    enchanting: item.enchanting,
     power: item.power,
     description: item.description
   };
@@ -1071,9 +1076,10 @@ function getItemSubtypeLabel(item: InventoryItem): string {
 }
 
 function getDisplayItemName(item: InventoryItem): string {
+  const enchantPrefix = item.enchanting?.level ? `+${item.enchanting.level} ` : "";
   const prefixName = item.prefix?.name ? `${item.prefix.name} ` : "";
   const affixName = item.affix?.name ? ` ${item.affix.name}` : "";
-  return `${prefixName}${item.itemName}${affixName}`.trim();
+  return `${enchantPrefix}${prefixName}${item.itemName}${affixName}`.trim();
 }
 
 function getModifierTierClassName(tier: ModifierTier): string {
@@ -1089,6 +1095,7 @@ function getModifierTierClassName(tier: ModifierTier): string {
 function renderItemDisplayName(item: InventoryItem): ReactElement {
   return (
     <>
+      {item.enchanting?.level ? <span>{`+${item.enchanting.level} `}</span> : null}
       {item.prefix ? <>{item.prefix.name} </> : null}
       <span>{item.itemName}</span>
       {item.affix ? <> {item.affix.name}</> : null}
@@ -3926,7 +3933,7 @@ export function AppShell() {
         ? sourceItem.power - (comparisonItem?.power ?? 0)
         : 0;
 
-    return (
+    return createPortal(
       <div
         className="inventoryComparisonOverlay"
         style={{
@@ -3951,7 +3958,8 @@ export function AppShell() {
             </article>
           ) : null}
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -4852,8 +4860,8 @@ export function AppShell() {
     );
   }
 
-  function renderPlaceholderPanel(title: string, description: string) {
-    return <PlaceholderPanel title={title} description={description} />;
+  function renderPlaceholderPanel(title: string, description: string, backgroundName?: "forge") {
+    return <PlaceholderPanel title={title} description={description} backgroundName={backgroundName} />;
   }
 
   function renderCheatsPanel() {
@@ -5176,7 +5184,6 @@ export function AppShell() {
           <JobsPanel
             token={token}
             hasPlayerState={Boolean(playerState)}
-            currentDucats={currencies?.ducats ?? playerState?.currency.ducats ?? 0}
             playerLevel={playerState?.level ?? null}
             developerToolsEnabled={Boolean(accountInfo?.developerToolsEnabled)}
             onGrantDucats={handleJobsDucatsGain}
@@ -5195,12 +5202,18 @@ export function AppShell() {
         return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
     case "garden":
       return <GardenPanel token={token} />;
-    case "refinery":
-      return <RefineryPanel token={token} />;
-    case "forge":
-      return renderPlaceholderPanel(i18n.t("menu.forge"), i18n.t("placeholders.forge"));
-      case "leaderboards":
-        return <Leaderboard token={token} currentPlayerId={playerState?.playerId ?? null} />;
+      case "refinery":
+        return <RefineryPanel token={token} />;
+      case "forge":
+        return (
+          <ForgePanel
+            token={token}
+            playerState={playerState}
+            onPlayerStateChange={applyAuthoritativePlayerState}
+          />
+        );
+        case "leaderboards":
+          return <Leaderboard token={token} currentPlayerId={playerState?.playerId ?? null} />;
       case "settings":
         return renderSettingsPanel();
       default:

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { IMPERIAL_BUNDLES, type ImperialBundle } from "@ebonkeep/shared/economy";
 import {
@@ -7,6 +7,7 @@ import {
   IMPERIALS_ICON_PATH,
   QUARTERMASTERS_CHARTER_ICON_PATH
 } from "../../constants/uiAssets";
+import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 import { PaymentMethodSelector, type PaymentMethod, type PaymentMethodSelection } from "./PaymentMethodSelector";
 
 export interface ImperialShopProps {
@@ -72,6 +73,7 @@ function ShopOfferIcon({ src, alt }: { src: string; alt: string }) {
 
 export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
   const { t } = useTranslation("common");
+  const imperialShopSceneStyle = getViewBackgroundStyle("imperial_shop") as CSSProperties;
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -275,7 +277,7 @@ export function ImperialShop({ token, currentImperials }: ImperialShopProps) {
         </div>
       )}
 
-      <section className="contentShell">
+      <section className="contentShell imperialShopShell indoorSceneShell" style={imperialShopSceneStyle}>
         <section className="contentStack">
           <article className="contentCard imperialShopHeaderCard">
             <div className="imperialShopHeader">

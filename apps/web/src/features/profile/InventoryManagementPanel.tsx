@@ -95,7 +95,7 @@ const MAIN_STAT_COLUMNS: MainStatColumn[] = [
 export function InventoryManagementPanel(props: InventoryManagementPanelProps): ReactElement {
   if (props.isLoadingState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell inventoryManagementShell">
         <section className="contentStack">
           {props.renderCharacterHubTabs()}
           <article className="contentCard">
@@ -109,7 +109,7 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
 
   if (!props.playerState) {
     return (
-      <section className="contentShell">
+      <section className="contentShell inventoryManagementShell">
         <section className="contentStack">
           {props.renderCharacterHubTabs()}
           <article className="contentCard">
@@ -137,7 +137,7 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
   };
 
   return (
-    <section className="contentShell">
+    <section className="contentShell inventoryManagementShell">
       <section className="contentStack">
         {props.renderCharacterHubTabs()}
 
