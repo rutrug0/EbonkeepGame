@@ -31,6 +31,7 @@ import "./jobs.css";
 type JobsPanelProps = {
   token: string | null;
   hasPlayerState: boolean;
+  currentDucats: number;
   playerLevel: number | null;
   developerToolsEnabled: boolean;
   onGrantDucats: (amount: number) => void;
@@ -247,7 +248,7 @@ function JobCard(props: {
 }
 
 export function JobsPanel(props: JobsPanelProps): ReactElement {
-  const { token, hasPlayerState, playerLevel, developerToolsEnabled, onGrantDucats, onLockReleaseAtChange } = props;
+  const { token, hasPlayerState, currentDucats, playerLevel, developerToolsEnabled, onGrantDucats, onLockReleaseAtChange } = props;
   const [jobsState, setJobsState] = useState<JobsStateResponse | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [durationHours, setDurationHours] = useState<number>(DEFAULT_DURATION_HOURS);
@@ -730,6 +731,66 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
             ) : null}
           </div>
         ) : null}
+
+        <div className="jobsHistoryCard">
+          <details className="jobsFoldout jobsHistoryFoldout">
+            <summary className="jobsFoldoutSummary">
+              <span>History &amp; Stash</span>
+              <span className="jobsFoldoutHint">{jobsState?.history.length ?? 0} recent runs</span>
+            </summary>
+            <div className="jobsFoldoutBody">
+              <div className="jobsStashGrid">
+                {rewardBundleToChips(jobsState?.stash ?? { ...EMPTY_BUNDLE }).map((chip) => (
+                  <div key={chip.key} className="jobsStashCard">
+                    <span>{chip.label}</span>
+                    <strong>{chip.value.toLocaleString()}</strong>
+                  </div>
+                ))}
+                <div className="jobsStashCard">
+                  <span>Live Ducats</span>
+                  <strong>{currentDucats.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {jobsState?.history.length ? (
+                <div className="jobsHistoryList">
+                  {jobsState.history.map((entry) => (
+                    <div key={entry.runId} className="jobsHistoryItem">
+                      <div className="jobsChoiceHeader">
+                        <strong>{entry.jobName}</strong>
+                        <span className="jobsStateBadge">{entry.claimType === "completed" ? "Completed" : "Interrupted"}</span>
+                      </div>
+                      <div className="jobsHistoryMeta">
+                        <span>
+                          {formatHoursLabel(entry.durationHours)} - {new Date(entry.claimedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="jobsHistoryRewards">
+                        {rewardBundleToChips(entry.rewards).map((chip) => (
+                          <span key={`${entry.runId}-${chip.key}`}>
+                            {chip.value.toLocaleString()} {chip.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="jobsStatusMessage">No claimed runs yet.</p>
+              )}
+
+              <div className="jobsSupportCard jobsSupportCardMuted">
+                <div className="jobsChoiceHeader">
+                  <strong>Materials</strong>
+                </div>
+                <p className="jobsStatusMessage">
+                  Jobs resources are now persisted on the backend. Ducats are granted live, while ore, charcoal, crates, seeds,
+                  and herbs stay in the Jobs stash until we wire them into Workshop and Garden.
+                </p>
+              </div>
+            </div>
+          </details>
+        </div>
 
       </div>
     </section>

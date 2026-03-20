@@ -5184,6 +5184,7 @@ export function AppShell() {
           <JobsPanel
             token={token}
             hasPlayerState={Boolean(playerState)}
+            currentDucats={currencies?.ducats ?? 0}
             playerLevel={playerState?.level ?? null}
             developerToolsEnabled={Boolean(accountInfo?.developerToolsEnabled)}
             onGrantDucats={handleJobsDucatsGain}

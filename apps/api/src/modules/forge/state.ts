@@ -35,12 +35,10 @@ function normalizePersistedForgeState(payload: unknown): PersistedForgeState {
 }
 
 async function loadForgeProgressRow(prisma: ForgeDbClient, playerId: string) {
-  return prisma.eventProgress.findFirst({
+  return prisma.eventProgress.findUnique({
     where: {
-      playerId,
-      eventCode: FORGE_EVENT_CODE
-    },
-    orderBy: { createdAt: "asc" }
+      playerId_eventCode: { playerId, eventCode: FORGE_EVENT_CODE }
+    }
   });
 }
 
@@ -57,25 +55,14 @@ export async function savePersistedForgeState(
   playerId: string,
   state: PersistedForgeState
 ): Promise<void> {
-  const row = await loadForgeProgressRow(prisma, playerId);
   const payload: Prisma.InputJsonValue = {
     instability: state.instability
   };
 
-  if (row) {
-    await prisma.eventProgress.update({
-      where: { id: row.id },
-      data: { payload }
-    });
-    return;
-  }
-
-  await prisma.eventProgress.create({
-    data: {
-      playerId,
-      eventCode: FORGE_EVENT_CODE,
-      payload
-    }
+  await prisma.eventProgress.upsert({
+    where: { playerId_eventCode: { playerId, eventCode: FORGE_EVENT_CODE } },
+    update: { payload },
+    create: { playerId, eventCode: FORGE_EVENT_CODE, payload }
   });
 }
 

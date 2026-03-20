@@ -250,6 +250,7 @@ model EventProgress {
   updatedAt DateTime      @updatedAt
   player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
+  @@unique([playerId, eventCode])
   @@index([playerId])
   @@map("event_progress")
 }

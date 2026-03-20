@@ -88,77 +88,74 @@ export async function attemptWeaponEnchant(
   playerId: string,
   weaponItemId: string
 ): Promise<ForgeEnchantResponse> {
-  const persistedState = await loadPersistedForgeState(prisma, playerId);
-  if (persistedState.instability) {
-    throw new ForgeError("FORGE_INSTABILITY_ACTIVE", 409, "Stabilize your forge fracture before attempting another enchant.");
-  }
-
-  const itemRecord = await prisma.inventoryItem.findUnique({
-    where: { id: weaponItemId },
-    select: {
-      id: true,
-      playerId: true,
-      itemCode: true,
-      itemData: true
+  const txResult = await prisma.$transaction(async (tx) => {
+    const persistedState = await loadPersistedForgeState(tx, playerId);
+    if (persistedState.instability) {
+      throw new ForgeError("FORGE_INSTABILITY_ACTIVE", 409, "Stabilize your forge fracture before attempting another enchant.");
     }
-  });
 
-  if (!itemRecord || itemRecord.playerId !== playerId) {
-    throw new ForgeError("FORGE_WEAPON_NOT_FOUND", 404, "Weapon not found.");
-  }
-
-  const weapon = assertWeaponItem(parseStoredInventoryItem(itemRecord));
-  const previousEnchantLevel = getCurrentEnchantLevel(weapon);
-  if (previousEnchantLevel >= FORGE_MAX_ENCHANT_LEVEL) {
-    throw new ForgeError("FORGE_MAX_LEVEL_REACHED", 400, "This weapon has already reached the maximum enchant level.");
-  }
-
-  const targetEnchantLevel = previousEnchantLevel + 1;
-  const successChancePct = getForgeSuccessChancePct(targetEnchantLevel);
-  const catalystRarity = getForgeCatalystRarity(targetEnchantLevel);
-  const attemptCostDucats = getForgeAttemptCostDucats(targetEnchantLevel);
-  const currency = await ensureCurrency(prisma, playerId);
-  if (currency.ducats < attemptCostDucats) {
-    throw new ForgeError("FORGE_NOT_ENOUGH_DUCATS", 400, "Not enough ducats for that enchant attempt.");
-  }
-
-  const storedForgeData = getStoredWeaponForgeData(itemRecord.itemData, weapon);
-  if (!storedForgeData) {
-    throw new ForgeError("FORGE_WEAPON_DATA_INVALID", 400, "Weapon data is incomplete.");
-  }
-
-  const didSucceed = targetEnchantLevel <= FORGE_SAFE_ENCHANT_LEVEL || randomInt(0, 100) < successChancePct;
-  const nextForgeData = didSucceed
-    ? {
-        ...storedForgeData,
-        level: targetEnchantLevel,
-        bonusScaleBps: getForgeDamageBonusBps(targetEnchantLevel)
+    const itemRecord = await tx.inventoryItem.findUnique({
+      where: { id: weaponItemId },
+      select: {
+        id: true,
+        playerId: true,
+        itemCode: true,
+        itemData: true
       }
-    : {
-        ...storedForgeData,
-        level: 0,
-        bonusScaleBps: 0
-      };
+    });
 
-  const resultingInstability = didSucceed
-    ? null
-    : {
-        weaponItemId,
-        weaponName: weapon.itemName,
-        sourceEnchantLevel: targetEnchantLevel,
-        damagePenaltyBps: getForgeDamagePenaltyBps(targetEnchantLevel),
-        cleanseCostDucats: getForgeCleanseCostDucats(targetEnchantLevel),
-        triggeredAt: new Date().toISOString()
-      };
+    if (!itemRecord || itemRecord.playerId !== playerId) {
+      throw new ForgeError("FORGE_WEAPON_NOT_FOUND", 404, "Weapon not found.");
+    }
 
-  await prisma.$transaction(async (tx) => {
+    const weapon = assertWeaponItem(parseStoredInventoryItem(itemRecord));
+    const previousEnchantLevel = getCurrentEnchantLevel(weapon);
+    if (previousEnchantLevel >= FORGE_MAX_ENCHANT_LEVEL) {
+      throw new ForgeError("FORGE_MAX_LEVEL_REACHED", 400, "This weapon has already reached the maximum enchant level.");
+    }
+
+    const targetEnchantLevel = previousEnchantLevel + 1;
+    const successChancePct = getForgeSuccessChancePct(targetEnchantLevel);
+    const catalystRarity = getForgeCatalystRarity(targetEnchantLevel);
+    const attemptCostDucats = getForgeAttemptCostDucats(targetEnchantLevel);
+
+    const currency = await ensureCurrency(tx, playerId);
+    if (currency.ducats < attemptCostDucats) {
+      throw new ForgeError("FORGE_NOT_ENOUGH_DUCATS", 400, "Not enough ducats for that enchant attempt.");
+    }
+
+    const storedForgeData = getStoredWeaponForgeData(itemRecord.itemData, weapon);
+    if (!storedForgeData) {
+      throw new ForgeError("FORGE_WEAPON_DATA_INVALID", 400, "Weapon data is incomplete.");
+    }
+
+    const didSucceed = targetEnchantLevel <= FORGE_SAFE_ENCHANT_LEVEL || randomInt(0, 100) < successChancePct;
+    const nextForgeData = didSucceed
+      ? {
+          ...storedForgeData,
+          level: targetEnchantLevel,
+          bonusScaleBps: getForgeDamageBonusBps(targetEnchantLevel)
+        }
+      : {
+          ...storedForgeData,
+          level: 0,
+          bonusScaleBps: 0
+        };
+
+    const resultingInstability = didSucceed
+      ? null
+      : {
+          weaponItemId,
+          weaponName: weapon.itemName,
+          sourceEnchantLevel: targetEnchantLevel,
+          damagePenaltyBps: getForgeDamagePenaltyBps(targetEnchantLevel),
+          cleanseCostDucats: getForgeCleanseCostDucats(targetEnchantLevel),
+          triggeredAt: new Date().toISOString()
+        };
+
     await tx.currencyBalance.update({
       where: { playerId },
-      data: {
-        ducats: {
-          decrement: attemptCostDucats
-        }
-      }
+      data: { ducats: { decrement: attemptCostDucats } }
     });
 
     await tx.inventoryItem.update({
@@ -168,10 +165,12 @@ export async function attemptWeaponEnchant(
       }
     });
 
-    await savePersistedForgeState(tx, playerId, {
-      instability: resultingInstability
-    });
+    await savePersistedForgeState(tx, playerId, { instability: resultingInstability });
+
+    return { weapon, previousEnchantLevel, targetEnchantLevel, didSucceed, successChancePct, catalystRarity, attemptCostDucats };
   });
+
+  const { weapon, previousEnchantLevel, targetEnchantLevel, didSucceed, successChancePct, catalystRarity, attemptCostDucats } = txResult;
 
   const playerState = await loadPlayerState(prisma, playerId);
   if (!playerState) {
@@ -208,29 +207,25 @@ export async function cleanseForgeInstability(
   prisma: PrismaClient,
   playerId: string
 ): Promise<ForgeCleanseResponse> {
-  const persistedState = await loadPersistedForgeState(prisma, playerId);
-  if (!persistedState.instability) {
-    throw new ForgeError("FORGE_INSTABILITY_NOT_ACTIVE", 400, "There is no active forge instability to cleanse.");
-  }
+  const cleanseCostDucats = await prisma.$transaction(async (tx) => {
+    const persistedState = await loadPersistedForgeState(tx, playerId);
+    if (!persistedState.instability) {
+      throw new ForgeError("FORGE_INSTABILITY_NOT_ACTIVE", 400, "There is no active forge instability to cleanse.");
+    }
 
-  const currency = await ensureCurrency(prisma, playerId);
-  if (currency.ducats < persistedState.instability.cleanseCostDucats) {
-    throw new ForgeError("FORGE_NOT_ENOUGH_DUCATS", 400, "Not enough ducats to stabilize the forge.");
-  }
+    const { cleanseCostDucats: cost } = persistedState.instability;
+    const currency = await ensureCurrency(tx, playerId);
+    if (currency.ducats < cost) {
+      throw new ForgeError("FORGE_NOT_ENOUGH_DUCATS", 400, "Not enough ducats to stabilize the forge.");
+    }
 
-  await prisma.$transaction(async (tx) => {
     await tx.currencyBalance.update({
       where: { playerId },
-      data: {
-        ducats: {
-          decrement: persistedState.instability!.cleanseCostDucats
-        }
-      }
+      data: { ducats: { decrement: cost } }
     });
 
-    await savePersistedForgeState(tx, playerId, {
-      instability: null
-    });
+    await savePersistedForgeState(tx, playerId, { instability: null });
+    return cost;
   });
 
   const playerState = await loadPlayerState(prisma, playerId);
@@ -241,6 +236,6 @@ export async function cleanseForgeInstability(
   return forgeCleanseResponseSchema.parse({
     forge: await loadForgeState(prisma, playerId),
     playerState,
-    cleanseCostDucats: persistedState.instability.cleanseCostDucats
+    cleanseCostDucats
   });
 }
