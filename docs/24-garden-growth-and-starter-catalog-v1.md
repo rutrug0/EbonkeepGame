@@ -2,7 +2,8 @@
 
 ## Purpose
 Define the first implemented Garden slice for Estate:
-- `5` fixed plots
+- `18` total plots
+- `7` unlocked at start in a deterministic center-out pattern
 - `5` starter plant families
 - server-authoritative growth timers
 - seed-only Garden inventory
@@ -12,14 +13,13 @@ This document intentionally describes the narrow runtime slice that exists befor
 
 ## Scope
 Included in Garden v1:
-- `5` fixed plots available immediately
+- `18` total plots with `7` visible and usable at start
 - starter seed bootstrap on first Garden load
 - planting, harvesting, and clearing wilted crops
 - countdown and progress display for each phase
 - ingredient persistence for future refinery use
 
 Explicitly deferred:
-- plot unlock progression
 - watering, pruning, blight, or other care actions
 - seed rewards from contracts or jobs
 - refinery recipes that turn plants back into seeds
@@ -41,8 +41,10 @@ Rules:
 - the client may show local countdowns, but the API remains the source of truth
 
 ## Plot Baseline
-- fixed slot count: `5`
-- no upgrades or unlock requirements in v1
+- fixed slot count: `18`
+- `7` slots unlocked at start
+- initial unlocked shape is `2` center-top, `3` center-middle, `2` center-bottom
+- additional unlocks expand from the middle outward in a deterministic order
 - empty plots can be selected, then seeded from the Garden inventory panel
 - Garden inventory contains seed stacks only
 
@@ -58,8 +60,8 @@ Rules:
 
 ## Bootstrap Rules
 On first Garden state load, the player receives:
-- `5` empty plots
-- `5` seeds of each starter plant
+- `18` garden plots, with `7` unlocked for immediate use
+- `999` seeds of each starter plant
 
 This is a development-friendly bootstrap and not the final acquisition model.
 

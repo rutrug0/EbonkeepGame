@@ -2,7 +2,8 @@ import { z } from "zod";
 
 import { GARDEN_PLANT_CATALOG, GARDEN_PLANT_IDS } from "./catalog.generated.js";
 
-export const MAX_GARDEN_SLOT_COUNT = 8;
+export const MAX_GARDEN_SLOT_COUNT = 18;
+export const MIN_GARDEN_UNLOCKED_SLOT_COUNT = 7;
 export const STARTER_GARDEN_SEED_QUANTITY = 999;
 
 export const gardenPlantIdSchema = z.enum(GARDEN_PLANT_IDS);
@@ -56,6 +57,7 @@ export type GardenInventoryEntry = z.infer<typeof gardenInventoryEntrySchema>;
 
 export const gardenPlotStateSchema = z.object({
   slotIndex: z.number().int().min(1).max(MAX_GARDEN_SLOT_COUNT),
+  isUnlocked: z.boolean(),
   plantId: gardenPlantIdSchema.nullable(),
   phase: gardenPlotPhaseSchema,
   plantedAt: z.string().nullable(),
@@ -70,6 +72,7 @@ export type GardenPlotState = z.infer<typeof gardenPlotStateSchema>;
 
 export const gardenStateResponseSchema = z.object({
   serverTime: z.string(),
+  unlockedSlotCount: z.number().int().min(MIN_GARDEN_UNLOCKED_SLOT_COUNT).max(MAX_GARDEN_SLOT_COUNT),
   plots: z.array(gardenPlotStateSchema).length(MAX_GARDEN_SLOT_COUNT),
   inventory: z.array(gardenInventoryEntrySchema)
 });
@@ -105,6 +108,16 @@ export const clearGardenPlotResponseSchema = z.object({
 });
 export type ClearGardenPlotResponse = z.infer<typeof clearGardenPlotResponseSchema>;
 
+export const updateGardenUnlockedSlotsBodySchema = z.object({
+  unlockedSlotCount: z.number().int().min(MIN_GARDEN_UNLOCKED_SLOT_COUNT).max(MAX_GARDEN_SLOT_COUNT)
+});
+export type UpdateGardenUnlockedSlotsBody = z.infer<typeof updateGardenUnlockedSlotsBodySchema>;
+
+export const updateGardenUnlockedSlotsResponseSchema = z.object({
+  garden: gardenStateResponseSchema
+});
+export type UpdateGardenUnlockedSlotsResponse = z.infer<typeof updateGardenUnlockedSlotsResponseSchema>;
+
 export const gardenPlotTimingSchema = z.object({
   plantedAt: z.string(),
   growthEndsAt: z.string(),
@@ -132,6 +145,13 @@ function toDate(value: Date | string | null | undefined): Date | null {
 
 export function getGardenPlantDefinition(plantId: GardenPlantId): GardenPlantCatalogEntry {
   return gardenPlantCatalogById[plantId];
+}
+
+export function normalizeGardenUnlockedSlotCount(unlockedSlotCount: number): number {
+  return Math.max(
+    MIN_GARDEN_UNLOCKED_SLOT_COUNT,
+    Math.min(MAX_GARDEN_SLOT_COUNT, Math.floor(unlockedSlotCount))
+  );
 }
 
 export function buildGardenPlotTiming(

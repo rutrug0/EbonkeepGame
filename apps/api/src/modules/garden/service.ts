@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 
 import {
   MAX_GARDEN_SLOT_COUNT,
+  MIN_GARDEN_UNLOCKED_SLOT_COUNT,
   STARTER_GARDEN_SEED_QUANTITY,
   buildGardenPlotTiming,
   clearGardenPlotResponseSchema,
@@ -10,16 +11,19 @@ import {
   getGardenPlantDefinition,
   getGardenPlotNextTransitionAt,
   harvestGardenPlotResponseSchema,
+  normalizeGardenUnlockedSlotCount,
   plantGardenSeedResponseSchema,
   resolveGardenHarvestYield,
   resolveGardenPlotPhase,
   starterGardenPlantIds,
+  updateGardenUnlockedSlotsResponseSchema,
   type ClearGardenPlotResponse,
   type GardenInventoryKind,
   type GardenPlantId,
   type GardenStateResponse,
   type HarvestGardenPlotResponse,
-  type PlantGardenSeedResponse
+  type PlantGardenSeedResponse,
+  type UpdateGardenUnlockedSlotsResponse
 } from "@ebonkeep/shared/garden";
 import { assertJobsActivityIdle } from "../jobs/service.js";
 
@@ -46,6 +50,11 @@ type GardenInventoryRecord = {
   quantity: number;
 };
 
+type GardenPlayerRecord = {
+  id: string;
+  gardenUnlockedSlotCount: number;
+};
+
 export class GardenError extends Error {
   constructor(
     public readonly code: string,
@@ -62,19 +71,36 @@ function buildGardenDisplayName(plantId: GardenPlantId, kind: GardenInventoryKin
   return kind === "seed" ? `${definition.displayName} Seeds` : definition.displayName;
 }
 
-async function assertPlayerExists(prisma: GardenDbClient, playerId: string): Promise<void> {
+async function getRequiredGardenPlayer(prisma: GardenDbClient, playerId: string): Promise<GardenPlayerRecord> {
   const player = await prisma.playerProfile.findUnique({
     where: { id: playerId },
-    select: { id: true }
+    select: { id: true, gardenUnlockedSlotCount: true }
   });
 
   if (!player) {
     throw new GardenError("PLAYER_NOT_FOUND", 404, "Player not found.");
   }
+
+  return player;
+}
+
+async function assertPlayerExists(prisma: GardenDbClient, playerId: string): Promise<void> {
+  await getRequiredGardenPlayer(prisma, playerId);
+}
+
+async function getGardenUnlockedSlotCount(prisma: GardenDbClient, playerId: string): Promise<number> {
+  const player = await getRequiredGardenPlayer(prisma, playerId);
+  return normalizeGardenUnlockedSlotCount(player.gardenUnlockedSlotCount);
+}
+
+function assertPlotUnlocked(slotIndex: number, unlockedSlotCount: number): void {
+  if (slotIndex > unlockedSlotCount) {
+    throw new GardenError("PLOT_LOCKED", 409, "This garden plot is still locked.");
+  }
 }
 
 async function ensureGardenBootstrapped(prisma: GardenDbClient, playerId: string): Promise<void> {
-  await assertPlayerExists(prisma, playerId);
+  const player = await getRequiredGardenPlayer(prisma, playerId);
 
   await prisma.gardenPlot.createMany({
     data: Array.from({ length: MAX_GARDEN_SLOT_COUNT }, (_, index) => ({
@@ -107,6 +133,16 @@ async function ensureGardenBootstrapped(prisma: GardenDbClient, playerId: string
       quantity: STARTER_GARDEN_SEED_QUANTITY
     }
   });
+
+  const normalizedUnlockedSlotCount = normalizeGardenUnlockedSlotCount(player.gardenUnlockedSlotCount);
+  if (normalizedUnlockedSlotCount !== player.gardenUnlockedSlotCount) {
+    await prisma.playerProfile.update({
+      where: { id: playerId },
+      data: {
+        gardenUnlockedSlotCount: normalizedUnlockedSlotCount
+      }
+    });
+  }
 }
 
 function mapInventoryEntry(entry: GardenInventoryRecord) {
@@ -125,7 +161,7 @@ function mapInventoryEntry(entry: GardenInventoryRecord) {
   });
 }
 
-function mapPlot(plot: GardenPlotRecord, now: Date) {
+function mapPlot(plot: GardenPlotRecord, now: Date, unlockedSlotCount: number) {
   const plantId = plot.plantId as GardenPlantId | null;
   const phase = resolveGardenPlotPhase({
     plantId,
@@ -138,6 +174,7 @@ function mapPlot(plot: GardenPlotRecord, now: Date) {
 
   return {
     slotIndex: plot.slotIndex,
+    isUnlocked: plot.slotIndex <= unlockedSlotCount,
     plantId,
     phase,
     plantedAt: plot.plantedAt?.toISOString() ?? null,
@@ -161,7 +198,7 @@ async function loadGardenStateInternal(
   playerId: string,
   now: Date
 ): Promise<GardenStateResponse> {
-  const [plots, inventoryEntries] = await Promise.all([
+  const [plots, inventoryEntries, unlockedSlotCount] = await Promise.all([
     prisma.gardenPlot.findMany({
       where: { playerId },
       orderBy: { slotIndex: "asc" }
@@ -169,12 +206,14 @@ async function loadGardenStateInternal(
     prisma.gardenInventoryEntry.findMany({
       where: { playerId },
       orderBy: [{ kind: "asc" }, { plantId: "asc" }]
-    })
+    }),
+    getGardenUnlockedSlotCount(prisma, playerId)
   ]);
 
   return gardenStateResponseSchema.parse({
     serverTime: now.toISOString(),
-    plots: plots.map((plot) => mapPlot(plot, now)),
+    unlockedSlotCount,
+    plots: plots.map((plot) => mapPlot(plot, now, unlockedSlotCount)),
     inventory: inventoryEntries.map((entry) => mapInventoryEntry(entry))
   });
 }
@@ -355,6 +394,8 @@ export async function plantGardenSeed(
   const garden = await prisma.$transaction(async (tx) => {
     await assertJobsActivityIdle(tx, playerId, now);
     await ensureGardenBootstrapped(tx, playerId);
+    const unlockedSlotCount = await getGardenUnlockedSlotCount(tx, playerId);
+    assertPlotUnlocked(slotIndex, unlockedSlotCount);
 
     const plot = await getRequiredPlot(tx, playerId, slotIndex);
     if (plot.plantId) {
@@ -394,6 +435,8 @@ export async function harvestGardenPlot(
 
   return prisma.$transaction(async (tx) => {
     await ensureGardenBootstrapped(tx, playerId);
+    const unlockedSlotCount = await getGardenUnlockedSlotCount(tx, playerId);
+    assertPlotUnlocked(slotIndex, unlockedSlotCount);
 
     const plot = await getRequiredPlot(tx, playerId, slotIndex);
     const plantId = plot.plantId as GardenPlantId | null;
@@ -455,6 +498,8 @@ export async function clearWiltedGardenPlot(
 
   const garden = await prisma.$transaction(async (tx) => {
     await ensureGardenBootstrapped(tx, playerId);
+    const unlockedSlotCount = await getGardenUnlockedSlotCount(tx, playerId);
+    assertPlotUnlocked(slotIndex, unlockedSlotCount);
 
     const plot = await getRequiredPlot(tx, playerId, slotIndex);
     const plantId = plot.plantId as GardenPlantId | null;
@@ -483,4 +528,27 @@ export async function clearWiltedGardenPlot(
     garden,
     clearedSlotIndex: slotIndex
   });
+}
+
+export async function updateGardenUnlockedSlotsForCheats(
+  prisma: PrismaClient,
+  playerId: string,
+  unlockedSlotCount: number
+): Promise<UpdateGardenUnlockedSlotsResponse> {
+  const normalizedUnlockedSlotCount = normalizeGardenUnlockedSlotCount(unlockedSlotCount);
+  const now = new Date();
+
+  const garden = await prisma.$transaction(async (tx) => {
+    await ensureGardenBootstrapped(tx, playerId);
+    await tx.playerProfile.update({
+      where: { id: playerId },
+      data: {
+        gardenUnlockedSlotCount: normalizedUnlockedSlotCount
+      }
+    });
+
+    return loadGardenStateInternal(tx, playerId, now);
+  });
+
+  return updateGardenUnlockedSlotsResponseSchema.parse({ garden });
 }

@@ -6551,15 +6551,124 @@ button:focus-visible {
 }
 
 .gardenPlotsGrid {
+  --garden-grid-row-gap: 34px;
+  --garden-grid-margin-top: 2%;
+  --garden-grid-padding-inline: clamp(18px, 2vw, 32px);
+  --garden-plot-card-inset: 20px;
+  --garden-plot-card-max-width: 152px;
+  --garden-plot-visual-width: 210px;
+  --garden-plot-visual-overflow: 56px;
+  --garden-plot-image-max-height: 210px;
+  --garden-plot-growing-width: 126px;
+  --garden-plot-growing-width-adjustment: 4px;
+  --garden-plot-growing-max-height: 126px;
+  --garden-plot-silhouette-size: 176px;
+  --garden-plot-empty-size: 122px;
+  --garden-grid-row-gap-medium: 28px;
+  --garden-grid-margin-top-medium: 3%;
+  --garden-grid-padding-inline-medium: clamp(16px, 2.5vw, 24px);
+  --garden-plot-card-inset-medium: 16px;
+  --garden-plot-card-max-width-medium: 158px;
+  --garden-plot-visual-width-medium: 192px;
+  --garden-plot-visual-overflow-medium: 44px;
+  --garden-plot-image-max-height-medium: 192px;
+  --garden-plot-growing-width-medium: 114px;
+  --garden-plot-growing-width-adjustment-medium: 4px;
+  --garden-plot-growing-max-height-medium: 114px;
+  --garden-plot-silhouette-size-medium: 158px;
+  --garden-plot-empty-size-medium: 108px;
+  --garden-grid-row-gap-compact: 24px;
+  --garden-grid-margin-top-compact: 4%;
+  --garden-grid-padding-inline-compact: 12px;
+  --garden-plot-card-inset-compact: 12px;
+  --garden-plot-card-max-width-compact: 160px;
+  --garden-plot-visual-width-compact: 164px;
+  --garden-plot-visual-overflow-compact: 28px;
+  --garden-plot-image-max-height-compact: 164px;
+  --garden-plot-growing-width-compact: 96px;
+  --garden-plot-growing-width-adjustment-compact: 8px;
+  --garden-plot-growing-max-height-compact: 96px;
+  --garden-plot-silhouette-size-compact: 134px;
+  --garden-plot-empty-size-compact: 92px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 190px));
-  justify-content: center;
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  justify-content: stretch;
+  justify-items: center;
   align-content: center;
-  gap: var(--space-2);
+  column-gap: 0;
+  row-gap: var(--garden-grid-row-gap);
   flex: 1 1 auto;
-  width: calc(100% - 12%);
-  max-width: 1040px;
-  margin: 4% 6% 0;
+  width: 100%;
+  max-width: none;
+  margin: var(--garden-grid-margin-top) 0 0;
+  padding: 0 var(--garden-grid-padding-inline) 18px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.gardenPlotsGrid.density-sparse {
+  --garden-grid-row-gap: 42px;
+  --garden-grid-margin-top: 1.25%;
+  --garden-plot-card-inset: 8px;
+  --garden-plot-card-max-width: 184px;
+  --garden-plot-visual-width: 244px;
+  --garden-plot-visual-overflow: 84px;
+  --garden-plot-image-max-height: 244px;
+  --garden-plot-growing-width: 144px;
+  --garden-plot-growing-max-height: 144px;
+  --garden-plot-silhouette-size: 194px;
+  --garden-plot-empty-size: 134px;
+  --garden-grid-row-gap-medium: 34px;
+  --garden-plot-card-inset-medium: 10px;
+  --garden-plot-card-max-width-medium: 174px;
+  --garden-plot-visual-width-medium: 218px;
+  --garden-plot-visual-overflow-medium: 60px;
+  --garden-plot-image-max-height-medium: 218px;
+  --garden-plot-growing-width-medium: 128px;
+  --garden-plot-growing-max-height-medium: 128px;
+  --garden-plot-silhouette-size-medium: 172px;
+  --garden-plot-empty-size-medium: 118px;
+}
+
+.gardenPlotsGrid.density-balanced {
+  --garden-grid-row-gap: 34px;
+}
+
+.gardenPlotsGrid.density-compact {
+  --garden-grid-row-gap: 26px;
+  --garden-grid-margin-top: 2.4%;
+  --garden-grid-padding-inline: clamp(12px, 1.5vw, 24px);
+  --garden-plot-card-inset: 24px;
+  --garden-plot-card-max-width: 136px;
+  --garden-plot-visual-width: 188px;
+  --garden-plot-visual-overflow: 42px;
+  --garden-plot-image-max-height: 188px;
+  --garden-plot-growing-width: 112px;
+  --garden-plot-growing-max-height: 112px;
+  --garden-plot-silhouette-size: 156px;
+  --garden-plot-empty-size: 108px;
+  --garden-grid-row-gap-medium: 24px;
+  --garden-grid-padding-inline-medium: clamp(12px, 2vw, 20px);
+  --garden-plot-card-inset-medium: 20px;
+  --garden-plot-card-max-width-medium: 146px;
+  --garden-plot-visual-width-medium: 176px;
+  --garden-plot-visual-overflow-medium: 36px;
+  --garden-plot-image-max-height-medium: 176px;
+  --garden-plot-growing-width-medium: 104px;
+  --garden-plot-growing-max-height-medium: 104px;
+  --garden-plot-silhouette-size-medium: 146px;
+  --garden-plot-empty-size-medium: 100px;
+  --garden-grid-row-gap-compact: 20px;
+  --garden-grid-padding-inline-compact: 8px;
+  --garden-plot-card-inset-compact: 18px;
+  --garden-plot-card-max-width-compact: 140px;
+  --garden-plot-visual-width-compact: 150px;
+  --garden-plot-visual-overflow-compact: 20px;
+  --garden-plot-image-max-height-compact: 150px;
+  --garden-plot-growing-width-compact: 90px;
+  --garden-plot-growing-max-height-compact: 90px;
+  --garden-plot-silhouette-size-compact: 124px;
+  --garden-plot-empty-size-compact: 86px;
 }
 
 .gardenPlotCard {
@@ -6570,8 +6679,11 @@ button:focus-visible {
   justify-content: flex-start;
   align-items: center;
   gap: var(--space-2);
-  width: 100%;
-  aspect-ratio: 1 / 1;
+  grid-column: var(--garden-plot-column-desktop, auto);
+  grid-row: var(--garden-plot-row-desktop, auto);
+  width: calc(100% - var(--garden-plot-card-inset));
+  max-width: var(--garden-plot-card-max-width);
+  aspect-ratio: 1 / 1.14;
   min-height: 0;
   text-align: left;
   padding: 0;
@@ -6580,9 +6692,10 @@ button:focus-visible {
   background: transparent;
   backdrop-filter: none;
   color: inherit;
-  overflow: hidden;
+  overflow: visible;
   cursor: pointer;
   transition: none;
+  transform: translate(var(--garden-plot-shift-x, 0px), var(--garden-plot-shift-y, 0px));
 }
 
 .gardenViewportShell {
@@ -6605,7 +6718,7 @@ button:focus-visible {
 
 .gardenPlotCard:hover,
 .gardenPlotCard.isSelected {
-  transform: none;
+  transform: translate(var(--garden-plot-shift-x, 0px), var(--garden-plot-shift-y, 0px));
   border-color: transparent;
   box-shadow: none;
 }
@@ -6640,7 +6753,7 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: min(100%, 132px);
+  width: min(var(--garden-plot-visual-width), calc(100% + var(--garden-plot-visual-overflow)));
   aspect-ratio: 1 / 1;
   min-height: 0;
   align-self: center;
@@ -6649,6 +6762,23 @@ button:focus-visible {
   background: transparent;
   overflow: visible;
   margin-top: auto;
+}
+
+.gardenPlotBaseImage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  width: min(calc(var(--garden-plot-visual-width) * 0.9), calc(100% + var(--garden-plot-visual-overflow)));
+  max-height: calc(var(--garden-plot-image-max-height) * 0.9);
+  margin: auto;
+  object-fit: contain;
+  object-position: center center;
+  opacity: 0.9;
+  filter: blur(0.5px) drop-shadow(0 8px 14px rgba(0, 0, 0, 0.18));
+  user-select: none;
+  pointer-events: none;
+  transform: translateY(10%);
 }
 
 .gardenPlotVisual::before {
@@ -6684,8 +6814,8 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 112px;
-  height: 112px;
+  width: var(--garden-plot-silhouette-size);
+  height: var(--garden-plot-silhouette-size);
   border-radius: 50%;
   border: none;
   background: rgba(6, 8, 7, 0.34);
@@ -6694,15 +6824,15 @@ button:focus-visible {
     inset 0 0 0 1px rgba(255, 255, 255, 0.03),
     0 8px 18px rgba(0, 0, 0, 0.16);
   font-family: var(--font-display);
-  font-size: 2.6rem;
+  font-size: 4rem;
   color: var(--text-main);
   opacity: 1;
   transform-origin: center bottom;
 }
 
 .gardenPlantSilhouette:empty {
-  width: 78px;
-  height: 78px;
+  width: var(--garden-plot-empty-size);
+  height: var(--garden-plot-empty-size);
 }
 
 .gardenPlantSilhouette.phase-bloom {
@@ -6717,8 +6847,8 @@ button:focus-visible {
   position: relative;
   z-index: 1;
   display: block;
-  width: min(100%, 132px);
-  max-height: 132px;
+  width: min(calc(var(--garden-plot-visual-width) * 0.9), calc(100% + var(--garden-plot-visual-overflow)));
+  max-height: calc(var(--garden-plot-image-max-height) * 0.9);
   object-fit: contain;
   object-position: center bottom;
   filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.22));
@@ -6730,8 +6860,12 @@ button:focus-visible {
 }
 
 .gardenPlantImage.phase-growing {
-  width: min(100%, 74px);
-  max-height: 74px;
+  width: min(calc(var(--garden-plot-growing-width) * 0.9), calc(100% - var(--garden-plot-growing-width-adjustment)));
+  max-height: calc(var(--garden-plot-growing-max-height) * 0.9);
+}
+
+.gardenPlantImage.gardenPlantImage-fenrootGrowingRaised {
+  top: -5%;
 }
 
 .gardenPlantImage.fx-enter,
@@ -6792,13 +6926,16 @@ button:focus-visible {
 }
 
 .gardenPlotProgressDots {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   min-height: 16px;
-  margin-top: 8px;
-  margin-bottom: auto;
+  transform: translateX(-50%);
 }
 
 .gardenPlotProgressDots.isHidden {
@@ -7272,21 +7409,111 @@ button:focus-visible {
 
 @media (max-width: 1180px) {
   .gardenPlotsGrid {
-    width: calc(100% - 8%);
-    margin: 3% 4% 0;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    row-gap: var(--garden-grid-row-gap-medium);
+    margin-top: var(--garden-grid-margin-top-medium);
+    padding-inline: var(--garden-grid-padding-inline-medium);
+  }
+
+  .gardenPlotCard {
+    grid-column: var(--garden-plot-column-medium, auto);
+    grid-row: auto;
+    width: calc(100% - var(--garden-plot-card-inset-medium));
+    max-width: var(--garden-plot-card-max-width-medium);
+    transform: translate(var(--garden-plot-shift-x-medium, 0px), var(--garden-plot-shift-y-medium, 0px));
+  }
+
+  .gardenPlotCard:hover,
+  .gardenPlotCard.isSelected {
+    transform: translate(var(--garden-plot-shift-x-medium, 0px), var(--garden-plot-shift-y-medium, 0px));
   }
 
   .gardenPlotVisual {
-    width: min(100%, 120px);
+    width: min(var(--garden-plot-visual-width-medium), calc(100% + var(--garden-plot-visual-overflow-medium)));
+  }
+
+  .gardenPlotBaseImage {
+    width: min(calc(var(--garden-plot-visual-width-medium) * 0.9), calc(100% + var(--garden-plot-visual-overflow-medium)));
+    max-height: calc(var(--garden-plot-image-max-height-medium) * 0.9);
   }
 
   .gardenPlantImage {
-    width: min(100%, 120px);
-    max-height: 120px;
+    width: min(calc(var(--garden-plot-visual-width-medium) * 0.9), calc(100% + var(--garden-plot-visual-overflow-medium)));
+    max-height: calc(var(--garden-plot-image-max-height-medium) * 0.9);
+  }
+
+  .gardenPlantImage.phase-growing {
+    width: min(calc(var(--garden-plot-growing-width-medium) * 0.9), calc(100% - var(--garden-plot-growing-width-adjustment-medium)));
+    max-height: calc(var(--garden-plot-growing-max-height-medium) * 0.9);
+  }
+
+  .gardenPlantSilhouette {
+    width: var(--garden-plot-silhouette-size-medium);
+    height: var(--garden-plot-silhouette-size-medium);
+    font-size: 3.6rem;
+  }
+
+  .gardenPlantSilhouette:empty {
+    width: var(--garden-plot-empty-size-medium);
+    height: var(--garden-plot-empty-size-medium);
   }
 
   .gardenSeedGrid {
     justify-content: center;
+  }
+}
+
+@media (max-width: 820px) {
+  .gardenPlotsGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: 100%;
+    max-width: none;
+    row-gap: var(--garden-grid-row-gap-compact);
+    margin-top: var(--garden-grid-margin-top-compact);
+    padding: 0 var(--garden-grid-padding-inline-compact) 16px;
+  }
+
+  .gardenPlotCard {
+    grid-column: var(--garden-plot-column-compact, auto);
+    grid-row: auto;
+    width: calc(100% - var(--garden-plot-card-inset-compact));
+    max-width: var(--garden-plot-card-max-width-compact);
+    transform: translate(var(--garden-plot-shift-x-compact, 0px), var(--garden-plot-shift-y-compact, 0px));
+  }
+
+  .gardenPlotCard:hover,
+  .gardenPlotCard.isSelected {
+    transform: translate(var(--garden-plot-shift-x-compact, 0px), var(--garden-plot-shift-y-compact, 0px));
+  }
+
+  .gardenPlotVisual {
+    width: min(var(--garden-plot-visual-width-compact), calc(100% + var(--garden-plot-visual-overflow-compact)));
+  }
+
+  .gardenPlotBaseImage {
+    width: min(calc(var(--garden-plot-visual-width-compact) * 0.9), calc(100% + var(--garden-plot-visual-overflow-compact)));
+    max-height: calc(var(--garden-plot-image-max-height-compact) * 0.9);
+  }
+
+  .gardenPlantImage {
+    width: min(calc(var(--garden-plot-visual-width-compact) * 0.9), calc(100% + var(--garden-plot-visual-overflow-compact)));
+    max-height: calc(var(--garden-plot-image-max-height-compact) * 0.9);
+  }
+
+  .gardenPlantImage.phase-growing {
+    width: min(calc(var(--garden-plot-growing-width-compact) * 0.9), calc(100% - var(--garden-plot-growing-width-adjustment-compact)));
+    max-height: calc(var(--garden-plot-growing-max-height-compact) * 0.9);
+  }
+
+  .gardenPlantSilhouette {
+    width: var(--garden-plot-silhouette-size-compact);
+    height: var(--garden-plot-silhouette-size-compact);
+    font-size: 3.1rem;
+  }
+
+  .gardenPlantSilhouette:empty {
+    width: var(--garden-plot-empty-size-compact);
+    height: var(--garden-plot-empty-size-compact);
   }
 }
 

@@ -24,13 +24,19 @@ import {
 } from "@ebonkeep/shared/garden";
 
 import { clearGardenPlot, fetchGardenState, harvestGardenPlot, plantGardenSeed } from "./api";
-import { getGardenIngredientImagePath, getGardenPlantImagePath, getGardenSeedImagePath } from "./assets";
+import {
+  getGardenEmptyPlotImagePath,
+  getGardenIngredientImagePath,
+  getGardenPlantImagePath,
+  getGardenSeedImagePath
+} from "./assets";
 
 export type GardenPanelProps = {
   token: string | null;
 };
 
 const GARDEN_BACKGROUND_PATH = "/assets/items/generated/garden/garden.png";
+const GARDEN_EMPTY_PLOT_IMAGE_PATH = getGardenEmptyPlotImagePath();
 const GARDEN_PLOT_SHAKE_DURATION_MS = 520;
 const GARDEN_PLOT_PLANTING_DURATION_MS = 680;
 const GARDEN_PLOT_HARVESTING_DURATION_MS = 560;
@@ -75,6 +81,27 @@ type GardenIngredientFeedback = {
   kind: "positive";
 };
 
+const GARDEN_DESKTOP_SLOT_LAYOUT = [
+  { row: 1, column: 3 },
+  { row: 1, column: 4 },
+  { row: 2, column: 2 },
+  { row: 2, column: 3 },
+  { row: 2, column: 4 },
+  { row: 3, column: 3 },
+  { row: 3, column: 4 },
+  { row: 2, column: 5 },
+  { row: 1, column: 2 },
+  { row: 3, column: 2 },
+  { row: 1, column: 5 },
+  { row: 3, column: 5 },
+  { row: 2, column: 1 },
+  { row: 2, column: 6 },
+  { row: 1, column: 1 },
+  { row: 3, column: 1 },
+  { row: 1, column: 6 },
+  { row: 3, column: 6 }
+] as const;
+
 function deriveLivePlotState(plot: GardenPlotState, nowMs: number): GardenPlotState {
   const phase = resolveGardenPlotPhase({
     plantId: plot.plantId,
@@ -110,12 +137,16 @@ function getDefaultSelectedSlotIndex(
     return previousSlotIndex;
   }
 
-  if (previousSlotIndex && state.plots.some((plot) => plot.slotIndex === previousSlotIndex)) {
+  if (
+    previousSlotIndex &&
+    state.plots.some((plot) => plot.slotIndex === previousSlotIndex && plot.isUnlocked)
+  ) {
     return previousSlotIndex;
   }
 
-  const firstEmptyPlot = state.plots.find((plot) => plot.phase === "empty");
-  return firstEmptyPlot?.slotIndex ?? state.plots[0]?.slotIndex ?? null;
+  const firstEmptyPlot = state.plots.find((plot) => plot.isUnlocked && plot.phase === "empty");
+  const firstUnlockedPlot = state.plots.find((plot) => plot.isUnlocked);
+  return firstEmptyPlot?.slotIndex ?? firstUnlockedPlot?.slotIndex ?? null;
 }
 
 function getPhaseTone(phase: GardenPlotPhase): string {
@@ -151,6 +182,7 @@ function getGardenPlotAccessibleLabel(args: {
   t: (key: string, options?: Record<string, string | number>) => string;
 }): string {
   const slotLabel = args.t("gardenPanel.slotTitle", { slot: args.slotIndex });
+
   const phaseLabel = args.t(`gardenPanel.phase.${args.phase}`);
   const plantName = args.plantId ? gardenPlantCatalogById[args.plantId]?.displayName ?? "" : "";
 
@@ -248,6 +280,174 @@ function getFxDurationMs(kind: GardenPlotVisualFx["kind"]): number {
   }
 }
 
+function getStaggeredGridColumn(plotIndex: number, totalPlots: number, columns: number): string {
+  const rowIndex = Math.floor(plotIndex / columns);
+  const rowOffset = rowIndex * columns;
+  const rowItemCount = Math.min(columns, Math.max(0, totalPlots - rowOffset));
+  const rowLocalIndex = plotIndex - rowOffset;
+  const baseStarts = Array.from({ length: columns }, (_, columnIndex) => ((rowIndex % 2 === 0) ? 1 : 2) + (columnIndex * 2));
+  const trimStart = Math.floor((columns - rowItemCount) / 2);
+  const visibleStarts = baseStarts.slice(trimStart, trimStart + rowItemCount);
+  const columnStart = visibleStarts[rowLocalIndex] ?? baseStarts[0];
+
+  return `${columnStart} / span 2`;
+}
+
+function getGardenPlotDensityClass(visiblePlotCount: number): string {
+  if (visiblePlotCount <= 8) {
+    return "density-sparse";
+  }
+
+  if (visiblePlotCount >= 15) {
+    return "density-compact";
+  }
+
+  return "density-balanced";
+}
+
+type GardenDesktopVisibleRowLayout = {
+  row: number;
+  rowIndex: number;
+  rowCount: number;
+};
+
+function getGardenDesktopSlotPosition(slotIndex: number) {
+  return GARDEN_DESKTOP_SLOT_LAYOUT[Math.max(0, slotIndex - 1) % GARDEN_DESKTOP_SLOT_LAYOUT.length];
+}
+
+function getGardenDesktopColumnStartsForRowCount(row: number, rowCount: number): readonly number[] {
+  const isShiftedRow = row % 2 === 0;
+
+  if (isShiftedRow) {
+    switch (rowCount) {
+      case 1:
+        return [6];
+      case 2:
+        return [4, 6];
+      case 3:
+        return [4, 6, 8];
+      case 4:
+        return [2, 4, 6, 8];
+      case 5:
+        return [2, 4, 6, 8, 10];
+      default:
+        return [2, 4, 6, 8, 10, 12];
+    }
+  }
+
+  switch (rowCount) {
+    case 1:
+      return [6];
+    case 2:
+      return [5, 7];
+    case 3:
+      return [3, 5, 7];
+    case 4:
+      return [3, 5, 7, 9];
+    case 5:
+      return [1, 3, 5, 7, 9];
+    default:
+      return [1, 3, 5, 7, 9, 11];
+  }
+}
+
+function buildGardenDesktopRowLayoutBySlot(
+  visiblePlots: GardenPlotState[]
+): Partial<Record<number, GardenDesktopVisibleRowLayout>> {
+  const plotsByRow = new Map<number, Array<{ slotIndex: number; column: number }>>();
+
+  for (const plot of visiblePlots) {
+    const position = getGardenDesktopSlotPosition(plot.slotIndex);
+    const rowPlots = plotsByRow.get(position.row) ?? [];
+    rowPlots.push({
+      slotIndex: plot.slotIndex,
+      column: position.column
+    });
+    plotsByRow.set(position.row, rowPlots);
+  }
+
+  const layoutBySlot: Partial<Record<number, GardenDesktopVisibleRowLayout>> = {};
+
+  for (const [row, rowPlots] of plotsByRow.entries()) {
+    rowPlots.sort((left, right) => left.column - right.column);
+
+    rowPlots.forEach((plot, rowIndex) => {
+      layoutBySlot[plot.slotIndex] = {
+        row,
+        rowIndex,
+        rowCount: rowPlots.length
+      };
+    });
+  }
+
+  return layoutBySlot;
+}
+
+function getGardenPlotLayoutStyle(
+  slotIndex: number,
+  totalPlots: number,
+  desktopRowLayoutBySlot: Partial<Record<number, GardenDesktopVisibleRowLayout>>
+): CSSProperties {
+  const desktopOffsets = [
+    { x: -7, y: -8 },
+    { x: 5, y: 3 },
+    { x: -3, y: 8 },
+    { x: 7, y: -5 },
+    { x: -6, y: 5 },
+    { x: 4, y: -7 },
+    { x: -8, y: 4 },
+    { x: 3, y: -6 }
+  ] as const;
+  const mediumOffsets = [
+    { x: -6, y: -6 },
+    { x: 4, y: 2 },
+    { x: -3, y: 6 },
+    { x: 5, y: -4 },
+    { x: -4, y: 4 },
+    { x: 3, y: -5 },
+    { x: -5, y: 3 },
+    { x: 2, y: -4 }
+  ] as const;
+  const compactOffsets = [
+    { x: -4, y: -4 },
+    { x: 3, y: 1 },
+    { x: -2, y: 4 },
+    { x: 4, y: -3 },
+    { x: -3, y: 3 },
+    { x: 2, y: -4 },
+    { x: -2, y: 2 },
+    { x: 2, y: -2 }
+  ] as const;
+  const progressionIndex = Math.max(0, slotIndex - 1);
+  const desktopOffset = desktopOffsets[progressionIndex % desktopOffsets.length];
+  const mediumOffset = mediumOffsets[progressionIndex % mediumOffsets.length];
+  const compactOffset = compactOffsets[progressionIndex % compactOffsets.length];
+  const desktopPosition = getGardenDesktopSlotPosition(slotIndex);
+  const desktopRowLayout = desktopRowLayoutBySlot[slotIndex];
+  const desktopRow = desktopRowLayout?.row ?? desktopPosition.row;
+  const desktopColumnStarts = getGardenDesktopColumnStartsForRowCount(
+    desktopRow,
+    desktopRowLayout?.rowCount ?? 1
+  );
+  const desktopColumnStart =
+    desktopColumnStarts[desktopRowLayout?.rowIndex ?? 0] ??
+    desktopColumnStarts[desktopColumnStarts.length - 1] ??
+    6;
+
+  return {
+    "--garden-plot-column-desktop": `${desktopColumnStart} / span 2`,
+    "--garden-plot-row-desktop": String(desktopRow),
+    "--garden-plot-column-medium": getStaggeredGridColumn(progressionIndex, totalPlots, 4),
+    "--garden-plot-column-compact": getStaggeredGridColumn(progressionIndex, totalPlots, 2),
+    "--garden-plot-shift-x": `${desktopOffset.x}px`,
+    "--garden-plot-shift-y": `${desktopOffset.y}px`,
+    "--garden-plot-shift-x-medium": `${mediumOffset.x}px`,
+    "--garden-plot-shift-y-medium": `${mediumOffset.y}px`,
+    "--garden-plot-shift-x-compact": `${compactOffset.x}px`,
+    "--garden-plot-shift-y-compact": `${compactOffset.y}px`
+  } as CSSProperties;
+}
+
 export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   const { t } = useTranslation();
   const [gardenState, setGardenState] = useState<GardenStateResponse | null>(null);
@@ -328,6 +528,9 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   }, [serverClockOffsetMs]);
 
   const plots = (gardenState?.plots ?? []).map((plot) => deriveLivePlotState(plot, nowMs));
+  const visiblePlots = plots.filter((plot) => plot.isUnlocked);
+  const gardenPlotDensityClass = getGardenPlotDensityClass(visiblePlots.length);
+  const gardenDesktopRowLayoutBySlot = buildGardenDesktopRowLayoutBySlot(visiblePlots);
   const seedEntries = (gardenState?.inventory ?? []).filter((entry) => entry.kind === "seed");
   const ingredientEntries = (gardenState?.inventory ?? []).filter((entry) => entry.kind === "ingredient");
 
@@ -735,11 +938,16 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
             </section>
 
             <section className="gardenPlotsColumn">
-              <div className="gardenPlotsGrid">
-                {plots.map((plot) => {
+              <div className={`gardenPlotsGrid ${gardenPlotDensityClass}`}>
+                {visiblePlots.map((plot) => {
                   const plantImagePath = getGardenPlantImagePath(plot.plantId, plot.phase);
                   const isSelected = plot.slotIndex === selectedSlotIndex;
                   const phaseTone = getPhaseTone(plot.phase);
+                  const plotLayoutStyle = getGardenPlotLayoutStyle(
+                    plot.slotIndex,
+                    visiblePlots.length,
+                    gardenDesktopRowLayoutBySlot
+                  );
                   const isSeedTarget = plot.phase === "empty" && selectedSeedPlantId !== null;
                   const accessibleLabel = getGardenPlotAccessibleLabel({
                     slotIndex: plot.slotIndex,
@@ -777,6 +985,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                   const plantClassName = [
                     "gardenPlantImage",
                     `phase-${plot.phase}`,
+                    plot.plantId === "fenroot" && plot.phase === "growing" ? "gardenPlantImage-fenrootGrowingRaised" : "",
                     plotVisualFx?.kind === "planting" ? "fx-enter fx-shake-once" : "",
                     plotVisualFx?.kind === "phase" ? "fx-shake-once" : "",
                     plotVisualFx?.kind === "clearing" || plotVisualFx?.kind === "harvesting" ? "fx-hidden" : ""
@@ -799,6 +1008,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                       role="button"
                       tabIndex={0}
                       aria-label={accessibleLabel}
+                      style={plotLayoutStyle}
                       className={`gardenPlotCard${isSelected ? " isSelected" : ""}${phaseTone ? ` ${phaseTone}` : ""}${isSeedTarget ? " isSeedTarget" : ""}`}
                       onClick={(event: ReactMouseEvent<HTMLDivElement>) =>
                         handleSlotClick(plot.slotIndex, event.currentTarget, {
@@ -809,13 +1019,16 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                       onKeyDown={(event) => handleSlotKeyDown(event, plot.slotIndex)}
                     >
                       <div className={visualClassName} aria-hidden="true">
-                        {plotVisualFx?.kind === "planting" ? (
-                          <span className="gardenPlantSilhouette phase-empty fx-empty-fade-out" />
-                        ) : null}
+                        <img
+                          className="gardenPlotBaseImage"
+                          src={GARDEN_EMPTY_PLOT_IMAGE_PATH}
+                          alt=""
+                          loading="lazy"
+                          draggable={false}
+                        />
 
                         {plotVisualFx?.kind === "clearing" ? (
                           <>
-                            <span className="gardenPlantSilhouette phase-empty fx-empty-fade-in" />
                             {clearingPlantImagePath ? (
                               <img
                                 className="gardenPlantImage phase-wilted fx-clear-fade-out"
@@ -856,23 +1069,23 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
                             loading="lazy"
                             draggable={false}
                           />
-                        ) : (
+                        ) : plot.plantId ? (
                           <span className={plantPlaceholderClassName}>
                             {getPlantPlaceholderLabel(plot.plantId)}
                           </span>
-                        )}
-                      </div>
+                        ) : null}
 
-                      <div
-                        className={`gardenPlotProgressDots${isWiltedProgressDots ? " isWilted" : ""}${showProgressDots ? "" : " isHidden"}${plotVisualFx?.kind === "harvesting" ? " fx-harvest-out" : ""}`}
-                        aria-hidden="true"
-                      >
-                        {[0, 1, 2].map((dotIndex) => (
-                          <span
-                            key={dotIndex}
-                            className={`gardenPlotProgressDot${dotIndex < activeProgressDotCount ? " isActive" : ""}`}
-                          />
-                        ))}
+                        <div
+                          className={`gardenPlotProgressDots${isWiltedProgressDots ? " isWilted" : ""}${showProgressDots ? "" : " isHidden"}${plotVisualFx?.kind === "harvesting" ? " fx-harvest-out" : ""}`}
+                          aria-hidden="true"
+                        >
+                          {[0, 1, 2].map((dotIndex) => (
+                            <span
+                              key={dotIndex}
+                              className={`gardenPlotProgressDot${dotIndex < activeProgressDotCount ? " isActive" : ""}`}
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );

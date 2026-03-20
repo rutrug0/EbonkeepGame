@@ -90,7 +90,7 @@
   },
   "menuGroups": {
     "profile": "Perfil",
-    "adventures": "Aventuras",
+    "adventures": "Campañas",
     "market": "Mercado",
     "estate": "Dominio",
     "realm": "Reino"
@@ -292,6 +292,10 @@
       "generateEquipmentButton": "Generate equip",
       "generateEquipmentSuccess": "Generated {{count}} {{rarity}} items.",
       "grantCurrencyButton": "Grant currencies",
+      "gardenSlotCountLabel": "Unlocked garden slots",
+      "unlockGardenSlotsButton": "Unlock garden slots",
+      "invalidGardenSlotCount": "Enter a valid garden slot count from {{min}} to {{max}}.",
+      "gardenSlotsUnlocked": "Garden unlocked slots set to {{count}}.",
       "currencyHelp": "Adds 1,000,000 ducats and 10,000 imperials.",
       "currencyGranted": "Granted {{ducats}} ducats and {{imperials}} imperials.",
       "rarities": {
@@ -936,6 +940,9 @@
     "noSeedsDescription": "Starter seeds are granted on first load. Future rewards will come from contracts and jobs.",
     "ingredientStashTitle": "Stored Ingredients",
     "ingredientChipLabel": "{{plant}}: {{quantity}}",
+    "lockedSlotLabel": "Locked",
+    "lockedBadge": "Locked",
+    "plotLocked": "This garden slot is still locked.",
     "ingredientStashCount": "{{count}} harvested stacks stored for future refinery recipes.",
     "milestone": {
       "growthDone": "Growth completes in {{duration}}",

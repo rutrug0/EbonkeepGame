@@ -139,7 +139,7 @@ Player choices should include:
 The first implemented Garden slice is intentionally narrower than the long-term design above.
 
 Garden v1 uses:
-- `5` fixed plots available immediately
+- `18` total garden plots with `7` unlocked at start
 - `5` starter plants: Bloodleaf, Fenroot, Ironbloom, Duskmint, Kingsfoil
 - seed-only Garden inventory with starter bootstrap on first load
 - server-authored phase timers for `growing`, `pre_bloom`, `bloom`, `post_bloom`, and `wilted`
@@ -147,7 +147,6 @@ Garden v1 uses:
 
 Garden v1 does not yet include:
 - care actions such as watering, pruning, or blight response
-- plot unlock progression
 - contracts/jobs seed sourcing
 - refinery seed conversion recipes
 
@@ -442,7 +441,7 @@ Acceptable future convenience examples:
 Keep v1 focused.
 
 ### Garden v1
-- `5` fixed plots
+- `18` total plots with `7` unlocked at start
 - `5` starter plant families
 - no care actions yet
 - low to moderate recipe complexity downstream
