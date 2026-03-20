@@ -93,6 +93,38 @@ async function getGardenUnlockedSlotCount(prisma: GardenDbClient, playerId: stri
   return normalizeGardenUnlockedSlotCount(player.gardenUnlockedSlotCount);
 }
 
+async function assertNoOccupiedPlotsWouldBeLocked(
+  prisma: GardenDbClient,
+  playerId: string,
+  unlockedSlotCount: number
+): Promise<void> {
+  const occupiedLockedPlot = await prisma.gardenPlot.findFirst({
+    where: {
+      playerId,
+      slotIndex: {
+        gt: unlockedSlotCount
+      },
+      plantId: {
+        not: null
+      }
+    },
+    orderBy: {
+      slotIndex: "asc"
+    },
+    select: {
+      slotIndex: true
+    }
+  });
+
+  if (occupiedLockedPlot) {
+    throw new GardenError(
+      "PLOTS_OCCUPIED_BEYOND_UNLOCK_COUNT",
+      409,
+      `Cannot reduce unlocked garden slots below occupied plot ${occupiedLockedPlot.slotIndex}.`
+    );
+  }
+}
+
 function assertPlotUnlocked(slotIndex: number, unlockedSlotCount: number): void {
   if (slotIndex > unlockedSlotCount) {
     throw new GardenError("PLOT_LOCKED", 409, "This garden plot is still locked.");
@@ -540,6 +572,7 @@ export async function updateGardenUnlockedSlotsForCheats(
 
   const garden = await prisma.$transaction(async (tx) => {
     await ensureGardenBootstrapped(tx, playerId);
+    await assertNoOccupiedPlotsWouldBeLocked(tx, playerId, normalizedUnlockedSlotCount);
     await tx.playerProfile.update({
       where: { id: playerId },
       data: {

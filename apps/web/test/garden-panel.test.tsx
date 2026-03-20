@@ -40,32 +40,43 @@ vi.mock("../src/features/garden/api", () => ({
 }));
 
 function createGardenState(overrides?: Partial<GardenStateResponse>): GardenStateResponse {
+  const unlockedSlotCount = overrides?.unlockedSlotCount ?? 18;
+  const defaultPlots: GardenStateResponse["plots"] = Array.from({ length: 18 }, (_, index) => ({
+    slotIndex: index + 1,
+    isUnlocked: index < unlockedSlotCount,
+    plantId: null,
+    phase: "empty" as const,
+    plantedAt: null,
+    growthEndsAt: null,
+    bloomStartsAt: null,
+    bloomEndsAt: null,
+    wiltAt: null,
+    nextTransitionAt: null,
+    harvestYield: null
+  }));
+
+  const plots = (overrides?.plots ?? defaultPlots).map((plot) => ({
+    ...plot,
+    isUnlocked: plot.isUnlocked ?? plot.slotIndex <= unlockedSlotCount
+  })) as GardenStateResponse["plots"];
+
+  const inventory = overrides?.inventory ?? [
+    {
+      inventoryEntryId: "seed_1",
+      plantId: "bloodleaf",
+      kind: "seed",
+      itemCode: "seed_bloodleaf",
+      displayName: "Bloodleaf Seeds",
+      rarity: "common",
+      quantity: 999
+    }
+  ];
+
   return {
-    serverTime: "2026-03-18T10:00:00.000Z",
-    plots: Array.from({ length: 8 }, (_, index) => ({
-      slotIndex: index + 1,
-      plantId: null,
-      phase: "empty" as const,
-      plantedAt: null,
-      growthEndsAt: null,
-      bloomStartsAt: null,
-      bloomEndsAt: null,
-      wiltAt: null,
-      nextTransitionAt: null,
-      harvestYield: null
-    })),
-    inventory: [
-      {
-        inventoryEntryId: "seed_1",
-        plantId: "bloodleaf",
-        kind: "seed",
-        itemCode: "seed_bloodleaf",
-        displayName: "Bloodleaf Seeds",
-        rarity: "common",
-        quantity: 999
-      }
-    ],
-    ...overrides
+    serverTime: overrides?.serverTime ?? "2026-03-18T10:00:00.000Z",
+    unlockedSlotCount,
+    plots,
+    inventory
   };
 }
 
@@ -419,7 +430,7 @@ describe("garden panel", () => {
     }
   });
 
-  it("fades wilted plants out into the empty slot silhouette when clearing", async () => {
+  it("fades wilted plants out into the persistent empty slot art when clearing", async () => {
     const nowMs = Date.now();
     let resolveClear: ((value: { garden: GardenStateResponse; clearedSlotIndex: number }) => void) | null = null;
     gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState({
@@ -458,7 +469,7 @@ describe("garden panel", () => {
     fireEvent.click(firstPlotCard!);
 
     expect(document.querySelector(".gardenPlantImage.fx-clear-fade-out")).toBeTruthy();
-    expect(document.querySelector(".gardenPlantSilhouette.fx-empty-fade-in")).toBeTruthy();
+    expect(firstPlotCard?.querySelector(".gardenPlotBaseImage")).toBeTruthy();
 
     resolveClear?.({
       garden: createGardenState(),

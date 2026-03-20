@@ -97,7 +97,7 @@ import { buyMerchantOffer, fetchMerchantState, restockMerchant, sellMerchantItem
 import {
   AuctionHouse
 } from "../features/auction";
-import { updateGardenUnlockedSlots } from "../features/garden";
+import { fetchGardenState, updateGardenUnlockedSlots } from "../features/garden";
 import {
   CombatEncounterArenaPanel,
   CombatEncounterLogPanel,
@@ -2764,6 +2764,7 @@ export function AppShell() {
       setCurrencies(null);
       setActiveStatTraining(null);
       setCheatLevelInput("");
+      setCheatGardenUnlockedSlotsInput(String(MIN_GARDEN_UNLOCKED_SLOT_COUNT));
       setCheatStatusMessage(null);
       return;
     }
@@ -2792,6 +2793,30 @@ export function AppShell() {
     setCheatLevelInput(String(playerState.level));
     setCheatStatusMessage(null);
   }, [playerState?.playerId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!token || !playerState) {
+      return () => {
+        active = false;
+      };
+    }
+
+    void fetchGardenState(token)
+      .then((state) => {
+        if (!active) {
+          return;
+        }
+
+        setCheatGardenUnlockedSlotsInput(String(state.unlockedSlotCount));
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [playerState?.playerId, token]);
 
   useEffect(() => {
     if (!playerState) {

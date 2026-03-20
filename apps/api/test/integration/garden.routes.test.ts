@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { MAX_GARDEN_SLOT_COUNT, MIN_GARDEN_UNLOCKED_SLOT_COUNT } from "@ebonkeep/shared/garden";
+
 import { authHeaders, loginAsGuest } from "../helpers/fixtures.js";
 import { createApiTestContext } from "../helpers/runtime.js";
 
@@ -30,7 +32,9 @@ describe("garden routes", () => {
 
     expect(response.statusCode).toBe(200);
     const body = response.json();
-    expect(body.plots).toHaveLength(8);
+    expect(body.unlockedSlotCount).toBe(MIN_GARDEN_UNLOCKED_SLOT_COUNT);
+    expect(body.plots).toHaveLength(MAX_GARDEN_SLOT_COUNT);
+    expect(body.plots.filter((plot: { isUnlocked: boolean }) => plot.isUnlocked)).toHaveLength(MIN_GARDEN_UNLOCKED_SLOT_COUNT);
     expect(body.plots.every((plot: { phase: string }) => plot.phase === "empty")).toBe(true);
     expect(body.inventory).toHaveLength(5);
     expect(body.inventory.every((entry: { kind: string; quantity: number }) => entry.kind === "seed" && entry.quantity === 999)).toBe(true);
@@ -68,7 +72,7 @@ describe("garden routes", () => {
       }
     });
 
-    expect(plotCount).toBe(8);
+    expect(plotCount).toBe(MAX_GARDEN_SLOT_COUNT);
     expect(seedCount).toBe(5);
   });
 
@@ -193,13 +197,13 @@ describe("garden routes", () => {
     });
     expect(ingredientEntry?.quantity).toBe(4);
 
-    const playerState = await context.app.inject({
-      method: "GET",
-      url: "/v1/player/state",
-      headers
+    const playerInventoryIngredient = await context.prisma.inventoryItem.findFirst({
+      where: {
+        playerId: guest.body.playerId,
+        itemCode: "ingredient_bloodleaf"
+      }
     });
-    expect(playerState.statusCode).toBe(200);
-    expect(playerState.json().inventory.some((item: { itemCode: string }) => item.itemCode === "ingredient_bloodleaf")).toBe(false);
+    expect(playerInventoryIngredient).toBeNull();
   });
 
   it("grants bloom harvest ingredients only once under concurrent harvest requests", async () => {
@@ -329,7 +333,7 @@ describe("garden routes", () => {
 
     const response = await context.app.inject({
       method: "POST",
-      url: "/v1/garden/slots/9/plant",
+      url: `/v1/garden/slots/${MAX_GARDEN_SLOT_COUNT + 1}/plant`,
       headers,
       payload: {
         plantId: "bloodleaf"
@@ -337,5 +341,64 @@ describe("garden routes", () => {
     });
 
     expect(response.statusCode).toBe(400);
+  });
+
+  it("rejects reducing unlocked slots below an occupied plot", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const bootstrapResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/garden/state",
+      headers
+    });
+
+    expect(bootstrapResponse.statusCode).toBe(200);
+
+    const unlockResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/garden/cheats/unlocked-slots",
+      headers,
+      payload: {
+        unlockedSlotCount: 8
+      }
+    });
+
+    expect(unlockResponse.statusCode).toBe(200);
+    expect(unlockResponse.json().garden.unlockedSlotCount).toBe(8);
+
+    const plantResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/garden/slots/8/plant",
+      headers,
+      payload: {
+        plantId: "bloodleaf"
+      }
+    });
+
+    expect(plantResponse.statusCode).toBe(200);
+
+    const relockResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/garden/cheats/unlocked-slots",
+      headers,
+      payload: {
+        unlockedSlotCount: MIN_GARDEN_UNLOCKED_SLOT_COUNT
+      }
+    });
+
+    expect(relockResponse.statusCode).toBe(409);
+    expect(relockResponse.json().code).toBe("PLOTS_OCCUPIED_BEYOND_UNLOCK_COUNT");
+
+    const stateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/garden/state",
+      headers
+    });
+
+    expect(stateResponse.statusCode).toBe(200);
+    expect(stateResponse.json().unlockedSlotCount).toBe(8);
+    expect(stateResponse.json().plots[7].isUnlocked).toBe(true);
+    expect(stateResponse.json().plots[7].plantId).toBe("bloodleaf");
   });
 });
