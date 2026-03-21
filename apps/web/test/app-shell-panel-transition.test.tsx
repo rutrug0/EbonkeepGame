@@ -9,6 +9,11 @@ let jobsResponseDelayMs = 0;
 let refineryFirstPaintReady = false;
 let refineryResponseDelayMs = 0;
 let leaderboardFirstPaintReady = true;
+let leaderboardResponseDelayMs = 0;
+let forgeFirstPaintReady = false;
+let forgeResponseDelayMs = 0;
+let guildFirstPaintReady = false;
+let guildResponseDelayMs = 0;
 let missionsFirstPaintReady = false;
 let missionsResponseDelayMs = 0;
 let arenaFirstPaintReady = false;
@@ -93,11 +98,38 @@ vi.mock("../src/features/refinery", () => ({
   }
 }));
 
+vi.mock("../src/features/forge", () => ({
+  ForgePanel: (props: { onFirstPaintReadyChange?: (ready: boolean) => void }) => {
+    useEffect(() => {
+      const timeoutId = window.setTimeout(() => {
+        props.onFirstPaintReadyChange?.(forgeFirstPaintReady);
+      }, forgeResponseDelayMs);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }, []);
+
+    return <div data-testid="forge-panel">Forge panel</div>;
+  }
+}));
+
 vi.mock("../src/features/leaderboard", () => ({
   Leaderboard: (props: { onFirstPaintReadyChange?: (ready: boolean) => void }) => {
     useEffect(() => {
-      props.onFirstPaintReadyChange?.(leaderboardFirstPaintReady);
-    }, [props.onFirstPaintReadyChange]);
+      if (leaderboardResponseDelayMs <= 0) {
+        props.onFirstPaintReadyChange?.(leaderboardFirstPaintReady);
+        return;
+      }
+
+      const timeoutId = window.setTimeout(() => {
+        props.onFirstPaintReadyChange?.(leaderboardFirstPaintReady);
+      }, leaderboardResponseDelayMs);
+
+      return () => {
+        window.clearTimeout(timeoutId);
+      };
+    }, []);
 
     return <div data-testid="leaderboards-panel">Leaderboards panel</div>;
   }
@@ -110,8 +142,10 @@ vi.mock("../src/features/guild", () => ({
   }) => {
     useEffect(() => {
       const timeoutId = window.setTimeout(() => {
-        props.onFirstPaintReadyChange?.(missionsFirstPaintReady);
-      }, missionsResponseDelayMs);
+        props.onFirstPaintReadyChange?.(
+          props.requestedTab === "missions" ? missionsFirstPaintReady : guildFirstPaintReady
+        );
+      }, props.requestedTab === "missions" ? missionsResponseDelayMs : guildResponseDelayMs);
 
       return () => {
         window.clearTimeout(timeoutId);
@@ -221,6 +255,11 @@ describe("AppShell panel transitions", () => {
     refineryFirstPaintReady = false;
     refineryResponseDelayMs = 0;
     leaderboardFirstPaintReady = true;
+    leaderboardResponseDelayMs = 0;
+    forgeFirstPaintReady = false;
+    forgeResponseDelayMs = 0;
+    guildFirstPaintReady = false;
+    guildResponseDelayMs = 0;
     missionsFirstPaintReady = false;
     missionsResponseDelayMs = 0;
     arenaFirstPaintReady = false;
@@ -425,6 +464,89 @@ describe("AppShell panel transitions", () => {
     });
 
     expect(presentedLayer().getByTestId("auction-house-panel")).not.toBeNull();
+    expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("revealing");
+  });
+
+  it("keeps the guild panel hidden until the guild response settles", async () => {
+    guildFirstPaintReady = true;
+    guildResponseDelayMs = PANEL_READY_BUDGET_MS + 250;
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByTestId("menu-group-realm"));
+    fireEvent.click(screen.getByTestId("menu-guild"));
+
+    expect(presentedLayer().getByTestId("character-panel")).not.toBeNull();
+    expect(preloadLayer().getByTestId("guild-panel")).not.toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(PANEL_READY_BUDGET_MS + 150);
+    });
+
+    expect(presentedLayer().queryByTestId("guild-panel")).toBeNull();
+    expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("preparing");
+
+    await act(async () => {
+      vi.advanceTimersByTime(150);
+      await Promise.resolve();
+    });
+
+    expect(presentedLayer().getByTestId("guild-panel")).not.toBeNull();
+    expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("revealing");
+  });
+
+  it("keeps the forge panel hidden until the forge response settles", async () => {
+    forgeFirstPaintReady = true;
+    forgeResponseDelayMs = PANEL_READY_BUDGET_MS + 250;
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByTestId("menu-group-estate"));
+    fireEvent.click(screen.getByTestId("menu-forge"));
+
+    expect(presentedLayer().getByTestId("character-panel")).not.toBeNull();
+    expect(preloadLayer().getByTestId("forge-panel")).not.toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(PANEL_READY_BUDGET_MS + 150);
+    });
+
+    expect(presentedLayer().queryByTestId("forge-panel")).toBeNull();
+    expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("preparing");
+
+    await act(async () => {
+      vi.advanceTimersByTime(150);
+      await Promise.resolve();
+    });
+
+    expect(presentedLayer().getByTestId("forge-panel")).not.toBeNull();
+    expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("revealing");
+  });
+
+  it("keeps the leaderboards panel hidden until the leaderboard response settles", async () => {
+    leaderboardFirstPaintReady = true;
+    leaderboardResponseDelayMs = PANEL_READY_BUDGET_MS + 250;
+
+    render(<AppShell />);
+
+    fireEvent.click(screen.getByTestId("menu-leaderboards"));
+
+    expect(presentedLayer().getByTestId("character-panel")).not.toBeNull();
+    expect(preloadLayer().getByTestId("leaderboards-panel")).not.toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(PANEL_READY_BUDGET_MS + 150);
+    });
+
+    expect(presentedLayer().queryByTestId("leaderboards-panel")).toBeNull();
+    expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("preparing");
+
+    await act(async () => {
+      vi.advanceTimersByTime(150);
+      await Promise.resolve();
+    });
+
+    expect(presentedLayer().getByTestId("leaderboards-panel")).not.toBeNull();
     expect(screen.getByTestId("panel-transition-overlay").getAttribute("data-phase")).toBe("revealing");
   });
 

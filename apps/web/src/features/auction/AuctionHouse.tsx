@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { useRef } from "react";
 import type { EquipmentSlotId, PlayerClass } from "@ebonkeep/shared/core";
 import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/inventory";
 import { DUCATS_ICON_PATH } from "../../constants/uiAssets";
@@ -330,6 +331,7 @@ export function AuctionHouse({
   const [showAutoBidDisableModal, setShowAutoBidDisableModal] = useState(false);
   const [autoBidDisableTargetId, setAutoBidDisableTargetId] = useState<string | null>(null);
   const [auctionHover, setAuctionHover] = useState<AuctionHoverState | null>(null);
+  const activeAuctionsRequestIdRef = useRef(0);
 
   const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
@@ -381,6 +383,7 @@ export function AuctionHouse({
 
   useEffect(() => {
     if (!token) {
+      activeAuctionsRequestIdRef.current += 1;
       auctionHouseCacheByToken.clear();
       setAuctions([]);
       setSelectedAuction(null);
@@ -440,6 +443,7 @@ export function AuctionHouse({
 
   const loadActiveAuctions = async (options?: { silent?: boolean }) => {
     if (!token) return;
+    const requestId = ++activeAuctionsRequestIdRef.current;
 
     if (!options?.silent) {
       setLoading(true);
@@ -456,8 +460,15 @@ export function AuctionHouse({
       }
 
       const data = await response.json();
-      const nextAuctions = preserveAuctionItemOrder(data.auctions || [], auctions);
-      setAuctions(nextAuctions);
+      if (requestId !== activeAuctionsRequestIdRef.current) {
+        return;
+      }
+
+      let nextAuctions: AuctionInstance[] = [];
+      setAuctions((previousAuctions) => {
+        nextAuctions = preserveAuctionItemOrder(data.auctions || [], previousAuctions);
+        return nextAuctions;
+      });
       setSelectedAuction((previous) => {
         if (nextAuctions.length === 0) {
           return null;
@@ -471,10 +482,13 @@ export function AuctionHouse({
       });
       setHasSettledInitialResponse(true);
     } catch (err) {
+      if (requestId !== activeAuctionsRequestIdRef.current) {
+        return;
+      }
       setError(err instanceof Error ? err.message : t("auction.errors.failedToLoad"));
       setHasSettledInitialResponse(true);
     } finally {
-      if (!options?.silent) {
+      if (!options?.silent && requestId === activeAuctionsRequestIdRef.current) {
         setLoading(false);
       }
     }

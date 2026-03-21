@@ -407,9 +407,12 @@ function requiresServerSettledResponse(route: PanelRoute): boolean {
   return route.landingTab === "jobs"
     || route.landingTab === "garden"
     || route.landingTab === "refinery"
+    || route.landingTab === "forge"
     || route.landingTab === "contracts"
+    || route.landingTab === "guild"
     || route.landingTab === "missions"
     || route.landingTab === "arena"
+    || route.landingTab === "leaderboards"
     || route.landingTab === "auctionHouse";
 }
 const CHAT_DOCK_TOLERANCE_PX = 1;
