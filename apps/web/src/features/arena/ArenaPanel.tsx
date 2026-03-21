@@ -35,7 +35,28 @@ export type ArenaPanelProps = {
   playerLevel: number | null;
   playerAvatarPath?: string;
   formatDurationFromMs: (value: number) => string;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
 };
+
+type ArenaPanelCacheEntry = {
+  arenaState: ArenaStateResponse | null;
+  error: string | null;
+  hasSettled: boolean;
+};
+
+const arenaPanelCacheByToken = new Map<string, ArenaPanelCacheEntry>();
+
+function readArenaPanelCache(token: string | null): ArenaPanelCacheEntry | null {
+  if (!token) {
+    return null;
+  }
+
+  return arenaPanelCacheByToken.get(token) ?? null;
+}
+
+export function __resetArenaPanelCacheForTests() {
+  arenaPanelCacheByToken.clear();
+}
 
 function formatRatingDelta(value: number): string {
   return value > 0 ? `+${value}` : String(value);
@@ -174,20 +195,21 @@ function renderOfferCard(args: {
 
 export function ArenaPanel(props: ArenaPanelProps) {
   const { t } = useTranslation();
+  const initialCacheEntry = readArenaPanelCache(props.token);
   const arenaSceneStyle = {
     ...getViewBackgroundStyle("arena"),
     "--adaptive-scene-scrim": "linear-gradient(180deg, rgba(7, 11, 16, 0.42), rgba(8, 13, 18, 0.62))",
     "--adaptive-scene-backdrop-scrim": "linear-gradient(180deg, rgba(7, 11, 16, 0.56), rgba(8, 13, 18, 0.78))",
     "--adaptive-scene-backdrop-filter": "brightness(0.48) saturate(0.88)"
   } as CSSProperties;
-  const [arenaState, setArenaState] = useState<ArenaStateResponse | null>(null);
+  const [arenaState, setArenaState] = useState<ArenaStateResponse | null>(() => initialCacheEntry?.arenaState ?? null);
   const [combatState, setCombatState] = useState<ActiveArenaEncounterState | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => Boolean(props.token) && props.hasPlayerState && !initialCacheEntry?.hasSettled);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isFindingOpponents, setIsFindingOpponents] = useState(false);
   const [fightingOfferId, setFightingOfferId] = useState<string | null>(null);
   const [isOpponentModalOpen, setIsOpponentModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => initialCacheEntry?.error ?? null);
   const [hoveredActorId, setHoveredActorId] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -203,17 +225,24 @@ export function ArenaPanel(props: ArenaPanelProps) {
 
   useEffect(() => {
     let active = true;
+    const shouldShowSpinner = !initialCacheEntry?.hasSettled;
 
     if (!props.token || !props.hasPlayerState) {
+      if (props.token) {
+        arenaPanelCacheByToken.delete(props.token);
+      }
       setArenaState(null);
       setCombatState(null);
+      setError(null);
       setIsLoading(false);
       return () => {
         active = false;
       };
     }
 
-    setIsLoading(true);
+    if (shouldShowSpinner) {
+      setIsLoading(true);
+    }
     setError(null);
 
     void (async () => {
@@ -225,7 +254,9 @@ export function ArenaPanel(props: ArenaPanelProps) {
         setArenaState(state);
       } catch (err: unknown) {
         if (active) {
-          setError(err instanceof Error ? err.message : t("arena.loadFailed"));
+          const nextError = err instanceof Error ? err.message : t("arena.loadFailed");
+          setArenaState((current) => (shouldShowSpinner || !current ? null : current));
+          setError(nextError);
         }
       } finally {
         if (active) {
@@ -238,6 +269,32 @@ export function ArenaPanel(props: ArenaPanelProps) {
       active = false;
     };
   }, [props.hasPlayerState, props.token, t]);
+
+  useEffect(() => {
+    if (!props.token) {
+      return;
+    }
+
+    if (!props.hasPlayerState) {
+      arenaPanelCacheByToken.delete(props.token);
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    arenaPanelCacheByToken.set(props.token, {
+      arenaState,
+      error,
+      hasSettled: true
+    });
+  }, [props.token, props.hasPlayerState, isLoading, arenaState, error]);
+
+  useEffect(() => {
+    const hasSettledArenaResponse = Boolean(arenaState) || Boolean(error);
+    props.onFirstPaintReadyChange?.(Boolean(props.token) && props.hasPlayerState && !isLoading && hasSettledArenaResponse);
+  }, [props.token, props.hasPlayerState, isLoading, arenaState, error, props.onFirstPaintReadyChange]);
 
   useEffect(() => {
     if (!combatState) {

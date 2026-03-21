@@ -61,6 +61,7 @@ export interface GuildPanelProps {
   onActiveMissionChange?: (active: boolean) => void;
   onDucatsChanged?: (newAmount: number) => void;
   onDetailTabChange?: (tab: GuildDetailTab) => void;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
 }
 
 type GuildView = "myGuild" | "search";
@@ -140,7 +141,8 @@ export function GuildPanel({
   requestedTab,
   onActiveMissionChange,
   onDucatsChanged,
-  onDetailTabChange
+  onDetailTabChange,
+  onFirstPaintReadyChange
 }: GuildPanelProps) {
   const { t } = useTranslation("common");
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
@@ -233,6 +235,7 @@ export function GuildPanel({
             onSearchClick={() => setCurrentView("search")}
             onDucatsChanged={onDucatsChanged}
             requestedTab={requestedTab}
+            onFirstPaintReadyChange={onFirstPaintReadyChange}
             onTabChange={(tab) => {
               setMyGuildActiveTab(tab);
               onDetailTabChange?.(tab);
@@ -250,6 +253,21 @@ export function GuildPanel({
 }
 
 // ── My Guild ──────────────────────────────────────────────────────────────
+type GuildPanelCacheEntry = {
+  guildData: GuildDetailsResponse | null;
+  hasSettled: boolean;
+};
+
+const guildPanelCacheByToken = new Map<string, GuildPanelCacheEntry>();
+
+function readGuildPanelCache(token: string): GuildPanelCacheEntry | null {
+  return guildPanelCacheByToken.get(token) ?? null;
+}
+
+export function __resetGuildPanelCacheForTests() {
+  guildPanelCacheByToken.clear();
+}
+
 function MyGuildView({
   token,
   currentPlayerId,
@@ -263,6 +281,7 @@ function MyGuildView({
   onSearchClick,
   onDucatsChanged,
   requestedTab,
+  onFirstPaintReadyChange,
   onTabChange,
 }: {
   token: string;
@@ -277,11 +296,13 @@ function MyGuildView({
   onSearchClick: () => void;
   onDucatsChanged?: (newAmount: number) => void;
   requestedTab?: GuildDetailTab | null;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
   onTabChange?: (tab: GuildDetailTab) => void;
 }) {
   const { t } = useTranslation("common");
-  const [guildData, setGuildData] = useState<GuildDetailsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialCacheEntry = readGuildPanelCache(token);
+  const [guildData, setGuildData] = useState<GuildDetailsResponse | null>(() => initialCacheEntry?.guildData ?? null);
+  const [loading, setLoading] = useState(() => !initialCacheEntry?.hasSettled);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [activeTab, setActiveTab] = useState<GuildDetailTab>("members");
   const [pendingAction, setPendingAction] = useState<"leave" | "disband" | null>(null);
@@ -300,17 +321,36 @@ function MyGuildView({
     setActiveTab(requestedTab);
   }, [requestedTab]);
 
+  useEffect(() => {
+    const requestedTabSettled = !requestedTab || activeTab === requestedTab;
+    onFirstPaintReadyChange?.(!loading && requestedTabSettled);
+  }, [activeTab, loading, onFirstPaintReadyChange, requestedTab]);
+
   const loadGuildData = async () => {
+    const shouldShowSpinner = !initialCacheEntry?.hasSettled;
     try {
-      setLoading(true);
+      if (shouldShowSpinner) {
+        setLoading(true);
+      }
       const data = await getMyGuild(token);
       setGuildData(data);
     } catch {
-      setGuildData(null);
+      setGuildData((current) => (shouldShowSpinner || !current ? null : current));
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (loading) {
+      return;
+    }
+
+    guildPanelCacheByToken.set(token, {
+      guildData,
+      hasSettled: true
+    });
+  }, [token, loading, guildData]);
 
   const handleLeave = () => setPendingAction("leave");
   const handleDisband = () => setPendingAction("disband");

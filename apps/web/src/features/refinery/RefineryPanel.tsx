@@ -71,11 +71,32 @@ export type RefineryInventoryEntry = {
 
 export type RefineryPanelProps = {
   token: string | null;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
+};
+
+type RefineryPanelCacheEntry = {
+  gardenState: GardenStateResponse | null;
+  error: string | null;
+  hasSettled: boolean;
 };
 
 const REFINERY_LANE_COUNT = 3;
 const REFINERY_CRAFT_DURATION_MS = 5_000;
 const REFINERY_OUTPUT_CLAIM_DURATION_MS = 560;
+const refineryPanelCacheByToken = new Map<string, RefineryPanelCacheEntry>();
+
+function readRefineryPanelCache(token: string | null): RefineryPanelCacheEntry | null {
+  if (!token) {
+    return null;
+  }
+
+  return refineryPanelCacheByToken.get(token) ?? null;
+}
+
+export function __resetRefineryPanelCacheForTests() {
+  refineryPanelCacheByToken.clear();
+}
+
 const EMPTY_LANE_SLOT: RefineryLaneSlot = {
   itemId: null,
   initialCount: 0,
@@ -402,11 +423,14 @@ function getGardenIngredientEntries(gardenState: GardenStateResponse | null): Ga
   return (gardenState?.inventory ?? []).filter((entry) => entry.kind === "ingredient");
 }
 
-export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
+export function RefineryPanel({ token, onFirstPaintReadyChange }: RefineryPanelProps): ReactElement {
   const { t } = useTranslation();
-  const [gardenState, setGardenState] = useState<GardenStateResponse | null>(null);
+  const initialCacheEntry = readRefineryPanelCache(token);
+  const [gardenState, setGardenState] = useState<GardenStateResponse | null>(() => initialCacheEntry?.gardenState ?? null);
   const [availableInventory, setAvailableInventory] = useState<Record<string, number>>(() =>
-    Object.fromEntries(ITEM_DEFINITIONS.map((definition) => [definition.id, 0]))
+    initialCacheEntry?.gardenState
+      ? buildInitialAvailableInventory(initialCacheEntry.gardenState)
+      : Object.fromEntries(ITEM_DEFINITIONS.map((definition) => [definition.id, 0]))
   );
   const [laneStates, setLaneStates] = useState<RefineryLaneState[]>(() => createInitialLaneStates());
   const [openMenuLaneIndex, setOpenMenuLaneIndex] = useState<number | null>(null);
@@ -415,8 +439,8 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
   const [inputInsertTokensBySlot, setInputInsertTokensBySlot] = useState<Record<string, number>>({});
   const [inputPulseTokensBySlot, setInputPulseTokensBySlot] = useState<Record<string, number>>({});
   const [outputPulseTokensByLane, setOutputPulseTokensByLane] = useState<Record<number, number>>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(() => Boolean(token) && !initialCacheEntry?.hasSettled);
+  const [error, setError] = useState<string | null>(() => initialCacheEntry?.error ?? null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const claimTimeoutsRef = useRef<Record<number, number>>({});
   const previousCompletedCountsRef = useRef<number[]>(createInitialLaneStates().map((lane) => lane.completedCount));
@@ -427,10 +451,14 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
     let isDisposed = false;
 
     async function loadGardenInventory() {
-      setIsLoading(true);
+      const shouldShowSpinner = !initialCacheEntry?.hasSettled;
+      if (shouldShowSpinner) {
+        setIsLoading(true);
+      }
       setError(null);
 
       if (!token) {
+        refineryPanelCacheByToken.clear();
         setGardenState(null);
         setLaneStates(createInitialLaneStates());
         setAvailableInventory(Object.fromEntries(ITEM_DEFINITIONS.map((definition) => [definition.id, 0])));
@@ -453,8 +481,9 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
           return;
         }
 
-        setGardenState(null);
-        setError(nextError instanceof Error ? nextError.message : t("refineryPanel.unavailable"));
+        const nextErrorMessage = nextError instanceof Error ? nextError.message : t("refineryPanel.unavailable");
+        setGardenState((current) => (shouldShowSpinner || !current ? null : current));
+        setError(nextErrorMessage);
       } finally {
         if (!isDisposed) {
           setIsLoading(false);
@@ -468,6 +497,27 @@ export function RefineryPanel({ token }: RefineryPanelProps): ReactElement {
       isDisposed = true;
     };
   }, [token, t]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    refineryPanelCacheByToken.set(token, {
+      gardenState,
+      error,
+      hasSettled: Boolean(gardenState) || Boolean(error)
+    });
+  }, [token, isLoading, gardenState, error]);
+
+  useEffect(() => {
+    const hasSettledRefineryResponse = Boolean(gardenState) || Boolean(error);
+    onFirstPaintReadyChange?.(Boolean(token) && !isLoading && hasSettledRefineryResponse);
+  }, [token, isLoading, gardenState, error, onFirstPaintReadyChange]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

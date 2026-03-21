@@ -178,6 +178,11 @@ import { DEFAULT_PORTRAIT_ID, PORTRAIT_POOL, PORTRAIT_POOL_BY_TREE, getPortraitP
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
 import { GENERATED_ITEM_ENCYCLOPEDIA_DATA, type GeneratedEncyclopediaItem } from "../generated/itemEncyclopediaData";
 import i18n, { setLocale } from "../i18n";
+import {
+  getViewBackgroundAssetPaths,
+  preloadImageAssets,
+  type ViewBackgroundName
+} from "../lib/viewBackgrounds";
 import { LOCALE_STORAGE_KEY, normalizeLocale } from "../i18n/supportedLocales";
 type Rarity = "common" | "uncommon" | "rare" | "epic";
 type TrainableStatKey = "strength" | "intelligence" | "dexterity" | "vitality" | "initiative" | "luck";
@@ -338,11 +343,18 @@ type PendingContractResultPlayerState = {
 };
 
 type CheatActionKey = "settings" | "replenish" | "levelUp" | "generateEquipment" | "grantCurrency" | "gardenUnlocks";
+type PanelTransitionPhase = "idle" | "preparing" | "revealing";
+type PanelRoute = {
+  landingTab: LandingTab;
+  characterHubTab: CharacterHubTab;
+};
 
 const INVENTORY_ITEM_LIMIT = 20;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
 const CHEAT_FAST_TRAVEL_DURATION_MS = 2_000;
 const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
+export const PANEL_READY_BUDGET_MS = 500;
+export const PANEL_REVEAL_MS = 140;
 const TEST_MIN_DUCATS = 0;
 const MAIN_STAT_DEFENSE_RATIO = 0.2;
 const LUCK_CRIT_CHANCE_PERCENT_PER_POINT = 0.1;
@@ -350,6 +362,56 @@ const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
 const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
+
+function createPanelRoute(landingTab: LandingTab, characterHubTab: CharacterHubTab): PanelRoute {
+  return {
+    landingTab,
+    characterHubTab
+  };
+}
+
+function getPanelRouteKey(route: PanelRoute): string {
+  return route.landingTab === "inventory" ? `inventory:${route.characterHubTab}` : route.landingTab;
+}
+
+function getPanelRouteBackgroundNames(route: PanelRoute): ViewBackgroundName[] {
+  switch (route.landingTab) {
+    case "inventory":
+      return route.characterHubTab === "character" ? ["inventory"] : [];
+    case "contracts":
+      return ["contracts"];
+    case "merchant":
+      return ["merchant"];
+    case "shop":
+      return ["imperial_shop"];
+    case "garden":
+      return ["garden"];
+    case "jobs":
+      return ["jobs"];
+    case "refinery":
+      return ["refinery"];
+    case "forge":
+      return ["forge"];
+    case "leaderboards":
+      return ["leaderboard"];
+    case "auctionHouse":
+      return ["auction_house"];
+    case "arena":
+      return ["arena"];
+    default:
+      return [];
+  }
+}
+
+function requiresServerSettledResponse(route: PanelRoute): boolean {
+  return route.landingTab === "jobs"
+    || route.landingTab === "garden"
+    || route.landingTab === "refinery"
+    || route.landingTab === "contracts"
+    || route.landingTab === "missions"
+    || route.landingTab === "arena"
+    || route.landingTab === "auctionHouse";
+}
 const CHAT_DOCK_TOLERANCE_PX = 1;
 const DEFAULT_INVENTORY_FILTER_STATE: InventoryFilterState = {
   showOnlyWeapons: false,
@@ -1697,6 +1759,8 @@ export function AppShell() {
     viewY: number;
   } | null>(null);
   const chatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
+  const panelTransitionTimeoutIdsRef = useRef<number[]>([]);
+  const preloadRenownViewportRef = useRef<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | null>(
     () => window.localStorage.getItem("ebonkeep.dev.token")
   );
@@ -1705,8 +1769,10 @@ export function AppShell() {
   );
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [activeTab, setActiveTab] = useState<LandingTab>("inventory");
+  const [presentedActiveTab, setPresentedActiveTab] = useState<LandingTab>("inventory");
   const [expandedMenuGroup, setExpandedMenuGroup] = useState<MenuGroupId>("profile");
   const [characterHubTab, setCharacterHubTab] = useState<CharacterHubTab>("character");
+  const [presentedCharacterHubTab, setPresentedCharacterHubTab] = useState<CharacterHubTab>("character");
   const [selectedRenownNodeId, setSelectedRenownNodeId] = useState<string>(DEFAULT_RENOWN_NODE_ID);
   const [renownView, setRenownView] = useState<RenownViewState>(RENOWN_INITIAL_VIEW);
   const [isRenownDragging, setIsRenownDragging] = useState(false);
@@ -1717,6 +1783,10 @@ export function AppShell() {
   const [encyclopediaArmorArchetype, setEncyclopediaArmorArchetype] = useState<EncyclopediaArmorArchetype>("heavy");
   const [encyclopediaWeaponArchetype, setEncyclopediaWeaponArchetype] =
     useState<EncyclopediaWeaponArchetype>("melee");
+  const [panelTransitionPhase, setPanelTransitionPhase] = useState<PanelTransitionPhase>("idle");
+  const [isPanelTransitionBudgetElapsed, setIsPanelTransitionBudgetElapsed] = useState(false);
+  const [featureFirstPaintReadyByTab, setFeatureFirstPaintReadyByTab] = useState<Partial<Record<LandingTab, boolean>>>({});
+  const [requestedPanelAssetsReady, setRequestedPanelAssetsReady] = useState(true);
   const [isLoadingState, setIsLoadingState] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
@@ -1750,6 +1820,7 @@ export function AppShell() {
   const [merchantOfferFilters, setMerchantOfferFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
   const [merchantPlayerFilters, setMerchantPlayerFilters] = useState<InventoryFilterState>(DEFAULT_INVENTORY_FILTER_STATE);
   const [contractSlots, setContractSlots] = useState<ContractSlotState[]>([]);
+  const [hasLoadedContractsBoard, setHasLoadedContractsBoard] = useState(false);
   const [activeContractEncounter, setActiveContractEncounter] = useState<ActiveContractEncounterState | null>(null);
   const [activeContractRunId, setActiveContractRunId] = useState<string | null>(null);
   const [pendingContractResultPlayerState, setPendingContractResultPlayerState] =
@@ -1791,6 +1862,21 @@ export function AppShell() {
   } | null>(null);
   const [activeCheatAction, setActiveCheatAction] = useState<CheatActionKey | null>(null);
   const [cheatStatusMessage, setCheatStatusMessage] = useState<string | null>(null);
+  const requestedPanelRoute = createPanelRoute(activeTab, characterHubTab);
+  const presentedPanelRoute = createPanelRoute(presentedActiveTab, presentedCharacterHubTab);
+  const requestedPanelRouteKey = getPanelRouteKey(requestedPanelRoute);
+  const presentedPanelRouteKey = getPanelRouteKey(presentedPanelRoute);
+  const requestedPanelNeedsServerSettledResponse = requiresServerSettledResponse(requestedPanelRoute);
+  const visibleActiveTab = presentedPanelRoute.landingTab;
+  const visibleCharacterHubTab = presentedPanelRoute.characterHubTab;
+  const isPanelTransitionActive = panelTransitionPhase !== "idle";
+
+  function clearPanelTransitionTimers() {
+    for (const timeoutId of panelTransitionTimeoutIdsRef.current) {
+      window.clearTimeout(timeoutId);
+    }
+    panelTransitionTimeoutIdsRef.current = [];
+  }
 
   useEffect(() => {
     if (!token || !playerState) {
@@ -1818,6 +1904,7 @@ export function AppShell() {
       cancelled = true;
     };
   }, [playerState, token]);
+
   const [cheatLevelInput, setCheatLevelInput] = useState("");
   const [cheatEquipmentRarity, setCheatEquipmentRarity] = useState<ItemRarity>("rare");
   const [cheatGardenUnlockedSlotsInput, setCheatGardenUnlockedSlotsInput] = useState(
@@ -1849,6 +1936,192 @@ export function AppShell() {
   const activeBackgroundPath = getBackgroundPath(activeBackgroundId);
   const activeCharacterVisualName = activePortraitId;
   const canCycleCharacterVisuals = PORTRAIT_POOL.length > 1;
+
+  function setFeatureFirstPaintReady(tab: LandingTab, ready: boolean) {
+    setFeatureFirstPaintReadyByTab((current) =>
+      current[tab] === ready
+        ? current
+        : {
+            ...current,
+            [tab]: ready
+          }
+    );
+  }
+
+  function getPanelTransitionAssetPaths(route: PanelRoute): string[] {
+    const backgroundPaths = getPanelRouteBackgroundNames(route).flatMap((name) => getViewBackgroundAssetPaths(name));
+
+    if (route.landingTab === "inventory" && route.characterHubTab === "character") {
+      return [...new Set([...backgroundPaths, activeCharacterVisualPath, activeBackgroundPath])];
+    }
+
+    return [...new Set(backgroundPaths)];
+  }
+
+  function isPanelDataReady(route: PanelRoute): boolean {
+    switch (route.landingTab) {
+      case "inventory":
+        switch (route.characterHubTab) {
+          case "character":
+            return !isLoadingState && Boolean(playerState);
+          case "renown":
+            return Boolean(renownState);
+          case "ledger":
+          case "encyclopedia":
+            return true;
+          default:
+            return !isLoadingState && Boolean(playerState);
+        }
+      case "contracts":
+        return !isLoadingState
+          && Boolean(playerState)
+          && hasLoadedContractsBoard;
+      case "jobs":
+        return Boolean(featureFirstPaintReadyByTab.jobs);
+      case "merchant":
+        return !isMerchantLoading && Boolean(playerState) && Boolean(merchantState);
+      case "garden":
+      case "refinery":
+      case "forge":
+      case "guild":
+      case "missions":
+      case "arena":
+      case "leaderboards":
+      case "auctionHouse":
+        return Boolean(featureFirstPaintReadyByTab[route.landingTab]);
+      default:
+        return true;
+    }
+  }
+
+  const requestedPanelReady = isPanelDataReady(requestedPanelRoute) && requestedPanelAssetsReady;
+
+  function resetPanelFirstPaintReadiness(nextTab: LandingTab) {
+    if (
+      nextTab === "jobs"
+      || nextTab === "garden"
+      || nextTab === "refinery"
+      || nextTab === "forge"
+      || nextTab === "guild"
+      || nextTab === "missions"
+      || nextTab === "arena"
+      || nextTab === "leaderboards"
+      || nextTab === "auctionHouse"
+    ) {
+      setFeatureFirstPaintReady(nextTab, false);
+    }
+
+    if (nextTab === "contracts") {
+      setHasLoadedContractsBoard(false);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      clearPanelTransitionTimers();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!token || requestedPanelRouteKey === presentedPanelRouteKey) {
+      setRequestedPanelAssetsReady(true);
+      return;
+    }
+
+    const assetPaths = getPanelTransitionAssetPaths(requestedPanelRoute);
+    if (assetPaths.length === 0) {
+      setRequestedPanelAssetsReady(true);
+      return;
+    }
+
+    let active = true;
+    setRequestedPanelAssetsReady(false);
+
+    void preloadImageAssets(assetPaths).finally(() => {
+      if (active) {
+        setRequestedPanelAssetsReady(true);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    token,
+    activeTab,
+    characterHubTab,
+    requestedPanelRouteKey,
+    presentedPanelRouteKey,
+    activeBackgroundPath,
+    activeCharacterVisualPath
+  ]);
+
+  useEffect(() => {
+    if (!token) {
+      clearPanelTransitionTimers();
+      setPanelTransitionPhase("idle");
+      setIsPanelTransitionBudgetElapsed(false);
+      setPresentedActiveTab(activeTab);
+      setPresentedCharacterHubTab(characterHubTab);
+      return;
+    }
+
+    if (requestedPanelRouteKey === presentedPanelRouteKey) {
+      return;
+    }
+
+    clearPanelTransitionTimers();
+    setPanelTransitionPhase("preparing");
+    setIsPanelTransitionBudgetElapsed(false);
+
+    if (requestedPanelNeedsServerSettledResponse) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsPanelTransitionBudgetElapsed(true);
+    }, PANEL_READY_BUDGET_MS);
+
+    panelTransitionTimeoutIdsRef.current.push(timeoutId);
+  }, [activeTab, characterHubTab, token, requestedPanelNeedsServerSettledResponse, requestedPanelRouteKey, presentedPanelRouteKey]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    if (requestedPanelRouteKey === presentedPanelRouteKey) {
+      return;
+    }
+    if (panelTransitionPhase !== "preparing") {
+      return;
+    }
+    if (!requestedPanelReady && (requestedPanelNeedsServerSettledResponse || !isPanelTransitionBudgetElapsed)) {
+      return;
+    }
+
+    clearPanelTransitionTimers();
+    setPresentedActiveTab(activeTab);
+    setPresentedCharacterHubTab(characterHubTab);
+    setPanelTransitionPhase("revealing");
+    setIsPanelTransitionBudgetElapsed(false);
+
+    const timeoutId = window.setTimeout(() => {
+      setPanelTransitionPhase("idle");
+      clearPanelTransitionTimers();
+    }, PANEL_REVEAL_MS);
+
+    panelTransitionTimeoutIdsRef.current.push(timeoutId);
+  }, [
+    activeTab,
+    characterHubTab,
+    token,
+    panelTransitionPhase,
+    requestedPanelReady,
+    isPanelTransitionBudgetElapsed,
+    requestedPanelNeedsServerSettledResponse,
+    requestedPanelRouteKey,
+    presentedPanelRouteKey
+  ]);
 
   const [isSavingLocale, setIsSavingLocale] = useState(false);
   const [localeStatusMessage, setLocaleStatusMessage] = useState<string | null>(null);
@@ -2529,13 +2802,13 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    if (characterHubTab !== "renown") {
+    if (visibleCharacterHubTab !== "renown") {
       renownDragStateRef.current = null;
       setIsRenownDragging(false);
       return;
     }
     setRenownView((current) => clampRenownViewState(current.x, current.y, current.scale));
-  }, [characterHubTab, layoutMode]);
+  }, [visibleCharacterHubTab, layoutMode]);
 
 
 
@@ -2566,7 +2839,7 @@ export function AppShell() {
   }, [profileSideTab]);
 
   useEffect(() => {
-    if (activeTab !== "inventory") {
+    if (visibleActiveTab !== "inventory") {
       setCanDockInventoryChat(false);
       return;
     }
@@ -2597,7 +2870,7 @@ export function AppShell() {
         panelViewportSideRef.current?.getBoundingClientRect().width ||
         0;
       const requiredWidth =
-        characterHubTab === "character"
+        visibleCharacterHubTab === "character"
           ? mainPanelWidth + sidePanelWidth * 2 + inheritedSpace * 2
           : mainPanelWidth + sidePanelWidth + inheritedSpace;
       setCanDockInventoryChat(availableRightPanelWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
@@ -2634,7 +2907,7 @@ export function AppShell() {
       window.removeEventListener("resize", recalculateChatDocking);
       resizeObserver?.disconnect();
     };
-  }, [activeTab, characterHubTab, layoutMode]);
+  }, [visibleActiveTab, visibleCharacterHubTab, layoutMode]);
 
   useEffect(() => {
     if (canDockInventoryChat) {
@@ -2852,6 +3125,7 @@ export function AppShell() {
 
     if (!token || !playerState) {
       setContractSlots([]);
+      setHasLoadedContractsBoard(false);
       setActiveContractRunId(null);
       return () => {
         active = false;
@@ -2863,6 +3137,8 @@ export function AppShell() {
         active = false;
       };
     }
+
+    setHasLoadedContractsBoard(false);
 
     void (async () => {
       try {
@@ -2925,6 +3201,10 @@ export function AppShell() {
       } catch (err: unknown) {
         if (active) {
           setError(err instanceof Error ? err.message : "Contracts state failed");
+        }
+      } finally {
+        if (active) {
+          setHasLoadedContractsBoard(true);
         }
       }
     })();
@@ -3473,6 +3753,7 @@ export function AppShell() {
     setMerchantPlayerFilters(DEFAULT_INVENTORY_FILTER_STATE);
     setActiveStatTraining(null);
     setContractSlots([]);
+    setHasLoadedContractsBoard(false);
     setActiveContractEncounter(null);
     setActiveContractRunId(null);
   }
@@ -4284,19 +4565,31 @@ export function AppShell() {
     );
   }
 
-  function renderCharacterHubTabs(): ReactElement {
-    return <CharacterHubTabs activeTab={characterHubTab} onTabChange={setCharacterHubTab} />;
+  function renderCharacterHubTabs(activeCharacterHubTab = characterHubTab): ReactElement {
+    return <CharacterHubTabs activeTab={activeCharacterHubTab} onTabChange={selectCharacterHubTab} />;
+  }
+
+  function renderPanelTransitionOverlay(): ReactElement {
+    return (
+      <div
+        aria-hidden="true"
+        className={`panelTransitionOverlay${isPanelTransitionActive ? " is-visible" : ""} phase-${panelTransitionPhase}`}
+        data-phase={panelTransitionPhase}
+        data-testid="panel-transition-overlay"
+      />
+    );
   }
 
   function renderCharacterHubPlaceholderPanel(
     title: string,
     description: string,
-    details: string
+    details: string,
+    activeCharacterHubTab = characterHubTab
   ): ReactElement {
     return (
       <section className="contentShell">
         <section className="contentStack">
-          {renderCharacterHubTabs()}
+          {renderCharacterHubTabs(activeCharacterHubTab)}
           <article className="contentCard">
             <h2>{title}</h2>
             <p>{description}</p>
@@ -4309,17 +4602,20 @@ export function AppShell() {
     );
   }
 
-  function renderRenownPanel(): ReactElement {
+  function renderRenownPanel(
+    activeCharacterHubTab = characterHubTab,
+    viewportRef = renownViewportRef
+  ): ReactElement {
     return (
       <RenownPanel
-        renownViewportRef={renownViewportRef}
+        renownViewportRef={viewportRef}
         selectedRenownNodeId={selectedRenownNodeId}
         renownView={renownView}
         isRenownDragging={isRenownDragging}
         onViewportMouseDown={handleRenownViewportMouseDown}
         onViewportWheel={handleRenownViewportWheel}
         onSelectNode={setSelectedRenownNodeId}
-        renderCharacterHubTabs={renderCharacterHubTabs}
+        renderCharacterHubTabs={() => renderCharacterHubTabs(activeCharacterHubTab)}
         renownState={renownState}
         isUnlocking={isUnlockingRenown}
         onUnlockNode={(nodeId) => { void handleUnlockRenownNode(nodeId); }}
@@ -4336,7 +4632,7 @@ export function AppShell() {
     );
   }
 
-  function renderLedgerPanel(): ReactElement {
+  function renderLedgerPanel(activeCharacterHubTab = characterHubTab): ReactElement {
     try {
       const monsterItems = normalizeEncyclopediaItems(GENERATED_ITEM_ENCYCLOPEDIA_DATA).filter(
         (item) => item.majorCategory === "monster"
@@ -4371,7 +4667,8 @@ export function AppShell() {
         return renderCharacterHubPlaceholderPanel(
           "Ledger",
           "Discovered zones and encountered monsters will be recorded here as a growing account knowledge compendium.",
-          "Each entry will show the monster portrait, flavor text, name, slain count, and the current passive bonus granted against its family."
+          "Each entry will show the monster portrait, flavor text, name, slain count, and the current passive bonus granted against its family.",
+          activeCharacterHubTab
         );
       }
 
@@ -4385,7 +4682,7 @@ export function AppShell() {
       return (
         <section className="contentShell">
           <section className="contentStack">
-            {renderCharacterHubTabs()}
+            {renderCharacterHubTabs(activeCharacterHubTab)}
             <article className="contentCard ledgerControlsCard">
               <h2>Ledger</h2>
               <p>
@@ -4421,7 +4718,11 @@ export function AppShell() {
             </article>
             <article className="contentCard ledgerListCard">
               <div className="ledgerEntryList">
-                {sortedItems.map((item) => renderLedgerEntryCard(item, getLedgerMockKillCount(item)))}
+                {sortedItems.map((item) => (
+                  <div key={item.key}>
+                    {renderLedgerEntryCard(item, getLedgerMockKillCount(item))}
+                  </div>
+                ))}
               </div>
             </article>
           </section>
@@ -4436,7 +4737,7 @@ export function AppShell() {
     }
   }
 
-  function renderProfilePanel() {
+  function renderProfilePanel(activeCharacterHubTab = characterHubTab) {
     return (
       <InventoryManagementPanel
         isLoadingState={isLoadingState}
@@ -4457,7 +4758,7 @@ export function AppShell() {
         equipmentLeftSlots={EQUIPMENT_LEFT_SLOTS}
         equipmentRightSlots={EQUIPMENT_RIGHT_SLOTS}
         equipmentVestigeSlots={EQUIPMENT_VESTIGE_SLOTS}
-        renderCharacterHubTabs={renderCharacterHubTabs}
+        renderCharacterHubTabs={() => renderCharacterHubTabs(activeCharacterHubTab)}
         renderEquipmentSlotCell={renderEquipmentSlotCell}
         onShowPreviousPortrait={() => {
           const tree = playerState ? classToStatTree(playerState.class) : "strength";
@@ -5165,7 +5466,10 @@ export function AppShell() {
     );
   }
 
-  function renderEncyclopediaPanel(embedCharacterHubTabs = false) {
+  function renderEncyclopediaPanel(
+    embedCharacterHubTabs = false,
+    activeCharacterHubTab = characterHubTab
+  ) {
     return (
       <EncyclopediaPanel
         embedCharacterHubTabs={embedCharacterHubTabs}
@@ -5177,24 +5481,30 @@ export function AppShell() {
         onArmorArchetypeChange={setEncyclopediaArmorArchetype}
         onWeaponArchetypeChange={setEncyclopediaWeaponArchetype}
         formatTokenLabel={formatTokenLabel}
-        renderCharacterHubTabs={renderCharacterHubTabs}
+        renderCharacterHubTabs={() => renderCharacterHubTabs(activeCharacterHubTab)}
         renderErrorPanel={renderPlaceholderPanel}
       />
     );
   }
 
-  function renderCharacterHubActivePanel(): ReactElement {
-    switch (characterHubTab) {
+  function renderCharacterHubActivePanel(
+    activeCharacterHubTab = characterHubTab,
+    options?: { preload?: boolean }
+  ): ReactElement {
+    switch (activeCharacterHubTab) {
       case "character":
-        return renderProfilePanel();
+        return renderProfilePanel(activeCharacterHubTab);
       case "renown":
-        return renderRenownPanel();
+        return renderRenownPanel(
+          activeCharacterHubTab,
+          options?.preload ? preloadRenownViewportRef : renownViewportRef
+        );
       case "ledger":
-        return renderLedgerPanel();
+        return renderLedgerPanel(activeCharacterHubTab);
       case "encyclopedia":
-        return renderEncyclopediaPanel(true);
+        return renderEncyclopediaPanel(true, activeCharacterHubTab);
       default:
-        return renderProfilePanel();
+        return renderProfilePanel(activeCharacterHubTab);
     }
   }
 
@@ -5234,7 +5544,7 @@ export function AppShell() {
     );
   }
 
-  function renderActivePanel() {
+  function renderActivePanel(route = requestedPanelRoute, options?: { preload?: boolean }) {
     const guildPanelProps = {
       token,
       currentPlayerId: playerState?.playerId ?? null,
@@ -5247,9 +5557,9 @@ export function AppShell() {
       onDucatsChanged: (n: number) => setCurrencies((c) => (c ? { ...c, ducats: n } : null))
     } as const;
 
-    switch (activeTab) {
+    switch (route.landingTab) {
       case "inventory":
-        return renderCharacterHubActivePanel();
+        return renderCharacterHubActivePanel(route.characterHubTab, options);
       case "encyclopedia":
         return renderEncyclopediaPanel();
       case "contracts":
@@ -5259,6 +5569,7 @@ export function AppShell() {
           <GuildPanel
             {...guildPanelProps}
             requestedTab="missions"
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("missions", ready)}
             onDetailTabChange={(nextDetailTab) => {
               if (nextDetailTab !== "missions") {
                 selectLandingTab("guild");
@@ -5276,6 +5587,7 @@ export function AppShell() {
             playerLevel={playerState?.level ?? null}
             playerAvatarPath={activeCharacterVisualPath}
             formatDurationFromMs={formatDurationFromMs}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("arena", ready)}
           />
         );
       case "jobs":
@@ -5288,32 +5600,55 @@ export function AppShell() {
             developerToolsEnabled={Boolean(accountInfo?.developerToolsEnabled)}
             onGrantDucats={handleJobsDucatsGain}
             onLockReleaseAtChange={setJobsLockReleaseAtMs}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("jobs", ready)}
           />
         );
       case "guild":
-        return <GuildPanel {...guildPanelProps} />;
+        return (
+          <GuildPanel
+            {...guildPanelProps}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("guild", ready)}
+          />
+        );
       case "castles":
         return renderPlaceholderPanel(i18n.t("menu.castles"), i18n.t("placeholders.castles"));
       case "auctionHouse":
-        return <AuctionHouse token={token} currentDucats={currencies?.ducats ?? 0} playerClass={playerState?.class ?? null} playerLevel={playerState?.level ?? null} equipmentBySlot={equippedItems} onDucatsChange={handleAuctionDucatsChange} />;
+        return (
+          <AuctionHouse
+            token={token}
+            currentDucats={currencies?.ducats ?? 0}
+            playerClass={playerState?.class ?? null}
+            playerLevel={playerState?.level ?? null}
+            equipmentBySlot={equippedItems}
+            onDucatsChange={handleAuctionDucatsChange}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("auctionHouse", ready)}
+          />
+        );
       case "merchant":
         return renderMerchantPanel();
       case "shop":
         return <ImperialShop token={token} currentImperials={currencies?.imperials ?? 0} />;
-    case "garden":
-      return <GardenPanel token={token} />;
+      case "garden":
+        return <GardenPanel token={token} onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("garden", ready)} />;
       case "refinery":
-        return <RefineryPanel token={token} />;
+        return <RefineryPanel token={token} onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("refinery", ready)} />;
       case "forge":
         return (
           <ForgePanel
             token={token}
             playerState={playerState}
             onPlayerStateChange={applyAuthoritativePlayerState}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("forge", ready)}
           />
         );
-        case "leaderboards":
-          return <Leaderboard token={token} currentPlayerId={playerState?.playerId ?? null} />;
+      case "leaderboards":
+        return (
+          <Leaderboard
+            token={token}
+            currentPlayerId={playerState?.playerId ?? null}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("leaderboards", ready)}
+          />
+        );
       case "settings":
         return renderSettingsPanel();
       default:
@@ -5326,14 +5661,217 @@ export function AppShell() {
       setError(i18n.t("jobsPanel.lockedNavigation"));
       return;
     }
+
+    const shouldResetCharacterHubTab = nextTab === "inventory";
+    const isSameLandingTarget =
+      nextTab === activeTab && (!shouldResetCharacterHubTab || characterHubTab === "character");
+
+    if (isSameLandingTarget) {
+      return;
+    }
+
+    resetPanelFirstPaintReadiness(nextTab);
     setActiveTab(nextTab);
     setExpandedMenuGroup(getMenuGroupForTab(nextTab));
     if (error === i18n.t("jobsPanel.lockedNavigation")) {
       setError(null);
     }
-    if (nextTab === "inventory") {
+    if (shouldResetCharacterHubTab) {
       setCharacterHubTab("character");
     }
+  }
+
+  function selectCharacterHubTab(nextTab: CharacterHubTab) {
+    if (nextTab === characterHubTab) {
+      return;
+    }
+
+    setCharacterHubTab(nextTab);
+  }
+
+  function renderPreloadPanelViewport(): ReactElement | null {
+    if (!token || requestedPanelRouteKey === presentedPanelRouteKey) {
+      return null;
+    }
+
+    return (
+      <div
+        aria-hidden="true"
+        className="panelTransitionPreloadViewport"
+        data-testid="panel-transition-preload"
+      >
+        {renderActivePanel(requestedPanelRoute, { preload: true })}
+      </div>
+    );
+  }
+
+  function renderPresentedPanelViewport(): ReactElement {
+    if (visibleActiveTab === "inventory" && visibleCharacterHubTab === "character") {
+      return (
+        <div
+          className={`panelViewportGroup panelTransitionViewport${
+            canDockInventoryChat && isInventoryChatDockedVisible ? " panelViewportGroupWithChat" : ""
+          }`}
+          data-testid="panel-transition-presented"
+          ref={panelViewportGroupRef}
+        >
+          <div className="panelViewportProfileMain" ref={panelViewportMainRef}>
+            {renderProfilePanel(visibleCharacterHubTab)}
+          </div>
+          <div
+            className={`panelViewportSide${
+              !canDockInventoryChat && isInventoryChatOverlayOpen ? " panelViewportSideChatCovered" : ""
+            }`}
+            ref={panelViewportSideRef}
+          >
+            {renderProfileSidePanel()}
+          </div>
+          {canDockInventoryChat && isInventoryChatDockedVisible ? (
+            <div className="panelViewportSide panelViewportChat">{renderChatPanel()}</div>
+          ) : null}
+          {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
+            <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
+          ) : null}
+          {renderPanelTransitionOverlay()}
+        </div>
+      );
+    }
+
+    if (visibleActiveTab === "inventory") {
+      return (
+        <div
+          className={`characterHubViewportGroup panelTransitionViewport${
+            canDockInventoryChat && isInventoryChatDockedVisible ? " characterHubViewportGroupWithChat" : ""
+          }`}
+          data-testid="panel-transition-presented"
+          ref={panelViewportGroupRef}
+        >
+          <div className="panelViewport characterHubExpandedViewport" ref={panelViewportMainRef}>
+            {renderCharacterHubActivePanel(visibleCharacterHubTab)}
+          </div>
+          {canDockInventoryChat && isInventoryChatDockedVisible ? (
+            <div className="panelViewportSide panelViewportChat" ref={panelViewportSideRef}>
+              {renderChatPanel()}
+            </div>
+          ) : null}
+          {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
+            <section className="inventoryChatPanelOverlayViewport inventoryChatPanelOverlayViewportRight">
+              {renderChatPanel()}
+            </section>
+          ) : null}
+          {renderPanelTransitionOverlay()}
+        </div>
+      );
+    }
+
+    if (visibleActiveTab === "contracts" && activeContractEncounter && activeContractEncounter.phase === "travel") {
+      return (
+        <div className="panelViewport contractsCombatViewportExpanded panelTransitionViewport" data-testid="panel-transition-presented">
+          {renderContractsPanel()}
+          {renderPanelTransitionOverlay()}
+        </div>
+      );
+    }
+
+    if (visibleActiveTab === "contracts" && activeContractEncounter && activeContractEncounter.phase === "combat") {
+      return isCombatLogVisible ? (
+        <div className="panelViewportGroup contractsCombatViewportGroup panelTransitionViewport" data-testid="panel-transition-presented">
+          <div className="panelViewportProfileMain contractsCombatViewportMain">
+            <div className="contractsCombatViewportMainStack">
+              <CombatEncounterTurnTrackPanel
+                encounter={activeContractEncounter.encounter}
+                timeline={activeContractEncounter.timeline}
+                currentEventIndex={activeContractEncounter.currentEventIndex}
+                hpByActorId={activeContractEncounter.hpByActorId}
+                currentAction={activeContractEncounter.activeAction}
+                resolutionState={activeContractEncounter.resolutionState}
+                hoveredActorId={hoveredCombatActorId}
+                onHoverActor={setHoveredCombatActorId}
+              />
+              <CombatEncounterArenaPanel
+                encounter={activeContractEncounter.encounter}
+                timeline={activeContractEncounter.timeline}
+                currentEventIndex={activeContractEncounter.currentEventIndex}
+                hpByActorId={activeContractEncounter.hpByActorId}
+                currentAction={activeContractEncounter.activeAction}
+                impactTargetId={activeContractEncounter.impactTargetId}
+                playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+                isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+                hoveredActorId={hoveredCombatActorId}
+                resolutionState={activeContractEncounter.resolutionState}
+                onToggleFastForward={toggleCombatFastForward}
+                onSkipToEnd={skipContractEncounterToEnd}
+                onReplayCombat={replayContractEncounter}
+                onBackToBoard={returnToContractsBoard}
+              />
+            </div>
+          </div>
+          <div className="panelViewportSide contractsCombatViewportSide">
+            <CombatEncounterLogPanel
+              encounter={activeContractEncounter.encounter}
+              timeline={activeContractEncounter.timeline}
+              currentEventIndex={activeContractEncounter.currentEventIndex}
+              combatLogEntries={activeContractEncounter.combatLogEntries}
+              combatLogEventIds={activeContractEncounter.combatLogEventIds}
+              resolutionState={activeContractEncounter.resolutionState}
+              typedSummaryLine={activeContractEncounter.typedSummaryLine}
+              onCloseLog={closeCombatLog}
+              onReplayCombat={replayContractEncounter}
+              onBackToBoard={returnToContractsBoard}
+            />
+          </div>
+          {renderPanelTransitionOverlay()}
+        </div>
+      ) : (
+        <div className="panelViewport contractsCombatViewportExpanded panelTransitionViewport" data-testid="panel-transition-presented">
+          <div className="contractsCombatViewportMainStack">
+            <CombatEncounterTurnTrackPanel
+              encounter={activeContractEncounter.encounter}
+              timeline={activeContractEncounter.timeline}
+              currentEventIndex={activeContractEncounter.currentEventIndex}
+              hpByActorId={activeContractEncounter.hpByActorId}
+              currentAction={activeContractEncounter.activeAction}
+              resolutionState={activeContractEncounter.resolutionState}
+              hoveredActorId={hoveredCombatActorId}
+              onHoverActor={setHoveredCombatActorId}
+            />
+            <CombatEncounterArenaPanel
+              encounter={activeContractEncounter.encounter}
+              timeline={activeContractEncounter.timeline}
+              currentEventIndex={activeContractEncounter.currentEventIndex}
+              hpByActorId={activeContractEncounter.hpByActorId}
+              currentAction={activeContractEncounter.activeAction}
+              impactTargetId={activeContractEncounter.impactTargetId}
+              playbackRate={getEncounterAnimationRate(activeContractEncounter)}
+              isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
+              hoveredActorId={hoveredCombatActorId}
+              resolutionState={activeContractEncounter.resolutionState}
+              onToggleFastForward={toggleCombatFastForward}
+              onSkipToEnd={skipContractEncounterToEnd}
+              onReplayCombat={replayContractEncounter}
+              onBackToBoard={returnToContractsBoard}
+            />
+          </div>
+          {renderPanelTransitionOverlay()}
+        </div>
+      );
+    }
+
+    if (visibleActiveTab === "guild" && isGuildMissionActive) {
+      return (
+        <div className="panelViewport contractsCombatViewportExpanded panelTransitionViewport" data-testid="panel-transition-presented">
+          {renderActivePanel(presentedPanelRoute)}
+          {renderPanelTransitionOverlay()}
+        </div>
+      );
+    }
+
+    return (
+      <div className="panelViewport panelTransitionViewport" data-testid="panel-transition-presented">
+        {renderActivePanel(presentedPanelRoute)}
+        {renderPanelTransitionOverlay()}
+      </div>
+    );
   }
 
   if (!token) {
@@ -5738,155 +6276,16 @@ export function AppShell() {
           </aside>
 
           <section className="rightPanel" ref={rightPanelRef}>
-            {activeTab === "inventory" && characterHubTab === "character" ? (
-              <div
-                className={`panelViewportGroup${
-                  canDockInventoryChat && isInventoryChatDockedVisible ? " panelViewportGroupWithChat" : ""
-                }`}
-                ref={panelViewportGroupRef}
-              >
-                <div className="panelViewportProfileMain" ref={panelViewportMainRef}>
-                  {renderProfilePanel()}
-                </div>
-                <div
-                  className={`panelViewportSide${
-                    !canDockInventoryChat && isInventoryChatOverlayOpen ? " panelViewportSideChatCovered" : ""
-                  }`}
-                  ref={panelViewportSideRef}
-                >
-                  {renderProfileSidePanel()}
-                </div>
-                {canDockInventoryChat && isInventoryChatDockedVisible ? (
-                  <div className="panelViewportSide panelViewportChat">{renderChatPanel()}</div>
-                ) : null}
-                {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
-                  <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
-                ) : null}
-              </div>
-            ) : activeTab === "inventory" ? (
-              <div
-                className={`characterHubViewportGroup${
-                  canDockInventoryChat && isInventoryChatDockedVisible ? " characterHubViewportGroupWithChat" : ""
-                }`}
-                ref={panelViewportGroupRef}
-              >
-                <div className="panelViewport characterHubExpandedViewport" ref={panelViewportMainRef}>
-                  {renderCharacterHubActivePanel()}
-                </div>
-                {canDockInventoryChat && isInventoryChatDockedVisible ? (
-                  <div className="panelViewportSide panelViewportChat" ref={panelViewportSideRef}>
-                    {renderChatPanel()}
-                  </div>
-                ) : null}
-                {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
-                  <section className="inventoryChatPanelOverlayViewport inventoryChatPanelOverlayViewportRight">
-                    {renderChatPanel()}
-                  </section>
-                ) : null}
-              </div>
-            ) : activeTab === "contracts" &&
-              activeContractEncounter &&
-              activeContractEncounter.phase === "travel" ? (
-              <div className="panelViewport contractsCombatViewportExpanded">
-                {renderContractsPanel()}
-              </div>
-            ) : activeTab === "contracts" &&
-              activeContractEncounter &&
-              activeContractEncounter.phase === "combat" ? (
-              <>
-                {isCombatLogVisible ? (
-                  <div className="panelViewportGroup contractsCombatViewportGroup">
-                    <div className="panelViewportProfileMain contractsCombatViewportMain">
-                      <div className="contractsCombatViewportMainStack">
-                        <CombatEncounterTurnTrackPanel
-                          encounter={activeContractEncounter.encounter}
-                          timeline={activeContractEncounter.timeline}
-                          currentEventIndex={activeContractEncounter.currentEventIndex}
-                          hpByActorId={activeContractEncounter.hpByActorId}
-                          currentAction={activeContractEncounter.activeAction}
-                          resolutionState={activeContractEncounter.resolutionState}
-                          hoveredActorId={hoveredCombatActorId}
-                          onHoverActor={setHoveredCombatActorId}
-                        />
-                        <CombatEncounterArenaPanel
-                          encounter={activeContractEncounter.encounter}
-                          timeline={activeContractEncounter.timeline}
-                          currentEventIndex={activeContractEncounter.currentEventIndex}
-                          hpByActorId={activeContractEncounter.hpByActorId}
-                          currentAction={activeContractEncounter.activeAction}
-                          impactTargetId={activeContractEncounter.impactTargetId}
-                          playbackRate={getEncounterAnimationRate(activeContractEncounter)}
-                          isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
-                          hoveredActorId={hoveredCombatActorId}
-                          resolutionState={activeContractEncounter.resolutionState}
-                          onToggleFastForward={toggleCombatFastForward}
-                          onSkipToEnd={skipContractEncounterToEnd}
-                          onReplayCombat={replayContractEncounter}
-                          onBackToBoard={returnToContractsBoard}
-                        />
-                      </div>
-                    </div>
-                    <div className="panelViewportSide contractsCombatViewportSide">
-                      <CombatEncounterLogPanel
-                        encounter={activeContractEncounter.encounter}
-                        timeline={activeContractEncounter.timeline}
-                        currentEventIndex={activeContractEncounter.currentEventIndex}
-                        combatLogEntries={activeContractEncounter.combatLogEntries}
-                        combatLogEventIds={activeContractEncounter.combatLogEventIds}
-                        resolutionState={activeContractEncounter.resolutionState}
-                        typedSummaryLine={activeContractEncounter.typedSummaryLine}
-                        onCloseLog={closeCombatLog}
-                        onReplayCombat={replayContractEncounter}
-                        onBackToBoard={returnToContractsBoard}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="panelViewport contractsCombatViewportExpanded">
-                    <div className="contractsCombatViewportMainStack">
-                      <CombatEncounterTurnTrackPanel
-                        encounter={activeContractEncounter.encounter}
-                        timeline={activeContractEncounter.timeline}
-                        currentEventIndex={activeContractEncounter.currentEventIndex}
-                        hpByActorId={activeContractEncounter.hpByActorId}
-                        currentAction={activeContractEncounter.activeAction}
-                        resolutionState={activeContractEncounter.resolutionState}
-                        hoveredActorId={hoveredCombatActorId}
-                        onHoverActor={setHoveredCombatActorId}
-                      />
-                      <CombatEncounterArenaPanel
-                        encounter={activeContractEncounter.encounter}
-                        timeline={activeContractEncounter.timeline}
-                        currentEventIndex={activeContractEncounter.currentEventIndex}
-                        hpByActorId={activeContractEncounter.hpByActorId}
-                        currentAction={activeContractEncounter.activeAction}
-                        impactTargetId={activeContractEncounter.impactTargetId}
-                        playbackRate={getEncounterAnimationRate(activeContractEncounter)}
-                        isFastForwardEnabled={activeContractEncounter.playbackRate === 5}
-                        hoveredActorId={hoveredCombatActorId}
-                        resolutionState={activeContractEncounter.resolutionState}
-                        onToggleFastForward={toggleCombatFastForward}
-                        onSkipToEnd={skipContractEncounterToEnd}
-                        onReplayCombat={replayContractEncounter}
-                        onBackToBoard={returnToContractsBoard}
-                      />
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : activeTab === "guild" && isGuildMissionActive ? (
-              <div className="panelViewport contractsCombatViewportExpanded">
-                {renderActivePanel()}
-              </div>
-            ) : (
-              <div className="panelViewport">{renderActivePanel()}</div>
-            )}
+            {renderPreloadPanelViewport()}
+            {renderPresentedPanelViewport()}
           </section>
 
-          {activeTab === "inventory" && !isInventoryChatVisible ? (
+          {visibleActiveTab === "inventory" && !isInventoryChatVisible ? (
             <>
               <button
-                className="inventoryChatFloatingToggle"
+                className={`inventoryChatFloatingToggle panelTransitionFloatingUi${
+                  isPanelTransitionActive ? " panelTransitionFloatingUiHidden" : ""
+                }`}
                 onClick={openInventoryChat}
                 aria-label={i18n.t("inventory.messageShowChat")}
                 aria-pressed="false"
@@ -5903,12 +6302,14 @@ export function AppShell() {
             </>
           ) : null}
 
-          {activeTab === "contracts" &&
+          {visibleActiveTab === "contracts" &&
           activeContractEncounter &&
           activeContractEncounter.phase === "combat" &&
           !isCombatLogVisible ? (
             <button
-              className="inventoryChatFloatingToggle combatLogFloatingToggle"
+              className={`inventoryChatFloatingToggle combatLogFloatingToggle panelTransitionFloatingUi${
+                isPanelTransitionActive ? " panelTransitionFloatingUiHidden" : ""
+              }`}
               onClick={openCombatLog}
               aria-label={i18n.t("contracts.combatLog")}
               aria-pressed="false"
@@ -5925,7 +6326,15 @@ export function AppShell() {
             </button>
           ) : null}
 
-          {error ? <div className="error floatingError">{i18n.t("app.errorPrefix")}: {error}</div> : null}
+          {error ? (
+            <div
+              className={`error floatingError panelTransitionFloatingUi${
+                isPanelTransitionActive ? " panelTransitionFloatingUiHidden" : ""
+              }`}
+            >
+              {i18n.t("app.errorPrefix")}: {error}
+            </div>
+          ) : null}
 
 
         </div>

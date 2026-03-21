@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { GardenStateResponse } from "@ebonkeep/shared/garden";
 
-import { GardenPanel } from "../src/features/garden/GardenPanel";
+import { __resetGardenPanelCacheForTests, GardenPanel } from "../src/features/garden/GardenPanel";
 
 const gardenApiMocks = vi.hoisted(() => ({
   fetchGardenState: vi.fn(),
@@ -86,10 +86,28 @@ function toIso(timestampMs: number): string {
 
 describe("garden panel", () => {
   beforeEach(() => {
+    __resetGardenPanelCacheForTests();
     gardenApiMocks.fetchGardenState.mockReset();
     gardenApiMocks.plantGardenSeed.mockReset();
     gardenApiMocks.harvestGardenPlot.mockReset();
     gardenApiMocks.clearGardenPlot.mockReset();
+  });
+
+  it("reuses the warm garden response on remount without flashing the loading shell", async () => {
+    gardenApiMocks.fetchGardenState
+      .mockResolvedValueOnce(createGardenState())
+      .mockImplementationOnce(() => new Promise(() => {}));
+
+    const firstRender = render(<GardenPanel token="token" />);
+
+    expect(await screen.findByText("Bloodleaf Seeds")).toBeTruthy();
+
+    firstRender.unmount();
+
+    render(<GardenPanel token="token" />);
+
+    expect(screen.queryByText("gardenPanel.loading")).toBeNull();
+    expect(screen.getByText("Bloodleaf Seeds")).toBeTruthy();
   });
 
   it("loads the garden state and plants a selected seed into the selected slot", async () => {

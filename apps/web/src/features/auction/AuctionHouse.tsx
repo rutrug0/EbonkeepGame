@@ -17,6 +17,7 @@ export interface AuctionHouseProps {
   playerLevel?: number | null;
   equipmentBySlot?: Record<EquipmentSlotId, ComparableInventoryItem | null>;
   onDucatsChange?: (nextDucats: number) => void;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
 }
 
 type AuctionStatus = "pending" | "active" | "settling" | "settled";
@@ -165,6 +166,31 @@ interface AuctionHoverState {
 
 type AuctionView = "browse" | "submit" | "mySubmissions";
 
+type AuctionHouseCacheEntry = {
+  auctions: AuctionInstance[];
+  selectedAuctionId: string | null;
+  myBids: PlayerBid[];
+  pendingRewards: PendingReward[];
+  mySubmissions: PlayerSubmission[];
+  inventoryItems: InventoryItem[];
+  error: string | null;
+  hasSettled: boolean;
+};
+
+const auctionHouseCacheByToken = new Map<string, AuctionHouseCacheEntry>();
+
+function readAuctionHouseCache(token: string | null): AuctionHouseCacheEntry | null {
+  if (!token) {
+    return null;
+  }
+
+  return auctionHouseCacheByToken.get(token) ?? null;
+}
+
+export function __resetAuctionHouseCacheForTests() {
+  auctionHouseCacheByToken.clear();
+}
+
 function sanitizeParsedItemData(input: Partial<ParsedItemData> & { itemCode?: string }): ParsedItemData {
   const rarity = typeof input.rarity === "string" && input.rarity.trim() ? input.rarity : "common";
   const category = typeof input.category === "string" && input.category.trim() ? input.category : "misc";
@@ -260,19 +286,33 @@ function preserveAuctionItemOrder(nextAuctions: AuctionInstance[], previousAucti
   });
 }
 
-export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, equipmentBySlot, onDucatsChange }: AuctionHouseProps) {
+export function AuctionHouse({
+  token,
+  currentDucats,
+  playerClass,
+  playerLevel,
+  equipmentBySlot,
+  onDucatsChange,
+  onFirstPaintReadyChange
+}: AuctionHouseProps) {
   const { t } = useTranslation("common");
+  const initialCacheEntry = readAuctionHouseCache(token);
+  const initialSelectedAuction =
+    initialCacheEntry?.selectedAuctionId
+      ? initialCacheEntry.auctions.find((auction) => auction.id === initialCacheEntry.selectedAuctionId) ?? initialCacheEntry.auctions[0] ?? null
+      : initialCacheEntry?.auctions[0] ?? null;
   const auctionHouseShellStyle = getViewBackgroundStyle("auction_house") as CSSProperties;
   const [activeView, setActiveView] = useState<AuctionView>("browse");
-  const [auctions, setAuctions] = useState<AuctionInstance[]>([]);
-  const [selectedAuction, setSelectedAuction] = useState<AuctionInstance | null>(null);
-  const [myBids, setMyBids] = useState<PlayerBid[]>([]);
-  const [pendingRewards, setPendingRewards] = useState<PendingReward[]>([]);
-  const [mySubmissions, setMySubmissions] = useState<PlayerSubmission[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [auctions, setAuctions] = useState<AuctionInstance[]>(() => initialCacheEntry?.auctions ?? []);
+  const [selectedAuction, setSelectedAuction] = useState<AuctionInstance | null>(() => initialSelectedAuction);
+  const [myBids, setMyBids] = useState<PlayerBid[]>(() => initialCacheEntry?.myBids ?? []);
+  const [pendingRewards, setPendingRewards] = useState<PendingReward[]>(() => initialCacheEntry?.pendingRewards ?? []);
+  const [mySubmissions, setMySubmissions] = useState<PlayerSubmission[]>(() => initialCacheEntry?.mySubmissions ?? []);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>(() => initialCacheEntry?.inventoryItems ?? []);
+  const [loading, setLoading] = useState(() => Boolean(token) && !initialCacheEntry?.hasSettled);
   const [rerollingAuctions, setRerollingAuctions] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => initialCacheEntry?.error ?? null);
+  const [hasSettledInitialResponse, setHasSettledInitialResponse] = useState(() => Boolean(initialCacheEntry?.hasSettled));
   const [bidAmount, setBidAmount] = useState<Record<string, string>>({});
   const [submittingBid, setSubmittingBid] = useState<string | null>(null);
   const [recentlyUpdatedBidItemId, setRecentlyUpdatedBidItemId] = useState<string | null>(null);
@@ -340,18 +380,63 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
   };
 
   useEffect(() => {
-    if (token) {
-      void loadActiveAuctions();
-      void loadMyBids();
-      void loadPendingRewards();
-      void loadMySubmissions();
-      void loadInventory();
+    if (!token) {
+      auctionHouseCacheByToken.clear();
+      setAuctions([]);
+      setSelectedAuction(null);
+      setMyBids([]);
+      setPendingRewards([]);
+      setMySubmissions([]);
+      setInventoryItems([]);
+      setLoading(false);
+      setError(null);
+      setHasSettledInitialResponse(false);
+      return;
     }
+
+    const shouldShowSpinner = !initialCacheEntry?.hasSettled;
+    void loadActiveAuctions({ silent: !shouldShowSpinner });
+    void loadMyBids();
+    void loadPendingRewards();
+    void loadMySubmissions();
+    void loadInventory();
   }, [token]);
 
   useEffect(() => {
     setDisplayDucats(currentDucats);
   }, [currentDucats]);
+
+  useEffect(() => {
+    onFirstPaintReadyChange?.(Boolean(token) && !loading && hasSettledInitialResponse);
+  }, [token, loading, hasSettledInitialResponse, onFirstPaintReadyChange]);
+
+  useEffect(() => {
+    if (!token || loading) {
+      return;
+    }
+
+    auctionHouseCacheByToken.set(token, {
+      auctions,
+      selectedAuctionId: selectedAuction?.id ?? null,
+      myBids,
+      pendingRewards,
+      mySubmissions,
+      inventoryItems,
+      error,
+      hasSettled: hasSettledInitialResponse
+    });
+  }, [
+    token,
+    loading,
+    auctions,
+    selectedAuction,
+    myBids,
+    pendingRewards,
+    mySubmissions,
+    inventoryItems,
+    error,
+    hasSettledInitialResponse
+  ]);
 
   const loadActiveAuctions = async (options?: { silent?: boolean }) => {
     if (!token) return;
@@ -384,8 +469,10 @@ export function AuctionHouse({ token, currentDucats, playerClass, playerLevel, e
 
         return nextAuctions.find((auction: AuctionInstance) => auction.id === previous.id) || nextAuctions[0];
       });
+      setHasSettledInitialResponse(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("auction.errors.failedToLoad"));
+      setHasSettledInitialResponse(true);
     } finally {
       if (!options?.silent) {
         setLoading(false);

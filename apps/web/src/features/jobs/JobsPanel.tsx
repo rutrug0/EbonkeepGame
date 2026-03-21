@@ -36,6 +36,13 @@ type JobsPanelProps = {
   developerToolsEnabled: boolean;
   onGrantDucats: (amount: number) => void;
   onLockReleaseAtChange: (releaseAtMs: number | null) => void;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
+};
+
+type JobsPanelCacheEntry = {
+  jobsState: JobsStateResponse | null;
+  errorMessage: string | null;
+  hasSettled: boolean;
 };
 
 type RewardChip = {
@@ -47,6 +54,19 @@ type RewardChip = {
 const DURATION_MIN = 1;
 const DURATION_MAX = 10;
 const DEFAULT_DURATION_HOURS = 5;
+const jobsPanelCacheByToken = new Map<string, JobsPanelCacheEntry>();
+
+function readJobsPanelCache(token: string | null): JobsPanelCacheEntry | null {
+  if (!token) {
+    return null;
+  }
+
+  return jobsPanelCacheByToken.get(token) ?? null;
+}
+
+export function __resetJobsPanelCacheForTests() {
+  jobsPanelCacheByToken.clear();
+}
 
 export function getStoredJobsLockReleaseAtMs(): number | null {
   return null;
@@ -248,20 +268,34 @@ function JobCard(props: {
 }
 
 export function JobsPanel(props: JobsPanelProps): ReactElement {
-  const { token, hasPlayerState, currentDucats, playerLevel, developerToolsEnabled, onGrantDucats, onLockReleaseAtChange } = props;
-  const [jobsState, setJobsState] = useState<JobsStateResponse | null>(null);
+  const {
+    token,
+    hasPlayerState,
+    currentDucats,
+    playerLevel,
+    developerToolsEnabled,
+    onGrantDucats,
+    onLockReleaseAtChange,
+    onFirstPaintReadyChange
+  } = props;
+  const initialCacheEntry = readJobsPanelCache(token);
+  const [jobsState, setJobsState] = useState<JobsStateResponse | null>(() => initialCacheEntry?.jobsState ?? null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [durationHours, setDurationHours] = useState<number>(DEFAULT_DURATION_HOURS);
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(token) && hasPlayerState && !initialCacheEntry?.hasSettled);
   const [isMutating, setIsMutating] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => initialCacheEntry?.errorMessage ?? null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [showRulesPanel, setShowRulesPanel] = useState(false);
 
   async function loadState(showSpinner = false) {
     if (!token || !hasPlayerState) {
+      if (token) {
+        jobsPanelCacheByToken.delete(token);
+      }
       setJobsState(null);
+      setErrorMessage(null);
       setIsLoading(false);
       onLockReleaseAtChange(null);
       return;
@@ -276,15 +310,38 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
       setJobsState(response);
       setErrorMessage(null);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Jobs state failed.");
+      const nextErrorMessage = error instanceof Error ? error.message : "Jobs state failed.";
+      setJobsState((current) => (showSpinner || !current ? null : current));
+      setErrorMessage(nextErrorMessage);
     } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadState(true);
+    void loadState(!initialCacheEntry?.hasSettled);
   }, [token, hasPlayerState]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    if (!hasPlayerState) {
+      jobsPanelCacheByToken.delete(token);
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    jobsPanelCacheByToken.set(token, {
+      jobsState,
+      errorMessage,
+      hasSettled: Boolean(jobsState) || Boolean(errorMessage)
+    });
+  }, [token, hasPlayerState, isLoading, jobsState, errorMessage]);
 
   useEffect(() => {
     setNowMs(Date.now());
@@ -321,6 +378,11 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
     () => jobsState?.boardEntries.find((entry) => entry.template.id === selectedJobId) ?? jobsState?.boardEntries[0] ?? null,
     [jobsState, selectedJobId]
   );
+
+  useEffect(() => {
+    const hasSettledJobsResponse = Boolean(jobsState) || Boolean(errorMessage);
+    onFirstPaintReadyChange?.(Boolean(token) && hasPlayerState && !isLoading && hasSettledJobsResponse);
+  }, [token, hasPlayerState, isLoading, jobsState, errorMessage, onFirstPaintReadyChange]);
 
   const selectedUnlockHours = useMemo(
     () => getFocusUnlockHours(durationHours),
@@ -436,9 +498,13 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
           </div>
         ) : null}
 
-        {isLoading || !jobsState || !selectedEntry ? (
+        {isLoading ? (
           <div className="jobsActiveCard">
             <p className="jobsStatusMessage">Loading jobs...</p>
+          </div>
+        ) : !jobsState || !selectedEntry ? (
+          <div className="jobsActiveCard">
+            <p className="jobsStatusMessage">Jobs are unavailable right now.</p>
           </div>
         ) : (
           <div

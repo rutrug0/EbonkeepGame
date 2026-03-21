@@ -30,6 +30,7 @@ export type ForgePanelProps = {
   token: string | null;
   playerState: PlayerState | null;
   onPlayerStateChange: (next: PlayerState) => void;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
 };
 
 type ForgeWeaponEntry = {
@@ -205,7 +206,7 @@ function renderForgeOrb(className: string) {
   );
 }
 
-export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePanelProps) {
+export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPaintReadyChange }: ForgePanelProps) {
   const { t } = useTranslation("common");
   const forgeSceneStyle = getViewBackgroundStyle("forge") as CSSProperties;
   const [forgeState, setForgeState] = useState<ForgeState | null>(null);
@@ -413,6 +414,10 @@ export function ForgePanel({ token, playerState, onPlayerStateChange }: ForgePan
     commitPendingResolveStateOnUnmount();
     clearResolveTimeline();
   }, []);
+
+  useEffect(() => {
+    onFirstPaintReadyChange?.(Boolean(token) && Boolean(playerState) && Boolean(forgeState));
+  }, [token, playerState, forgeState, onFirstPaintReadyChange]);
 
   const weaponEntries = useMemo<ForgeWeaponEntry[]>(() => {
     if (!playerState) return [];
