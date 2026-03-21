@@ -240,11 +240,25 @@ export async function mendForgeWeapon(
       throw new ForgeError("FORGE_MISSING_TEMPERING_DRAUGHT", 400, "You need a Tempering Draught to mend this weapon.");
     }
 
-    // Find the weapon in inventory or equipment to clear its failure flag
-    const weaponRecord = await tx.inventoryItem.findUnique({
+    // Find the weapon in inventory or equipment to clear its failure flag.
+    // First try the exact ID stored at the time of failure. If that row is gone
+    // (e.g. the player sold the weapon and bought it back, giving it a new id),
+    // fall back to any weapon owned by this player that still carries the flag.
+    let weaponRecord = await tx.inventoryItem.findUnique({
       where: { id: weaponItemId },
       select: { id: true, playerId: true, itemCode: true, itemData: true }
     });
+
+    if (!weaponRecord || weaponRecord.playerId !== playerId) {
+      const candidates = await tx.inventoryItem.findMany({
+        where: { playerId },
+        select: { id: true, playerId: true, itemCode: true, itemData: true }
+      });
+      weaponRecord = candidates.find((r) => {
+        const parsed = parseStoredInventoryItem(r);
+        return parsed?.archetype?.majorCategory === "weapon" && parsed?.temperingFailed === true;
+      }) ?? null;
+    }
 
     if (!weaponRecord || weaponRecord.playerId !== playerId) {
       throw new ForgeError("FORGE_WEAPON_NOT_FOUND", 404, "Weapon not found.");
@@ -268,7 +282,7 @@ export async function mendForgeWeapon(
     };
 
     await tx.inventoryItem.update({
-      where: { id: weaponItemId },
+      where: { id: weaponRecord.id },
       data: {
         itemData: withStoredWeaponForgeData(weaponRecord.itemData, mendedForgeData) as Prisma.InputJsonValue
       }

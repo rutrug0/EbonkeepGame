@@ -9,6 +9,7 @@ import {
   type MerchantState,
   type PlayerState
 } from "@ebonkeep/shared";
+import { TEMPERING_DRAUGHT_ITEM_CODE } from "@ebonkeep/shared/forge";
 
 import {
   MERCHANT_TEMPLATE_IDS,
@@ -22,6 +23,8 @@ const MERCHANT_STOCK_SIZE = 8;
 const MERCHANT_REFRESH_INTERVAL_MS = 12 * 60 * 60 * 1000;
 const MAX_MERCHANT_ITEM_LEVEL_DELTA = 3;
 const BUYBACK_PRICE_MARKUP_FACTOR = 1.1;
+/** Fixed buy price for the Tempering Draught sold in the merchant's last slot. */
+const TEMPERING_DRAUGHT_BUY_PRICE_DUCATS = 650;
 
 const BUY_PRICE_RARITY_MULTIPLIER = {
   common: 1,
@@ -167,6 +170,45 @@ async function loadMerchantPlayerSnapshot(prisma: PrismaClient, playerId: string
   };
 }
 
+function buildTemperingDraughtOfferRow(playerId: string, offerIndex: number, refreshAt: Date): {
+  id: string;
+  playerId: string;
+  offerCode: string;
+  offerIndex: number;
+  itemCode: string;
+  itemData: InventoryItem;
+  buyPriceDucats: number;
+  refreshAt: Date;
+} {
+  const item = inventoryItemSchema.parse({
+    id: `merchant_draught_${randomUUID().replaceAll("-", "")}`,
+    itemCode: TEMPERING_DRAUGHT_ITEM_CODE,
+    itemName: "Tempering Draught",
+    rarity: "uncommon",
+    category: "Consumable",
+    equipable: false,
+    levelRequirement: 1,
+    baseLevel: 1,
+    allowedSlotIds: [],
+    power: 0,
+    archetype: { majorCategory: "consumable" },
+    statBonuses: {},
+    description: "A compound of quench stone, bone ash and pitch resin. Applied to a fractured tempering, it resets the metal grain and restores the weapon's full damage.",
+    iconAssetPath: "/assets/materials/mat_tempering_draught.png"
+  }) as InventoryItem;
+
+  return {
+    id: `merchant_offer_${randomUUID().replaceAll("-", "")}`,
+    playerId,
+    offerCode: `${TEMPERING_DRAUGHT_ITEM_CODE}_${offerIndex}`,
+    offerIndex,
+    itemCode: TEMPERING_DRAUGHT_ITEM_CODE,
+    itemData: item,
+    buyPriceDucats: TEMPERING_DRAUGHT_BUY_PRICE_DUCATS,
+    refreshAt
+  };
+}
+
 function buildMerchantOfferRows(playerId: string, playerLevel: number): Array<{
   id: string;
   playerId: string;
@@ -179,8 +221,9 @@ function buildMerchantOfferRows(playerId: string, playerLevel: number): Array<{
 }> {
   const itemLevelMax = Math.max(1, playerLevel + MAX_MERCHANT_ITEM_LEVEL_DELTA);
   const refreshAt = new Date(Date.now() + MERCHANT_REFRESH_INTERVAL_MS);
+  const randomSlotCount = MERCHANT_STOCK_SIZE - 1;
 
-  return Array.from({ length: MERCHANT_STOCK_SIZE }, (_, offerIndex) => {
+  const randomRows = Array.from({ length: randomSlotCount }, (_, offerIndex) => {
     const templateId = MERCHANT_TEMPLATE_IDS[randomInt(0, MERCHANT_TEMPLATE_IDS.length - 1)];
     const itemLevel = randomInt(1, itemLevelMax);
     const item = rollInventoryItem({
@@ -203,6 +246,8 @@ function buildMerchantOfferRows(playerId: string, playerLevel: number): Array<{
       refreshAt
     };
   });
+
+  return [...randomRows, buildTemperingDraughtOfferRow(playerId, randomSlotCount, refreshAt)];
 }
 
 async function getNextMerchantRefreshAt(prisma: Pick<PrismaClient, "shopInstance">, playerId: string): Promise<Date> {
