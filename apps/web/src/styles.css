@@ -1034,12 +1034,65 @@ button:focus-visible {
 }
 
 .rightPanel {
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: flex;
   justify-content: flex-start;
   overflow: hidden;
   animation: riseIn 320ms ease-out;
+}
+
+.panelTransitionViewport {
+  position: relative;
+}
+
+.panelTransitionPreloadViewport {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.panelTransitionOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 38;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  will-change: opacity, backdrop-filter;
+  background: linear-gradient(180deg, rgba(7, 10, 14, 0.22), rgba(7, 10, 14, 0.34));
+  backdrop-filter: blur(0px);
+  transition: opacity 140ms ease, backdrop-filter 140ms ease, visibility 0s linear 140ms;
+}
+
+.panelTransitionOverlay.is-visible {
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.panelTransitionOverlay.phase-preparing {
+  opacity: 1;
+  backdrop-filter: blur(8px);
+}
+
+.panelTransitionOverlay.phase-revealing {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+}
+
+.panelTransitionFloatingUi {
+  transition: opacity 140ms ease, visibility 0s linear 140ms;
+}
+
+.panelTransitionFloatingUi.panelTransitionFloatingUiHidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .panelViewport {

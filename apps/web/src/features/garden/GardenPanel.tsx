@@ -34,6 +34,13 @@ import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 export type GardenPanelProps = {
   token: string | null;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
+};
+
+type GardenPanelCacheEntry = {
+  gardenState: GardenStateResponse | null;
+  error: string | null;
+  hasSettled: boolean;
 };
 
 const GARDEN_EMPTY_PLOT_IMAGE_PATH = getGardenEmptyPlotImagePath();
@@ -43,6 +50,19 @@ const GARDEN_PLOT_HARVESTING_DURATION_MS = 560;
 const GARDEN_PLOT_CLEARING_DURATION_MS = 420;
 const GARDEN_FLOATING_REWARD_DURATION_MS = 1_250;
 const GARDEN_INGREDIENT_FEEDBACK_DURATION_MS = 2_100;
+const gardenPanelCacheByToken = new Map<string, GardenPanelCacheEntry>();
+
+function readGardenPanelCache(token: string | null): GardenPanelCacheEntry | null {
+  if (!token) {
+    return null;
+  }
+
+  return gardenPanelCacheByToken.get(token) ?? null;
+}
+
+export function __resetGardenPanelCacheForTests() {
+  gardenPanelCacheByToken.clear();
+}
 
 type GardenPlotVisualFx =
   | {
@@ -448,13 +468,16 @@ function getGardenPlotLayoutStyle(
   } as CSSProperties;
 }
 
-export function GardenPanel({ token }: GardenPanelProps): ReactElement {
+export function GardenPanel({ token, onFirstPaintReadyChange }: GardenPanelProps): ReactElement {
   const { t } = useTranslation();
-  const [gardenState, setGardenState] = useState<GardenStateResponse | null>(null);
-  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
+  const initialCacheEntry = readGardenPanelCache(token);
+  const [gardenState, setGardenState] = useState<GardenStateResponse | null>(() => initialCacheEntry?.gardenState ?? null);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(() =>
+    getDefaultSelectedSlotIndex(initialCacheEntry?.gardenState ?? null, null)
+  );
   const [selectedSeedPlantId, setSelectedSeedPlantId] = useState<GardenPlantId | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(() => Boolean(token) && !initialCacheEntry?.hasSettled);
+  const [error, setError] = useState<string | null>(() => initialCacheEntry?.error ?? null);
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [serverClockOffsetMs, setServerClockOffsetMs] = useState(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -488,6 +511,7 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
     if (!token) {
       setGardenState(null);
       setError(t("gardenPanel.unavailable"));
+      gardenPanelCacheByToken.clear();
       if (isInitialLoad) {
         setIsLoading(false);
       }
@@ -503,7 +527,9 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
       });
       setError(null);
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t("gardenPanel.unavailable"));
+      const nextErrorMessage = nextError instanceof Error ? nextError.message : t("gardenPanel.unavailable");
+      setGardenState((current) => (isInitialLoad || !current ? null : current));
+      setError(nextErrorMessage);
     } finally {
       if (isInitialLoad) {
         setIsLoading(false);
@@ -512,8 +538,29 @@ export function GardenPanel({ token }: GardenPanelProps): ReactElement {
   });
 
   useEffect(() => {
-    void loadState(true);
+    void loadState(!initialCacheEntry?.hasSettled);
   }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    gardenPanelCacheByToken.set(token, {
+      gardenState,
+      error,
+      hasSettled: Boolean(gardenState) || Boolean(error)
+    });
+  }, [token, isLoading, gardenState, error]);
+
+  useEffect(() => {
+    const hasSettledGardenResponse = Boolean(gardenState) || Boolean(error);
+    onFirstPaintReadyChange?.(Boolean(token) && !isLoading && hasSettledGardenResponse);
+  }, [token, isLoading, gardenState, error, onFirstPaintReadyChange]);
 
   useEffect(() => {
     const timerId = window.setInterval(() => {

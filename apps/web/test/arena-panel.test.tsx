@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ArenaStateResponse } from "@ebonkeep/shared/arena";
 
-import { ArenaPanel } from "../src/features/arena/ArenaPanel";
+import { __resetArenaPanelCacheForTests, ArenaPanel } from "../src/features/arena/ArenaPanel";
 
 const arenaApiMocks = vi.hoisted(() => ({
   fetchArenaState: vi.fn(),
@@ -83,10 +83,70 @@ function createArenaState(overrides?: Partial<ArenaStateResponse>): ArenaStateRe
 
 describe("arena panel", () => {
   beforeEach(() => {
+    __resetArenaPanelCacheForTests();
     arenaApiMocks.fetchArenaState.mockReset();
     arenaApiMocks.findArenaOpponents.mockReset();
     arenaApiMocks.fightArenaOffer.mockReset();
     arenaServerPlaybackMocks.buildArenaCombatState.mockReset();
+  });
+
+  it("reuses the warm arena response on remount without flashing the loading shell", async () => {
+    arenaApiMocks.fetchArenaState
+      .mockResolvedValueOnce(createArenaState({
+        offers: [
+          {
+            offerId: "offer_1",
+            offeredAt: new Date().toISOString(),
+            cooldownEndsAt: new Date(Date.now() + 600_000).toISOString(),
+            opponent: {
+              entryId: "mock_1",
+              displayName: "Storm Harrier",
+              class: "reaver",
+              level: 58,
+              gearScore: 1300,
+              rating: 1012,
+              wins: 5,
+              losses: 3,
+              source: "mock",
+              weaponLabel: "Durnholde Axe",
+              previewStats: {
+                mainDamage: 700,
+                maxHitpoints: 3900,
+                combatSpeed: 140,
+                armor: 200
+              }
+            }
+          }
+        ]
+      }))
+      .mockImplementationOnce(() => new Promise(() => {}));
+
+    const firstRender = render(
+      <ArenaPanel
+        token="token"
+        hasPlayerState
+        playerName="Warden"
+        playerAvatarPath="/portrait.png"
+        formatDurationFromMs={() => "10m 00s"}
+      />
+    );
+
+    expect(await screen.findByText("arena.chooseOpponent")).toBeTruthy();
+
+    firstRender.unmount();
+
+    render(
+      <ArenaPanel
+        token="token"
+        hasPlayerState
+        playerName="Warden"
+        playerAvatarPath="/portrait.png"
+        formatDurationFromMs={() => "10m 00s"}
+      />
+    );
+
+    expect(screen.queryByText("arena.loading")).toBeNull();
+    expect(screen.getByText("arena.chooseOpponent")).toBeTruthy();
   });
 
   it("renders the find-opponent empty state and shows offers after search", async () => {

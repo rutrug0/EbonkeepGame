@@ -20,6 +20,7 @@ export function CharacterHubTabs(props: CharacterHubTabsProps) {
               key={tab}
               type="button"
               className={`profileSwitchButton${props.activeTab === tab ? " active" : ""}`}
+              data-testid={`character-hub-tab-${tab}`}
               onClick={() => props.onTabChange(tab)}
             >
               {formatCharacterHubTabLabel(tab)}

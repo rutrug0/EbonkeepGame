@@ -261,6 +261,7 @@ function PlayerProfileModal({
 export interface LeaderboardProps {
   token: string | null;
   currentPlayerId?: string | null;
+  onFirstPaintReadyChange?: (ready: boolean) => void;
 }
 
 interface InviteConfirmModalProps {
@@ -300,7 +301,7 @@ type ClassFilter = PlayerStatTree | "all";
 type LeaderboardCategory = "players" | "guilds";
 type GuildLeaderboardType = "totalPower" | "level" | "memberCount";
 
-export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
+export function Leaderboard({ token, currentPlayerId, onFirstPaintReadyChange }: LeaderboardProps) {
   const { t } = useTranslation("common");
   const leaderboardSceneStyle = getViewBackgroundStyle("leaderboard") as CSSProperties;
   const [category, setCategory] = useState<LeaderboardCategory>("players");
@@ -309,7 +310,7 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
   const [guildLeaderboardType, setGuildLeaderboardType] = useState<GuildLeaderboardType>("totalPower");
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardResponse | null>(null);
   const [guildLeaderboardData, setGuildLeaderboardData] = useState<GuildLeaderboardResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(() => Boolean(token));
   const [error, setError] = useState<string | null>(null);
   const [selectedGuildId, setSelectedGuildId] = useState<string | null>(null);
   const [myGuildId, setMyGuildId] = useState<string | null>(null);
@@ -376,6 +377,15 @@ export function Leaderboard({ token, currentPlayerId }: LeaderboardProps) {
 
     void loadLeaderboard();
   }, [token, category, leaderboardType, classFilter, guildLeaderboardType, t]);
+
+  useEffect(() => {
+    const hasVisibleData =
+      category === "players"
+        ? leaderboardData !== null
+        : guildLeaderboardData !== null;
+
+    onFirstPaintReadyChange?.(Boolean(token) && !isLoading && hasVisibleData);
+  }, [token, category, leaderboardData, guildLeaderboardData, isLoading, onFirstPaintReadyChange]);
 
   function formatClassName(playerClass: PlayerClass): string {
     return t(`class.${playerClass}`);
