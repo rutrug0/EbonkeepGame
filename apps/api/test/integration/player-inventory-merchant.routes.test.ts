@@ -96,7 +96,8 @@ describe("player, inventory, and merchant routes", () => {
       fastArenaReplenishEnabled: false,
       invincibilityEnabled: false,
       fastTrainTimeEnabled: false,
-      unlimitedAcademyDonationsEnabled: false
+      unlimitedAcademyDonationsEnabled: false,
+      unlimitedForgeConsumablesEnabled: false
     });
 
     const settingsResponse = await context.app.inject({
@@ -119,7 +120,8 @@ describe("player, inventory, and merchant routes", () => {
       fastArenaReplenishEnabled: true,
       invincibilityEnabled: true,
       fastTrainTimeEnabled: true,
-      unlimitedAcademyDonationsEnabled: true
+      unlimitedAcademyDonationsEnabled: true,
+      unlimitedForgeConsumablesEnabled: false
     });
 
     const persistedStateResponse = await context.app.inject({
