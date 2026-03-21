@@ -303,7 +303,9 @@
         "uncommon": "Uncommon",
         "rare": "Rare",
         "epic": "Epic"
-      }
+      },
+      "unlimitedForgeConsumablesLabel": "Бесконечные расходники кузницы",
+      "unlimitedForgeConsumablesHelp": "Зачарование не тратит дукаты, а починка не требует Напиток закалки."
     }
   },
   "shop": {
@@ -836,6 +838,7 @@
     "loadFailed": "Failed to load forge state.",
     "attemptFailed": "Enchant attempt failed.",
     "cleanseFailed": "Failed to cleanse forge instability.",
+    "mendFailed": "Не удалось восстановить оружие.",
     "safeUntil": "Safe through +{{level}}",
     "baseDamageOnly": "Only base weapon damage scales",
     "weaponList": "Arsenal",
@@ -859,23 +862,28 @@
     "resultSuccess": "Temper held. Reached +{{level}}.",
     "resultReset": "Temper shattered. Weapon reset to +0.",
     "resultSuccessBody": "Weapon damage improved from {{before}} to {{after}}.",
-    "resultResetBody": "Forge instability applied: -{{penalty}} total damage until cleansed.",
+    "resultResetBody": "Сбой закалки: оружие повреждено. Статы снижены до восстановления с Напитком закалки.",
     "catalystEyebrow": "Catalyst",
     "catalystTitle": "Required Enchant",
     "weaponCatalyst": "Weapon Catalyst",
     "requiredForLevel": "Required for +{{level}}",
     "bonusAfterSuccess": "Damage after success: {{value}}",
     "damagePreview": "Projected damage: {{before}} -> {{after}}",
-    "instabilityTitle": "Forge Instability",
+    "instabilityTitle": "Сбой закалки",
     "instabilityBody": "The failed +{{level}} attempt fractured your temper. Enchanting stays locked until you stabilize it.",
     "damagePenaltyLabel": "Damage penalty: -{{value}}",
     "cleanseCostLabel": "Cleanse cost: {{cost}} ducats",
     "cleansing": "Stabilizing...",
+    "mending": "Восстановление...",
     "cleanse": "Stabilize Forge",
+    "mendWeapon": "Восстановить (1× Напиток закалки)",
+    "mendRequirement": "Требуются: 1× Напиток закалки в инвентаре",
+    "temperingDraught": "Напиток закалки",
+    "temperingFailedCardNote": "Оружие повреждено. Статы снижены до восстановления.",
     "rulesButton": "Правила",
     "rulesTitle": "Forge Rules",
     "ruleSafe": "+1 to +{{level}} is always safe.",
-    "ruleRisk": "From +4 onward, failure resets the weapon to +0 and applies forge instability.",
+    "ruleRisk": "Начиная с +4, провал сбрасывает оружие до +0 и помечает его как повреждённое (статы снижены до восстановления).",
     "ruleScale": "Enchanting boosts only the weapon's base damage, while affixes stay unchanged.",
     "weaponSlotLabel": "Оружие",
     "weaponSlotEmpty": "Нажмите, чтобы выбрать",
@@ -884,8 +892,11 @@
     "enchantSlotEmpty": "Нажмите, чтобы выбрать",
     "weaponPickerTitle": "Арсенал",
     "enchantPickerTitle": "Выбрать зачарование",
-    "enchantOptionConfirm": "Подтвердить выбор"
-  },  "renown": {
+    "enchantOptionConfirm": "Подтвердить выбор",
+    "needsMending": "Нужна чинка",
+    "mendSlotEmpty": "Нужен Напиток закалки"
+  },
+  "renown": {
     "unlock": "Разблокировать",
     "balance": "Баланс",
     "insufficientRenown": "Недостаточно Репутации"

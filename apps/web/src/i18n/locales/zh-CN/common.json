@@ -303,7 +303,9 @@
         "uncommon": "Uncommon",
         "rare": "Rare",
         "epic": "Epic"
-      }
+      },
+      "unlimitedForgeConsumablesLabel": "无限锻造消耗品",
+      "unlimitedForgeConsumablesHelp": "附魔不消耗金币，修复也不需要回火灵药。"
     }
   },
   "shop": {
@@ -834,6 +836,7 @@
     "loadFailed": "Failed to load forge state.",
     "attemptFailed": "Enchant attempt failed.",
     "cleanseFailed": "Failed to cleanse forge instability.",
+    "mendFailed": "武器修复失败。",
     "safeUntil": "Safe through +{{level}}",
     "baseDamageOnly": "Only base weapon damage scales",
     "weaponList": "Arsenal",
@@ -857,22 +860,27 @@
     "resultSuccess": "Temper held. Reached +{{level}}.",
     "resultReset": "Temper shattered. Weapon reset to +0.",
     "resultSuccessBody": "Weapon damage improved from {{before}} to {{after}}.",
-    "resultResetBody": "Forge instability applied: -{{penalty}} total damage until cleansed.",
+    "resultResetBody": "淬炼失败：武器伤害已降低，需使用回火灵药修复。",
     "catalystEyebrow": "Catalyst",
     "catalystTitle": "Required Enchant",
     "weaponCatalyst": "Weapon Catalyst",
     "requiredForLevel": "Required for +{{level}}",
     "bonusAfterSuccess": "Damage after success: {{value}}",
     "damagePreview": "Projected damage: {{before}} -> {{after}}",
-    "instabilityTitle": "Forge Instability",
+    "instabilityTitle": "淬炼失败",
     "instabilityBody": "The failed +{{level}} attempt fractured your temper. Enchanting stays locked until you stabilize it.",
     "damagePenaltyLabel": "Damage penalty: -{{value}}",
     "cleanseCostLabel": "Cleanse cost: {{cost}} ducats",
     "cleansing": "Stabilizing...",
+    "mending": "修复中...",
     "cleanse": "Stabilize Forge",
+    "mendWeapon": "修复（需1个回火灵药）",
+    "mendRequirement": "需要：背包中1个回火灵药",
+    "temperingDraught": "回火灵药",
+    "temperingFailedCardNote": "武器已损坏。属性降低，直到修复。",
     "rulesTitle": "Forge Rules",
     "ruleSafe": "+1 to +{{level}} is always safe.",
-    "ruleRisk": "From +4 onward, failure resets the weapon to +0 and applies forge instability.",
+    "ruleRisk": "从+4起，失败会将武器重置为+0并标记为损坏（属性降低直到修复）。",
     "ruleScale": "Enchanting boosts only the weapon's base damage, while affixes stay unchanged.",
     "rulesButton": "规则",
     "weaponSlotLabel": "武器",
@@ -882,8 +890,11 @@
     "enchantSlotEmpty": "点击选择",
     "weaponPickerTitle": "武器库",
     "enchantPickerTitle": "选择魔法",
-    "enchantOptionConfirm": "确认选择"
-  },  "renown": {
+    "enchantOptionConfirm": "确认选择",
+    "needsMending": "需要修复",
+    "mendSlotEmpty": "需要调质药剂"
+  },
+  "renown": {
     "balance": "余额",
     "insufficientRenown": "声望不足"
   },

@@ -172,7 +172,7 @@ export const inventoryItemSchema = z.object({
   category: z.string(),
   equipable: z.boolean(),
   levelRequirement: z.number().int().min(1).max(100),
-  allowedSlotIds: z.array(equipmentSlotIdSchema).min(1),
+  allowedSlotIds: z.array(equipmentSlotIdSchema).min(0),
   baseLevel: z.number().int().min(0).max(100).optional(),
   power: z.number().int().min(0),
   archetype: itemArchetypeSchema,
@@ -181,7 +181,10 @@ export const inventoryItemSchema = z.object({
   prefix: itemModifierSchema.optional(),
   affix: itemModifierSchema.optional(),
   enchanting: itemEnchantingSchema.optional(),
-  description: z.string()
+  description: z.string(),
+  temperingFailed: z.boolean().optional(),
+  damagePenaltyBps: z.number().int().min(0).optional(),
+  iconAssetPath: z.string().optional()
 });
 export type InventoryItem = z.infer<typeof inventoryItemSchema>;
 export const equippedItemSchema = inventoryItemSchema;

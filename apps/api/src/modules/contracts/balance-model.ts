@@ -388,7 +388,8 @@ export function createExpectedPlayerState(args: {
       fastContractReplenishEnabled: false,
       fastArenaReplenishEnabled: false,
       fastTrainTimeEnabled: false,
-      unlimitedAcademyDonationsEnabled: false
+      unlimitedAcademyDonationsEnabled: false,
+      unlimitedForgeConsumablesEnabled: false
     }
   };
 }

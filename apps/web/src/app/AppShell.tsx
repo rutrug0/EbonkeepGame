@@ -233,6 +233,8 @@ type InventoryItem = {
   enchanting?: SharedItemEnchanting;
   power: number;
   description: string;
+  temperingFailed?: boolean;
+  damagePenaltyBps?: number;
 };
 
 type ItemModifier = {
@@ -864,7 +866,9 @@ function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
     affix: toLocalItemModifier(item.affix),
     enchanting: item.enchanting,
     power: item.power,
-    description: item.description
+    description: item.description,
+    temperingFailed: item.temperingFailed,
+    damagePenaltyBps: item.damagePenaltyBps
   };
 }
 
@@ -1196,8 +1200,18 @@ function getWeaponDamageSummary(item: InventoryItem): { damageLine: string; roll
     return null;
   }
   const { minRollRange, maxRollRange, rolledMin, rolledMax, averageDamage } = item.damageRoll;
+  let damageLine: string;
+  if (item.temperingFailed && item.damagePenaltyBps && item.damagePenaltyBps > 0) {
+    const penaltyAmount = Math.round((averageDamage * item.damagePenaltyBps / (10_000 - item.damagePenaltyBps)) * 10) / 10;
+    damageLine = i18n.t("item.damageWithPenalty", {
+      value: formatOneDecimal(averageDamage),
+      penalty: formatOneDecimal(penaltyAmount)
+    });
+  } else {
+    damageLine = i18n.t("item.damage", { value: formatOneDecimal(averageDamage) });
+  }
   return {
-    damageLine: i18n.t("item.damage", { value: formatOneDecimal(averageDamage) }),
+    damageLine,
     rollLine: i18n.t("item.roll", {
       minLow: minRollRange[0],
       minHigh: minRollRange[1],
@@ -1242,8 +1256,9 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean, p
   const useImageOnlyIcon = Boolean(item.iconAssetPath);
 
   return (
-    <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}`}>
+    <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}${item.temperingFailed ? " isTemperingFailed" : ""}`}>
       {priceLabel ? <span className="inventoryCompactPrice">{priceLabel}</span> : null}
+      {item.temperingFailed ? <span className="inventoryTemperingFailedBadge" aria-label={i18n.t("forge.instabilityTitle")}>!</span> : null}
       {renderItemIcon({
         majorCategory: item.archetype?.majorCategory,
         category: item.category,
@@ -1294,7 +1309,10 @@ function renderInventoryItemDetailCardBody(
           {asideNote ? <span className="inventoryCardTopAsideNote">{asideNote}</span> : null}
         </div>
       </div>
-      <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}`}>
+      <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}${item.temperingFailed ? " isTemperingFailed" : ""}`}>
+        {item.temperingFailed ? (
+          <span className="inventoryTemperingFailedBadge" aria-label={i18n.t("forge.instabilityTitle")}>!</span>
+        ) : null}
         {renderItemIcon({
           majorCategory: item.archetype?.majorCategory,
           category: item.category,
@@ -1307,7 +1325,7 @@ function renderInventoryItemDetailCardBody(
       </div>
       <div className="inventoryCardContent">
         {weaponDamageSummary ? (
-          <div className="inventoryCardDamageBlock">
+          <div className={`inventoryCardDamageBlock${item.temperingFailed ? " isTemperingFailed" : ""}`}>
             <p className="inventoryCardDamagePrimary">{weaponDamageSummary.damageLine}</p>
             <p className="inventoryCardDamageRollMeta">{weaponDamageSummary.rollLine}</p>
           </div>
@@ -1330,6 +1348,12 @@ function renderInventoryItemDetailCardBody(
                 </span>
               </p>
             ))}
+          </div>
+        ) : null}
+        {item.temperingFailed ? (
+          <div className="inventoryCardTemperingFailedWarning">
+            <span>⚠ {i18n.t("forge.instabilityTitle")}</span>
+            <span>{i18n.t("forge.temperingFailedCardNote")}</span>
           </div>
         ) : null}
       </div>
@@ -1382,6 +1406,9 @@ function resolveItemIconVisual(args: {
     }
     if (args.majorCategory === "vestige") {
       return { variant: "vestige", label: "VS" };
+    }
+    if (args.majorCategory === "consumable") {
+      return { variant: "consumable", label: "CO" };
     }
   }
 
@@ -2134,7 +2161,8 @@ export function AppShell() {
     fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false,
-    unlimitedAcademyDonationsEnabled: false
+    unlimitedAcademyDonationsEnabled: false,
+    unlimitedForgeConsumablesEnabled: false
   };
 
   function isCheatActionPending(action: CheatActionKey): boolean {
@@ -4541,6 +4569,9 @@ export function AppShell() {
       >
         {hasItem ? (
           <div className="inventoryCardVisual equipmentSlotVisual">
+            {equippedItem?.temperingFailed ? (
+              <span className="inventoryTemperingFailedBadge" aria-label={i18n.t("forge.instabilityTitle")}>!</span>
+            ) : null}
             {renderItemIcon({
               majorCategory: equippedItem?.archetype?.majorCategory ?? slot.majorCategory,
               category: equippedItem?.category ?? slotLabel,
@@ -5367,6 +5398,23 @@ export function AppShell() {
                   <strong>{i18n.t("settings.cheats.unlimitedAcademyDonationsLabel")}</strong>
                   <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
                     {i18n.t("settings.cheats.unlimitedAcademyDonationsHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.unlimitedForgeConsumablesEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) =>
+                    handleCheatSettingToggle("unlimitedForgeConsumablesEnabled", event.currentTarget.checked)
+                  }
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.unlimitedForgeConsumablesLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.unlimitedForgeConsumablesHelp")}
                   </span>
                 </span>
               </label>

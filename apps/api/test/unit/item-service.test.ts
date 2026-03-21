@@ -222,3 +222,96 @@ describe("item service weapon bonuses", () => {
     );
   });
 });
+
+describe("tempering failure flag propagation", () => {
+  const baseWeaponItemData = {
+    itemName: "Test Sword",
+    rarity: "common",
+    category: "Weapon",
+    equipable: true,
+    levelRequirement: 1,
+    allowedSlotIds: ["weapon"],
+    baseLevel: 1,
+    power: 8,
+    archetype: { majorCategory: "weapon", weaponArchetype: "melee", weaponFamily: "sword" },
+    statBonuses: {},
+    damageRoll: {
+      minRollRange: [20, 30],
+      rolledMin: 22,
+      rolledMax: 28,
+      maxRollRange: [25, 35],
+      averageDamage: 25
+    },
+    description: "Test weapon."
+  };
+
+  it("sets temperingFailed on item when forgeData.temperingFailed is true and damagePenaltyBps > 0", () => {
+    const parsed = parseStoredInventoryItem({
+      id: "weapon_fail_1",
+      itemCode: "test_sword",
+      itemData: {
+        ...baseWeaponItemData,
+        forgeData: {
+          track: "weapon",
+          level: 0,
+          bonusScaleBps: 0,
+          basePower: 8,
+          baseDamageRoll: {
+            minRollRange: [20, 30],
+            rolledMin: 22,
+            rolledMax: 28,
+            maxRollRange: [25, 35],
+            averageDamage: 25
+          },
+          temperingFailed: true,
+          damagePenaltyBps: 800
+        }
+      }
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.temperingFailed).toBe(true);
+    expect(parsed?.damagePenaltyBps).toBe(800);
+    // Damage should be penalized: 25 * (1 - 800/10000) = 25 * 0.92 = 23
+    expect(parsed?.damageRoll?.averageDamage).toBeLessThan(25);
+  });
+
+  it("sets temperingFailed on item when forgeData.temperingFailed is true but damagePenaltyBps is absent (legacy)", () => {
+    const parsed = parseStoredInventoryItem({
+      id: "weapon_fail_legacy",
+      itemCode: "test_sword",
+      itemData: {
+        ...baseWeaponItemData,
+        forgeData: {
+          track: "weapon",
+          level: 0,
+          bonusScaleBps: 0,
+          basePower: 8,
+          baseDamageRoll: {
+            minRollRange: [20, 30],
+            rolledMin: 22,
+            rolledMax: 28,
+            maxRollRange: [25, 35],
+            averageDamage: 25
+          },
+          temperingFailed: true
+          // no damagePenaltyBps
+        }
+      }
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.temperingFailed).toBe(true);
+  });
+
+  it("does NOT set temperingFailed when forgeData is absent", () => {
+    const parsed = parseStoredInventoryItem({
+      id: "weapon_clean",
+      itemCode: "test_sword",
+      itemData: baseWeaponItemData
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.temperingFailed).toBeUndefined();
+  });
+});

@@ -1,9 +1,9 @@
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { ZodError } from "zod";
 
-import { forgeEnchantBodySchema } from "@ebonkeep/shared/forge";
+import { forgeEnchantBodySchema, forgeMendBodySchema } from "@ebonkeep/shared/forge";
 
-import { ForgeError, attemptWeaponEnchant, cleanseForgeInstability, getForgeState } from "./service.js";
+import { ForgeError, attemptWeaponEnchant, mendForgeWeapon, getForgeState } from "./service.js";
 
 function replyForForgeError(reply: FastifyReply, error: unknown) {
   if (error instanceof ForgeError) {
@@ -37,12 +37,14 @@ export const forgeRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post("/v1/forge/cleanse", { preHandler: fastify.authenticate }, async (request, reply) => {
+  fastify.post("/v1/forge/mend", { preHandler: fastify.authenticate }, async (request, reply) => {
     try {
-      return reply.send(await cleanseForgeInstability(fastify.prisma, request.user.playerId));
+      const body = forgeMendBodySchema.parse(request.body ?? {});
+      return reply.send(await mendForgeWeapon(fastify.prisma, request.user.playerId, body.weaponItemId));
     } catch (error) {
-      fastify.log.error({ err: error }, "Error in POST /v1/forge/cleanse");
+      fastify.log.error({ err: error }, "Error in POST /v1/forge/mend");
       return replyForForgeError(reply, error);
     }
   });
 };
+

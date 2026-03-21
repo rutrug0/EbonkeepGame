@@ -82,7 +82,12 @@ function computeBuyPriceDucats(item: InventoryItem): number {
 }
 
 export function computeSellPriceDucats(item: InventoryItem): number {
-  return Math.max(12, Math.floor(computeBuyPriceDucats(item) * SELL_PRICE_FACTOR));
+  const basePrice = Math.max(12, Math.floor(computeBuyPriceDucats(item) * SELL_PRICE_FACTOR));
+  if (item.temperingFailed) {
+    // Failed tempering reduces sell value by 50%
+    return Math.max(5, Math.floor(basePrice * 0.5));
+  }
+  return basePrice;
 }
 
 function isBuybackOffer(row: Pick<ShopInstance, "offerCode">): boolean {

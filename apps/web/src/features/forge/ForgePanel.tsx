@@ -15,7 +15,7 @@ import {
   type ForgeAttemptResult,
   type ForgeState,
   getForgeAttemptCostDucats,
-  getForgeCatalystRarity,
+  getEffectiveCatalystRarity,
   getForgeDamageBonusBps,
   getForgeSuccessChancePct
 } from "@ebonkeep/shared/forge";
@@ -24,7 +24,7 @@ import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
-import { attemptForgeEnchant, cleanseForgeInstability, fetchForgeState } from "./api";
+import { attemptForgeEnchant, mendForgeWeapon, fetchForgeState } from "./api";
 
 export type ForgePanelProps = {
   token: string | null;
@@ -447,7 +447,7 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
   const nextBonusBps = nextEnchantLevel ? getForgeDamageBonusBps(nextEnchantLevel) : null;
   const successChancePct = nextEnchantLevel ? getForgeSuccessChancePct(nextEnchantLevel) : null;
   const attemptCostDucats = nextEnchantLevel ? getForgeAttemptCostDucats(nextEnchantLevel) : null;
-  const catalystRarity = nextEnchantLevel ? getForgeCatalystRarity(nextEnchantLevel) : null;
+  const catalystRarity = nextEnchantLevel && selectedWeapon ? getEffectiveCatalystRarity(nextEnchantLevel, selectedWeapon.rarity) : null;
   const currentDamageAverage = selectedWeapon?.damageRoll?.averageDamage ?? 0;
   const baseDamageAverage = selectedWeapon ? getBaseDamageAverage(selectedWeapon) : 0;
   const projectedDamageAverage =
@@ -456,9 +456,14 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
       : null;
   const hasInstability = Boolean(forgeState?.instability);
   const unstableWeaponItemId = forgeState?.instability?.weaponItemId ?? null;
-  const canAffordAttempt = attemptCostDucats !== null && (playerState?.currency.ducats ?? 0) >= attemptCostDucats;
-  const canAffordCleanse = (forgeState?.instability?.cleanseCostDucats ?? 0) <= (playerState?.currency.ducats ?? 0);
+  const unlimitedForgeConsumables = Boolean(playerState?.cheatSettings?.unlimitedForgeConsumablesEnabled);
+  const canAffordAttempt = unlimitedForgeConsumables || (attemptCostDucats !== null && (playerState?.currency.ducats ?? 0) >= attemptCostDucats);
+  const hasTemeringDraught = unlimitedForgeConsumables || Boolean(
+    playerState?.inventory?.some((item) => item.itemCode === "all_tempering_draught")
+  );
   const selectedWeaponIsUnstable = Boolean(selectedWeapon && unstableWeaponItemId === selectedWeapon.id);
+  // Mend mode: selected weapon is damaged (temperingFailed) — show repair UI instead of enchant UI
+  const isMendMode = Boolean(selectedWeapon?.temperingFailed);
 
   const isResolving = pendingResult !== null;
   const currentFeint = resolveBeatIndex >= 0 ? resolveSequence?.feints[resolveBeatIndex] ?? null : null;
@@ -487,7 +492,7 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
   }${!selectedWeapon ? " forgeSlot--locked" : ""}${isResolving ? " forgeSlot--isResolving" : ""}${resolveOutcomeClassName}`;
 
   const renderForgeItemStatusBadge = (item: InventoryItem) => {
-    if (unstableWeaponItemId === item.id) {
+    if (unstableWeaponItemId === item.id || item.temperingFailed) {
       return (
         <span className="itemVisualEnchantBadge isUnstable" aria-hidden="true">
           !
@@ -578,8 +583,18 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
       return null;
     }
     const { minRollRange, maxRollRange, rolledMin, rolledMax, averageDamage } = item.damageRoll;
+    let damageLine: string;
+    if (item.temperingFailed && item.damagePenaltyBps && item.damagePenaltyBps > 0) {
+      const penaltyAmount = Math.round((averageDamage * item.damagePenaltyBps / (10_000 - item.damagePenaltyBps)) * 10) / 10;
+      damageLine = t("item.damageWithPenalty", {
+        value: formatOneDecimal(averageDamage),
+        penalty: formatOneDecimal(penaltyAmount)
+      });
+    } else {
+      damageLine = t("item.damage", { value: formatOneDecimal(averageDamage) });
+    }
     return {
-      damageLine: t("item.damage", { value: formatOneDecimal(averageDamage) }),
+      damageLine,
       rollLine: t("item.roll", {
         minLow: minRollRange[0],
         minHigh: minRollRange[1],
@@ -625,11 +640,20 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
     setIsSubmitting(true);
     try {
       const response = await attemptForgeEnchant(token, { weaponItemId: selectedWeapon.id });
-      beginResolveSequence({
-        result: response.result,
-        playerState: response.playerState,
-        forge: response.forge
-      });
+      if (unlimitedForgeConsumables) {
+        startTransition(() => {
+          onPlayerStateChange(response.playerState);
+          setForgeState(response.forge);
+          setResolvedResult(null);
+          setResolvePhase("idle");
+        });
+      } else {
+        beginResolveSequence({
+          result: response.result,
+          playerState: response.playerState,
+          forge: response.forge
+        });
+      }
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("forge.attemptFailed"));
     } finally {
@@ -638,17 +662,20 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
   }
 
   async function handleCleanse() {
-    if (!token || !forgeState?.instability || isCleansing) return;
+    const weaponItemId = forgeState?.instability?.weaponItemId;
+    if (!token || !weaponItemId || isCleansing) return;
     setError(null);
     setIsCleansing(true);
     try {
-      const response = await cleanseForgeInstability(token);
+      const response = await mendForgeWeapon(token, weaponItemId);
       startTransition(() => {
         onPlayerStateChange(response.playerState);
         setForgeState(response.forge);
+        setResolvedResult(null);
+        setResolvePhase("idle");
       });
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : t("forge.cleanseFailed"));
+      setError(nextError instanceof Error ? nextError.message : t("forge.mendFailed"));
     } finally {
       setIsCleansing(false);
     }
@@ -872,86 +899,130 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
             {selectedWeapon ? (
               <div className="forgeSuccessChip">
                 <span>{t("forge.successChance")}</span>
-                <strong>{successChancePct !== null ? `${successChancePct}%` : "MAX"}</strong>
+                <strong>{isMendMode ? "100%" : (successChancePct !== null ? `${successChancePct}%` : "MAX")}</strong>
               </div>
             ) : null}
 
             <div className="forgeActionRow">
-              <button
-                type="button"
-                className="primaryButton forgeAttemptButton"
-                onClick={handleEnchant}
-                disabled={!nextEnchantLevel || hasInstability || isSubmitting || isResolving || !canAffordAttempt}
-              >
-                {isSubmitting ? t("forge.enchanting") : t("forge.enchantNow")}
-              </button>
+              {isMendMode ? (
+                <button
+                  type="button"
+                  className="primaryButton forgeAttemptButton"
+                  onClick={handleCleanse}
+                  disabled={isCleansing || !hasTemeringDraught || !forgeState?.instability}
+                >
+                  {isCleansing ? t("forge.mending") : t("forge.mendWeapon")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primaryButton forgeAttemptButton"
+                  onClick={handleEnchant}
+                  disabled={!nextEnchantLevel || hasInstability || isSubmitting || isResolving || !canAffordAttempt}
+                >
+                  {isSubmitting ? t("forge.enchanting") : t("forge.enchantNow")}
+                </button>
+              )}
             </div>
-            {attemptCostDucats !== null ? (
+            {!isMendMode && attemptCostDucats !== null ? (
               <span className="forgeActionMeta">{t("forge.attemptCostLabel", { cost: attemptCostDucats.toLocaleString() })}</span>
             ) : null}
 
-            {forgeState?.instability ? (
+            {forgeState?.instability && !isMendMode ? (
               <div className={`forgeInstabilityInline${selectedWeaponIsUnstable ? " isSelectedWeapon" : ""}`}>
                 <div className="forgeInstabilityInlineBody">
-                  <span className="forgeInstabilityInlineTitle">{t("forge.instabilityTitle")}</span>
+                  <span className="forgeInstabilityInlineTitle">⚠ {t("forge.instabilityTitle")}</span>
                   <strong>{forgeState.instability.weaponName}</strong>
                   <span>{t("forge.damagePenaltyLabel", { value: formatPercentFromBps(forgeState.instability.damagePenaltyBps) })}</span>
+                  <span className="forgeInstabilityRequirement">{t("forge.mendRequirement")}</span>
                 </div>
                 <button
                   type="button"
                   className="primaryButton forgeCleanseButton"
                   onClick={handleCleanse}
-                  disabled={isCleansing || !canAffordCleanse}
+                  disabled={isCleansing || !hasTemeringDraught}
                 >
                   {isCleansing
-                    ? t("forge.cleansing")
-                    : `${t("forge.cleanse")} (${forgeState.instability.cleanseCostDucats.toLocaleString()} ${t("currencies.ducats")})`}
+                    ? t("forge.mending")
+                    : t("forge.mendWeapon")}
                 </button>
               </div>
             ) : null}
 
           </div>
 
-          {/* Right: Enchant slot */}
+          {/* Right: Mend slot (damaged weapon selected) or Enchant slot */}
           <div className="forgeSlotColumn">
-            <button
-              type="button"
-              className={catalystSlotClassName}
-              onClick={() => { if (selectedWeapon && nextEnchantLevel) setShowEnchantPicker(true); }}
-              disabled={!selectedWeapon || !nextEnchantLevel || isResolving || isSubmitting}
-              onMouseEnter={(e) => {
-                if (!catalystRarity) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const w = 280;
-                const left = rect.left >= w + 16 ? rect.left - w - 12 : rect.right + 12;
-                setForgeHover({ kind: "enchant", style: { position: "fixed", top: Math.max(8, Math.min(rect.top, window.innerHeight - 360)), left: Math.max(8, left), width: w, zIndex: 9999, pointerEvents: "none" } });
-              }}
-              onMouseLeave={() => setForgeHover(null)}
-            >
-              {catalystRarity && nextEnchantLevel ? (
-                <>
-                  <div className="forgeSlotVisual forgeCatalystVisual">
+            {isMendMode ? (
+              <div className={`forgeSlot forgeSlot--role-catalyst${hasTemeringDraught ? " forgeSlot--filled rarity-uncommon" : ""}`}>
+                {hasTemeringDraught ? (
+                  <>
+                    <div className="forgeSlotVisual forgeCatalystVisual">
+                      <img
+                        src="/assets/materials/mat_tempering_draught.png"
+                        alt=""
+                        className="forgeSlotImage"
+                        draggable={false}
+                      />
+                    </div>
+                    <div className="forgeSlotMeta">
+                      <strong>{t("forge.temperingDraught")}</strong>
+                      <span>{t("forge.mendRequirement")}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="forgeSlotEmpty">
                     <img
-                      src={`/assets/enchants/weapon_${catalystRarity}.png`}
+                      src="/assets/materials/mat_tempering_draught.png"
                       alt=""
-                      className="forgeSlotImage"
+                      className="forgeSlotEmptyIcon"
+                      style={{ width: 40, height: 40, opacity: 0.35, objectFit: "contain" }}
                       draggable={false}
                     />
+                    <span>{t("forge.mendSlotEmpty")}</span>
                   </div>
-                  <div className="forgeSlotMeta">
-                    <strong>{formatRarityLabel(catalystRarity)} {t("forge.weaponCatalyst")}</strong>
-                    {projectedDamageAverage !== null ? (
-                      <span>{t("forge.damagePreview", { before: currentDamageAverage, after: projectedDamageAverage })}</span>
-                    ) : null}
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={catalystSlotClassName}
+                onClick={() => { if (selectedWeapon && nextEnchantLevel) setShowEnchantPicker(true); }}
+                disabled={!selectedWeapon || !nextEnchantLevel || isResolving || isSubmitting}
+                onMouseEnter={(e) => {
+                  if (!catalystRarity) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const w = 280;
+                  const left = rect.left >= w + 16 ? rect.left - w - 12 : rect.right + 12;
+                  setForgeHover({ kind: "enchant", style: { position: "fixed", top: Math.max(8, Math.min(rect.top, window.innerHeight - 360)), left: Math.max(8, left), width: w, zIndex: 9999, pointerEvents: "none" } });
+                }}
+                onMouseLeave={() => setForgeHover(null)}
+              >
+                {catalystRarity && nextEnchantLevel ? (
+                  <>
+                    <div className="forgeSlotVisual forgeCatalystVisual">
+                      <img
+                        src={`/assets/enchants/weapon_${catalystRarity}.png`}
+                        alt=""
+                        className="forgeSlotImage"
+                        draggable={false}
+                      />
+                    </div>
+                    <div className="forgeSlotMeta">
+                      <strong>{formatRarityLabel(catalystRarity)} {t("forge.weaponCatalyst")}</strong>
+                      {projectedDamageAverage !== null ? (
+                        <span>{t("forge.damagePreview", { before: currentDamageAverage, after: projectedDamageAverage })}</span>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <div className="forgeSlotEmpty">
+                    <span className="forgeSlotEmptyIcon">✦</span>
+                    <span>{!selectedWeapon ? t("forge.enchantSlotLocked") : t("forge.enchantSlotEmpty")}</span>
                   </div>
-                </>
-              ) : (
-                <div className="forgeSlotEmpty">
-                  <span className="forgeSlotEmptyIcon">✦</span>
-                  <span>{!selectedWeapon ? t("forge.enchantSlotLocked") : t("forge.enchantSlotEmpty")}</span>
-                </div>
-              )}
-            </button>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -977,7 +1048,7 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
                       key={entry.item.id}
                       type="button"
                       className={`forgeWeaponCard rarity-${entry.item.rarity}${isSelected ? " isSelected" : ""}`}
-                      onClick={() => { setSelectedWeaponId(entry.item.id); setShowWeaponPicker(false); }}
+                      onClick={() => { setSelectedWeaponId(entry.item.id); setShowWeaponPicker(false); setResolvedResult(null); setResolvePhase("idle"); }}
                     >
                         <div className="forgeWeaponCardVisual">
                           {iconPath ? (
@@ -995,7 +1066,11 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
                       <div className="forgeWeaponCardBody">
                         <strong>{getItemDisplayName(entry.item)}</strong>
                         <span>{entry.location === "equipped" ? t("forge.equipped") : t("forge.inventory")}</span>
-                        <span>{t("forge.weaponDamageLabel")}: {entry.item.damageRoll?.averageDamage ?? 0}</span>
+                        {entry.item.temperingFailed ? (
+                          <span className="forgeWeaponCardDamagedLabel">{t("forge.needsMending")}</span>
+                        ) : (
+                          <span>{t("forge.weaponDamageLabel")}: {entry.item.damageRoll?.averageDamage ?? 0}</span>
+                        )}
                       </div>
                     </button>
                   );

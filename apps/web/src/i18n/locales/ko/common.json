@@ -303,7 +303,9 @@
         "uncommon": "Uncommon",
         "rare": "Rare",
         "epic": "Epic"
-      }
+      },
+      "unlimitedForgeConsumablesLabel": "무한 대장간 소모품",
+      "unlimitedForgeConsumablesHelp": "인챈팅에 두카트가 들지 않고 수선에 담금 수선제가 필요 없습니다."
     }
   },
   "shop": {
@@ -872,6 +874,7 @@
     "loadFailed": "Failed to load forge state.",
     "attemptFailed": "Enchant attempt failed.",
     "cleanseFailed": "Failed to cleanse forge instability.",
+    "mendFailed": "소아 복구에 실패했습니다.",
     "safeUntil": "Safe through +{{level}}",
     "baseDamageOnly": "Only base weapon damage scales",
     "weaponList": "Arsenal",
@@ -895,22 +898,27 @@
     "resultSuccess": "Temper held. Reached +{{level}}.",
     "resultReset": "Temper shattered. Weapon reset to +0.",
     "resultSuccessBody": "Weapon damage improved from {{before}} to {{after}}.",
-    "resultResetBody": "Forge instability applied: -{{penalty}} total damage until cleansed.",
+    "resultResetBody": "담금 실패: 무기가 손상되었습니다. 담금 수선제로 복구하세요.",
     "catalystEyebrow": "Catalyst",
     "catalystTitle": "Required Enchant",
     "weaponCatalyst": "Weapon Catalyst",
     "requiredForLevel": "Required for +{{level}}",
     "bonusAfterSuccess": "Damage after success: {{value}}",
     "damagePreview": "Projected damage: {{before}} -> {{after}}",
-    "instabilityTitle": "Forge Instability",
+    "instabilityTitle": "담금 실패",
     "instabilityBody": "The failed +{{level}} attempt fractured your temper. Enchanting stays locked until you stabilize it.",
     "damagePenaltyLabel": "Damage penalty: -{{value}}",
     "cleanseCostLabel": "Cleanse cost: {{cost}} ducats",
     "cleansing": "Stabilizing...",
+    "mending": "복구 중...",
     "cleanse": "Stabilize Forge",
+    "mendWeapon": "복구 (1× 담금 수선제)",
+    "mendRequirement": "필요: 인벤토리에 1× 담금 수선제",
+    "temperingDraught": "담금 수선제",
+    "temperingFailedCardNote": "무기가 손상되었습니다. 백업 전까지 스텍가 줄어듭니다.",
     "rulesTitle": "Forge Rules",
     "ruleSafe": "+1 to +{{level}} is always safe.",
-    "ruleRisk": "From +4 onward, failure resets the weapon to +0 and applies forge instability.",
+    "ruleRisk": "+4부터는 실패 시 무기가 +0으로 취포되며 손상 표시됩니다(복구 시까지 스텍 감소).",
     "ruleScale": "Enchanting boosts only the weapon's base damage, while affixes stay unchanged.",
     "rulesButton": "규칙",
     "weaponSlotLabel": "무기",
@@ -920,8 +928,11 @@
     "enchantSlotEmpty": "클릭하여 선택",
     "weaponPickerTitle": "무기고",
     "enchantPickerTitle": "인찬트 선택",
-    "enchantOptionConfirm": "선택 확인"
-  },  "renown": {
+    "enchantOptionConfirm": "선택 확인",
+    "needsMending": "수리 필요",
+    "mendSlotEmpty": "담금 수선제 필요"
+  },
+  "renown": {
     "unlock": "잠금 해제",
     "balance": "잔액",
     "insufficientRenown": "명성이 부족합니다"

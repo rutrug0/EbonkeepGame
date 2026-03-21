@@ -431,7 +431,8 @@ function createSyntheticPlayerState(args: {
         fastArenaReplenishEnabled: false,
         invincibilityEnabled: false,
         fastTrainTimeEnabled: false,
-        unlimitedAcademyDonationsEnabled: false
+        unlimitedAcademyDonationsEnabled: false,
+        unlimitedForgeConsumablesEnabled: false
       }
   };
 }

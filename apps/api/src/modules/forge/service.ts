@@ -5,19 +5,19 @@ import type { CurrencyBalance, Prisma, PrismaClient } from "@prisma/client";
 import {
   FORGE_MAX_ENCHANT_LEVEL,
   FORGE_SAFE_ENCHANT_LEVEL,
-  forgeCleanseResponseSchema,
+  forgeMendResponseSchema,
   forgeEnchantResponseSchema,
   forgeOutcomeSchema,
   getForgeAttemptCostDucats,
-  getForgeCatalystRarity,
-  getForgeCleanseCostDucats,
+  getEffectiveCatalystRarity,
   getForgeDamageBonusBps,
   getForgeDamagePenaltyBps,
   getForgeSuccessChancePct,
-  type ForgeCleanseResponse,
+  TEMPERING_DRAUGHT_ITEM_CODE,
+  type ForgeMendResponse,
   type ForgeEnchantResponse
 } from "@ebonkeep/shared/forge";
-import type { InventoryItem, WeaponDamageRoll } from "@ebonkeep/shared/inventory";
+import { inventoryItemSchema, type InventoryItem, type WeaponDamageRoll } from "@ebonkeep/shared/inventory";
 
 import { loadPlayerState } from "../player/state-service.js";
 import {
@@ -31,6 +31,13 @@ import {
   savePersistedForgeState,
   type ForgeDbClient
 } from "./state.js";
+
+async function isUnlimitedForgeConsumables(prisma: PrismaClient | Prisma.TransactionClient, playerId: string): Promise<boolean> {
+  const rows = await prisma.$queryRaw<Array<{ unlimitedForgeConsumablesEnabled: boolean }>>`
+    SELECT "unlimitedForgeConsumablesEnabled" FROM "player_profiles" WHERE "id" = ${playerId} LIMIT 1
+  `;
+  return rows[0]?.unlimitedForgeConsumablesEnabled ?? false;
+}
 
 export class ForgeError extends Error {
   constructor(
@@ -116,11 +123,12 @@ export async function attemptWeaponEnchant(
 
     const targetEnchantLevel = previousEnchantLevel + 1;
     const successChancePct = getForgeSuccessChancePct(targetEnchantLevel);
-    const catalystRarity = getForgeCatalystRarity(targetEnchantLevel);
+    const catalystRarity = getEffectiveCatalystRarity(targetEnchantLevel, weapon.rarity);
     const attemptCostDucats = getForgeAttemptCostDucats(targetEnchantLevel);
 
     const currency = await ensureCurrency(tx, playerId);
-    if (currency.ducats < attemptCostDucats) {
+    const unlimitedConsumables = await isUnlimitedForgeConsumables(tx, playerId);
+    if (!unlimitedConsumables && currency.ducats < attemptCostDucats) {
       throw new ForgeError("FORGE_NOT_ENOUGH_DUCATS", 400, "Not enough ducats for that enchant attempt.");
     }
 
@@ -130,16 +138,20 @@ export async function attemptWeaponEnchant(
     }
 
     const didSucceed = targetEnchantLevel <= FORGE_SAFE_ENCHANT_LEVEL || randomInt(0, 100) < successChancePct;
+    const damagePenaltyBps = didSucceed ? 0 : getForgeDamagePenaltyBps(targetEnchantLevel);
     const nextForgeData = didSucceed
       ? {
           ...storedForgeData,
           level: targetEnchantLevel,
-          bonusScaleBps: getForgeDamageBonusBps(targetEnchantLevel)
+          bonusScaleBps: getForgeDamageBonusBps(targetEnchantLevel),
+          temperingFailed: false
         }
       : {
           ...storedForgeData,
           level: 0,
-          bonusScaleBps: 0
+          bonusScaleBps: 0,
+          temperingFailed: true,
+          damagePenaltyBps
         };
 
     const resultingInstability = didSucceed
@@ -148,14 +160,13 @@ export async function attemptWeaponEnchant(
           weaponItemId,
           weaponName: weapon.itemName,
           sourceEnchantLevel: targetEnchantLevel,
-          damagePenaltyBps: getForgeDamagePenaltyBps(targetEnchantLevel),
-          cleanseCostDucats: getForgeCleanseCostDucats(targetEnchantLevel),
+          damagePenaltyBps,
           triggeredAt: new Date().toISOString()
         };
 
     await tx.currencyBalance.update({
       where: { playerId },
-      data: { ducats: { decrement: attemptCostDucats } }
+      data: { ducats: { decrement: unlimitedConsumables ? 0 : attemptCostDucats } }
     });
 
     await tx.inventoryItem.update({
@@ -203,29 +214,73 @@ export async function attemptWeaponEnchant(
   });
 }
 
-export async function cleanseForgeInstability(
+export async function mendForgeWeapon(
   prisma: PrismaClient,
-  playerId: string
-): Promise<ForgeCleanseResponse> {
-  const cleanseCostDucats = await prisma.$transaction(async (tx) => {
+  playerId: string,
+  weaponItemId: string
+): Promise<ForgeMendResponse> {
+  await prisma.$transaction(async (tx) => {
     const persistedState = await loadPersistedForgeState(tx, playerId);
-    if (!persistedState.instability) {
-      throw new ForgeError("FORGE_INSTABILITY_NOT_ACTIVE", 400, "There is no active forge instability to cleanse.");
+    if (!persistedState.instability || persistedState.instability.weaponItemId !== weaponItemId) {
+      throw new ForgeError("FORGE_INSTABILITY_NOT_ACTIVE", 400, "No active tempering failure for this weapon.");
     }
 
-    const { cleanseCostDucats: cost } = persistedState.instability;
-    const currency = await ensureCurrency(tx, playerId);
-    if (currency.ducats < cost) {
-      throw new ForgeError("FORGE_NOT_ENOUGH_DUCATS", 400, "Not enough ducats to stabilize the forge.");
-    }
-
-    await tx.currencyBalance.update({
-      where: { playerId },
-      data: { ducats: { decrement: cost } }
+    // Find a Tempering Draught in player's inventory
+    const unlimitedConsumables = await isUnlimitedForgeConsumables(tx, playerId);
+    const draughtRecord = unlimitedConsumables ? null : await tx.inventoryItem.findFirst({
+      where: {
+        playerId,
+        itemCode: TEMPERING_DRAUGHT_ITEM_CODE,
+        slotKey: "inventory"
+      },
+      select: { id: true, itemCode: true, itemData: true }
     });
 
+    if (!unlimitedConsumables && !draughtRecord) {
+      throw new ForgeError("FORGE_MISSING_TEMPERING_DRAUGHT", 400, "You need a Tempering Draught to mend this weapon.");
+    }
+
+    // Find the weapon in inventory or equipment to clear its failure flag
+    const weaponRecord = await tx.inventoryItem.findUnique({
+      where: { id: weaponItemId },
+      select: { id: true, playerId: true, itemCode: true, itemData: true }
+    });
+
+    if (!weaponRecord || weaponRecord.playerId !== playerId) {
+      throw new ForgeError("FORGE_WEAPON_NOT_FOUND", 404, "Weapon not found.");
+    }
+
+    const weapon = parseStoredInventoryItem(weaponRecord);
+    if (!weapon || weapon.archetype.majorCategory !== "weapon") {
+      throw new ForgeError("INVALID_FORGE_WEAPON", 400, "Item is not a weapon.");
+    }
+
+    const storedForgeData = getStoredWeaponForgeData(weaponRecord.itemData, weapon);
+    if (!storedForgeData) {
+      throw new ForgeError("FORGE_WEAPON_DATA_INVALID", 400, "Weapon data is incomplete.");
+    }
+
+    // Clear failure on weapon
+    const mendedForgeData = {
+      ...storedForgeData,
+      temperingFailed: false,
+      damagePenaltyBps: 0
+    };
+
+    await tx.inventoryItem.update({
+      where: { id: weaponItemId },
+      data: {
+        itemData: withStoredWeaponForgeData(weaponRecord.itemData, mendedForgeData) as Prisma.InputJsonValue
+      }
+    });
+
+    // Consume the Tempering Draught (skip if cheat enabled)
+    if (draughtRecord) {
+      await tx.inventoryItem.delete({ where: { id: draughtRecord.id } });
+    }
+
+    // Clear global instability
     await savePersistedForgeState(tx, playerId, { instability: null });
-    return cost;
   });
 
   const playerState = await loadPlayerState(prisma, playerId);
@@ -233,9 +288,28 @@ export async function cleanseForgeInstability(
     throw new ForgeError("PLAYER_NOT_FOUND", 404, "Player not found.");
   }
 
-  return forgeCleanseResponseSchema.parse({
+  return forgeMendResponseSchema.parse({
     forge: await loadForgeState(prisma, playerId),
-    playerState,
-    cleanseCostDucats
+    playerState
   });
+}
+
+// Builds itemData to persist when creating a Tempering Draught in a player's inventory
+export function buildTemperingDraughtItemData(): Record<string, unknown> {
+  return inventoryItemSchema.parse({
+    id: "placeholder",
+    itemCode: TEMPERING_DRAUGHT_ITEM_CODE,
+    itemName: "Tempering Draught",
+    rarity: "uncommon",
+    category: "Consumable",
+    equipable: false,
+    levelRequirement: 1,
+    baseLevel: 1,
+    allowedSlotIds: [],
+    power: 0,
+    archetype: { majorCategory: "consumable" },
+    statBonuses: {},
+    description: "A compound of quench stone, bone ash and pitch resin. Applied to a fractured tempering, it resets the metal grain and restores the weapon's full damage.",
+    iconAssetPath: "/assets/materials/mat_tempering_draught.png"
+  }) as Record<string, unknown>;
 }
