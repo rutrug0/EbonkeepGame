@@ -25,7 +25,7 @@
     linear-gradient(180deg, rgba(7, 10, 13, 0.84), rgba(7, 10, 13, 0.97)),
     var(--indoor-scene-image, none);
   background-position: center top;
-  background-size: cover;
+  background-size: cover, var(--app-wide-panel-art-size);
   background-repeat: no-repeat;
   border: none;
 }

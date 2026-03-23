@@ -5,6 +5,7 @@ import {
 
 export type CharacterHubTabsProps = {
   activeTab: CharacterHubTab;
+  cardClassName?: string;
   onTabChange: (tab: CharacterHubTab) => void;
 };
 
@@ -12,7 +13,7 @@ export function CharacterHubTabs(props: CharacterHubTabsProps) {
   const tabs: CharacterHubTab[] = ["character", "renown", "ledger", "encyclopedia"];
 
   return (
-    <article className="contentCard">
+    <article className={`contentCard${props.cardClassName ? ` ${props.cardClassName}` : ""}`}>
       <div className="profileSwitchBar">
         <div className="profileSwitchButtons characterHubSwitchButtons">
           {tabs.map((tab) => (

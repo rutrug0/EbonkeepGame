@@ -31,6 +31,7 @@ type MainStatColumn = {
 };
 
 export type InventoryManagementPanelProps = {
+  embedded?: boolean;
   isLoadingState: boolean;
   playerState: PlayerState | null;
   baseStats: Record<TrainableStatKey, number> | null;
@@ -93,32 +94,42 @@ const MAIN_STAT_COLUMNS: MainStatColumn[] = [
 ];
 
 export function InventoryManagementPanel(props: InventoryManagementPanelProps): ReactElement {
+  const stackClassName = `contentStack inventoryManagementStack${props.embedded ? " inventoryManagementStackEmbedded" : ""}`;
+
   if (props.isLoadingState) {
-    return (
-      <section className="contentShell inventoryManagementShell">
-        <section className="contentStack">
-          {props.renderCharacterHubTabs()}
-          <article className="contentCard">
-            <h2>Character</h2>
-            <p>{i18n.t("inventory.loading")}</p>
-          </article>
-        </section>
+    const content = (
+      <section className={stackClassName}>
+        {props.renderCharacterHubTabs()}
+        <article className="contentCard inventoryManagementCard">
+          <h2>Character</h2>
+          <p>{i18n.t("inventory.loading")}</p>
+        </article>
       </section>
     );
+
+    if (props.embedded) {
+      return content;
+    }
+
+    return <section className="contentShell inventoryManagementShell">{content}</section>;
   }
 
   if (!props.playerState) {
-    return (
-      <section className="contentShell inventoryManagementShell">
-        <section className="contentStack">
-          {props.renderCharacterHubTabs()}
-          <article className="contentCard">
-            <h2>Character</h2>
-            <p>{i18n.t("inventory.unavailable")}</p>
-          </article>
-        </section>
+    const content = (
+      <section className={stackClassName}>
+        {props.renderCharacterHubTabs()}
+        <article className="contentCard inventoryManagementCard">
+          <h2>Character</h2>
+          <p>{i18n.t("inventory.unavailable")}</p>
+        </article>
       </section>
     );
+
+    if (props.embedded) {
+      return content;
+    }
+
+    return <section className="contentShell inventoryManagementShell">{content}</section>;
   }
 
   const playerState = props.playerState;
@@ -136,219 +147,223 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
     imperials: playerState.currency.imperials
   };
 
-  return (
-    <section className="contentShell inventoryManagementShell">
-      <section className="contentStack">
-        {props.renderCharacterHubTabs()}
+  const content = (
+    <section className={stackClassName}>
+      {props.renderCharacterHubTabs()}
 
-        <article className="contentCard">
-          <div className="equipmentBoard">
-            <div className="equipmentColumn equipmentColumnLeft">
-              {props.equipmentLeftSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "", "right"))}
-            </div>
+      <article className="contentCard inventoryManagementCard">
+        <div className="equipmentBoard">
+          <div className="equipmentColumn equipmentColumnLeft">
+            {props.equipmentLeftSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "", "right"))}
+          </div>
 
-            <div className="equipmentCenterColumn">
-              <div className="characterVisual">
-                <div className="characterVisualFrame">
-                  {props.activeBackgroundPath ? (
-                    <img
-                      src={props.activeBackgroundPath}
-                      alt=""
-                      aria-hidden="true"
-                      className="characterVisualBackground"
-                      draggable={false}
-                    />
-                  ) : null}
-                  {props.activeCharacterVisualPath ? (
-                    <img
-                      src={props.activeCharacterVisualPath}
-                      alt={`${props.activeCharacterVisualName ?? props.profileName} ${i18n.t("profile.portraitSuffix")}`}
-                      className="characterVisualImage"
-                      draggable={false}
-                    />
-                  ) : (
-                    <div className="characterSilhouette" aria-hidden="true" />
-                  )}
-                  {props.canCycleCharacterVisuals ? (
-                    <>
-                      <button
-                        type="button"
-                        className="characterCycleButton characterCycleButtonPrev"
-                        onClick={props.onShowPreviousPortrait}
-                        aria-label={i18n.t("profile.showPreviousPortrait")}
-                      >
-                        <span aria-hidden="true">{"<"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="characterCycleButton characterCycleButtonNext"
-                        onClick={props.onShowNextPortrait}
-                        aria-label={i18n.t("profile.showNextPortrait")}
-                      >
-                        <span aria-hidden="true">{">"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="characterBgCycleButton characterBgCycleButtonPrev"
-                        onClick={props.onShowPreviousBackground}
-                        aria-label={i18n.t("profile.showPreviousBackground")}
-                      >
-                        <span aria-hidden="true">{"<"}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="characterBgCycleButton characterBgCycleButtonNext"
-                        onClick={props.onShowNextBackground}
-                        aria-label={i18n.t("profile.showNextBackground")}
-                      >
-                        <span aria-hidden="true">{">"}</span>
-                      </button>
-                    </>
-                  ) : null}
-                  <p className="characterVisualLabel">{props.profileName}</p>
-                  {props.renderEquipmentSlotCell("weapon", "equipmentWeaponCell equipmentWeaponOverlay", "top")}
-                  <div className="vestigeRack vestigeRackOverlay">
-                    {props.equipmentVestigeSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "vestigeCell", "top"))}
-                  </div>
+          <div className="equipmentCenterColumn">
+            <div className="characterVisual">
+              <div className="characterVisualFrame">
+                {props.activeBackgroundPath ? (
+                  <img
+                    src={props.activeBackgroundPath}
+                    alt=""
+                    aria-hidden="true"
+                    className="characterVisualBackground"
+                    draggable={false}
+                  />
+                ) : null}
+                {props.activeCharacterVisualPath ? (
+                  <img
+                    src={props.activeCharacterVisualPath}
+                    alt={`${props.activeCharacterVisualName ?? props.profileName} ${i18n.t("profile.portraitSuffix")}`}
+                    className="characterVisualImage"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="characterSilhouette" aria-hidden="true" />
+                )}
+                {props.canCycleCharacterVisuals ? (
+                  <>
+                    <button
+                      type="button"
+                      className="characterCycleButton characterCycleButtonPrev"
+                      onClick={props.onShowPreviousPortrait}
+                      aria-label={i18n.t("profile.showPreviousPortrait")}
+                    >
+                      <span aria-hidden="true">{"<"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="characterCycleButton characterCycleButtonNext"
+                      onClick={props.onShowNextPortrait}
+                      aria-label={i18n.t("profile.showNextPortrait")}
+                    >
+                      <span aria-hidden="true">{">"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="characterBgCycleButton characterBgCycleButtonPrev"
+                      onClick={props.onShowPreviousBackground}
+                      aria-label={i18n.t("profile.showPreviousBackground")}
+                    >
+                      <span aria-hidden="true">{"<"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="characterBgCycleButton characterBgCycleButtonNext"
+                      onClick={props.onShowNextBackground}
+                      aria-label={i18n.t("profile.showNextBackground")}
+                    >
+                      <span aria-hidden="true">{">"}</span>
+                    </button>
+                  </>
+                ) : null}
+                <p className="characterVisualLabel">{props.profileName}</p>
+                {props.renderEquipmentSlotCell("weapon", "equipmentWeaponCell equipmentWeaponOverlay", "top")}
+                <div className="vestigeRack vestigeRackOverlay">
+                  {props.equipmentVestigeSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "vestigeCell", "top"))}
                 </div>
               </div>
             </div>
-
-            <div className="equipmentColumn equipmentColumnRight">
-              {props.equipmentRightSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "", "left"))}
-            </div>
           </div>
 
-          <div className="mainStatsTraining">
-            <div className="statTrainingColumns">
-              {MAIN_STAT_COLUMNS.map((statColumn, statIndex) => {
-                const baseValue = effectiveBaseStats[statColumn.key];
-                const itemBonus = props.equipmentStatBonuses[statColumn.key];
-                const guildBonus = playerState.statSnapshot.guild[statColumn.key];
-                const totalBonus = itemBonus + guildBonus;
-                const statFlash = props.inventoryStatFlashes[statColumn.key];
-                const statContributionLines = props.getStatContributionLines(
-                  statColumn.key,
-                  baseValue,
-                  playerState.class
-                );
-                const trainingCost = props.getTrainingCost(baseValue);
-                const hasEnoughDucats = effectiveCurrencies.ducats >= trainingCost;
-                const isTrainingThisStat = activeStatTraining?.stat === statColumn.key;
-                const isTrainingAnyStat = activeStatTraining !== null;
-                const trainingCountdown = isTrainingThisStat
-                  ? props.formatDurationFromMs(activeStatTraining.completesAt - props.nowMs)
-                  : null;
-                const trainingProgressPercent = isTrainingThisStat
-                  ? Math.round(
-                      ((props.statTrainDurationMs - Math.max(0, activeStatTraining.completesAt - props.nowMs)) /
-                        props.statTrainDurationMs) *
-                        100
-                    )
-                  : 0;
-                const statTooltipAnchorClass =
-                  statIndex === 0
-                    ? "statTrainingTooltipAnchorStart"
-                    : statIndex === MAIN_STAT_COLUMNS.length - 1
-                      ? "statTrainingTooltipAnchorEnd"
-                      : "";
+          <div className="equipmentColumn equipmentColumnRight">
+            {props.equipmentRightSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "", "left"))}
+          </div>
+        </div>
 
-                return (
+        <div className="mainStatsTraining">
+          <div className="statTrainingColumns">
+            {MAIN_STAT_COLUMNS.map((statColumn, statIndex) => {
+              const baseValue = effectiveBaseStats[statColumn.key];
+              const itemBonus = props.equipmentStatBonuses[statColumn.key];
+              const guildBonus = playerState.statSnapshot.guild[statColumn.key];
+              const totalBonus = itemBonus + guildBonus;
+              const statFlash = props.inventoryStatFlashes[statColumn.key];
+              const statContributionLines = props.getStatContributionLines(
+                statColumn.key,
+                baseValue,
+                playerState.class
+              );
+              const trainingCost = props.getTrainingCost(baseValue);
+              const hasEnoughDucats = effectiveCurrencies.ducats >= trainingCost;
+              const isTrainingThisStat = activeStatTraining?.stat === statColumn.key;
+              const isTrainingAnyStat = activeStatTraining !== null;
+              const trainingCountdown = isTrainingThisStat
+                ? props.formatDurationFromMs(activeStatTraining.completesAt - props.nowMs)
+                : null;
+              const trainingProgressPercent = isTrainingThisStat
+                ? Math.round(
+                    ((props.statTrainDurationMs - Math.max(0, activeStatTraining.completesAt - props.nowMs)) /
+                      props.statTrainDurationMs) *
+                      100
+                  )
+                : 0;
+              const statTooltipAnchorClass =
+                statIndex === 0
+                  ? "statTrainingTooltipAnchorStart"
+                  : statIndex === MAIN_STAT_COLUMNS.length - 1
+                    ? "statTrainingTooltipAnchorEnd"
+                    : "";
+
+              return (
+                <div
+                  key={statColumn.key}
+                  className={`statTrainingColumn${statFlash ? ` inventoryStatFlash inventoryStatFlash-${statFlash.direction}` : ""}`}
+                >
+                  <span className="statTrainingSymbol" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" focusable="false">
+                      <path d={statColumn.iconPath} />
+                    </svg>
+                  </span>
+                  <span className="statTrainingLabel">{statColumn.label}</span>
                   <div
-                    key={statColumn.key}
-                    className={`statTrainingColumn${statFlash ? ` inventoryStatFlash inventoryStatFlash-${statFlash.direction}` : ""}`}
+                    className={`statTrainingTooltip${statTooltipAnchorClass ? ` ${statTooltipAnchorClass}` : ""}`}
+                    role="tooltip"
                   >
-                    <span className="statTrainingSymbol" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" focusable="false">
-                        <path d={statColumn.iconPath} />
-                      </svg>
-                    </span>
-                    <span className="statTrainingLabel">{statColumn.label}</span>
-                    <div
-                      className={`statTrainingTooltip${statTooltipAnchorClass ? ` ${statTooltipAnchorClass}` : ""}`}
-                      role="tooltip"
-                    >
-                      <p className="statTrainingTooltipTitle">{i18n.t("training.derivedContributions")}</p>
-                      <>
-                        <p className="statTrainingTooltipSectionTitle">{i18n.t("training.bonusSources")}</p>
-                        <p className="statTrainingTooltipLine">
-                          <span>{i18n.t("training.equipmentBonus")}</span>
-                          <strong>{itemBonus >= 0 ? `+${itemBonus}` : itemBonus}</strong>
-                        </p>
-                        <p className="statTrainingTooltipLine">
-                          <span>{i18n.t("training.guildBonus")}</span>
-                          <strong>{guildBonus >= 0 ? `+${guildBonus}` : guildBonus}</strong>
-                        </p>
-                        <p className="statTrainingTooltipLine">
-                          <span>{i18n.t("training.totalBonus")}</span>
-                          <strong>{totalBonus >= 0 ? `+${totalBonus}` : totalBonus}</strong>
-                        </p>
-                      </>
-                      {statContributionLines.map((line) => (
-                        <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
-                          <span>
-                            {line.label} ({line.ratioLabel})
-                          </span>
-                          <strong>{line.valueLabel}</strong>
-                        </p>
-                      ))}
-                    </div>
-                    <span
-                      className={`statTrainingValue${
-                        statFlash ? ` inventoryStatFlashValue inventoryStatFlashValue-${statFlash.direction}` : ""
-                      }`}
-                    >
-                      {baseValue}
-                      {totalBonus !== 0 ? (
-                        <span className="itemBonusValue">({totalBonus >= 0 ? `+${totalBonus}` : totalBonus})</span>
-                      ) : null}
-                    </span>
-                    <div className="statTrainingAction">
-                      <button
-                        className="statTrainButton"
-                        onClick={() => props.onStartStatTraining(statColumn.key)}
-                        disabled={!hasEnoughDucats || isTrainingAnyStat}
-                      >
-                        {isTrainingThisStat
-                          ? i18n.t("training.training")
-                          : isTrainingAnyStat
-                            ? i18n.t("training.busy")
-                            : i18n.t("training.train")}
-                      </button>
-                      <span className="statTrainingCost">
-                        <span className="ducatsAmount">{trainingCost}</span>
-                        <span className="currencyIcon ducatIcon ducatCurrencyIcon" aria-hidden="true">
-                          <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
+                    <p className="statTrainingTooltipTitle">{i18n.t("training.derivedContributions")}</p>
+                    <>
+                      <p className="statTrainingTooltipSectionTitle">{i18n.t("training.bonusSources")}</p>
+                      <p className="statTrainingTooltipLine">
+                        <span>{i18n.t("training.equipmentBonus")}</span>
+                        <strong>{itemBonus >= 0 ? `+${itemBonus}` : itemBonus}</strong>
+                      </p>
+                      <p className="statTrainingTooltipLine">
+                        <span>{i18n.t("training.guildBonus")}</span>
+                        <strong>{guildBonus >= 0 ? `+${guildBonus}` : guildBonus}</strong>
+                      </p>
+                      <p className="statTrainingTooltipLine">
+                        <span>{i18n.t("training.totalBonus")}</span>
+                        <strong>{totalBonus >= 0 ? `+${totalBonus}` : totalBonus}</strong>
+                      </p>
+                    </>
+                    {statContributionLines.map((line) => (
+                      <p key={`${statColumn.key}-${line.label}`} className="statTrainingTooltipLine">
+                        <span>
+                          {line.label} ({line.ratioLabel})
                         </span>
-                      </span>
-                      {isTrainingThisStat ? (
-                        <>
-                          <div
-                            className="statTrainingProgressTrack"
-                            role="progressbar"
-                            aria-label={i18n.t("training.progressAria", { stat: statColumn.label })}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-valuenow={trainingProgressPercent}
-                          >
-                            <span
-                              className="statTrainingProgressFill"
-                              style={{ width: `${Math.max(0, Math.min(100, trainingProgressPercent))}%` }}
-                            />
-                          </div>
-                          <span className="statTrainingTimer">{trainingCountdown}</span>
-                        </>
-                      ) : (
-                        <div className="statTrainingIdleSpacer" aria-hidden="true" />
-                      )}
-                    </div>
+                        <strong>{line.valueLabel}</strong>
+                      </p>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
+                  <span
+                    className={`statTrainingValue${
+                      statFlash ? ` inventoryStatFlashValue inventoryStatFlashValue-${statFlash.direction}` : ""
+                    }`}
+                  >
+                    {baseValue}
+                    {totalBonus !== 0 ? (
+                      <span className="itemBonusValue">({totalBonus >= 0 ? `+${totalBonus}` : totalBonus})</span>
+                    ) : null}
+                  </span>
+                  <div className="statTrainingAction">
+                    <button
+                      className="statTrainButton"
+                      onClick={() => props.onStartStatTraining(statColumn.key)}
+                      disabled={!hasEnoughDucats || isTrainingAnyStat}
+                    >
+                      {isTrainingThisStat
+                        ? i18n.t("training.training")
+                        : isTrainingAnyStat
+                          ? i18n.t("training.busy")
+                          : i18n.t("training.train")}
+                    </button>
+                    <span className="statTrainingCost">
+                      <span className="ducatsAmount">{trainingCost}</span>
+                      <span className="currencyIcon ducatIcon ducatCurrencyIcon" aria-hidden="true">
+                        <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
+                      </span>
+                    </span>
+                    {isTrainingThisStat ? (
+                      <>
+                        <div
+                          className="statTrainingProgressTrack"
+                          role="progressbar"
+                          aria-label={i18n.t("training.progressAria", { stat: statColumn.label })}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={trainingProgressPercent}
+                        >
+                          <span
+                            className="statTrainingProgressFill"
+                            style={{ width: `${Math.max(0, Math.min(100, trainingProgressPercent))}%` }}
+                          />
+                        </div>
+                        <span className="statTrainingTimer">{trainingCountdown}</span>
+                      </>
+                    ) : (
+                      <div className="statTrainingIdleSpacer" aria-hidden="true" />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </article>
-      </section>
+        </div>
+      </article>
     </section>
   );
+
+  if (props.embedded) {
+    return content;
+  }
+
+  return <section className="contentShell inventoryManagementShell">{content}</section>;
 }
