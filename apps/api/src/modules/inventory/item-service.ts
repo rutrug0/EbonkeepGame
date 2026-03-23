@@ -68,7 +68,9 @@ const storedWeaponForgeDataSchema = z.object({
   level: z.number().int().min(0).max(10),
   bonusScaleBps: z.number().int().min(0),
   basePower: z.number().int().min(0),
-  baseDamageRoll: weaponDamageRollSchema
+  baseDamageRoll: weaponDamageRollSchema,
+  temperingFailed: z.boolean().optional(),
+  damagePenaltyBps: z.number().int().min(0).optional()
 });
 
 type StoredWeaponForgeData = z.infer<typeof storedWeaponForgeDataSchema>;
@@ -1592,7 +1594,36 @@ function applyWeaponForgeDataToItem(
   item: InventoryItem,
   forgeData: StoredWeaponForgeData | null
 ): InventoryItem {
-  if (item.archetype.majorCategory !== "weapon" || !item.damageRoll || !forgeData || forgeData.level <= 0) {
+  if (item.archetype.majorCategory !== "weapon" || !item.damageRoll || !forgeData) {
+    return item;
+  }
+
+  // Apply tempering failure flag and optional damage penalty
+  if (forgeData.temperingFailed) {
+    if (forgeData.damagePenaltyBps && forgeData.damagePenaltyBps > 0) {
+      const penaltyMultiplier = Math.max(0, 1 - forgeData.damagePenaltyBps / 10_000);
+      const base = forgeData.baseDamageRoll;
+      const penalizedRoll = weaponDamageRollSchema.parse({
+        minRollRange: [Math.round(base.minRollRange[0] * penaltyMultiplier), Math.round(base.minRollRange[1] * penaltyMultiplier)],
+        rolledMin: Math.round(base.rolledMin * penaltyMultiplier),
+        rolledMax: Math.round(base.rolledMax * penaltyMultiplier),
+        maxRollRange: [Math.round(base.maxRollRange[0] * penaltyMultiplier), Math.round(base.maxRollRange[1] * penaltyMultiplier)],
+        averageDamage: Math.round((base.averageDamage * penaltyMultiplier) * 100) / 100
+      });
+      const penalizedPower = Math.max(0, Math.round(forgeData.basePower * penaltyMultiplier));
+      return inventoryItemSchema.parse({
+        ...item,
+        damageRoll: penalizedRoll,
+        power: penalizedPower,
+        temperingFailed: true,
+        damagePenaltyBps: forgeData.damagePenaltyBps
+      });
+    }
+    // No penalty bps stored (legacy item) — still mark as tempering-failed
+    return inventoryItemSchema.parse({ ...item, temperingFailed: true });
+  }
+
+  if (forgeData.level <= 0) {
     return item;
   }
 
@@ -1613,6 +1644,42 @@ function applyWeaponForgeDataToItem(
       bonusScaleBps: forgeData.bonusScaleBps
     } satisfies ItemEnchanting)
   });
+}
+
+/**
+ * Re-applies tempering failure to an already-parsed weapon item using the
+ * damage penalty from forge instability state. Used when the item's stored
+ * forgeData pre-dates the temperingFailed field (legacy repair path).
+ */
+export function markWeaponTemperingFailed(
+  item: InventoryItem,
+  damagePenaltyBps: number
+): InventoryItem {
+  if (item.archetype.majorCategory !== "weapon" || !item.damageRoll) {
+    return item;
+  }
+  // item.damageRoll is the unpenalized base because applyWeaponForgeDataToItem
+  // fell through (no temperingFailed in forgeData) and left it unchanged.
+  if (damagePenaltyBps > 0) {
+    const penaltyMultiplier = Math.max(0, 1 - damagePenaltyBps / 10_000);
+    const base = item.damageRoll;
+    const penalizedRoll = weaponDamageRollSchema.parse({
+      minRollRange: [Math.round(base.minRollRange[0] * penaltyMultiplier), Math.round(base.minRollRange[1] * penaltyMultiplier)],
+      rolledMin: Math.round(base.rolledMin * penaltyMultiplier),
+      rolledMax: Math.round(base.rolledMax * penaltyMultiplier),
+      maxRollRange: [Math.round(base.maxRollRange[0] * penaltyMultiplier), Math.round(base.maxRollRange[1] * penaltyMultiplier)],
+      averageDamage: Math.round((base.averageDamage * penaltyMultiplier) * 100) / 100
+    });
+    const penalizedPower = Math.max(0, Math.round(item.power * penaltyMultiplier));
+    return inventoryItemSchema.parse({
+      ...item,
+      damageRoll: penalizedRoll,
+      power: penalizedPower,
+      temperingFailed: true,
+      damagePenaltyBps
+    });
+  }
+  return inventoryItemSchema.parse({ ...item, temperingFailed: true });
 }
 
 export function getStoredWeaponForgeData(
@@ -1649,7 +1716,13 @@ export function withStoredWeaponForgeData(
       : {};
   delete baseRecord.enchanting;
 
-  if (!forgeData || forgeData.level <= 0) {
+  if (!forgeData) {
+    delete baseRecord.forgeData;
+    return baseRecord;
+  }
+
+  // Keep forgeData even at level 0 when temperingFailed is set
+  if (forgeData.level <= 0 && !forgeData.temperingFailed) {
     delete baseRecord.forgeData;
     return baseRecord;
   }

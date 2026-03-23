@@ -101,7 +101,7 @@ export const classesByEquipmentGroup: Record<EquipmentGroup, readonly PlayerClas
   mage:    ["reaver", "shade", "arcanist"]
 };
 
-export const itemMajorCategorySchema = z.enum(["armor", "weapon", "jewelry", "vestige"]);
+export const itemMajorCategorySchema = z.enum(["armor", "weapon", "jewelry", "vestige", "consumable"]);
 export type ItemMajorCategory = z.infer<typeof itemMajorCategorySchema>;
 
 export const armorArchetypeSchema = z.enum(["heavy", "light", "robe"]);

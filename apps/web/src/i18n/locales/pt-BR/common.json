@@ -303,7 +303,9 @@
         "uncommon": "Uncommon",
         "rare": "Rare",
         "epic": "Epic"
-      }
+      },
+      "unlimitedForgeConsumablesLabel": "Consumíveis de forja infinitos",
+      "unlimitedForgeConsumablesHelp": "Encantar não custa ducados e reparar não requer Poção de Tempera."
     }
   },
   "shop": {
@@ -836,6 +838,7 @@
     "loadFailed": "Failed to load forge state.",
     "attemptFailed": "Enchant attempt failed.",
     "cleanseFailed": "Failed to cleanse forge instability.",
+    "mendFailed": "Falha ao reparar a arma.",
     "safeUntil": "Safe through +{{level}}",
     "baseDamageOnly": "Only base weapon damage scales",
     "weaponList": "Arsenal",
@@ -859,22 +862,27 @@
     "resultSuccess": "Temper held. Reached +{{level}}.",
     "resultReset": "Temper shattered. Weapon reset to +0.",
     "resultSuccessBody": "Weapon damage improved from {{before}} to {{after}}.",
-    "resultResetBody": "Forge instability applied: -{{penalty}} total damage until cleansed.",
+    "resultResetBody": "Falha de tempera: a arma está danificada. Repare com uma Poção de Tempera.",
     "catalystEyebrow": "Catalyst",
     "catalystTitle": "Required Enchant",
     "weaponCatalyst": "Weapon Catalyst",
     "requiredForLevel": "Required for +{{level}}",
     "bonusAfterSuccess": "Damage after success: {{value}}",
     "damagePreview": "Projected damage: {{before}} -> {{after}}",
-    "instabilityTitle": "Forge Instability",
+    "instabilityTitle": "Falha de Tempera",
     "instabilityBody": "The failed +{{level}} attempt fractured your temper. Enchanting stays locked until you stabilize it.",
     "damagePenaltyLabel": "Damage penalty: -{{value}}",
     "cleanseCostLabel": "Cleanse cost: {{cost}} ducats",
     "cleansing": "Stabilizing...",
+    "mending": "Reparando...",
     "cleanse": "Stabilize Forge",
+    "mendWeapon": "Reparar (1× Poção de Tempera)",
+    "mendRequirement": "Requer: 1× Poção de Tempera no inventário",
+    "temperingDraught": "Poção de Tempera",
+    "temperingFailedCardNote": "Arma danificada. Atributos reduzidos até ser reparada.",
     "rulesTitle": "Forge Rules",
     "ruleSafe": "+1 to +{{level}} is always safe.",
-    "ruleRisk": "From +4 onward, failure resets the weapon to +0 and applies forge instability.",
+    "ruleRisk": "A partir de +4, a falha redefine a arma para +0 e a marca como danificada (atributos reduzidos até reparar).",
     "ruleScale": "Enchanting boosts only the weapon's base damage, while affixes stay unchanged.",
     "rulesButton": "Regras",
     "weaponSlotLabel": "Arma",
@@ -884,8 +892,11 @@
     "enchantSlotEmpty": "Clique para selecionar",
     "weaponPickerTitle": "Arsenal",
     "enchantPickerTitle": "Selecionar Encantamento",
-    "enchantOptionConfirm": "Confirmar Seleção"
-  },  "renown": {
+    "enchantOptionConfirm": "Confirmar Seleção",
+    "needsMending": "Precisa de reparo",
+    "mendSlotEmpty": "Precisa de Poção de Tempera"
+  },
+  "renown": {
     "unlock": "Desbloquear",
     "balance": "Saldo",
     "insufficientRenown": "Renome insuficiente"

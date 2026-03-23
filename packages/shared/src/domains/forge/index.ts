@@ -25,7 +25,6 @@ export const forgeInstabilitySchema = z.object({
   weaponName: z.string(),
   sourceEnchantLevel: z.number().int().min(FORGE_SAFE_ENCHANT_LEVEL + 1).max(FORGE_MAX_ENCHANT_LEVEL),
   damagePenaltyBps: z.number().int().min(0),
-  cleanseCostDucats: z.number().int().min(0),
   triggeredAt: z.string()
 });
 export type ForgeInstability = z.infer<typeof forgeInstabilitySchema>;
@@ -61,22 +60,35 @@ export type ForgeEnchantResponse = z.infer<typeof forgeEnchantResponseSchema>;
 
 export const forgeCleanseResponseSchema = z.object({
   forge: forgeStateSchema,
-  playerState: playerStateSchema,
-  cleanseCostDucats: z.number().int().min(0)
+  playerState: playerStateSchema
 });
 export type ForgeCleanseResponse = z.infer<typeof forgeCleanseResponseSchema>;
+
+export const forgeMendBodySchema = z.object({
+  weaponItemId: z.string().min(1)
+});
+export type ForgeMendBody = z.infer<typeof forgeMendBodySchema>;
+
+export const forgeMendResponseSchema = z.object({
+  forge: forgeStateSchema,
+  playerState: playerStateSchema
+});
+export type ForgeMendResponse = z.infer<typeof forgeMendResponseSchema>;
+
+// Thematic item code for the Tempering Draught consumable
+export const TEMPERING_DRAUGHT_ITEM_CODE = "all_tempering_draught" as const;
 
 const SUCCESS_CHANCE_BY_TARGET_LEVEL: Record<number, number> = {
   1: 100,
   2: 100,
   3: 100,
-  4: 78,
-  5: 64,
-  6: 51,
-  7: 39,
-  8: 30,
-  9: 22,
-  10: 16
+  4: 88,
+  5: 78,
+  6: 66,
+  7: 55,
+  8: 44,
+  9: 34,
+  10: 25
 };
 
 export function getForgeSuccessChancePct(targetLevel: number): number {
@@ -87,7 +99,7 @@ export function getForgeDamageBonusBps(level: number): number {
   const normalizedLevel = Math.max(0, Math.min(FORGE_MAX_ENCHANT_LEVEL, Math.floor(level)));
   const earlyLevels = Math.min(normalizedLevel, 4);
   const lateLevels = Math.max(0, normalizedLevel - 4);
-  return (earlyLevels * 500) + (lateLevels * 700);
+  return (earlyLevels * 500) + (lateLevels * 1_000);
 }
 
 export function getForgeCatalystRarity(targetLevel: number): z.infer<typeof itemRaritySchema> {
@@ -101,6 +113,14 @@ export function getForgeCatalystRarity(targetLevel: number): z.infer<typeof item
     return "rare";
   }
   return "epic";
+}
+
+/** Returns the catalyst rarity for a forge attempt — always matches the weapon's own rarity. */
+export function getEffectiveCatalystRarity(
+  _targetLevel: number,
+  weaponRarity: z.infer<typeof itemRaritySchema>
+): z.infer<typeof itemRaritySchema> {
+  return weaponRarity;
 }
 
 const FORGE_CATALYST_BASE_COSTS: Record<z.infer<typeof itemRaritySchema>, number> = {

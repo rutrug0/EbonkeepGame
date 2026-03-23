@@ -1,5 +1,5 @@
-import type { ForgeCleanseResponse, ForgeEnchantBody, ForgeEnchantResponse, ForgeState } from "@ebonkeep/shared/forge";
-import { forgeCleanseResponseSchema, forgeEnchantResponseSchema, forgeStateSchema } from "@ebonkeep/shared/forge";
+import type { ForgeMendResponse, ForgeEnchantBody, ForgeEnchantResponse, ForgeState } from "@ebonkeep/shared/forge";
+import { forgeMendResponseSchema, forgeEnchantResponseSchema, forgeStateSchema } from "@ebonkeep/shared/forge";
 
 import { API_URL, authHeaders, readErrorMessage } from "../../lib/api/http";
 
@@ -36,19 +36,19 @@ export async function attemptForgeEnchant(
   return forgeEnchantResponseSchema.parse(await response.json());
 }
 
-export async function cleanseForgeInstability(token: string): Promise<ForgeCleanseResponse> {
-  const response = await fetch(`${API_URL}/v1/forge/cleanse`, {
+export async function mendForgeWeapon(token: string, weaponItemId: string): Promise<ForgeMendResponse> {
+  const response = await fetch(`${API_URL}/v1/forge/mend`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(token)
     },
-    body: JSON.stringify({})
+    body: JSON.stringify({ weaponItemId })
   });
 
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response, "Forge cleanse failed"));
+    throw new Error(await readErrorMessage(response, "Forge mend failed"));
   }
 
-  return forgeCleanseResponseSchema.parse(await response.json());
+  return forgeMendResponseSchema.parse(await response.json());
 }

@@ -6120,6 +6120,62 @@ button:focus-visible {
   color: #d56a6a;
 }
 
+/* Tempering failure badge — positioned top-left, same corner as enchant badge */
+.inventoryTemperingFailedBadge {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  z-index: 3;
+  pointer-events: none;
+  color: #ff8b8b;
+  font-size: 1.24rem;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow:
+    0 2px 6px rgba(8, 2, 2, 0.96),
+    0 0 12px rgba(144, 24, 24, 0.62);
+}
+
+/* Tempering failure warning block inside the detail hover card */
+.inventoryCardTemperingFailedWarning {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 8px;
+  margin-top: 4px;
+  background: rgba(144, 24, 24, 0.18);
+  border: 1px solid rgba(220, 80, 80, 0.34);
+  border-radius: var(--soft-radius);
+  color: #ff8b8b;
+  font-size: 0.79rem;
+  line-height: 1.35;
+}
+
+.inventoryCardTemperingFailedWarning span:first-child {
+  font-weight: 700;
+}
+
+/* Red-tinted border on the full detail card icon area for tempering-failed weapons */
+.inventoryCardVisual.isTemperingFailed {
+  border-color: rgba(220, 80, 80, 0.45);
+  box-shadow:
+    inset 0 0 0 1px rgba(180, 40, 40, 0.22),
+    0 0 14px rgba(180, 30, 30, 0.10);
+}
+
+/* Red damage primary line in detail card for tempering-failed weapons */
+.inventoryCardDamageBlock.isTemperingFailed .inventoryCardDamagePrimary {
+  color: #ff8b8b;
+}
+
+/* Dim the damage line text when weapon is tempering-failed */
+.inventoryCompactVisual.isTemperingFailed {
+  border-color: rgba(220, 80, 80, 0.45);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(181, 87, 87, 0.16), transparent 52%),
+    linear-gradient(170deg, rgba(30, 20, 20, 0.92), rgba(22, 14, 14, 0.96));
+}
+
 .inventoryCardTop {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

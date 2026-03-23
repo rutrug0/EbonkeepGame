@@ -303,7 +303,9 @@
         "uncommon": "Uncommon",
         "rare": "Rare",
         "epic": "Epic"
-      }
+      },
+      "unlimitedForgeConsumablesLabel": "Consumibles de forja infinitos",
+      "unlimitedForgeConsumablesHelp": "El encantamiento no cuesta ducados y reparar no requiere Brebaje de Temple."
     }
   },
   "shop": {
@@ -836,6 +838,7 @@
     "loadFailed": "Failed to load forge state.",
     "attemptFailed": "Enchant attempt failed.",
     "cleanseFailed": "Failed to cleanse forge instability.",
+    "mendFailed": "Error al reparar el arma.",
     "safeUntil": "Safe through +{{level}}",
     "baseDamageOnly": "Only base weapon damage scales",
     "weaponList": "Arsenal",
@@ -859,22 +862,27 @@
     "resultSuccess": "Temper held. Reached +{{level}}.",
     "resultReset": "Temper shattered. Weapon reset to +0.",
     "resultSuccessBody": "Weapon damage improved from {{before}} to {{after}}.",
-    "resultResetBody": "Forge instability applied: -{{penalty}} total damage until cleansed.",
+    "resultResetBody": "Falla de temple: el arma está dañada. Repárala con un Brebaje de Temple.",
     "catalystEyebrow": "Catalyst",
     "catalystTitle": "Required Enchant",
     "weaponCatalyst": "Weapon Catalyst",
     "requiredForLevel": "Required for +{{level}}",
     "bonusAfterSuccess": "Damage after success: {{value}}",
     "damagePreview": "Projected damage: {{before}} -> {{after}}",
-    "instabilityTitle": "Forge Instability",
+    "instabilityTitle": "Falla de Temple",
     "instabilityBody": "The failed +{{level}} attempt fractured your temper. Enchanting stays locked until you stabilize it.",
     "damagePenaltyLabel": "Damage penalty: -{{value}}",
     "cleanseCostLabel": "Cleanse cost: {{cost}} ducats",
     "cleansing": "Stabilizing...",
+    "mending": "Reparando...",
     "cleanse": "Stabilize Forge",
+    "mendWeapon": "Reparar (1× Brebaje de Temple)",
+    "mendRequirement": "Requiere: 1× Brebaje de Temple en inventario",
+    "temperingDraught": "Brebaje de Temple",
+    "temperingFailedCardNote": "Arma dañada. Los atributos están reducidos hasta ser reparada.",
     "rulesTitle": "Forge Rules",
     "ruleSafe": "+1 to +{{level}} is always safe.",
-    "ruleRisk": "From +4 onward, failure resets the weapon to +0 and applies forge instability.",
+    "ruleRisk": "Desde +4 en adelante, el fallo resetea el arma a +0 y la marca como dañada (atributos reducidos hasta repararla).",
     "ruleScale": "Enchanting boosts only the weapon's base damage, while affixes stay unchanged.",
     "rulesButton": "Reglas",
     "weaponSlotLabel": "Arma",
@@ -884,8 +892,11 @@
     "enchantSlotEmpty": "Haz clic para seleccionar",
     "weaponPickerTitle": "Arsenal",
     "enchantPickerTitle": "Seleccionar Encantamiento",
-    "enchantOptionConfirm": "Confirmar Selección"
-  },  "renown": {
+    "enchantOptionConfirm": "Confirmar Selección",
+    "needsMending": "Necesita reparación",
+    "mendSlotEmpty": "Necesita Brebaje de Temple"
+  },
+  "renown": {
     "unlock": "Desbloquear",
     "balance": "Saldo",
     "insufficientRenown": "Renombre insuficiente"

@@ -947,6 +947,18 @@
   font-size: 0.82rem;
 }
 
+.forgeWeaponCardDamagedLabel {
+  color: #ff8b8b;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.forgeMendSlotIcon {
+  font-size: 2.2rem;
+  line-height: 1;
+  opacity: 0.85;
+}
+
 /* ── Picker Modal ─────────────────────────────────────────── */
 
 .forgePickerOverlay {

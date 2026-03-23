@@ -149,14 +149,10 @@ function JobInfoHover(props: { title: string; body: ReactNode; children: ReactNo
     if (!anchorRef.current) return;
     const rect = anchorRef.current.getBoundingClientRect();
     const w = 290;
-    const spaceRight = window.innerWidth - rect.right;
-    const spaceLeft = rect.left;
     const isTop = props.placement === "top";
-    const left = spaceRight >= w + 16
-      ? rect.right + 10
-      : spaceLeft >= w + 16
-        ? rect.left - w - 10
-        : Math.max(8, Math.min(rect.left, window.innerWidth - w - 8));
+    // Always align with the anchor's left edge, clamped to viewport.
+    // Do NOT push to the right — that overlaps adjacent cards in the grid.
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - w - 8));
     const top = isTop
       ? Math.max(8, rect.top - 8)
       : Math.max(8, rect.bottom + 8);
@@ -227,43 +223,43 @@ function JobCard(props: {
   const featured = entry.featuredWindow;
 
   return (
-    <button
-      type="button"
-      className={`jobsChoiceCard jobsLandingChoice tone-${entry.template.accent}${isSelected ? " selected" : ""}`}
-      onClick={onSelect}
-      disabled={disabled}
+    <JobInfoHover
+      title={entry.template.name}
+      body={
+        <>
+          <p>{entry.template.rewardTilt}</p>
+          {featured ? (
+            <p>
+              {featured.title}: {featured.description}
+            </p>
+          ) : null}
+        </>
+      }
     >
-      {featured ? (
-        <span className={`jobsChoiceFeaturedBadge tone-${entry.template.accent}`}>
-          {featured.badge}
-        </span>
-      ) : null}
-      <div
-        className="jobsLandingChoiceVisual jobsChoiceVisual"
-        style={{
-          backgroundImage: `url("${entry.template.imagePath}"), url("${entry.template.fallbackImagePath}")`
-        }}
-      />
-      <div className="jobsLandingChoiceBody jobsChoiceBody">
-        <div className="jobsChoiceHeader">
-          <JobInfoHover
-            title={entry.template.name}
-            body={
-              <>
-                <p>{entry.template.rewardTilt}</p>
-                {featured ? (
-                  <p>
-                    {featured.title}: {featured.description}
-                  </p>
-                ) : null}
-              </>
-            }
-          >
+      <button
+        type="button"
+        className={`jobsChoiceCard jobsLandingChoice tone-${entry.template.accent}${isSelected ? " selected" : ""}`}
+        onClick={onSelect}
+        disabled={disabled}
+      >
+        {featured ? (
+          <span className={`jobsChoiceFeaturedBadge tone-${entry.template.accent}`}>
+            {featured.badge}
+          </span>
+        ) : null}
+        <div
+          className="jobsLandingChoiceVisual jobsChoiceVisual"
+          style={{
+            backgroundImage: `url("${entry.template.imagePath}"), url("${entry.template.fallbackImagePath}")`
+          }}
+        />
+        <div className="jobsLandingChoiceBody jobsChoiceBody">
+          <div className="jobsChoiceHeader">
             <strong>{entry.template.name}</strong>
-          </JobInfoHover>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+    </JobInfoHover>
   );
 }
 

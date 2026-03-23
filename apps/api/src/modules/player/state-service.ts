@@ -26,8 +26,8 @@ import {
 } from "@ebonkeep/shared/inventory";
 
 import { getGuildAcademyEffectTotals, mergePlayerStatBonuses } from "../academy/effects.js";
-import { getForgeInstabilityDamagePenaltyBps } from "../forge/state.js";
-import { parseStoredInventoryItem } from "../inventory/item-service.js";
+import { markWeaponTemperingFailed, parseStoredInventoryItem } from "../inventory/item-service.js";
+import { loadPersistedForgeState } from "../forge/state.js";
 import { syncPlayerProgress } from "./progression-service.js";
 
 const BASE_ACCURACY = 75;
@@ -243,18 +243,16 @@ export function buildPlayerStatSnapshot(args: {
   baseStats: StatBlock;
   equipment: InventoryEquipmentState;
   guildBonuses?: PlayerStatBonuses;
-  forgeDamagePenaltyBps?: number;
 }): PlayerStatSnapshot {
   const guildBonuses = args.guildBonuses ?? {};
   const equipmentBonuses = sumEquipmentBonuses(args.equipment);
   const combinedBonuses = mergePlayerStatBonuses(guildBonuses, equipmentBonuses);
   const level = args.level ?? 1;
-  const damageMultiplierBps = Math.max(0, 10_000 - (args.forgeDamagePenaltyBps ?? 0));
   const guildCoreStats = addCoreStatBonuses(args.baseStats, guildBonuses);
   const totalCoreStats = addCoreStatBonuses(guildCoreStats, equipmentBonuses);
   const base = resolveStatBlock(args.playerClass, level, args.baseStats, {});
   const baseWithGuild = resolveStatBlock(args.playerClass, level, guildCoreStats, guildBonuses);
-  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, combinedBonuses, args.equipment, damageMultiplierBps);
+  const total = resolveStatBlock(args.playerClass, level, totalCoreStats, combinedBonuses, args.equipment);
 
   return {
     base,
@@ -404,9 +402,29 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       itemData: item.itemData
     }))
     .filter((item): item is NonNullable<typeof item> => item !== null);
+
+  // Self-heal: if forge instability is active for a weapon but the item's stored
+  // forgeData predates the temperingFailed field (legacy data), apply the penalty
+  // from the instability state so all views (Character, Merchant, etc.) are consistent.
+  const forgePersistedState = await loadPersistedForgeState(prisma, playerId);
+  let resolvedEquipment = equipment;
+  let resolvedInventory = inventory;
+  if (forgePersistedState.instability) {
+    const { weaponItemId, damagePenaltyBps } = forgePersistedState.instability;
+    const equippedWeapon = resolvedEquipment.weapon;
+    if (equippedWeapon?.id === weaponItemId && !equippedWeapon.temperingFailed) {
+      resolvedEquipment = { ...resolvedEquipment, weapon: markWeaponTemperingFailed(equippedWeapon, damagePenaltyBps) };
+    }
+    const invIdx = resolvedInventory.findIndex((item) => item.id === weaponItemId && !item.temperingFailed);
+    if (invIdx >= 0) {
+      resolvedInventory = resolvedInventory.map((item, idx) =>
+        idx === invIdx ? markWeaponTemperingFailed(item, damagePenaltyBps) : item
+      );
+    }
+  }
+
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
-  const forgeDamagePenaltyBps = await getForgeInstabilityDamagePenaltyBps(prisma, playerId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: progress.experience.level,
@@ -418,9 +436,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       initiative: stats.initiative,
       luck: stats.luck
     },
-    equipment,
-    guildBonuses: academyEffects.statBonuses,
-    forgeDamagePenaltyBps
+    equipment: resolvedEquipment,
+    guildBonuses: academyEffects.statBonuses
   });
   const resolvedCurrentHealth = resolveCurrentHealth(profile.hitpointsCurrent, statSnapshot.total.maxHitpoints);
   const cheatSettingsRows = await prisma.$queryRaw<
@@ -431,6 +448,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       invincibilityEnabled: boolean;
       fastTrainTimeEnabled: boolean;
       unlimitedAcademyDonationsEnabled: boolean;
+      unlimitedForgeConsumablesEnabled: boolean;
     }>
   >`
     SELECT
@@ -439,7 +457,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       "fastArenaReplenishEnabled",
       "invincibilityEnabled",
       "fastTrainTimeEnabled",
-      "unlimitedAcademyDonationsEnabled"
+      "unlimitedAcademyDonationsEnabled",
+      "unlimitedForgeConsumablesEnabled"
     FROM "player_profiles"
     WHERE "id" = ${playerId}
     LIMIT 1
@@ -450,7 +469,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false,
-    unlimitedAcademyDonationsEnabled: false
+    unlimitedAcademyDonationsEnabled: false,
+    unlimitedForgeConsumablesEnabled: false
   };
 
   if (profile.hitpointsCurrent !== resolvedCurrentHealth) {
@@ -473,7 +493,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     experience: progress.experience.experience,
     experienceIntoLevel: progress.experience.experienceIntoLevel,
     experienceToNextLevel: progress.experience.experienceToNextLevel,
-    gearScore: computeGearScore(equipment),
+    gearScore: computeGearScore(resolvedEquipment),
     health: {
       current: resolvedCurrentHealth,
       max: statSnapshot.total.maxHitpoints
@@ -492,8 +512,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       luck: statSnapshot.total.luck
     },
     statSnapshot,
-    inventory,
-    equipment,
+    inventory: resolvedInventory,
+    equipment: resolvedEquipment,
     currency: {
       ducats: currency.ducats,
       imperials: currency.imperials,
@@ -505,7 +525,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       fastArenaReplenishEnabled: cheatSettingsRow.fastArenaReplenishEnabled,
       invincibilityEnabled: cheatSettingsRow.invincibilityEnabled,
       fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled,
-      unlimitedAcademyDonationsEnabled: cheatSettingsRow.unlimitedAcademyDonationsEnabled
+      unlimitedAcademyDonationsEnabled: cheatSettingsRow.unlimitedAcademyDonationsEnabled,
+      unlimitedForgeConsumablesEnabled: cheatSettingsRow.unlimitedForgeConsumablesEnabled
     })
   });
 }
@@ -541,7 +562,6 @@ export async function getPublicPlayerProfile(
   const equipment = buildEquipmentState(profile.equipmentSlots);
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
-  const forgeDamagePenaltyBps = await getForgeInstabilityDamagePenaltyBps(prisma, playerId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: profile.level,
@@ -554,8 +574,7 @@ export async function getPublicPlayerProfile(
       luck: stats.luck
     },
     equipment,
-    guildBonuses: academyEffects.statBonuses,
-    forgeDamagePenaltyBps
+    guildBonuses: academyEffects.statBonuses
   });
 
   return publicPlayerProfileSchema.parse({
