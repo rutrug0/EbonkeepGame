@@ -180,6 +180,7 @@ import { GENERATED_ITEM_ENCYCLOPEDIA_DATA, type GeneratedEncyclopediaItem } from
 import i18n, { setLocale } from "../i18n";
 import {
   getViewBackgroundAssetPaths,
+  getViewBackgroundStyle,
   preloadImageAssets,
   type ViewBackgroundName
 } from "../lib/viewBackgrounds";
@@ -363,6 +364,8 @@ const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
 export const PANEL_READY_BUDGET_MS = 500;
 export const PANEL_REVEAL_MS = 140;
 const APP_WIDE_PANEL_ART_ASPECT_RATIO = 1536 / 1024;
+const DESKTOP_PANEL_OVERFLOW_MIN_WIDTH_PX = 1850;
+const DESKTOP_PANEL_OVERFLOW_MIN_HEIGHT_PX = 980;
 const EMPTY_PANEL_FIT_METRICS: PanelFitMetrics = {
   surfaceWidthPx: null,
   surfaceHeightPx: null,
@@ -392,7 +395,7 @@ function getPanelRouteKey(route: PanelRoute): string {
 function getPanelRouteBackgroundNames(route: PanelRoute): ViewBackgroundName[] {
   switch (route.landingTab) {
     case "inventory":
-      return route.characterHubTab === "character" ? ["inventory"] : [];
+      return route.characterHubTab === "character" ? ["character"] : [];
     case "contracts":
       return ["contracts"];
     case "merchant":
@@ -1867,6 +1870,7 @@ export function AppShell() {
   const [chatDraft, setChatDraft] = useState("");
   const [canDockInventoryChat, setCanDockInventoryChat] = useState(false);
   const [panelFitMetrics, setPanelFitMetrics] = useState<PanelFitMetrics>(EMPTY_PANEL_FIT_METRICS);
+  const [isDesktopPanelOverflowMode, setIsDesktopPanelOverflowMode] = useState(false);
   const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
   const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
   const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
@@ -2860,6 +2864,7 @@ export function AppShell() {
   useEffect(() => {
     const recalculatePanelFit = () => {
       if (layoutMode === "compact") {
+        setIsDesktopPanelOverflowMode((current) => (current ? false : current));
         setPanelFitMetrics((current) => (current === EMPTY_PANEL_FIT_METRICS ? current : EMPTY_PANEL_FIT_METRICS));
         return;
       }
@@ -2874,6 +2879,16 @@ export function AppShell() {
       const landingPageRect = landingPage.getBoundingClientRect();
       const leftPanelRect = leftPanel.getBoundingClientRect();
       const rightPanel = rightPanelRef.current;
+      const shouldOverflowDesktopPanels =
+        window.innerWidth < DESKTOP_PANEL_OVERFLOW_MIN_WIDTH_PX
+        || window.innerHeight < DESKTOP_PANEL_OVERFLOW_MIN_HEIGHT_PX;
+      setIsDesktopPanelOverflowMode((current) =>
+        current === shouldOverflowDesktopPanels ? current : shouldOverflowDesktopPanels
+      );
+      if (shouldOverflowDesktopPanels) {
+        setPanelFitMetrics((current) => (current === EMPTY_PANEL_FIT_METRICS ? current : EMPTY_PANEL_FIT_METRICS));
+        return;
+      }
       const landingPageStyle = window.getComputedStyle(landingPage);
       const landingPaddingInline =
         (Number.parseFloat(landingPageStyle.paddingLeft || "0") || 0)
@@ -2894,7 +2909,7 @@ export function AppShell() {
       const panelStatsBase = Number.parseFloat(landingPageStyle.getPropertyValue("--panel-stats-base") || "0") || 0;
       const baseSurfaceWidth = (() => {
         if (visibleActiveTab === "inventory" && visibleCharacterHubTab === "character") {
-          return panelMainBase + panelStatsBase + inheritedSpace;
+          return panelViewportBase;
         }
         if (visibleActiveTab === "inventory") {
           return panelMainBase + panelStatsBase + inheritedSpace;
@@ -2904,15 +2919,7 @@ export function AppShell() {
         }
         return panelViewportBase;
       })();
-      const fallbackSceneWidthRatio = (() => {
-        if (visibleActiveTab === "inventory" && visibleCharacterHubTab === "character") {
-          return panelMainBase / baseSurfaceWidth;
-        }
-        if (visibleActiveTab === "inventory") {
-          return 1;
-        }
-        return 1;
-      })();
+      const fallbackSceneWidthRatio = 1;
       const presentedViewport = rightPanel?.querySelector('[data-testid="panel-transition-presented"]') as HTMLElement | null;
       const activeSceneShell = presentedViewport?.querySelector(
         ".jobsSceneShell, .adaptiveSceneShell, .indoorSceneShell"
@@ -3006,6 +3013,11 @@ export function AppShell() {
       return;
     }
 
+    if (visibleCharacterHubTab === "character") {
+      setCanDockInventoryChat(false);
+      return;
+    }
+
     const recalculateChatDocking = () => {
       if (layoutMode === "compact") {
         setCanDockInventoryChat(false);
@@ -3032,10 +3044,7 @@ export function AppShell() {
         Number.parseFloat(landingPageStyle.getPropertyValue("--panel-stats-max") || "0") ||
         panelViewportSideRef.current?.getBoundingClientRect().width ||
         0;
-      const requiredWidth =
-        visibleCharacterHubTab === "character"
-          ? mainPanelWidth + sidePanelWidth * 2 + inheritedSpace * 2
-          : mainPanelWidth + sidePanelWidth + inheritedSpace;
+      const requiredWidth = mainPanelWidth + sidePanelWidth + inheritedSpace;
       setCanDockInventoryChat(fittedSurfaceWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
     };
 
@@ -4728,8 +4737,17 @@ export function AppShell() {
     );
   }
 
-  function renderCharacterHubTabs(activeCharacterHubTab = characterHubTab): ReactElement {
-    return <CharacterHubTabs activeTab={activeCharacterHubTab} onTabChange={selectCharacterHubTab} />;
+  function renderCharacterHubTabs(
+    activeCharacterHubTab = characterHubTab,
+    options?: { cardClassName?: string }
+  ): ReactElement {
+    return (
+      <CharacterHubTabs
+        activeTab={activeCharacterHubTab}
+        cardClassName={options?.cardClassName}
+        onTabChange={selectCharacterHubTab}
+      />
+    );
   }
 
   function renderPanelTransitionOverlay(): ReactElement {
@@ -4902,67 +4920,80 @@ export function AppShell() {
 
   function renderProfilePanel(activeCharacterHubTab = characterHubTab) {
     return (
-      <InventoryManagementPanel
-        isLoadingState={isLoadingState}
-        playerState={playerState}
-        baseStats={baseStats}
-        currencies={currencies}
-        minimumPreviewDucats={TEST_MIN_DUCATS}
-        equipmentStatBonuses={equipmentStatBonuses}
-        inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
-        inventoryStatFlashes={inventoryStatFlashes}
-        activeStatTraining={activeStatTraining}
-        nowMs={nowMs}
-        statTrainDurationMs={STAT_TRAIN_DURATION_MS}
-        profileName={profileName}
-        activeCharacterVisualPath={activeCharacterVisualPath}
-        activeCharacterVisualName={activeCharacterVisualName}
-        canCycleCharacterVisuals={canCycleCharacterVisuals}
-        equipmentLeftSlots={EQUIPMENT_LEFT_SLOTS}
-        equipmentRightSlots={EQUIPMENT_RIGHT_SLOTS}
-        equipmentVestigeSlots={EQUIPMENT_VESTIGE_SLOTS}
-        renderCharacterHubTabs={() => renderCharacterHubTabs(activeCharacterHubTab)}
-        renderEquipmentSlotCell={renderEquipmentSlotCell}
-        onShowPreviousPortrait={() => {
-          const tree = playerState ? classToStatTree(playerState.class) : "strength";
-          const pool = PORTRAIT_POOL_BY_TREE[tree];
-          if (pool.length === 0) return;
-          const currentIndex = pool.findIndex((p) => p.id === activePortraitId);
-          const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-          const newPortrait = pool[(safeIndex - 1 + pool.length) % pool.length]!;
-          setActivePortraitId(newPortrait.id);
-          if (token) void updatePortrait(token, { portraitId: newPortrait.id }).catch(() => {});
-        }}
-        onShowNextPortrait={() => {
-          const tree = playerState ? classToStatTree(playerState.class) : "strength";
-          const pool = PORTRAIT_POOL_BY_TREE[tree];
-          if (pool.length === 0) return;
-          const currentIndex = pool.findIndex((p) => p.id === activePortraitId);
-          const safeIndex = currentIndex >= 0 ? currentIndex : 0;
-          const newPortrait = pool[(safeIndex + 1) % pool.length]!;
-          setActivePortraitId(newPortrait.id);
-          if (token) void updatePortrait(token, { portraitId: newPortrait.id }).catch(() => {});
-        }}
-        activeBackgroundPath={activeBackgroundPath}
-        onShowPreviousBackground={() => {
-          const idx = BACKGROUND_POOL.findIndex((b) => b.id === activeBackgroundId);
-          const safeIdx = idx >= 0 ? idx : 0;
-          const newBg = BACKGROUND_POOL[(safeIdx - 1 + BACKGROUND_POOL.length) % BACKGROUND_POOL.length]!;
-          setActiveBackgroundId(newBg.id);
-          if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
-        }}
-        onShowNextBackground={() => {
-          const idx = BACKGROUND_POOL.findIndex((b) => b.id === activeBackgroundId);
-          const safeIdx = idx >= 0 ? idx : 0;
-          const newBg = BACKGROUND_POOL[(safeIdx + 1) % BACKGROUND_POOL.length]!;
-          setActiveBackgroundId(newBg.id);
-          if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
-        }}
-        onStartStatTraining={startStatTraining}
-        getTrainingCost={getTrainingCost}
-        getStatContributionLines={getStatContributionLines}
-        formatDurationFromMs={formatDurationFromMs}
-      />
+      <section className="contentShell inventoryManagementShell characterMergedShell">
+        <div className="characterMergedLayout">
+          <div className="characterMergedColumn characterMergedMain">
+            <InventoryManagementPanel
+              embedded
+              isLoadingState={isLoadingState}
+              playerState={playerState}
+              baseStats={baseStats}
+              currencies={currencies}
+              minimumPreviewDucats={TEST_MIN_DUCATS}
+              equipmentStatBonuses={equipmentStatBonuses}
+              inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
+              inventoryStatFlashes={inventoryStatFlashes}
+              activeStatTraining={activeStatTraining}
+              nowMs={nowMs}
+              statTrainDurationMs={STAT_TRAIN_DURATION_MS}
+              profileName={profileName}
+              activeCharacterVisualPath={activeCharacterVisualPath}
+              activeCharacterVisualName={activeCharacterVisualName}
+              canCycleCharacterVisuals={canCycleCharacterVisuals}
+              equipmentLeftSlots={EQUIPMENT_LEFT_SLOTS}
+              equipmentRightSlots={EQUIPMENT_RIGHT_SLOTS}
+              equipmentVestigeSlots={EQUIPMENT_VESTIGE_SLOTS}
+              renderCharacterHubTabs={() =>
+                renderCharacterHubTabs(activeCharacterHubTab, {
+                  cardClassName: "merchantSceneCard characterMergedPrimaryTabsCard"
+                })}
+              renderEquipmentSlotCell={renderEquipmentSlotCell}
+              onShowPreviousPortrait={() => {
+                const tree = playerState ? classToStatTree(playerState.class) : "strength";
+                const pool = PORTRAIT_POOL_BY_TREE[tree];
+                if (pool.length === 0) return;
+                const currentIndex = pool.findIndex((p) => p.id === activePortraitId);
+                const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+                const newPortrait = pool[(safeIndex - 1 + pool.length) % pool.length]!;
+                setActivePortraitId(newPortrait.id);
+                if (token) void updatePortrait(token, { portraitId: newPortrait.id }).catch(() => {});
+              }}
+              onShowNextPortrait={() => {
+                const tree = playerState ? classToStatTree(playerState.class) : "strength";
+                const pool = PORTRAIT_POOL_BY_TREE[tree];
+                if (pool.length === 0) return;
+                const currentIndex = pool.findIndex((p) => p.id === activePortraitId);
+                const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+                const newPortrait = pool[(safeIndex + 1) % pool.length]!;
+                setActivePortraitId(newPortrait.id);
+                if (token) void updatePortrait(token, { portraitId: newPortrait.id }).catch(() => {});
+              }}
+              activeBackgroundPath={activeBackgroundPath}
+              onShowPreviousBackground={() => {
+                const idx = BACKGROUND_POOL.findIndex((b) => b.id === activeBackgroundId);
+                const safeIdx = idx >= 0 ? idx : 0;
+                const newBg = BACKGROUND_POOL[(safeIdx - 1 + BACKGROUND_POOL.length) % BACKGROUND_POOL.length]!;
+                setActiveBackgroundId(newBg.id);
+                if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
+              }}
+              onShowNextBackground={() => {
+                const idx = BACKGROUND_POOL.findIndex((b) => b.id === activeBackgroundId);
+                const safeIdx = idx >= 0 ? idx : 0;
+                const newBg = BACKGROUND_POOL[(safeIdx + 1) % BACKGROUND_POOL.length]!;
+                setActiveBackgroundId(newBg.id);
+                if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
+              }}
+              onStartStatTraining={startStatTraining}
+              getTrainingCost={getTrainingCost}
+              getStatContributionLines={getStatContributionLines}
+              formatDurationFromMs={formatDurationFromMs}
+            />
+          </div>
+          <div className="characterMergedColumn characterMergedSide">
+            {renderProfileSidePanel(true)}
+          </div>
+        </div>
+      </section>
     );
   }
 
@@ -5246,10 +5277,11 @@ export function AppShell() {
     );
   }
 
-  function renderProfileSidePanel() {
+  function renderProfileSidePanel(embedded = false) {
     if (isLoadingState || !playerState) {
       return (
         <ProfileSidePanel
+          embedded={embedded}
           isLoadingState={isLoadingState}
           playerState={playerState}
           inventoryItems={inventoryItems}
@@ -5327,6 +5359,7 @@ export function AppShell() {
 
     return (
       <ProfileSidePanel
+        embedded={embedded}
         isLoadingState={isLoadingState}
         playerState={playerState}
         inventoryItems={inventoryItems}
@@ -5870,30 +5903,19 @@ export function AppShell() {
 
   function renderPresentedPanelViewport(): ReactElement {
     if (visibleActiveTab === "inventory" && visibleCharacterHubTab === "character") {
+      const characterSceneStyle = getViewBackgroundStyle("character") as CSSProperties;
+
       return (
-        <div
-          className={`panelViewportGroup panelTransitionViewport${
-            canDockInventoryChat && isInventoryChatDockedVisible ? " panelViewportGroupWithChat" : ""
-          }`}
-          data-testid="panel-transition-presented"
-          ref={panelViewportGroupRef}
-        >
-          <div className="panelViewportProfileMain" ref={panelViewportMainRef}>
-            {renderProfilePanel(visibleCharacterHubTab)}
+        <div className="characterSingleViewportGroup panelTransitionViewport" data-testid="panel-transition-presented" ref={panelViewportGroupRef}>
+          <div className="characterMergedViewportFrame indoorSceneShell" style={characterSceneStyle}>
+            <div className="panelViewport characterMergedViewport" ref={panelViewportMainRef}>
+              {renderProfilePanel(visibleCharacterHubTab)}
+            </div>
           </div>
-          <div
-            className={`panelViewportSide${
-              !canDockInventoryChat && isInventoryChatOverlayOpen ? " panelViewportSideChatCovered" : ""
-            }`}
-            ref={panelViewportSideRef}
-          >
-            {renderProfileSidePanel()}
-          </div>
-          {canDockInventoryChat && isInventoryChatDockedVisible ? (
-            <div className="panelViewportSide panelViewportChat">{renderChatPanel()}</div>
-          ) : null}
-          {!canDockInventoryChat && isInventoryChatOverlayOpen ? (
-            <section className="inventoryChatPanelOverlayViewport">{renderChatPanel()}</section>
+          {isInventoryChatOverlayOpen ? (
+            <section className="inventoryChatPanelOverlayViewport inventoryChatPanelOverlayViewportRight">
+              {renderChatPanel()}
+            </section>
           ) : null}
           {renderPanelTransitionOverlay()}
         </div>
@@ -6104,7 +6126,7 @@ export function AppShell() {
   }
 
   return (
-      <main className={`appRoot layout-${layoutMode}`}>
+      <main className={`appRoot layout-${layoutMode}${isDesktopPanelOverflowMode ? " desktopPanelOverflow" : ""}`}>
         <div className="appSurface">
         {!emailVerified && accountInfo?.provider !== "dev-guest" && (
           <div style={{
@@ -6211,6 +6233,8 @@ export function AppShell() {
           className="landingPage"
           ref={landingPageRef}
           style={{
+            minWidth: isDesktopPanelOverflowMode ? `${DESKTOP_PANEL_OVERFLOW_MIN_WIDTH_PX}px` : undefined,
+            minHeight: isDesktopPanelOverflowMode ? `${DESKTOP_PANEL_OVERFLOW_MIN_HEIGHT_PX}px` : undefined,
             paddingTop: !emailVerified && accountInfo?.provider !== "dev-guest" ? "52px" : undefined,
             "--app-wide-panel-surface-width":
               panelFitMetrics.surfaceWidthPx !== null ? `${panelFitMetrics.surfaceWidthPx}px` : undefined,

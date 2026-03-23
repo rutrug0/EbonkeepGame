@@ -95,8 +95,6 @@
   --space-4: 14px;
   --space-5: 24px;
   --soft-radius: 5px;
-  --equip-slot-size: calc((var(--character-frame-height) - (var(--space-2) * 4)) / 5);
-  --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
   --left-panel-min: 120px;
   --left-panel-max: 320px;
   --panel-viewport-base: 1080px;
@@ -110,6 +108,10 @@
   --app-wide-panel-surface-height: 100%;
   --app-wide-panel-max-height: 100%;
   --app-wide-panel-art-size: contain;
+  --character-frame-width: calc(var(--panel-main-max) * 0.6623076923);
+  --character-frame-height: calc(var(--character-frame-width) / 0.9);
+  --equip-slot-size: calc((var(--character-frame-height) - (var(--space-2) * 4)) / 5);
+  --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
   --avatar-size: 58px;
   --menu-button-min-height: 52px;
   --menu-icon-size: 34px;
@@ -117,8 +119,6 @@
   --menu-label-side-pad: 42px;
   --contract-label-col: 104px;
   --inventory-item-icon-size: 34px;
-  --character-frame-height: 574px;
-  --character-frame-width: calc(var(--character-frame-height) * 0.9);
   --character-visual-padding: 0px;
 
   color: var(--text-main);
@@ -156,6 +156,10 @@ body {
   font-family: var(--font-body);
   font-size: var(--font-base);
   position: relative;
+}
+
+.appRoot.desktopPanelOverflow {
+  overflow: auto;
 }
 
 .appRoot::before {
@@ -202,8 +206,10 @@ body {
   --menu-icon-size: 30px;
   --menu-icon-left: 8px;
   --menu-label-side-pad: 36px;
+  --character-frame-width: calc(var(--panel-main-max) * 0.72);
+  --character-frame-height: calc(var(--character-frame-width) / 0.9);
   --equip-slot-size: 90px;
-  --character-frame-height: calc(5 * var(--equip-slot-size) + 4 * var(--space-2));
+  --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
 }
 
 .appRoot.layout-wide {
@@ -227,7 +233,10 @@ body {
   --menu-icon-size: 38px;
   --menu-icon-left: 10px;
   --menu-label-side-pad: 46px;
+  --character-frame-width: calc(var(--panel-main-max) * 0.6623076923);
+  --character-frame-height: calc(var(--character-frame-width) / 0.9);
   --equip-slot-size: calc((var(--character-frame-height) - (var(--space-2) * 4)) / 5);
+  --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
 }
 
 .appSurface {
@@ -563,6 +572,11 @@ button:focus-visible {
   align-content: start;
   justify-content: stretch;
   position: relative;
+}
+
+.appRoot.desktopPanelOverflow .landingPage {
+  width: max(100%, 1850px);
+  min-height: 980px;
 }
 
 .leftPanel {
@@ -1246,6 +1260,36 @@ button:focus-visible {
   max-width: calc(var(--panel-main-max) + var(--panel-stats-max) + var(--space-3));
 }
 
+.characterMergedViewport {
+  width: min(100%, 1300px);
+  max-width: 1300px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow: hidden;
+}
+
+.characterMergedViewport .contentShell,
+.characterMergedViewport .contentCard {
+  background: var(--scene-card-surface);
+  border-color: var(--scene-card-border);
+  box-shadow: var(--scene-card-shadow);
+}
+
+.characterMergedViewportFrame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background: var(--panel-soft);
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+}
+
 .characterHubViewportGroup {
   width: 100%;
   min-width: 0;
@@ -1254,6 +1298,15 @@ button:focus-visible {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   align-items: stretch;
+  position: relative;
+}
+
+.characterSingleViewportGroup {
+  width: var(--panel-viewport-max);
+  min-width: 0;
+  max-width: var(--panel-viewport-max);
+  height: 100%;
+  min-height: 0;
   position: relative;
 }
 
@@ -1274,11 +1327,117 @@ button:focus-visible {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.appRoot.layout-compact .characterSingleViewportGroup {
+  width: 100%;
+  max-width: none;
+}
+
+.appRoot.layout-compact .characterMergedViewport {
+  width: 100%;
+  max-width: none;
+}
+
+.appRoot.layout-compact .characterMergedViewportFrame {
+  justify-content: stretch;
+}
+
 .panelViewportProfileMain .contentShell,
 .panelViewportSide .contentShell {
   height: 100%;
   min-height: 0;
   overflow-y: auto;
+}
+
+.characterMergedShell {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  height: 100%;
+  min-height: 0;
+}
+
+.characterMergedLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 500px);
+  height: 100%;
+  min-height: 0;
+  width: min(100%, 1300px);
+  max-width: 1300px;
+  margin-inline: auto;
+}
+
+.characterMergedColumn {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.characterMergedMain {
+  max-width: none;
+  justify-self: stretch;
+}
+
+.characterMergedSide {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  border-left: 1px solid var(--scene-card-border);
+  background: transparent;
+}
+
+.inventoryManagementStack {
+  width: 100%;
+}
+
+.inventoryManagementCard {
+  align-content: start;
+}
+
+.inventoryManagementStackEmbedded,
+.mergedCharacterSideStack {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.inventoryManagementStackEmbedded > .inventoryManagementCard,
+.mergedCharacterSideBodyCard {
+  min-height: 0;
+}
+
+.mergedCharacterSideTabsCard,
+.sidePanelBodyCard.mergedCharacterSideBodyCard {
+  align-self: stretch;
+}
+
+.sidePanelBodyCard.mergedCharacterSideBodyCard .sidePanelScroll {
+  background: transparent;
+}
+
+.inventoryManagementStackEmbedded > .inventoryManagementCard {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.inventoryManagementStackEmbedded > .inventoryManagementCard::-webkit-scrollbar {
+  display: none;
+}
+
+.appRoot.layout-compact .characterMergedLayout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.appRoot.layout-compact .characterMergedMain,
+.appRoot.layout-compact .characterMergedSide {
+  max-width: none;
+  justify-self: stretch;
+}
+
+.appRoot.layout-compact .characterMergedSide {
+  border-left: none;
+  border-top: 1px solid var(--scene-card-border);
 }
 
 .contractsCombatViewportMain,
@@ -2885,7 +3044,7 @@ button:focus-visible {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: var(--space-2);
-  align-items: stretch;
+  align-items: start;
 }
 
 .vestigeRack {
@@ -3964,10 +4123,10 @@ button:focus-visible {
 
 .equipmentCenterColumn {
   display: grid;
-  grid-template-rows: 1fr;
-  min-height: calc(var(--character-frame-height) + (var(--character-visual-padding) * 2));
+  grid-template-rows: auto;
+  min-height: 0;
   justify-items: stretch;
-  align-items: stretch;
+  align-items: start;
 }
 
 .equipmentCell {
@@ -4138,7 +4297,7 @@ button:focus-visible {
   max-height: var(--character-frame-height);
   aspect-ratio: 9 / 10;
   justify-self: center;
-  align-self: center;
+  align-self: start;
   display: grid;
   place-items: stretch;
   border: none;
@@ -6253,6 +6412,30 @@ button:focus-visible {
   background: var(--scene-card-surface);
   border-color: var(--scene-card-border);
   box-shadow: var(--scene-card-shadow);
+}
+
+.contentCard.merchantSceneCard.characterMergedPrimaryTabsCard,
+.contentCard.merchantSceneCard.mergedCharacterSideTabsCard {
+  border: none;
+  border-radius: var(--soft-radius);
+  background: var(--scene-card-surface);
+  box-shadow: var(--scene-card-shadow);
+  padding: var(--space-3);
+  min-height: calc(48px + (var(--space-3) * 2));
+  align-content: center;
+}
+
+.contentCard.merchantSceneCard.characterMergedPrimaryTabsCard .profileSwitchBar,
+.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSideTabs {
+  min-height: 48px;
+  align-items: center;
+}
+
+.contentCard.merchantSceneCard.characterMergedPrimaryTabsCard .profileSwitchButton,
+.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSwitchButton,
+.contentCard.merchantSceneCard.characterMergedPrimaryTabsCard .profileSwitchButton.active,
+.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSwitchButton.active {
+  border-color: transparent;
 }
 
 .placeholderBackgroundShell .contentCard {

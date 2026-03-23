@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 export type ViewBackgroundName =
   | "arena"
   | "auction_house"
+  | "character"
   | "contracts"
   | "forge"
   | "garden"
