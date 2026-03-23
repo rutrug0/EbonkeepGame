@@ -3060,8 +3060,11 @@ export function AppShell() {
 
       const landingPage = landingPageRef.current;
       const landingPageStyle = landingPage ? window.getComputedStyle(landingPage) : null;
-      const fittedSurfaceWidth = panelFitMetrics.surfaceWidthPx;
-      if (!landingPageStyle || fittedSurfaceWidth === null) {
+      const availableRightPanelWidth =
+        rightPanelRef.current?.getBoundingClientRect().width
+        ?? panelFitMetrics.surfaceWidthPx
+        ?? null;
+      if (!landingPageStyle || availableRightPanelWidth === null) {
         setCanDockInventoryChat(false);
         return;
       }
@@ -3073,7 +3076,7 @@ export function AppShell() {
         panelViewportSideRef.current?.getBoundingClientRect().width ||
         0;
       const requiredWidth = mainPanelWidth + sidePanelWidth + inheritedSpace;
-      setCanDockInventoryChat(fittedSurfaceWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
+      setCanDockInventoryChat(availableRightPanelWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
     };
 
     const resizeObserver =
