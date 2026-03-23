@@ -348,6 +348,13 @@ type PanelRoute = {
   landingTab: LandingTab;
   characterHubTab: CharacterHubTab;
 };
+type PanelFitMetrics = {
+  surfaceWidthPx: number | null;
+  surfaceHeightPx: number | null;
+  panelViewportMaxPx: number | null;
+  panelMainMaxPx: number | null;
+  panelStatsMaxPx: number | null;
+};
 
 const INVENTORY_ITEM_LIMIT = 20;
 const STAT_TRAIN_DURATION_MS = 10 * 60 * 1000;
@@ -355,6 +362,14 @@ const CHEAT_FAST_TRAVEL_DURATION_MS = 2_000;
 const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
 export const PANEL_READY_BUDGET_MS = 500;
 export const PANEL_REVEAL_MS = 140;
+const APP_WIDE_PANEL_ART_ASPECT_RATIO = 1536 / 1024;
+const EMPTY_PANEL_FIT_METRICS: PanelFitMetrics = {
+  surfaceWidthPx: null,
+  surfaceHeightPx: null,
+  panelViewportMaxPx: null,
+  panelMainMaxPx: null,
+  panelStatsMaxPx: null
+};
 const TEST_MIN_DUCATS = 0;
 const MAIN_STAT_DEFENSE_RATIO = 0.2;
 const LUCK_CRIT_CHANCE_PERCENT_PER_POINT = 0.1;
@@ -1851,6 +1866,7 @@ export function AppShell() {
   );
   const [chatDraft, setChatDraft] = useState("");
   const [canDockInventoryChat, setCanDockInventoryChat] = useState(false);
+  const [panelFitMetrics, setPanelFitMetrics] = useState<PanelFitMetrics>(EMPTY_PANEL_FIT_METRICS);
   const [isInventoryChatDockedVisible, setIsInventoryChatDockedVisible] = useState(true);
   const [isInventoryChatOverlayOpen, setIsInventoryChatOverlayOpen] = useState(false);
   const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
@@ -2842,6 +2858,149 @@ export function AppShell() {
   }, [profileSideTab]);
 
   useEffect(() => {
+    const recalculatePanelFit = () => {
+      if (layoutMode === "compact") {
+        setPanelFitMetrics((current) => (current === EMPTY_PANEL_FIT_METRICS ? current : EMPTY_PANEL_FIT_METRICS));
+        return;
+      }
+
+      const landingPage = landingPageRef.current;
+      const leftPanel = leftPanelRef.current;
+      if (!landingPage || !leftPanel) {
+        setPanelFitMetrics((current) => (current === EMPTY_PANEL_FIT_METRICS ? current : EMPTY_PANEL_FIT_METRICS));
+        return;
+      }
+
+      const landingPageRect = landingPage.getBoundingClientRect();
+      const leftPanelRect = leftPanel.getBoundingClientRect();
+      const rightPanel = rightPanelRef.current;
+      const landingPageStyle = window.getComputedStyle(landingPage);
+      const landingPaddingInline =
+        (Number.parseFloat(landingPageStyle.paddingLeft || "0") || 0)
+        + (Number.parseFloat(landingPageStyle.paddingRight || "0") || 0);
+      const landingPaddingBlock =
+        (Number.parseFloat(landingPageStyle.paddingTop || "0") || 0)
+        + (Number.parseFloat(landingPageStyle.paddingBottom || "0") || 0);
+      const landingColumnGap = Number.parseFloat(landingPageStyle.columnGap || landingPageStyle.gap || "0") || 0;
+      const inheritedSpace = Number.parseFloat(landingPageStyle.getPropertyValue("--space-3") || "0") || 0;
+      const availableRightPanelWidth = Math.max(
+        0,
+        landingPageRect.width - landingPaddingInline - leftPanelRect.width - landingColumnGap
+      );
+      const availableRightPanelHeight = Math.max(0, landingPageRect.height - landingPaddingBlock);
+      const panelViewportBase =
+        Number.parseFloat(landingPageStyle.getPropertyValue("--panel-viewport-base") || "0") || 0;
+      const panelMainBase = Number.parseFloat(landingPageStyle.getPropertyValue("--panel-main-base") || "0") || 0;
+      const panelStatsBase = Number.parseFloat(landingPageStyle.getPropertyValue("--panel-stats-base") || "0") || 0;
+      const baseSurfaceWidth = (() => {
+        if (visibleActiveTab === "inventory" && visibleCharacterHubTab === "character") {
+          return panelMainBase + panelStatsBase + inheritedSpace;
+        }
+        if (visibleActiveTab === "inventory") {
+          return panelMainBase + panelStatsBase + inheritedSpace;
+        }
+        if (visibleActiveTab === "contracts" && activeContractEncounter?.phase === "combat" && isCombatLogVisible) {
+          return panelMainBase + 360 + inheritedSpace;
+        }
+        return panelViewportBase;
+      })();
+      const fallbackSceneWidthRatio = (() => {
+        if (visibleActiveTab === "inventory" && visibleCharacterHubTab === "character") {
+          return panelMainBase / baseSurfaceWidth;
+        }
+        if (visibleActiveTab === "inventory") {
+          return 1;
+        }
+        return 1;
+      })();
+      const presentedViewport = rightPanel?.querySelector('[data-testid="panel-transition-presented"]') as HTMLElement | null;
+      const activeSceneShell = presentedViewport?.querySelector(
+        ".jobsSceneShell, .adaptiveSceneShell, .indoorSceneShell"
+      ) as HTMLElement | null;
+      const measuredRightPanelWidth = rightPanel?.getBoundingClientRect().width ?? 0;
+      const measuredSceneShellWidth = activeSceneShell?.getBoundingClientRect().width ?? 0;
+      const measuredSceneWidthRatio =
+        measuredRightPanelWidth > 0 && measuredSceneShellWidth > 0
+          ? measuredSceneShellWidth / measuredRightPanelWidth
+          : null;
+      const sceneWidthRatio = Math.min(
+        1,
+        Math.max(0.01, measuredSceneWidthRatio ?? fallbackSceneWidthRatio)
+      );
+      const baseBackgroundFitHeight = (baseSurfaceWidth * sceneWidthRatio) / APP_WIDE_PANEL_ART_ASPECT_RATIO;
+
+      if (
+        availableRightPanelWidth <= 0
+        || availableRightPanelHeight <= 0
+        || !rightPanel
+        || panelViewportBase <= 0
+        || panelMainBase <= 0
+        || panelStatsBase <= 0
+        || baseSurfaceWidth <= 0
+        || baseBackgroundFitHeight <= 0
+      ) {
+        setPanelFitMetrics((current) => (current === EMPTY_PANEL_FIT_METRICS ? current : EMPTY_PANEL_FIT_METRICS));
+        return;
+      }
+
+      const widthScale = availableRightPanelWidth / baseSurfaceWidth;
+      const heightScale = availableRightPanelHeight / baseBackgroundFitHeight;
+      const surfaceScale = Math.min(widthScale, heightScale);
+
+      const nextPanelFitMetrics: PanelFitMetrics = {
+        surfaceWidthPx: Math.round(baseSurfaceWidth * surfaceScale),
+        surfaceHeightPx: Math.round(baseBackgroundFitHeight * surfaceScale),
+        panelViewportMaxPx: Math.round(panelViewportBase * surfaceScale),
+        panelMainMaxPx: Math.round(panelMainBase * surfaceScale),
+        panelStatsMaxPx: Math.round(panelStatsBase * surfaceScale)
+      };
+
+      setPanelFitMetrics((current) =>
+        current.surfaceWidthPx === nextPanelFitMetrics.surfaceWidthPx
+        && current.surfaceHeightPx === nextPanelFitMetrics.surfaceHeightPx
+        && current.panelViewportMaxPx === nextPanelFitMetrics.panelViewportMaxPx
+        && current.panelMainMaxPx === nextPanelFitMetrics.panelMainMaxPx
+        && current.panelStatsMaxPx === nextPanelFitMetrics.panelStatsMaxPx
+          ? current
+          : nextPanelFitMetrics
+      );
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => recalculatePanelFit()) : null;
+    if (resizeObserver) {
+      if (landingPageRef.current) {
+        resizeObserver.observe(landingPageRef.current);
+      }
+      if (leftPanelRef.current) {
+        resizeObserver.observe(leftPanelRef.current);
+      }
+      if (rightPanelRef.current) {
+        resizeObserver.observe(rightPanelRef.current);
+      }
+      const presentedViewport = rightPanelRef.current?.querySelector('[data-testid="panel-transition-presented"]') as HTMLElement | null;
+      if (presentedViewport) {
+        resizeObserver.observe(presentedViewport);
+      }
+      const activeSceneShell = presentedViewport?.querySelector(
+        ".jobsSceneShell, .adaptiveSceneShell, .indoorSceneShell"
+      ) as HTMLElement | null;
+      if (activeSceneShell) {
+        resizeObserver.observe(activeSceneShell);
+      }
+    }
+
+    const rafId = window.requestAnimationFrame(recalculatePanelFit);
+    window.addEventListener("resize", recalculatePanelFit);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", recalculatePanelFit);
+      resizeObserver?.disconnect();
+    };
+  }, [layoutMode, visibleActiveTab, visibleCharacterHubTab, activeContractEncounter?.phase, isCombatLogVisible]);
+
+  useEffect(() => {
     if (visibleActiveTab !== "inventory") {
       setCanDockInventoryChat(false);
       return;
@@ -2853,19 +3012,20 @@ export function AppShell() {
         return;
       }
 
-      const landingPage = landingPageRef.current;
-      const leftPanel = leftPanelRef.current;
       const mainPanel = panelViewportMainRef.current;
-      if (!landingPage || !leftPanel || !mainPanel) {
+      if (!mainPanel) {
         setCanDockInventoryChat(false);
         return;
       }
 
-      const landingPageWidth = landingPage.getBoundingClientRect().width;
-      const leftPanelWidth = leftPanel.getBoundingClientRect().width;
-      const landingPageStyle = window.getComputedStyle(landingPage);
-      const landingColumnGap = Number.parseFloat(landingPageStyle.columnGap || landingPageStyle.gap || "0") || 0;
-      const availableRightPanelWidth = Math.max(0, landingPageWidth - leftPanelWidth - landingColumnGap);
+      const landingPage = landingPageRef.current;
+      const landingPageStyle = landingPage ? window.getComputedStyle(landingPage) : null;
+      const fittedSurfaceWidth = panelFitMetrics.surfaceWidthPx;
+      if (!landingPageStyle || fittedSurfaceWidth === null) {
+        setCanDockInventoryChat(false);
+        return;
+      }
+
       const mainPanelWidth = mainPanel.getBoundingClientRect().width;
       const inheritedSpace = Number.parseFloat(landingPageStyle.getPropertyValue("--space-3") || "0") || 0;
       const sidePanelWidth =
@@ -2876,7 +3036,7 @@ export function AppShell() {
         visibleCharacterHubTab === "character"
           ? mainPanelWidth + sidePanelWidth * 2 + inheritedSpace * 2
           : mainPanelWidth + sidePanelWidth + inheritedSpace;
-      setCanDockInventoryChat(availableRightPanelWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
+      setCanDockInventoryChat(fittedSurfaceWidth + CHAT_DOCK_TOLERANCE_PX >= requiredWidth);
     };
 
     const resizeObserver =
@@ -2910,7 +3070,7 @@ export function AppShell() {
       window.removeEventListener("resize", recalculateChatDocking);
       resizeObserver?.disconnect();
     };
-  }, [visibleActiveTab, visibleCharacterHubTab, layoutMode]);
+  }, [visibleActiveTab, visibleCharacterHubTab, layoutMode, panelFitMetrics.surfaceWidthPx]);
 
   useEffect(() => {
     if (canDockInventoryChat) {
@@ -5769,7 +5929,10 @@ export function AppShell() {
 
     if (visibleActiveTab === "contracts" && activeContractEncounter && activeContractEncounter.phase === "travel") {
       return (
-        <div className="panelViewport contractsCombatViewportExpanded panelTransitionViewport" data-testid="panel-transition-presented">
+        <div
+          className="panelViewport contractsCombatViewportExpanded panelTransitionViewport"
+          data-testid="panel-transition-presented"
+        >
           {renderContractsPanel()}
           {renderPanelTransitionOverlay()}
         </div>
@@ -5778,7 +5941,10 @@ export function AppShell() {
 
     if (visibleActiveTab === "contracts" && activeContractEncounter && activeContractEncounter.phase === "combat") {
       return isCombatLogVisible ? (
-        <div className="panelViewportGroup contractsCombatViewportGroup panelTransitionViewport" data-testid="panel-transition-presented">
+        <div
+          className="panelViewportGroup contractsCombatViewportGroup panelTransitionViewport"
+          data-testid="panel-transition-presented"
+        >
           <div className="panelViewportProfileMain contractsCombatViewportMain">
             <div className="contractsCombatViewportMainStack">
               <CombatEncounterTurnTrackPanel
@@ -5826,7 +5992,10 @@ export function AppShell() {
           {renderPanelTransitionOverlay()}
         </div>
       ) : (
-        <div className="panelViewport contractsCombatViewportExpanded panelTransitionViewport" data-testid="panel-transition-presented">
+        <div
+          className="panelViewport contractsCombatViewportExpanded panelTransitionViewport"
+          data-testid="panel-transition-presented"
+        >
           <div className="contractsCombatViewportMainStack">
             <CombatEncounterTurnTrackPanel
               encounter={activeContractEncounter.encounter}
@@ -5862,7 +6031,10 @@ export function AppShell() {
 
     if (visibleActiveTab === "guild" && isGuildMissionActive) {
       return (
-        <div className="panelViewport contractsCombatViewportExpanded panelTransitionViewport" data-testid="panel-transition-presented">
+        <div
+          className="panelViewport contractsCombatViewportExpanded panelTransitionViewport"
+          data-testid="panel-transition-presented"
+        >
           {renderActivePanel(presentedPanelRoute)}
           {renderPanelTransitionOverlay()}
         </div>
@@ -5870,7 +6042,10 @@ export function AppShell() {
     }
 
     return (
-      <div className="panelViewport panelTransitionViewport" data-testid="panel-transition-presented">
+      <div
+        className="panelViewport panelTransitionViewport"
+        data-testid="panel-transition-presented"
+      >
         {renderActivePanel(presentedPanelRoute)}
         {renderPanelTransitionOverlay()}
       </div>
@@ -6032,7 +6207,25 @@ export function AppShell() {
             </button>
           </div>
         )}
-        <div className="landingPage" ref={landingPageRef} style={{ paddingTop: !emailVerified && accountInfo?.provider !== "dev-guest" ? "52px" : undefined }}>
+        <div
+          className="landingPage"
+          ref={landingPageRef}
+          style={{
+            paddingTop: !emailVerified && accountInfo?.provider !== "dev-guest" ? "52px" : undefined,
+            "--app-wide-panel-surface-width":
+              panelFitMetrics.surfaceWidthPx !== null ? `${panelFitMetrics.surfaceWidthPx}px` : undefined,
+            "--app-wide-panel-surface-height":
+              panelFitMetrics.surfaceHeightPx !== null ? `${panelFitMetrics.surfaceHeightPx}px` : undefined,
+            "--app-wide-panel-max-height":
+              panelFitMetrics.surfaceHeightPx !== null ? `${panelFitMetrics.surfaceHeightPx}px` : undefined,
+            "--panel-viewport-max":
+              panelFitMetrics.panelViewportMaxPx !== null ? `${panelFitMetrics.panelViewportMaxPx}px` : undefined,
+            "--panel-main-max":
+              panelFitMetrics.panelMainMaxPx !== null ? `${panelFitMetrics.panelMainMaxPx}px` : undefined,
+            "--panel-stats-max":
+              panelFitMetrics.panelStatsMaxPx !== null ? `${panelFitMetrics.panelStatsMaxPx}px` : undefined
+          } as CSSProperties}
+        >
           <aside className="leftPanel" ref={leftPanelRef}>
             <div className="leftPanelShell">
               <section className="playerCard">

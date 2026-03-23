@@ -99,10 +99,17 @@
   --vestige-slot-size: calc(var(--equip-slot-size) * 0.5);
   --left-panel-min: 120px;
   --left-panel-max: 320px;
-  --panel-viewport-max: 1080px;
-  --panel-main-max: 780px;
+  --panel-viewport-base: 1080px;
+  --panel-main-base: 780px;
+  --panel-stats-base: 435px;
+  --panel-viewport-max: var(--panel-viewport-base);
+  --panel-main-max: var(--panel-main-base);
   --panel-stats-min: 310px;
-  --panel-stats-max: 435px;
+  --panel-stats-max: var(--panel-stats-base);
+  --app-wide-panel-surface-width: 100%;
+  --app-wide-panel-surface-height: 100%;
+  --app-wide-panel-max-height: 100%;
+  --app-wide-panel-art-size: contain;
   --avatar-size: 58px;
   --menu-button-min-height: 52px;
   --menu-icon-size: 34px;
@@ -183,10 +190,13 @@ body {
   --space-5: 16px;
   --left-panel-min: 100%;
   --left-panel-max: 100%;
-  --panel-viewport-max: 100%;
-  --panel-main-max: 100%;
+  --panel-viewport-base: 100%;
+  --panel-main-base: 100%;
+  --panel-stats-base: 100%;
+  --panel-viewport-max: var(--panel-viewport-base);
+  --panel-main-max: var(--panel-main-base);
   --panel-stats-min: 100%;
-  --panel-stats-max: 100%;
+  --panel-stats-max: var(--panel-stats-base);
   --avatar-size: 52px;
   --menu-button-min-height: 48px;
   --menu-icon-size: 30px;
@@ -205,10 +215,13 @@ body {
   --space-5: 28px;
   --left-panel-min: 160px;
   --left-panel-max: 360px;
-  --panel-viewport-max: 1320px;
-  --panel-main-max: 780px;
+  --panel-viewport-base: 1320px;
+  --panel-main-base: 780px;
+  --panel-stats-base: 505px;
+  --panel-viewport-max: var(--panel-viewport-base);
+  --panel-main-max: var(--panel-main-base);
   --panel-stats-min: 385px;
-  --panel-stats-max: 505px;
+  --panel-stats-max: var(--panel-stats-base);
   --avatar-size: 64px;
   --menu-button-min-height: 56px;
   --menu-icon-size: 38px;
@@ -546,7 +559,8 @@ button:focus-visible {
   display: grid;
   gap: var(--space-4);
   grid-template-columns: minmax(var(--left-panel-min), var(--left-panel-max)) minmax(0, 1fr);
-  align-items: stretch;
+  align-items: start;
+  align-content: start;
   justify-content: stretch;
   position: relative;
 }
@@ -554,6 +568,9 @@ button:focus-visible {
 .leftPanel {
   min-width: 0;
   min-height: 0;
+  height: var(--app-wide-panel-max-height, 100%);
+  max-height: 100%;
+  align-self: start;
 }
 
 .leftPanelShell {
@@ -1037,6 +1054,12 @@ button:focus-visible {
   position: relative;
   min-width: 0;
   min-height: 0;
+  width: var(--app-wide-panel-surface-width, 100%);
+  max-width: 100%;
+  height: var(--app-wide-panel-max-height, 100%);
+  max-height: 100%;
+  align-self: start;
+  justify-self: start;
   display: flex;
   justify-content: flex-start;
   overflow: hidden;
@@ -1133,7 +1156,15 @@ button:focus-visible {
 
 .appRoot.layout-compact .leftPanel {
   max-height: min(56dvh, 480px);
+  height: auto;
   min-height: 0;
+}
+
+.appRoot.layout-compact .rightPanel {
+  width: 100%;
+  height: auto;
+  max-width: none;
+  max-height: none;
 }
 
 .appRoot.layout-compact .leftPanelShell {
@@ -1353,7 +1384,7 @@ button:focus-visible {
 .adaptiveSceneShell,
 .indoorSceneShell {
   --adaptive-scene-image: var(--indoor-scene-image, none);
-  --adaptive-scene-art-size: contain;
+  --adaptive-scene-art-size: var(--app-wide-panel-art-size);
   --adaptive-scene-art-position: center center;
   --adaptive-scene-backdrop-size: cover;
   --adaptive-scene-backdrop-position: var(--adaptive-scene-art-position);
