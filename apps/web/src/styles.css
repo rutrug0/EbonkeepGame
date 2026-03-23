@@ -1358,10 +1358,8 @@ button:focus-visible {
 }
 
 .characterMergedLayout {
-  --character-merged-main-min: min(var(--panel-main-max), 100%);
-  --character-merged-side-max: min(500px, max(0px, calc(100% - var(--character-merged-main-min))));
   display: grid;
-  grid-template-columns: minmax(var(--character-merged-main-min), 1fr) minmax(0, var(--character-merged-side-max));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 500px);
   height: 100%;
   min-height: 0;
   width: min(100%, 1300px);
@@ -1378,7 +1376,6 @@ button:focus-visible {
 .characterMergedMain {
   max-width: none;
   justify-self: stretch;
-  min-width: 0;
 }
 
 .characterMergedSide {
