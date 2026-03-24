@@ -640,20 +640,11 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
     setIsSubmitting(true);
     try {
       const response = await attemptForgeEnchant(token, { weaponItemId: selectedWeapon.id });
-      if (unlimitedForgeConsumables) {
-        startTransition(() => {
-          onPlayerStateChange(response.playerState);
-          setForgeState(response.forge);
-          setResolvedResult(null);
-          setResolvePhase("idle");
-        });
-      } else {
-        beginResolveSequence({
-          result: response.result,
-          playerState: response.playerState,
-          forge: response.forge
-        });
-      }
+      beginResolveSequence({
+        result: response.result,
+        playerState: response.playerState,
+        forge: response.forge
+      });
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("forge.attemptFailed"));
     } finally {
