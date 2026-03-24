@@ -1,0 +1,2 @@
+ALTER TABLE "contract_runs"
+ADD COLUMN "playerHitpointsUpdatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

@@ -302,6 +302,7 @@ model ContractRun {
   winnerSide           String
   combatBackgroundPath String?
   travelImagePath      String?
+  playerHitpointsUpdatedAt DateTime @default(now())
   playerSnapshot       Json
   enemySnapshots       Json
   events               Json

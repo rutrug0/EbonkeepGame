@@ -568,6 +568,13 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     if (slot.expiresAt && slot.expiresAt <= now) {
       throw new Error("Contract offer has expired.");
     }
+    const playerProfile = await tx.playerProfile.findUnique({
+      where: { id: playerId },
+      select: { hitpointsUpdatedAt: true }
+    });
+    if (!playerProfile) {
+      throw new Error("Player profile not found.");
+    }
 
     const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level, academyEffects);
     runId = `ctr_${randomUUID().replaceAll("-", "")}`;
@@ -608,6 +615,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
         winnerSide: simulation.winnerSide,
         combatBackgroundPath: null,
         travelImagePath: null,
+        playerHitpointsUpdatedAt: playerProfile.hitpointsUpdatedAt,
         playerSnapshot: json(simulation.player),
         enemySnapshots: json(simulation.enemies),
         events: json(simulation.events),
@@ -726,6 +734,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     events = combatEventSchema.array().parse(run.events);
     const rewards = parseStoredRewards(run.rewards);
     winnerSide = run.winnerSide === "player" ? "player" : "enemy";
+    const playerSnapshot = combatActorSnapshotSchema.parse(run.playerSnapshot);
     const playerCurrentHp = resolvePlayerCurrentHpFromEvents({
       playerSnapshot: run.playerSnapshot,
       events: run.events
@@ -774,23 +783,22 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       }
     }
 
+    const resolvedClaimHealth = resolveHealthState({
+      current: playerCurrentHp,
+      max: playerSnapshot.maxHp,
+      updatedAt: run.playerHitpointsUpdatedAt,
+      now
+    });
     const playerProfile = await tx.playerProfile.findUnique({
       where: { id: playerId },
-      select: { hitpointsUpdatedAt: true }
+      select: {
+        level: true,
+        fastContractReplenishEnabled: true
+      }
     });
     if (!playerProfile) {
       throw new Error("Player profile not found.");
     }
-    const playerState = await loadPlayerState(tx, playerId);
-    if (!playerState) {
-      throw new Error("Player state not found.");
-    }
-    const resolvedClaimHealth = resolveHealthState({
-      current: playerCurrentHp,
-      max: playerState.health.max,
-      updatedAt: playerProfile.hitpointsUpdatedAt,
-      now
-    });
 
     const slotRng = createSeededRng(`${playerId}:slot:${run.slotIndex}:claimed:${now.toISOString()}`);
     await tx.contractRun.update({
@@ -818,8 +826,8 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         replenishAt: buildReplenishAt(
           slotRng,
           now,
-          playerState.level,
-          playerState.cheatSettings.fastContractReplenishEnabled,
+          playerProfile.level,
+          playerProfile.fastContractReplenishEnabled,
           await getPlayerAcademyEffectTotals(tx, playerId)
         )
       }
