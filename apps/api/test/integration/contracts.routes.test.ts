@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { developerContractsStaticCurvesResponseSchema } from "@ebonkeep/shared/combat";
+import {
+  combatActorSnapshotSchema,
+  combatEventSchema,
+  developerContractsStaticCurvesResponseSchema
+} from "@ebonkeep/shared/combat";
 
 import {
   getContractReplenishPacingRow,
@@ -9,6 +13,28 @@ import {
 import { resetDeveloperContractSimulationJobsForTests } from "../../src/modules/contracts/developer-simulation.js";
 import { authHeaders, loginAsGuest, registerUser } from "../helpers/fixtures.js";
 import { createApiTestContext } from "../helpers/runtime.js";
+
+function resolvePlayerCurrentHpFromStoredRun(run: {
+  playerSnapshot: unknown;
+  events: unknown;
+}): number {
+  const player = combatActorSnapshotSchema.parse(run.playerSnapshot);
+  const events = combatEventSchema.array().parse(run.events);
+  let currentHp = player.currentHp;
+
+  for (const event of events) {
+    if (event.type !== "CombatActionResolved") {
+      continue;
+    }
+    for (const strike of event.strikes) {
+      if (strike.targetId === player.id) {
+        currentHp = strike.targetHpAfter;
+      }
+    }
+  }
+
+  return Math.max(0, Math.min(player.maxHp, currentHp));
+}
 
 describe("contracts routes", () => {
   let context: Awaited<ReturnType<typeof createApiTestContext>>;
@@ -355,6 +381,7 @@ describe("contracts routes", () => {
       data: {
         level: 25,
         hitpointsCurrent: 1,
+        hitpointsUpdatedAt: new Date(),
         invincibilityEnabled: true
       }
     });
@@ -406,6 +433,83 @@ describe("contracts routes", () => {
     expect(claimResponse.json().rewards.experience).toBeGreaterThan(0);
     expect(claimResponse.json().rewards.ducats).toBeGreaterThan(0);
     expect(claimResponse.json().playerState.health.current).toBe(claimResponse.json().playerState.health.max);
+    expect(claimResponse.json().playerState.health.nextPointAt).toBeNull();
+  });
+
+  it("adds passive health regeneration after applying the stored contract result", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: { level: 25 }
+    });
+    await context.prisma.playerStat.update({
+      where: { playerId: guest.body.playerId },
+      data: {
+        strength: 180,
+        intelligence: 180,
+        dexterity: 180,
+        vitality: 180,
+        initiative: 200,
+        luck: 120
+      }
+    });
+
+    const boardResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/contracts/board",
+      headers
+    });
+    expect(boardResponse.statusCode).toBe(200);
+    const availableSlot = boardResponse.json().slots.find((slot: { state: string }) => slot.state === "available");
+    expect(availableSlot).toBeTruthy();
+
+    const startResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/slots/${availableSlot.slotId}/start`,
+      headers,
+      payload: {}
+    });
+    expect(startResponse.statusCode).toBe(200);
+    const startedRun = startResponse.json() as { runId: string };
+
+    const regenStartedAt = new Date(Date.now() - (5 * 60 * 1000));
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsUpdatedAt: regenStartedAt
+      }
+    });
+    await context.prisma.contractRun.update({
+      where: { id: startedRun.runId },
+      data: {
+        travelEndsAt: new Date(Date.now() - 5_000)
+      }
+    });
+
+    const runRecord = await context.prisma.contractRun.findUniqueOrThrow({
+      where: { id: startedRun.runId },
+      select: {
+        playerSnapshot: true,
+        events: true
+      }
+    });
+    const postFightHp = resolvePlayerCurrentHpFromStoredRun(runRecord);
+
+    const claimResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/runs/${startedRun.runId}/claim-result`,
+      headers,
+      payload: {}
+    });
+    expect(claimResponse.statusCode).toBe(200);
+
+    const claimBody = claimResponse.json();
+    const expectedRegen = Math.floor(claimBody.playerState.health.max * 0.05);
+    expect(claimBody.playerState.health.current).toBe(
+      Math.min(claimBody.playerState.health.max, postFightHp + expectedRegen)
+    );
   });
 
   it("blocks contract starts while the player is at zero health", async () => {
@@ -415,7 +519,8 @@ describe("contracts routes", () => {
     await context.prisma.playerProfile.update({
       where: { id: guest.body.playerId },
       data: {
-        hitpointsCurrent: 0
+        hitpointsCurrent: 0,
+        hitpointsUpdatedAt: new Date()
       }
     });
 

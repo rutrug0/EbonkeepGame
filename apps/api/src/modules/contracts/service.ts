@@ -34,7 +34,7 @@ import {
 } from "../academy/effects.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { assertJobsActivityIdle } from "../jobs/service.js";
-import { grantPlayerExperience, spendPlayerStamina } from "../player/progression-service.js";
+import { grantPlayerExperience, resolveHealthState, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
   CONTRACT_AVAILABILITY_WINDOW,
@@ -774,10 +774,23 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       }
     }
 
+    const playerProfile = await tx.playerProfile.findUnique({
+      where: { id: playerId },
+      select: { hitpointsUpdatedAt: true }
+    });
+    if (!playerProfile) {
+      throw new Error("Player profile not found.");
+    }
     const playerState = await loadPlayerState(tx, playerId);
     if (!playerState) {
       throw new Error("Player state not found.");
     }
+    const resolvedClaimHealth = resolveHealthState({
+      current: playerCurrentHp,
+      max: playerState.health.max,
+      updatedAt: playerProfile.hitpointsUpdatedAt,
+      now
+    });
 
     const slotRng = createSeededRng(`${playerId}:slot:${run.slotIndex}:claimed:${now.toISOString()}`);
     await tx.contractRun.update({
@@ -814,7 +827,8 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     await tx.playerProfile.update({
       where: { id: playerId },
       data: {
-        hitpointsCurrent: playerCurrentHp
+        hitpointsCurrent: resolvedClaimHealth.current,
+        hitpointsUpdatedAt: resolvedClaimHealth.updatedAt
       }
     });
 

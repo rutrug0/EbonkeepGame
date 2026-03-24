@@ -28,7 +28,7 @@ import {
 import { getGuildAcademyEffectTotals, mergePlayerStatBonuses } from "../academy/effects.js";
 import { markWeaponTemperingFailed, parseStoredInventoryItem } from "../inventory/item-service.js";
 import { loadPersistedForgeState } from "../forge/state.js";
-import { syncPlayerProgress } from "./progression-service.js";
+import { resolveHealthState, syncPlayerProgress } from "./progression-service.js";
 
 const BASE_ACCURACY = 75;
 const BASE_CRIT_CHANCE = 500;
@@ -56,14 +56,6 @@ type EquipmentSlotWithItem = {
 
 function clampInt(value: number, max: number): number {
   return Math.max(0, Math.min(max, Math.round(value)));
-}
-
-function resolveCurrentHealth(storedCurrent: number, maxHitpoints: number): number {
-  const normalizedMax = Math.max(1, Math.floor(maxHitpoints));
-  if (storedCurrent < 0) {
-    return normalizedMax;
-  }
-  return Math.max(0, Math.min(normalizedMax, Math.floor(storedCurrent)));
 }
 
 export function createEmptyCoreStatBlock(): StatBlock {
@@ -323,6 +315,7 @@ export function canEquipItemForPlayerClass(
 
 export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: string): Promise<PlayerState | null> {
   await ensurePlayerEquipmentSlots(prisma, playerId);
+  const now = new Date();
 
   const profile = await prisma.playerProfile.findUnique({
     where: { id: playerId },
@@ -363,7 +356,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     return null;
   }
 
-  const progress = await syncPlayerProgress(prisma, playerId);
+  const progress = await syncPlayerProgress(prisma, playerId, now);
 
   // Ensure stats exist
   let stats = profile.stats;
@@ -439,7 +432,12 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     equipment: resolvedEquipment,
     guildBonuses: academyEffects.statBonuses
   });
-  const resolvedCurrentHealth = resolveCurrentHealth(profile.hitpointsCurrent, statSnapshot.total.maxHitpoints);
+  const resolvedHealth = resolveHealthState({
+    current: profile.hitpointsCurrent,
+    max: statSnapshot.total.maxHitpoints,
+    updatedAt: profile.hitpointsUpdatedAt,
+    now
+  });
   const cheatSettingsRows = await prisma.$queryRaw<
     Array<{
       fastTravelEnabled: boolean;
@@ -473,11 +471,15 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     unlimitedForgeConsumablesEnabled: false
   };
 
-  if (profile.hitpointsCurrent !== resolvedCurrentHealth) {
+  if (
+    profile.hitpointsCurrent !== resolvedHealth.current ||
+    profile.hitpointsUpdatedAt.getTime() !== resolvedHealth.updatedAt.getTime()
+  ) {
     await prisma.playerProfile.update({
       where: { id: playerId },
       data: {
-        hitpointsCurrent: resolvedCurrentHealth
+        hitpointsCurrent: resolvedHealth.current,
+        hitpointsUpdatedAt: resolvedHealth.updatedAt
       }
     });
   }
@@ -495,8 +497,9 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     experienceToNextLevel: progress.experience.experienceToNextLevel,
     gearScore: computeGearScore(resolvedEquipment),
     health: {
-      current: resolvedCurrentHealth,
-      max: statSnapshot.total.maxHitpoints
+      current: resolvedHealth.current,
+      max: statSnapshot.total.maxHitpoints,
+      nextPointAt: resolvedHealth.nextPointAt
     },
     stamina: {
       current: progress.stamina.current,

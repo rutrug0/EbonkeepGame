@@ -402,7 +402,8 @@ function createSyntheticPlayerState(args: {
     gearScore,
     health: {
       current: maxHealth,
-      max: maxHealth
+      max: maxHealth,
+      nextPointAt: null
     },
     stamina: {
       current: 120,
@@ -1406,7 +1407,8 @@ export async function simulateDeveloperContractProgression(args: {
             ...playerState,
             health: {
               current: currentHealth,
-              max: playerState.health.max
+              max: playerState.health.max,
+              nextPointAt: null
             },
             stamina: {
               current: Math.floor(staminaCurrent),

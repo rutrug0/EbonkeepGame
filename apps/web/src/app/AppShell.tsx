@@ -68,7 +68,7 @@ import {
 } from "@ebonkeep/shared/inventory";
 import { type MerchantState as SharedMerchantState, type MerchantTransactionResponse } from "@ebonkeep/shared/economy";
 import { MAX_GARDEN_SLOT_COUNT, MIN_GARDEN_UNLOCKED_SLOT_COUNT } from "@ebonkeep/shared/garden";
-import { type PlayerState } from "@ebonkeep/shared/player";
+import { PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE, type PlayerState, type RenownState } from "@ebonkeep/shared/player";
 
 import {
   forgotPassword,
@@ -88,7 +88,6 @@ import {
   levelUpPlayerCheats,
   moveInventoryItem,
   replenishPlayerCheats,
-  restPlayer,
   updatePlayerCheatSettings,
   updatePlayerPreferences,
   updatePortrait
@@ -172,7 +171,6 @@ import {
   type MockInventoryItemSeed,
   type RenownViewState
 } from "../features/profile";
-import type { RenownState } from "@ebonkeep/shared/player";
 import { DUCATS_ICON_PATH, IMPERIALS_ICON_PATH } from "../constants/uiAssets";
 import { DEFAULT_PORTRAIT_ID, PORTRAIT_POOL, PORTRAIT_POOL_BY_TREE, getPortraitPath, getDefaultPortraitId, BACKGROUND_POOL, getBackgroundPath, DEFAULT_BACKGROUND_ID } from "../constants/portraits";
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
@@ -336,6 +334,7 @@ type PendingContractResultPlayerState = {
   health: {
     current: number;
     max: number;
+    nextPointAt: string | null;
   };
   stamina: {
     current: number;
@@ -1789,6 +1788,64 @@ function isTabLockedByJobs(lockReleaseAtMs: number | null, nowMs: number, tab: L
   return lockReleaseAtMs !== null && nowMs < lockReleaseAtMs && JOB_ACTIVITY_LOCKED_TABS.includes(tab);
 }
 
+function resolvePassiveHealthMsPerPoint(maxHealth: number): number {
+  const normalizedMax = Math.max(1, Math.floor(maxHealth));
+  const regenPerMinute = (normalizedMax * PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE) / 100;
+  return regenPerMinute > 0 ? 60_000 / regenPerMinute : Number.POSITIVE_INFINITY;
+}
+
+function projectPassiveHealthState(health: PlayerState["health"], nowMs: number): PlayerState["health"] {
+  const max = Math.max(1, Math.floor(health.max));
+  const current = Math.max(0, Math.min(max, Math.floor(health.current)));
+  if (current >= max) {
+    return {
+      current: max,
+      max,
+      nextPointAt: null
+    };
+  }
+  if (health.nextPointAt === null) {
+    return {
+      current,
+      max,
+      nextPointAt: null
+    };
+  }
+
+  const nextPointAtMs = Date.parse(health.nextPointAt);
+  const msPerPoint = resolvePassiveHealthMsPerPoint(max);
+  if (!Number.isFinite(nextPointAtMs) || !Number.isFinite(msPerPoint) || msPerPoint <= 0) {
+    return {
+      current,
+      max,
+      nextPointAt: health.nextPointAt
+    };
+  }
+  if (nowMs < nextPointAtMs) {
+    return {
+      current,
+      max,
+      nextPointAt: health.nextPointAt
+    };
+  }
+
+  const regeneratedPoints = Math.floor((nowMs - nextPointAtMs) / msPerPoint) + 1;
+  const nextCurrent = Math.min(max, current + regeneratedPoints);
+  if (nextCurrent >= max) {
+    return {
+      current: max,
+      max,
+      nextPointAt: null
+    };
+  }
+
+  return {
+    current: nextCurrent,
+    max,
+    nextPointAt: new Date(nextPointAtMs + (regeneratedPoints * msPerPoint)).toISOString()
+  };
+}
+
 export function AppShell() {
   useTranslation();
   const landingPageRef = useRef<HTMLDivElement | null>(null);
@@ -1904,7 +1961,6 @@ export function AppShell() {
   const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
-  const [isResting, setIsResting] = useState(false);
   const [activeStatTraining, setActiveStatTraining] = useState<{
     stat: TrainableStatKey;
     startedAt: number;
@@ -2504,7 +2560,9 @@ export function AppShell() {
         ),
         max: activeContractEncounter.encounter.player.maxHp
       }
-    : playerState?.health ?? null;
+    : playerState
+      ? projectPassiveHealthState(playerState.health, nowMs)
+      : null;
   const healthPercent = displayedPlayerHealth
     ? Math.max(0, Math.min(100, Math.round((displayedPlayerHealth.current / Math.max(1, displayedPlayerHealth.max)) * 100)))
     : 0;
@@ -4556,24 +4614,6 @@ export function AppShell() {
     });
   }
 
-  async function handleRestPlayer() {
-    if (!token || !playerState || isResting) {
-      return;
-    }
-
-    setIsResting(true);
-    setError(null);
-    try {
-      const result = await restPlayer(token);
-      setPendingContractResultPlayerState(null);
-      applyAuthoritativePlayerState(result.playerState);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Rest failed");
-    } finally {
-      setIsResting(false);
-    }
-  }
-
   async function startContractEncounter(slotIndex: number, offer: ContractOffer) {
     if (!playerState || !token) {
       return;
@@ -6445,17 +6485,6 @@ export function AppShell() {
                       <span className="barValue">{xpLabel}</span>
                     </div>
                   </HoverTooltip>
-                </div>
-
-                <div className="playerCardActionRow">
-                  <button
-                    type="button"
-                    className="playerCardActionButton"
-                    onClick={handleRestPlayer}
-                    disabled={!playerState || isResting}
-                  >
-                    {isResting ? i18n.t("player.resting") : i18n.t("player.rest")}
-                  </button>
                 </div>
 
                 <div className="playerCardCurrencyRow" aria-label="Player currencies">
