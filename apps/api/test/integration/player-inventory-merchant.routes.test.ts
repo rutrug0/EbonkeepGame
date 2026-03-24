@@ -59,6 +59,7 @@ describe("player, inventory, and merchant routes", () => {
       where: { id: guest.body.playerId },
       data: {
         hitpointsCurrent: 0,
+        hitpointsUpdatedAt: new Date(),
         staminaCurrent: 10,
         staminaUpdatedAt: new Date()
       }
@@ -76,8 +77,44 @@ describe("player, inventory, and merchant routes", () => {
     const body = restResponse.json();
     expect(body.costDucats).toBeGreaterThan(0);
     expect(body.playerState.health.current).toBe(body.playerState.health.max);
+    expect(body.playerState.health.nextPointAt).toBeNull();
     expect(body.playerState.stamina.current).toBe(body.playerState.stamina.max);
     expect(body.playerState.currency.ducats).toBe(1_000 - body.costDucats);
+  });
+
+  it("applies passive health regeneration in player state responses", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const initialStateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+    expect(initialStateResponse.statusCode).toBe(200);
+    const initialState = initialStateResponse.json();
+    const initialMaxHealth = initialState.health.max as number;
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsCurrent: 0,
+        hitpointsUpdatedAt: new Date(Date.now() - (5 * 60 * 1000))
+      }
+    });
+
+    const stateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+    expect(stateResponse.statusCode).toBe(200);
+
+    const body = stateResponse.json();
+    const expectedRegen = Math.floor(initialMaxHealth * 0.05);
+    expect(body.health.current).toBe(expectedRegen);
+    expect(body.health.max).toBe(initialMaxHealth);
+    expect(body.health.nextPointAt).toBeTruthy();
   });
 
   it("persists cheat settings and applies cheat actions through player routes", async () => {
@@ -138,6 +175,7 @@ describe("player, inventory, and merchant routes", () => {
       where: { id: guest.body.playerId },
       data: {
         hitpointsCurrent: 1,
+        hitpointsUpdatedAt: new Date(),
         staminaCurrent: 5,
         staminaUpdatedAt: new Date()
       }
@@ -151,6 +189,7 @@ describe("player, inventory, and merchant routes", () => {
     });
     expect(replenishResponse.statusCode).toBe(200);
     expect(replenishResponse.json().playerState.health.current).toBe(replenishResponse.json().playerState.health.max);
+    expect(replenishResponse.json().playerState.health.nextPointAt).toBeNull();
     expect(replenishResponse.json().playerState.stamina.current).toBe(replenishResponse.json().playerState.stamina.max);
 
     const levelUpResponse = await context.app.inject({
@@ -233,6 +272,7 @@ describe("player, inventory, and merchant routes", () => {
       where: { id: guest.body.playerId },
       data: {
         hitpointsCurrent: 0,
+        hitpointsUpdatedAt: new Date(),
         staminaCurrent: 10,
         staminaUpdatedAt: new Date()
       }

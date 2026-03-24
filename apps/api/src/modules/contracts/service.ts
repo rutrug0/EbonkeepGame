@@ -34,7 +34,7 @@ import {
 } from "../academy/effects.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { assertJobsActivityIdle } from "../jobs/service.js";
-import { grantPlayerExperience, spendPlayerStamina } from "../player/progression-service.js";
+import { grantPlayerExperience, resolveHealthState, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
   CONTRACT_AVAILABILITY_WINDOW,
@@ -568,6 +568,13 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     if (slot.expiresAt && slot.expiresAt <= now) {
       throw new Error("Contract offer has expired.");
     }
+    const playerProfile = await tx.playerProfile.findUnique({
+      where: { id: playerId },
+      select: { hitpointsUpdatedAt: true }
+    });
+    if (!playerProfile) {
+      throw new Error("Player profile not found.");
+    }
 
     const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level, academyEffects);
     runId = `ctr_${randomUUID().replaceAll("-", "")}`;
@@ -608,6 +615,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
         winnerSide: simulation.winnerSide,
         combatBackgroundPath: null,
         travelImagePath: null,
+        playerHitpointsUpdatedAt: playerProfile.hitpointsUpdatedAt,
         playerSnapshot: json(simulation.player),
         enemySnapshots: json(simulation.enemies),
         events: json(simulation.events),
@@ -726,6 +734,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     events = combatEventSchema.array().parse(run.events);
     const rewards = parseStoredRewards(run.rewards);
     winnerSide = run.winnerSide === "player" ? "player" : "enemy";
+    const playerSnapshot = combatActorSnapshotSchema.parse(run.playerSnapshot);
     const playerCurrentHp = resolvePlayerCurrentHpFromEvents({
       playerSnapshot: run.playerSnapshot,
       events: run.events
@@ -774,9 +783,21 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       }
     }
 
-    const playerState = await loadPlayerState(tx, playerId);
-    if (!playerState) {
-      throw new Error("Player state not found.");
+    const resolvedClaimHealth = resolveHealthState({
+      current: playerCurrentHp,
+      max: playerSnapshot.maxHp,
+      updatedAt: run.playerHitpointsUpdatedAt,
+      now
+    });
+    const playerProfile = await tx.playerProfile.findUnique({
+      where: { id: playerId },
+      select: {
+        level: true,
+        fastContractReplenishEnabled: true
+      }
+    });
+    if (!playerProfile) {
+      throw new Error("Player profile not found.");
     }
 
     const slotRng = createSeededRng(`${playerId}:slot:${run.slotIndex}:claimed:${now.toISOString()}`);
@@ -805,8 +826,8 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         replenishAt: buildReplenishAt(
           slotRng,
           now,
-          playerState.level,
-          playerState.cheatSettings.fastContractReplenishEnabled,
+          playerProfile.level,
+          playerProfile.fastContractReplenishEnabled,
           await getPlayerAcademyEffectTotals(tx, playerId)
         )
       }
@@ -814,7 +835,8 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     await tx.playerProfile.update({
       where: { id: playerId },
       data: {
-        hitpointsCurrent: playerCurrentHp
+        hitpointsCurrent: resolvedClaimHealth.current,
+        hitpointsUpdatedAt: resolvedClaimHealth.updatedAt
       }
     });
 

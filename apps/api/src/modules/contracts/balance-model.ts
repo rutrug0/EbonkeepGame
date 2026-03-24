@@ -359,7 +359,8 @@ export function createExpectedPlayerState(args: {
     gearScore: loadout.gearScore,
     health: {
       current: maxHealth,
-      max: maxHealth
+      max: maxHealth,
+      nextPointAt: null
     },
     stamina: {
       current: 120,

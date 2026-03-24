@@ -9,6 +9,8 @@ import {
 } from "../../core/index.js";
 import { equipmentStateSchema, inventoryItemSchema } from "../inventory/index.js";
 
+export const PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE = 1;
+
 export const playerCheatSettingsSchema = z.object({
   fastTravelEnabled: z.boolean().default(false),
   fastContractReplenishEnabled: z.boolean().default(false),
@@ -34,7 +36,8 @@ export const playerStateSchema = z.object({
   gearScore: z.number().int().min(0),
   health: z.object({
     current: z.number().int().min(0),
-    max: z.number().int().min(1)
+    max: z.number().int().min(1),
+    nextPointAt: z.string().nullable()
   }),
   stamina: z.object({
     current: z.number().int().min(0),

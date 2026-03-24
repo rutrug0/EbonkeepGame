@@ -51,6 +51,7 @@ model PlayerProfile {
   experience       Int               @default(0)
   gearScore        Int               @default(0)
   hitpointsCurrent Int               @default(-1)
+  hitpointsUpdatedAt DateTime        @default(now())
   staminaCurrent   Int               @default(120)
   staminaMax       Int               @default(120)
   staminaUpdatedAt DateTime          @default(now())
@@ -301,6 +302,7 @@ model ContractRun {
   winnerSide           String
   combatBackgroundPath String?
   travelImagePath      String?
+  playerHitpointsUpdatedAt DateTime @default(now())
   playerSnapshot       Json
   enemySnapshots       Json
   events               Json

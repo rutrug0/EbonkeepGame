@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE } from "@ebonkeep/shared/player";
 import { resolveStaminaRegenPercentPerHour } from "../../config/activity-pacing.js";
 
 import {
@@ -21,6 +22,13 @@ type ExperienceCurveRow = {
 };
 
 type StaminaState = {
+  current: number;
+  max: number;
+  updatedAt: Date;
+  nextPointAt: string | null;
+};
+
+export type HealthState = {
   current: number;
   max: number;
   updatedAt: Date;
@@ -175,6 +183,69 @@ export function resolveStaminaState(args: {
   );
   const regenPerHour = (max * regenPercentPerHour) / 100;
   const msPerPoint = regenPerHour > 0 ? 3_600_000 / regenPerHour : Number.POSITIVE_INFINITY;
+
+  if (current >= max) {
+    return {
+      current: max,
+      max,
+      updatedAt: now,
+      nextPointAt: null
+    };
+  }
+
+  if (!Number.isFinite(msPerPoint) || msPerPoint <= 0) {
+    return {
+      current,
+      max,
+      updatedAt: args.updatedAt,
+      nextPointAt: null
+    };
+  }
+
+  const elapsedMs = Math.max(0, now.getTime() - args.updatedAt.getTime());
+  const regeneratedPoints = Math.floor(elapsedMs / msPerPoint);
+
+  if (regeneratedPoints <= 0) {
+    return {
+      current,
+      max,
+      updatedAt: args.updatedAt,
+      nextPointAt: new Date(args.updatedAt.getTime() + msPerPoint).toISOString()
+    };
+  }
+
+  const nextCurrent = Math.min(max, current + regeneratedPoints);
+  if (nextCurrent >= max) {
+    return {
+      current: max,
+      max,
+      updatedAt: now,
+      nextPointAt: null
+    };
+  }
+
+  const consumedMs = regeneratedPoints * msPerPoint;
+  const updatedAt = new Date(args.updatedAt.getTime() + consumedMs);
+
+  return {
+    current: nextCurrent,
+    max,
+    updatedAt,
+    nextPointAt: new Date(updatedAt.getTime() + msPerPoint).toISOString()
+  };
+}
+
+export function resolveHealthState(args: {
+  current: number;
+  max: number;
+  updatedAt: Date;
+  now?: Date;
+}): HealthState {
+  const max = Math.max(1, Math.floor(args.max));
+  const current = args.current < 0 ? max : Math.max(0, Math.min(max, Math.floor(args.current)));
+  const now = args.now ?? new Date();
+  const regenPerMinute = (max * PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE) / 100;
+  const msPerPoint = regenPerMinute > 0 ? 60_000 / regenPerMinute : Number.POSITIVE_INFINITY;
 
   if (current >= max) {
     return {
@@ -547,17 +618,10 @@ export async function grantPlayerExperience(
 export const playerProgressionConfig = {
   maxLevel: MAX_LEVEL,
   staminaRegenPercentPerHour: resolveStaminaRegenPercentPerHour(1),
+  passiveHealthRegenPercentPerMinute: PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE,
   restHealthPerDucat: REST_HEALTH_PER_DUCAT,
   restStaminaPerDucat: REST_STAMINA_PER_DUCAT
 } as const;
-
-function resolveStoredCurrentHealth(storedCurrent: number, maxHealth: number): number {
-  const normalizedMax = Math.max(1, Math.floor(maxHealth));
-  if (storedCurrent < 0) {
-    return normalizedMax;
-  }
-  return Math.max(0, Math.min(normalizedMax, Math.floor(storedCurrent)));
-}
 
 export function calculateRestCost(args: {
   currentHealth: number;
@@ -588,6 +652,7 @@ export async function restPlayerResources(args: {
     where: { id: args.playerId },
     select: {
       hitpointsCurrent: true,
+      hitpointsUpdatedAt: true,
       staminaCurrent: true,
       staminaMax: true,
       staminaUpdatedAt: true,
@@ -606,7 +671,12 @@ export async function restPlayerResources(args: {
 
   const academyEffects = await getGuildAcademyEffectTotals(args.tx, profile.guildMembership?.guildId);
   const maxHealth = Math.max(1, Math.floor(args.maxHealth));
-  const currentHealth = resolveStoredCurrentHealth(profile.hitpointsCurrent, maxHealth);
+  const health = resolveHealthState({
+    current: profile.hitpointsCurrent,
+    max: maxHealth,
+    updatedAt: profile.hitpointsUpdatedAt,
+    now
+  });
   const stamina = resolveStaminaState({
     current: profile.staminaCurrent,
     max: profile.staminaMax,
@@ -616,7 +686,7 @@ export async function restPlayerResources(args: {
     now
   });
   const costDucats = calculateRestCost({
-    currentHealth,
+    currentHealth: health.current,
     maxHealth,
     currentStamina: stamina.current,
     maxStamina: stamina.max,
@@ -643,6 +713,7 @@ export async function restPlayerResources(args: {
     where: { id: args.playerId },
     data: {
       hitpointsCurrent: maxHealth,
+      hitpointsUpdatedAt: now,
       staminaCurrent: stamina.max,
       staminaUpdatedAt: now
     }

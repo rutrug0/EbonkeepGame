@@ -45,7 +45,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     id: "adventures",
     iconTab: "missions",
-    tabs: ["contracts", "missions", "arena"]
+    tabs: ["contracts", "jobs", "arena"]
   },
   {
     id: "market",
@@ -55,12 +55,12 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     id: "estate",
     iconTab: "garden",
-    tabs: ["garden", "jobs", "refinery", "forge"]
+    tabs: ["garden", "refinery", "forge"]
   },
   {
     id: "realm",
     iconTab: "guild",
-    tabs: ["guild", "castles"]
+    tabs: ["guild", "missions", "castles"]
   }
 ];
 
@@ -70,9 +70,9 @@ const MENU_GROUP_BY_TAB: Record<LandingTab, MenuGroupId> = {
   leaderboards: "profile",
   settings: "profile",
   contracts: "adventures",
-  missions: "adventures",
+  missions: "realm",
   arena: "adventures",
-  jobs: "estate",
+  jobs: "adventures",
   merchant: "market",
   auctionHouse: "market",
   shop: "market",

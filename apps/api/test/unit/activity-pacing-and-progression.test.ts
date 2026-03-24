@@ -9,6 +9,7 @@ import {
 import { getDeveloperContractsStaticCurves } from "../../src/modules/contracts/developer-static-curves.js";
 import {
   calculateRestCost,
+  resolveHealthState,
   rebaseStaminaStateForRegenChange,
   resolveStaminaState
 } from "../../src/modules/player/progression-service.js";
@@ -162,5 +163,48 @@ describe("stamina regeneration", () => {
     });
 
     expect(oneHourAfterUnlock.current).toBe(36);
+  });
+});
+
+describe("health regeneration", () => {
+  it("regenerates 1% of max health per minute", () => {
+    const now = new Date("2026-03-13T12:05:00.000Z");
+    const health = resolveHealthState({
+      current: 50,
+      max: 200,
+      updatedAt: new Date("2026-03-13T12:00:00.000Z"),
+      now
+    });
+
+    expect(health.current).toBe(60);
+    expect(health.updatedAt.toISOString()).toBe(now.toISOString());
+    expect(health.nextPointAt).toBe("2026-03-13T12:05:30.000Z");
+  });
+
+  it("supports fractional minute thresholds for low max-health pools", () => {
+    const health = resolveHealthState({
+      current: 3,
+      max: 50,
+      updatedAt: new Date("2026-03-13T12:00:00.000Z"),
+      now: new Date("2026-03-13T12:03:00.000Z")
+    });
+
+    expect(health.current).toBe(4);
+    expect(health.updatedAt.toISOString()).toBe("2026-03-13T12:02:00.000Z");
+    expect(health.nextPointAt).toBe("2026-03-13T12:04:00.000Z");
+  });
+
+  it("returns null for nextPointAt and refreshes the timestamp when health is full", () => {
+    const now = new Date("2026-03-13T12:05:00.000Z");
+    const health = resolveHealthState({
+      current: 120,
+      max: 120,
+      updatedAt: new Date("2026-03-13T11:00:00.000Z"),
+      now
+    });
+
+    expect(health.current).toBe(120);
+    expect(health.updatedAt.toISOString()).toBe(now.toISOString());
+    expect(health.nextPointAt).toBeNull();
   });
 });

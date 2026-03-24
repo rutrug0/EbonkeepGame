@@ -333,7 +333,7 @@ describe("AppShell panel transitions", () => {
 
     render(<AppShell />);
 
-    fireEvent.click(screen.getByTestId("menu-group-estate"));
+    fireEvent.click(screen.getByTestId("menu-group-adventures"));
     fireEvent.click(screen.getByTestId("menu-jobs"));
 
     expect(presentedLayer().getByTestId("character-panel")).not.toBeNull();
@@ -389,7 +389,7 @@ describe("AppShell panel transitions", () => {
 
     render(<AppShell />);
 
-    fireEvent.click(screen.getByTestId("menu-group-adventures"));
+    fireEvent.click(screen.getByTestId("menu-group-realm"));
     fireEvent.click(screen.getByTestId("menu-missions"));
 
     expect(presentedLayer().getByTestId("character-panel")).not.toBeNull();

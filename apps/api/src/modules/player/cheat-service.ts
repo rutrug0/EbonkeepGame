@@ -108,6 +108,7 @@ export async function replenishPlayerForCheats(
     where: { id: playerId },
     data: {
       hitpointsCurrent: playerState.health.max,
+      hitpointsUpdatedAt: now,
       staminaCurrent: playerState.stamina.max,
       staminaUpdatedAt: now
     }
