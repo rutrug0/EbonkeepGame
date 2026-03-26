@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { loginAsGuest, setPlayerDucats } from "../helpers/fixtures.js";
+import { setPlayerDucats } from "../helpers/fixtures.js";
 import { createApiTestContext } from "../helpers/runtime.js";
 import {
   claimCraftingJob,
@@ -35,9 +37,27 @@ describe("crafting service", () => {
     if (!context) {
       throw new Error("Crafting tests require the test database to be available.");
     }
-    const guest = await loginAsGuest(context.app);
-    await setPlayerDucats(context.prisma, guest.body.playerId, amount);
-    return guest.body.playerId;
+    const suffix = randomUUID().replaceAll("-", "");
+    const account = await context.prisma.account.create({
+      data: {
+        provider: "test",
+        providerUserId: `crafting-${suffix}`,
+        username: `crafter_${suffix.slice(0, 10)}`
+      }
+    });
+    const profile = await context.prisma.playerProfile.create({
+      data: {
+        id: `player_${suffix}`,
+        accountId: account.id,
+        class: "juggernaut",
+        portraitId: "str_01",
+        backgroundId: "bg_01",
+        level: 50,
+        gearScore: 0
+      }
+    });
+    await setPlayerDucats(context.prisma, profile.id, amount);
+    return profile.id;
   }
 
   it("grants instant combine outputs without creating a crafting job", async () => {
@@ -157,7 +177,15 @@ describe("crafting service", () => {
     }
     const playerId = await createPlayerWithDucats();
 
-    await grantCraftingStackableItem(context.prisma, playerId, "all_salvaged_ingot", 2, "output");
+    await context.prisma.inventoryItem.create({
+      data: {
+        id: `item_${randomUUID().replaceAll("-", "")}`,
+        playerId,
+        itemCode: "all_salvaged_ingot",
+        slotKey: "inventory",
+        quantity: 2
+      }
+    });
     await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_binding_common", 1, "material");
 
     const result = await startCraftingJob(

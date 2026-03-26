@@ -134,7 +134,8 @@ describe("player, inventory, and merchant routes", () => {
       invincibilityEnabled: false,
       fastTrainTimeEnabled: false,
       unlimitedAcademyDonationsEnabled: false,
-      unlimitedForgeConsumablesEnabled: false
+      unlimitedForgeConsumablesEnabled: false,
+      unlimitedRefineryMaterialsEnabled: false
     });
 
     const settingsResponse = await context.app.inject({
@@ -147,7 +148,8 @@ describe("player, inventory, and merchant routes", () => {
         fastArenaReplenishEnabled: true,
         invincibilityEnabled: true,
         fastTrainTimeEnabled: true,
-        unlimitedAcademyDonationsEnabled: true
+        unlimitedAcademyDonationsEnabled: true,
+        unlimitedRefineryMaterialsEnabled: true
       }
     });
     expect(settingsResponse.statusCode).toBe(200);
@@ -158,7 +160,8 @@ describe("player, inventory, and merchant routes", () => {
       invincibilityEnabled: true,
       fastTrainTimeEnabled: true,
       unlimitedAcademyDonationsEnabled: true,
-      unlimitedForgeConsumablesEnabled: false
+      unlimitedForgeConsumablesEnabled: false,
+      unlimitedRefineryMaterialsEnabled: true
     });
 
     const persistedStateResponse = await context.app.inject({
@@ -170,6 +173,7 @@ describe("player, inventory, and merchant routes", () => {
     expect(persistedStateResponse.json().cheatSettings.fastTravelEnabled).toBe(true);
     expect(persistedStateResponse.json().cheatSettings.fastContractReplenishEnabled).toBe(true);
     expect(persistedStateResponse.json().cheatSettings.fastArenaReplenishEnabled).toBe(true);
+    expect(persistedStateResponse.json().cheatSettings.unlimitedRefineryMaterialsEnabled).toBe(true);
 
     await context.prisma.playerProfile.update({
       where: { id: guest.body.playerId },
