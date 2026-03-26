@@ -63,6 +63,9 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
+      - name: Prepare test database
+        run: npm run test:db:prepare
+
       - name: Run CI test gate
         run: npm run test:ci
 
