@@ -1,19 +1,29 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { GardenStateResponse } from "@ebonkeep/shared/garden";
 
 import { __resetRefineryPanelCacheForTests, RefineryPanel } from "../src/features/refinery/RefineryPanel";
 
-const gardenApiMocks = vi.hoisted(() => ({
-  fetchGardenState: vi.fn()
+const craftingApiMocks = vi.hoisted(() => ({
+  fetchCraftingInventory: vi.fn(),
+  combineMaterials: vi.fn(),
+  craftItem: vi.fn(),
+  distillPotion: vi.fn(),
+  claimCraftingJob: vi.fn()
 }));
+
+const playerApiMocks = vi.hoisted(() => ({
+  fetchPlayerState: vi.fn()
+}));
+
 const refineryTestTranslate = (key: string, options?: Record<string, string | number>) => {
   if (options?.duration) return `${key}:${options.duration}`;
   if (options?.item) return `${key}:${options.item}`;
   if (options?.quantity) return `${key}:${options.quantity}`;
   if (options?.completed !== undefined && options?.total !== undefined) {
     return `${key}:${options.completed}/${options.total}`;
+  }
+  if (options?.count !== undefined) {
+    return `${key}:${options.count}`;
   }
   return key;
 };
@@ -28,59 +38,129 @@ vi.mock("react-i18next", () => ({
   })
 }));
 
-vi.mock("../src/features/garden/api", () => ({
-  fetchGardenState: gardenApiMocks.fetchGardenState
+vi.mock("../src/features/crafting/api", () => ({
+  fetchCraftingInventory: craftingApiMocks.fetchCraftingInventory,
+  combineMaterials: craftingApiMocks.combineMaterials,
+  craftItem: craftingApiMocks.craftItem,
+  distillPotion: craftingApiMocks.distillPotion,
+  claimCraftingJob: craftingApiMocks.claimCraftingJob
 }));
 
-function createGardenState(): GardenStateResponse {
+vi.mock("../src/features/player", () => ({
+  fetchPlayerState: playerApiMocks.fetchPlayerState
+}));
+
+function createPlayerState() {
   return {
-    serverTime: "2026-03-21T09:00:00.000Z",
-    unlockedSlotCount: 18,
-    plots: Array.from({ length: 18 }, (_, index) => ({
-      slotIndex: index + 1,
-      isUnlocked: true,
-      plantId: null,
-      phase: "empty" as const,
-      plantedAt: null,
-      growthEndsAt: null,
-      bloomStartsAt: null,
-      bloomEndsAt: null,
-      wiltAt: null,
-      nextTransitionAt: null,
-      harvestYield: null
-    })),
+    level: 42,
     inventory: [
       {
-        inventoryEntryId: "ingredient_1",
-        plantId: "bloodleaf",
-        kind: "ingredient",
-        itemCode: "ingredient_bloodleaf",
-        displayName: "Bloodleaf",
-        rarity: "common",
-        quantity: 6
+        id: "stack_1",
+        itemCode: "consumable_vigorous_restorative",
+        quantity: 3,
+        itemName: "Vigorous Restorative",
+        rarity: "uncommon",
+        category: "Consumable",
+        equipable: false,
+        levelRequirement: 1,
+        allowedSlotIds: [],
+        baseLevel: 1,
+        power: 0,
+        archetype: {
+          majorCategory: "consumable"
+        },
+        statBonuses: {},
+        description: "Used by tests."
       }
-    ]
-  };
+    ],
+    currency: {
+      ducats: 5_000,
+      imperials: 0
+    }
+  } as any;
 }
 
 describe("refinery panel", () => {
   beforeEach(() => {
     __resetRefineryPanelCacheForTests();
-    gardenApiMocks.fetchGardenState.mockReset();
+    craftingApiMocks.fetchCraftingInventory.mockReset();
+    craftingApiMocks.combineMaterials.mockReset();
+    craftingApiMocks.craftItem.mockReset();
+    craftingApiMocks.distillPotion.mockReset();
+    craftingApiMocks.claimCraftingJob.mockReset();
+    playerApiMocks.fetchPlayerState.mockReset();
   });
 
-  it("reuses the warm refinery response on remount without flashing the loading shell", async () => {
-    gardenApiMocks.fetchGardenState.mockResolvedValue(createGardenState());
+  it("reuses the warm crafting response on remount without flashing the loading shell", async () => {
+    const playerState = createPlayerState();
 
-    const firstRender = render(<RefineryPanel token="token" />);
+    craftingApiMocks.fetchCraftingInventory.mockResolvedValue({
+      materials: [{ itemCode: "mat_t1_metal_common", quantity: 4 }],
+      activeJobs: []
+    });
+    playerApiMocks.fetchPlayerState.mockResolvedValue(playerState);
+
+    const firstRender = render(
+      <RefineryPanel
+        token="token"
+        playerState={playerState}
+        onPlayerStateChange={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(craftingApiMocks.fetchCraftingInventory).toHaveBeenCalledWith("token");
+    });
 
     expect((await screen.findAllByText("refineryPanel.awaitingRecipe")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "menu.refinery refineryPanel.materialStashTitle" }));
+    expect(screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" })).toBeTruthy();
 
     firstRender.unmount();
 
-    render(<RefineryPanel token="token" />);
+    render(
+      <RefineryPanel
+        token="token"
+        playerState={playerState}
+        onPlayerStateChange={vi.fn()}
+      />
+    );
 
     expect(screen.queryByText("refineryPanel.loading")).toBeNull();
     expect(screen.getAllByText("refineryPanel.awaitingRecipe").length).toBeGreaterThan(0);
+  });
+
+  it("shows the full refinery material stash when the unlimited refinery cheat is enabled", async () => {
+    const playerState = {
+      ...createPlayerState(),
+      cheatSettings: {
+        unlimitedRefineryMaterialsEnabled: true
+      }
+    } as any;
+
+    craftingApiMocks.fetchCraftingInventory.mockResolvedValue({
+      materials: [],
+      activeJobs: []
+    });
+    playerApiMocks.fetchPlayerState.mockResolvedValue(playerState);
+
+    render(
+      <RefineryPanel
+        token="token"
+        playerState={playerState}
+        onPlayerStateChange={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(craftingApiMocks.fetchCraftingInventory).toHaveBeenCalledWith("token");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "menu.refinery refineryPanel.materialStashTitle" }));
+
+    expect(screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Voidlord's Ash" })).toBeTruthy();
   });
 });

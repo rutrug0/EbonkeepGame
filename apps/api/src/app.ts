@@ -13,6 +13,7 @@ import { initEmailService } from "./modules/auth/services/email.js";
 import { academyRoutes } from "./modules/academy/routes.js";
 import { arenaRoutes } from "./modules/arena/routes.js";
 import { forgeRoutes } from "./modules/forge/routes.js";
+import { craftingRoutes } from "./modules/crafting/routes.js";
 import { gardenRoutes } from "./modules/garden/routes.js";
 import { jobsRoutes } from "./modules/jobs/routes.js";
 import { renownRoutes } from "./modules/renown/routes.js";
@@ -126,6 +127,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
   await fastify.register(contractRoutes);
   await fastify.register(arenaRoutes);
   await fastify.register(forgeRoutes);
+  await fastify.register(craftingRoutes);
   await fastify.register(gardenRoutes);
   await fastify.register(jobsRoutes);
   await fastify.register(inventoryRoutes);

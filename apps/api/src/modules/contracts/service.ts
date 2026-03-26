@@ -32,6 +32,8 @@ import {
   getPlayerAcademyEffectTotals,
   type AcademyEffectTotals
 } from "../academy/effects.js";
+import { grantCraftingStackableItem } from "../crafting/service.js";
+import { rollMaterialDrops } from "../combat/material-drops.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { assertJobsActivityIdle } from "../jobs/service.js";
 import { grantPlayerExperience, resolveHealthState, spendPlayerStamina } from "../player/progression-service.js";
@@ -780,6 +782,20 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
           ducats: rewards.ducats,
           item: null
         };
+      }
+
+      const materialDropProfile = await tx.playerProfile.findUnique({
+        where: { id: playerId },
+        select: { level: true }
+      });
+      if (!materialDropProfile) {
+        throw new Error("Player profile not found.");
+      }
+
+      const materialDropRng = createSeededRng(`${run.id}:crafting_materials`);
+      const materialDrops = rollMaterialDrops(materialDropProfile.level, materialDropRng);
+      for (const materialDrop of materialDrops) {
+        await grantCraftingStackableItem(tx, playerId, materialDrop.itemCode, materialDrop.quantity, "material");
       }
     }
 

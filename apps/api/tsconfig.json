@@ -17,6 +17,7 @@
       "@ebonkeep/shared/economy": ["../../packages/shared/src/domains/economy/index.ts"],
       "@ebonkeep/shared/guild": ["../../packages/shared/src/domains/guild/index.ts"],
       "@ebonkeep/shared/leaderboard": ["../../packages/shared/src/domains/leaderboard/index.ts"],
+      "@ebonkeep/shared/crafting": ["../../packages/shared/src/domains/crafting/index.ts"],
       "@ebonkeep/transactions/*": ["../../transactions/*"]
     }
   },

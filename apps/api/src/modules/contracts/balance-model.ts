@@ -390,7 +390,8 @@ export function createExpectedPlayerState(args: {
       fastArenaReplenishEnabled: false,
       fastTrainTimeEnabled: false,
       unlimitedAcademyDonationsEnabled: false,
-      unlimitedForgeConsumablesEnabled: false
+      unlimitedForgeConsumablesEnabled: false,
+      unlimitedRefineryMaterialsEnabled: false
     }
   };
 }

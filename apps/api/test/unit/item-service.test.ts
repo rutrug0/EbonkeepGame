@@ -163,6 +163,32 @@ describe("item service weapon bonuses", () => {
     expect(parsed?.statBonuses.physicalDefense).toBeGreaterThan(0);
   });
 
+  it("preserves stored stack quantity for stackable inventory entries", () => {
+    const parsed = parseStoredInventoryItem({
+      id: "stackable_1",
+      itemCode: "consumable_vigorous_restorative",
+      quantity: 5,
+      itemData: {
+        itemName: "Vigorous Restorative",
+        rarity: "uncommon",
+        category: "Consumable",
+        equipable: false,
+        levelRequirement: 1,
+        allowedSlotIds: [],
+        baseLevel: 1,
+        power: 0,
+        archetype: {
+          majorCategory: "consumable"
+        },
+        statBonuses: {},
+        description: "Used by tests."
+      }
+    });
+
+    expect(parsed).not.toBeNull();
+    expect(parsed?.quantity).toBe(5);
+  });
+
   it("gives later weapon templates a higher baseline power at their native level", () => {
     const earlyTemplate = getItemTemplate("warrior_plainsteel_longsword");
     const lateTemplate = getItemTemplate("warrior_silvermark_longblade");

@@ -16,6 +16,7 @@ export type LandingTab =
   | "shop"
   | "garden"
   | "refinery"
+  | "crafting"
   | "forge"
   | "leaderboards"
   | "settings";
@@ -78,6 +79,7 @@ const MENU_GROUP_BY_TAB: Record<LandingTab, MenuGroupId> = {
   shop: "market",
   garden: "estate",
   refinery: "estate",
+  crafting: "estate",
   forge: "estate",
   guild: "realm",
   castles: "realm"
@@ -201,6 +203,15 @@ export function renderMenuIcon(tab: LandingTab): ReactElement | null {
           <path d="M8 18V9l2-3h4l2 3v9" />
           <path d="M9 12h6" />
           <path d="M10 4h4" />
+        </svg>
+      );
+    case "crafting":
+      return (
+        <svg {...iconProps}>
+          <path d="M5 18h14" />
+          <path d="m8 14 2 2 6-6" />
+          <path d="M9 6h6l1 3H8z" />
+          <path d="M12 6V3" />
         </svg>
       );
     case "forge":

@@ -46,6 +46,7 @@ model PlayerProfile {
   fastTrainTimeEnabled         Boolean @default(false)
   unlimitedAcademyDonationsEnabled Boolean @default(false)
   unlimitedForgeConsumablesEnabled Boolean @default(false)
+  unlimitedRefineryMaterialsEnabled Boolean @default(false)
   gardenUnlockedSlotCount      Int     @default(7)
   level            Int               @default(1)
   experience       Int               @default(0)
@@ -69,6 +70,7 @@ model PlayerProfile {
   combatActions        CombatAction[]
   contractBoardSlots   ContractBoardSlot[]
   contractRuns         ContractRun[]
+  craftingJobs         CraftingJob[]
   eventProgress        EventProgress[]
   guildMembership      GuildMember?        @relation("GuildMembership")
   leadingGuild         Guild[]             @relation("GuildLeader")
@@ -179,6 +181,23 @@ model JobRun {
 
   @@index([playerId])
   @@map("job_runs")
+}
+
+model CraftingJob {
+  id         String        @id @default(cuid())
+  playerId   String
+  slotIndex  Int
+  recipeId   String
+  recipeType String
+  startedAt  DateTime      @default(now())
+  finishesAt DateTime
+  claimed    Boolean       @default(false)
+  claimedAt  DateTime?
+  player     PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, slotIndex])
+  @@index([playerId])
+  @@map("crafting_jobs")
 }
 
 model CombatSession {

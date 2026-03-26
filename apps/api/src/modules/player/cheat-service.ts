@@ -90,6 +90,7 @@ export async function updatePlayerCheatSettings(
       "fastTrainTimeEnabled" = ${settings.fastTrainTimeEnabled},
       "unlimitedAcademyDonationsEnabled" = ${settings.unlimitedAcademyDonationsEnabled},
       "unlimitedForgeConsumablesEnabled" = ${settings.unlimitedForgeConsumablesEnabled},
+      "unlimitedRefineryMaterialsEnabled" = ${settings.unlimitedRefineryMaterialsEnabled},
       "updatedAt" = CURRENT_TIMESTAMP
     WHERE "id" = ${playerId}
   `;

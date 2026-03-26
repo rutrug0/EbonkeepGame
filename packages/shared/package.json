@@ -57,6 +57,10 @@
     "./forge": {
       "types": "./src/domains/forge/index.ts",
       "default": "./src/domains/forge/index.ts"
+    },
+    "./crafting": {
+      "types": "./src/domains/crafting/index.ts",
+      "default": "./src/domains/crafting/index.ts"
     }
   },
   "scripts": {
