@@ -167,6 +167,7 @@ export type ItemEnchanting = z.infer<typeof itemEnchantingSchema>;
 export const inventoryItemSchema = z.object({
   id: z.string(),
   itemCode: z.string(),
+  quantity: z.number().int().positive().optional(),
   itemName: z.string(),
   rarity: itemRaritySchema,
   category: z.string(),

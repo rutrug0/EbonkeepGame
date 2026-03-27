@@ -335,7 +335,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
           id: true,
           itemCode: true,
           itemData: true,
-          slotKey: true
+          slotKey: true,
+          quantity: true
         }
       },
       equipmentSlots: {
@@ -392,7 +393,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     .map((item) => parseStoredInventoryItem({
       id: item.id,
       itemCode: item.itemCode,
-      itemData: item.itemData
+      itemData: item.itemData,
+      quantity: item.quantity
     }))
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
@@ -447,6 +449,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       fastTrainTimeEnabled: boolean;
       unlimitedAcademyDonationsEnabled: boolean;
       unlimitedForgeConsumablesEnabled: boolean;
+      unlimitedRefineryMaterialsEnabled: boolean;
     }>
   >`
     SELECT
@@ -456,7 +459,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       "invincibilityEnabled",
       "fastTrainTimeEnabled",
       "unlimitedAcademyDonationsEnabled",
-      "unlimitedForgeConsumablesEnabled"
+      "unlimitedForgeConsumablesEnabled",
+      "unlimitedRefineryMaterialsEnabled"
     FROM "player_profiles"
     WHERE "id" = ${playerId}
     LIMIT 1
@@ -468,7 +472,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false,
     unlimitedAcademyDonationsEnabled: false,
-    unlimitedForgeConsumablesEnabled: false
+    unlimitedForgeConsumablesEnabled: false,
+    unlimitedRefineryMaterialsEnabled: false
   };
 
   if (
@@ -529,7 +534,8 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       invincibilityEnabled: cheatSettingsRow.invincibilityEnabled,
       fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled,
       unlimitedAcademyDonationsEnabled: cheatSettingsRow.unlimitedAcademyDonationsEnabled,
-      unlimitedForgeConsumablesEnabled: cheatSettingsRow.unlimitedForgeConsumablesEnabled
+      unlimitedForgeConsumablesEnabled: cheatSettingsRow.unlimitedForgeConsumablesEnabled,
+      unlimitedRefineryMaterialsEnabled: cheatSettingsRow.unlimitedRefineryMaterialsEnabled
     })
   });
 }

@@ -383,8 +383,9 @@ const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
 
 function createPanelRoute(landingTab: LandingTab, characterHubTab: CharacterHubTab): PanelRoute {
+  const normalizedLandingTab = landingTab === "crafting" ? "refinery" : landingTab;
   return {
-    landingTab,
+    landingTab: normalizedLandingTab,
     characterHubTab
   };
 }
@@ -2238,7 +2239,8 @@ export function AppShell() {
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false,
     unlimitedAcademyDonationsEnabled: false,
-    unlimitedForgeConsumablesEnabled: false
+    unlimitedForgeConsumablesEnabled: false,
+    unlimitedRefineryMaterialsEnabled: false
   };
 
   function isCheatActionPending(action: CheatActionKey): boolean {
@@ -5651,6 +5653,23 @@ export function AppShell() {
                   </span>
                 </span>
               </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.unlimitedRefineryMaterialsEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) =>
+                    handleCheatSettingToggle("unlimitedRefineryMaterialsEnabled", event.currentTarget.checked)
+                  }
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.unlimitedRefineryMaterialsLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.unlimitedRefineryMaterialsHelp")}
+                  </span>
+                </span>
+              </label>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "end" }}>
@@ -5915,7 +5934,14 @@ export function AppShell() {
       case "garden":
         return <GardenPanel token={token} onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("garden", ready)} />;
       case "refinery":
-        return <RefineryPanel token={token} onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("refinery", ready)} />;
+        return (
+          <RefineryPanel
+            token={token}
+            playerState={playerState}
+            onPlayerStateChange={applyAuthoritativePlayerState}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("refinery", ready)}
+          />
+        );
       case "forge":
         return (
           <ForgePanel
@@ -5941,22 +5967,24 @@ export function AppShell() {
   }
 
   function selectLandingTab(nextTab: LandingTab) {
-    if (isTabLockedByJobs(jobsLockReleaseAtMs, nowMs, nextTab)) {
+    const normalizedNextTab = nextTab === "crafting" ? "refinery" : nextTab;
+
+    if (isTabLockedByJobs(jobsLockReleaseAtMs, nowMs, normalizedNextTab)) {
       setError(i18n.t("jobsPanel.lockedNavigation"));
       return;
     }
 
-    const shouldResetCharacterHubTab = nextTab === "inventory";
+    const shouldResetCharacterHubTab = normalizedNextTab === "inventory";
     const isSameLandingTarget =
-      nextTab === activeTab && (!shouldResetCharacterHubTab || characterHubTab === "character");
+      normalizedNextTab === activeTab && (!shouldResetCharacterHubTab || characterHubTab === "character");
 
     if (isSameLandingTarget) {
       return;
     }
 
-    resetPanelFirstPaintReadiness(nextTab);
-    setActiveTab(nextTab);
-    setExpandedMenuGroup(getMenuGroupForTab(nextTab));
+    resetPanelFirstPaintReadiness(normalizedNextTab);
+    setActiveTab(normalizedNextTab);
+    setExpandedMenuGroup(getMenuGroupForTab(normalizedNextTab));
     if (error === i18n.t("jobsPanel.lockedNavigation")) {
       setError(null);
     }

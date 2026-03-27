@@ -1858,7 +1858,7 @@ export function cloneInventoryItemForPlayer(args: {
   });
 }
 
-export function parseStoredInventoryItem(item: { id: string; itemCode: string; itemData: unknown } | null): InventoryItem | null {
+export function parseStoredInventoryItem(item: { id: string; itemCode: string; itemData: unknown; quantity?: number } | null): InventoryItem | null {
   if (!item || !item.itemData || typeof item.itemData !== "object" || Array.isArray(item.itemData)) {
     return null;
   }
@@ -1866,7 +1866,8 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
   const parsedCurrent = inventoryItemSchema.safeParse({
     ...item.itemData,
     id: item.id,
-    itemCode: item.itemCode
+    itemCode: item.itemCode,
+    quantity: item.quantity
   });
   if (parsedCurrent.success) {
     const normalizedCurrent = inventoryItemSchema.parse({
@@ -1891,7 +1892,8 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
   const parsedLegacy = legacyStoredItemSchema.safeParse({
     ...item.itemData,
     id: item.id,
-    itemCode: item.itemCode
+    itemCode: item.itemCode,
+    quantity: item.quantity
   });
   if (!parsedLegacy.success) {
     return null;
@@ -1900,6 +1902,7 @@ export function parseStoredInventoryItem(item: { id: string; itemCode: string; i
   const normalizedLegacy = inventoryItemSchema.parse({
     id: item.id,
     itemCode: item.itemCode,
+    quantity: item.quantity,
     itemName: parsedLegacy.data.itemName,
     rarity: parsedLegacy.data.rarity,
     category: capitalizeCategory(parsedLegacy.data.archetype.majorCategory),

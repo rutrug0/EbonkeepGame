@@ -83,6 +83,7 @@
     "shop": "Loja Imperial",
     "garden": "Jardim",
     "refinery": "Refinaria",
+    "crafting": "Criacao",
     "forge": "Forja",
     "leaderboards": "Rankings",
     "settings": "Configurações",
@@ -304,6 +305,8 @@
         "rare": "Rare",
         "epic": "Epic"
       },
+      "unlimitedRefineryMaterialsLabel": "Infinite refinery materials",
+      "unlimitedRefineryMaterialsHelp": "Refinery recipes treat every material, reagent, catalyst, and distillation ingredient as available so you can test the full crafting flow.",
       "unlimitedForgeConsumablesLabel": "Consumíveis de forja infinitos",
       "unlimitedForgeConsumablesHelp": "Encantar não custa ducados e reparar não requer Poção de Tempera."
     }
@@ -831,6 +834,85 @@
     "runecaster": "Runista",
     "voidcaster": "Conjurador do Vázio",
     "arcanist": "Arcanista"
+  },
+  "crafting": {
+    "title": "Criacao",
+    "tabs": {
+      "materials": "Materials",
+      "combine": "Combine",
+      "craftItems": "Craft Items"
+    },
+    "combine": {
+      "commonToUncommon": "Common -> Uncommon",
+      "uncommonToRare": "Uncommon -> Rare",
+      "rareToEpic": "Rare -> Epic"
+    },
+    "filters": {
+      "all": "All",
+      "tier": "Tier",
+      "t1": "T1 (1-25)",
+      "t2": "T2 (26-50)",
+      "t3": "T3 (51-75)",
+      "t4": "T4 (76-100)"
+    },
+    "affinities": {
+      "metal": "Metal",
+      "nature": "Nature",
+      "leather": "Leather",
+      "arcane": "Arcane",
+      "shadow": "Shadow",
+      "binding": "Binding"
+    },
+    "categories": {
+      "catalyst": "Forge Catalyst",
+      "reagent": "Reagent",
+      "tempering": "Tempering Draught",
+      "raidConsumable": "Raid Consumable",
+      "distillation": "Distillation"
+    },
+    "recipe": {
+      "requires": "Requires",
+      "youHave": "You have",
+      "cost": "Cost",
+      "free": "Free",
+      "ducats": "{{amount}} Ducats",
+      "timer": "{{duration}}",
+      "instant": "Instant",
+      "start": "Start",
+      "starting": "Starting...",
+      "claim": "Claim",
+      "claiming": "Claiming...",
+      "insufficient": "Not enough materials",
+      "slotsFull": "All 3 crafting slots are busy",
+      "notReady": "Still crafting..."
+    },
+    "queue": {
+      "title": "Crafting Queue",
+      "slotEmpty": "Empty slot",
+      "slotBusy": "{{recipe}} - {{timeLeft}}",
+      "slotReady": "{{recipe}} - Ready!"
+    },
+    "success": {
+      "started": "Started: {{name}} ({{duration}})",
+      "startedInstant": "Combined into {{name}}",
+      "claimed": "Claimed: {{name}}"
+    },
+    "distillation": {
+      "tabLabel": "Distill",
+      "title": "Potion Distillation",
+      "description": "Combine 3 of the same potion to distill it into a more potent version. Effects grow stronger but with diminishing returns.",
+      "stageD1": "Distilled I",
+      "stageD2": "Distilled II",
+      "d1Suffix": "(Distilled I)",
+      "d2Suffix": "(Distilled II)",
+      "stageFull": "Max distillation reached",
+      "requires3": "Requires 3x {{name}}",
+      "investmentNote": "9x base potions required to reach Distilled II"
+    },
+    "empty": {
+      "noMaterials": "You have no crafting materials yet. Defeat monsters to collect them.",
+      "noRecipes": "No recipes available for the selected filters."
+    }
   },
   "forge": {
     "eyebrow": "Weapon Enchanting",
