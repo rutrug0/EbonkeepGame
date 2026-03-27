@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setPlayerDucats } from "../helpers/fixtures.js";
 import { createApiTestContext } from "../helpers/runtime.js";
@@ -341,6 +341,60 @@ describe("crafting service", () => {
     expect(distilled?.quantity).toBe(1);
   });
 
+  it("stores placeholder icon paths for crafted stacks and refreshes stale item data on increment", async () => {
+    if (!context) {
+      return;
+    }
+    const playerId = await createPlayerWithDucats();
+    const existingId = `itm_${randomUUID().replaceAll("-", "")}`;
+
+    await context.prisma.inventoryItem.create({
+      data: {
+        id: existingId,
+        playerId,
+        itemCode: "consumable_vigorous_restorative",
+        slotKey: "inventory",
+        quantity: 1,
+        itemData: {
+          id: existingId,
+          itemCode: "consumable_vigorous_restorative",
+          itemName: "Broken Icon Potion",
+          iconAssetPath: "/assets/materials/missing-icon.png"
+        }
+      }
+    });
+
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_metal_common", 1, "material");
+    await grantCraftingStackableItem(context.prisma, playerId, "consumable_vigorous_restorative", 2, "output");
+
+    const materialRow = await context.prisma.inventoryItem.findFirst({
+      where: {
+        playerId,
+        itemCode: "mat_t1_metal_common"
+      },
+      select: {
+        itemData: true
+      }
+    });
+    const outputRow = await context.prisma.inventoryItem.findUnique({
+      where: {
+        id: existingId
+      },
+      select: {
+        quantity: true,
+        itemData: true
+      }
+    });
+
+    expect((materialRow?.itemData as { iconAssetPath?: string } | null)?.iconAssetPath).toMatch(
+      /^\/assets\/random_stuff_materials\/material-\d{2}\.png$/
+    );
+    expect(outputRow?.quantity).toBe(3);
+    expect((outputRow?.itemData as { iconAssetPath?: string } | null)?.iconAssetPath).toMatch(
+      /^\/assets\/random_stuff_materials\/material-\d{2}\.png$/
+    );
+  });
+
   it("rejects distillation when the player has fewer than three base consumables", async () => {
     if (!context) {
       return;
@@ -406,6 +460,48 @@ describe("crafting service", () => {
     expect(claimed.material).toEqual({
       itemCode: "mat_t1_metal_rare",
       quantity: 1
+    });
+  });
+
+  it("surfaces slot insert races as a conflict instead of a generic failure", async () => {
+    const fakeTx = {
+      craftingJob: {
+        count: vi.fn().mockResolvedValue(0),
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockRejectedValue({ code: "P2002" })
+      },
+      currencyBalance: {
+        findUnique: vi.fn().mockResolvedValue({
+          playerId: "player_race",
+          ducats: 50_000
+        }),
+        update: vi.fn().mockResolvedValue({})
+      },
+      playerProfile: {
+        findUnique: vi.fn().mockResolvedValue({
+          unlimitedRefineryMaterialsEnabled: true
+        })
+      },
+      inventoryItem: {
+        findMany: vi.fn().mockResolvedValue([])
+      }
+    };
+
+    const fakePrisma = {
+      $transaction: vi.fn(async (callback: (tx: typeof fakeTx) => unknown) => callback(fakeTx))
+    };
+
+    await expect(
+      startCraftingJob(
+        fakePrisma as Parameters<typeof startCraftingJob>[0],
+        "player_race",
+        "combine_t1_metal_uncommon_to_rare",
+        "combine",
+        0
+      )
+    ).rejects.toMatchObject({
+      code: "INVALID_SLOT",
+      statusCode: 409
     });
   });
 });

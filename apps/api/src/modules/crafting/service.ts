@@ -40,6 +40,10 @@ type CraftingRecipeLookup =
 
 const ACTIVE_SLOT_INDEXES = [0, 1, 2] as const;
 const ARCHIVED_SLOT_INDEX_BASE = 1000;
+const RANDOM_CRAFTING_ICON_FILES: readonly string[] = Array.from(
+  { length: 23 },
+  (_, index) => `material-${(index + 1).toString().padStart(2, "0")}.png`
+);
 
 const SUBSTITUTION_CODES_BY_TARGET: Record<string, readonly string[]> = Object.freeze({
   mat_t1_metal_common: ["all_salvaged_ingot"],
@@ -106,6 +110,28 @@ function getSubstituteCodes(itemCode: string): readonly string[] {
   return SUBSTITUTION_CODES_BY_TARGET[itemCode] ?? [];
 }
 
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash * 33) ^ value.charCodeAt(index)) >>> 0;
+  }
+  return hash >>> 0;
+}
+
+function getCraftingPlaceholderIconAssetPath(itemCode: string): string {
+  const randomIndex = hashString(itemCode) % RANDOM_CRAFTING_ICON_FILES.length;
+  return `/assets/random_stuff_materials/${RANDOM_CRAFTING_ICON_FILES[randomIndex]}`;
+}
+
+function isUniqueConstraintError(error: unknown): error is { code: string } {
+  return Boolean(
+    error
+    && typeof error === "object"
+    && "code" in error
+    && (error as { code?: unknown }).code === "P2002"
+  );
+}
+
 function buildMaterialItem(itemCode: string, id: string): InventoryItem {
   const definition = CRAFTING_MATERIAL_BY_CODE[itemCode];
   if (!definition) {
@@ -126,7 +152,7 @@ function buildMaterialItem(itemCode: string, id: string): InventoryItem {
     archetype: { majorCategory: "consumable" },
     statBonuses: {},
     description: definition.description,
-    iconAssetPath: `/assets/materials/${definition.iconKey}.png`
+    iconAssetPath: getCraftingPlaceholderIconAssetPath(itemCode)
   });
 }
 
@@ -157,7 +183,7 @@ function buildOutputItem(itemCode: string, id: string): InventoryItem {
     archetype: { majorCategory: "consumable" },
     statBonuses: {},
     description: definition.description,
-    iconAssetPath: `/assets/materials/${definition.iconKey}.png`
+    iconAssetPath: getCraftingPlaceholderIconAssetPath(itemCode)
   });
 }
 
@@ -326,6 +352,7 @@ export async function grantCraftingStackableItem(
   quantity: number,
   kind: "material" | "output"
 ): Promise<InventoryItem> {
+  const buildItem = kind === "material" ? buildMaterialItem : buildOutputItem;
   const existing = await tx.inventoryItem.findFirst({
     where: {
       playerId,
@@ -342,20 +369,20 @@ export async function grantCraftingStackableItem(
   });
 
   if (existing) {
+    const item = buildItem(itemCode, existing.id);
     await tx.inventoryItem.update({
       where: { id: existing.id },
       data: {
-        quantity: { increment: quantity }
+        quantity: { increment: quantity },
+        itemData: item
       }
     });
 
-    return kind === "material"
-      ? buildMaterialItem(itemCode, existing.id)
-      : buildOutputItem(itemCode, existing.id);
+    return item;
   }
 
   const id = `itm_${randomUUID().replaceAll("-", "")}`;
-  const item = kind === "material" ? buildMaterialItem(itemCode, id) : buildOutputItem(itemCode, id);
+  const item = buildItem(itemCode, id);
 
   await tx.inventoryItem.create({
     data: {
@@ -545,15 +572,23 @@ export async function startCraftingJob(
     }
 
     const finishesAt = new Date(now.getTime() + (recipe.craftingTimeSec * 1000));
-    const job = await tx.craftingJob.create({
-      data: {
-        playerId,
-        slotIndex,
-        recipeId,
-        recipeType,
-        finishesAt
+    let job;
+    try {
+      job = await tx.craftingJob.create({
+        data: {
+          playerId,
+          slotIndex,
+          recipeId,
+          recipeType,
+          finishesAt
+        }
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new CraftingError("INVALID_SLOT", 409, "That crafting slot is already occupied.");
       }
-    });
+      throw error;
+    }
 
     return craftingStartJobResponseSchema.parse({
       success: true,
