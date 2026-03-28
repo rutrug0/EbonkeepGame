@@ -86,6 +86,8 @@ model PlayerProfile {
   arenaMatches        ArenaMatch[]        @relation("ArenaMatchesByPlayer")
   gardenPlots         GardenPlot[]
   gardenInventoryEntries GardenInventoryEntry[]
+  summonedGuildRaids   GuildRaidInstance[]  @relation("GuildRaidSummonedBy")
+  guildRaidParticipations GuildRaidParticipant[]
 
   @@index([accountId])
   @@map("player_profiles")
@@ -587,6 +589,8 @@ model Guild {
   activityLog     GuildActivity[]
   academyNodes    GuildAcademyNode[]
   academyDonations GuildAcademyDonation[]
+  raidProgress    GuildRaidProgress?
+  raidInstances   GuildRaidInstance[]
   
   @@index([name])
   @@index([tag])
@@ -709,4 +713,83 @@ model GuildAcademyDonation {
   @@index([guildId, playerId])
   @@index([guildId, donatedAt(sort: Desc)])
   @@map("guild_academy_donations")
+}
+
+model GuildRaidProgress {
+  id                       String    @id @default(cuid())
+  guildId                  String    @unique
+  highestBossIndexDefeated Int       @default(-1)
+  totalAttempts            Int       @default(0)
+  totalVictories           Int       @default(0)
+  activeRaidInstanceId     String?
+  nextAvailableAt          DateTime?
+  lastBossId               String?
+  lastOutcome              String?
+  lastResolvedAt           DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  guild                    Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([nextAvailableAt])
+  @@map("guild_raid_progress")
+}
+
+model GuildRaidInstance {
+  id               String                 @id @default(cuid())
+  guildId          String
+  bossId           String
+  bossOrderIndex   Int
+  zoneKey          String
+  zoneName         String
+  bossName         String
+  bossTitle        String
+  state            String                 @default("lobby")
+  summonedById     String
+  summonedAt       DateTime               @default(now())
+  lobbyEndsAt      DateTime
+  resolvedAt       DateTime?
+  lockEndsAt       DateTime?
+  recommendedPower Int                    @default(0)
+  bossMaxHp        Int
+  joinedPower      Int                    @default(0)
+  joinCount        Int                    @default(0)
+  summary          Json?
+  outcome          String?
+  firstClear       Boolean                @default(false)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  guild            Guild                  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  summonedBy       PlayerProfile          @relation("GuildRaidSummonedBy", fields: [summonedById], references: [id], onDelete: Restrict)
+  participants     GuildRaidParticipant[]
+
+  @@index([guildId, state])
+  @@index([guildId, bossOrderIndex])
+  @@index([lobbyEndsAt])
+  @@index([lockEndsAt])
+  @@map("guild_raid_instances")
+}
+
+model GuildRaidParticipant {
+  id             String          @id @default(cuid())
+  raidInstanceId String
+  playerId       String
+  playerName     String
+  playerClass    String
+  role           String
+  level          Int
+  power          Int             @default(0)
+  joinedAt       DateTime        @default(now())
+  damageDone     Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  raidInstance   GuildRaidInstance @relation(fields: [raidInstanceId], references: [id], onDelete: Cascade)
+  player         PlayerProfile     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([raidInstanceId, playerId])
+  @@index([playerId, joinedAt(sort: Desc)])
+  @@index([raidInstanceId, damageDone(sort: Desc)])
+  @@map("guild_raid_participants")
 }

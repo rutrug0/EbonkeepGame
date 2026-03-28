@@ -25,7 +25,8 @@ import {
   type EquipmentState as InventoryEquipmentState
 } from "@ebonkeep/shared/inventory";
 
-import { getGuildAcademyEffectTotals, mergePlayerStatBonuses } from "../academy/effects.js";
+import { mergePlayerStatBonuses } from "../academy/effects.js";
+import { getCombinedGuildEffectTotals } from "../guild/raid-effects.js";
 import { markWeaponTemperingFailed, parseStoredInventoryItem } from "../inventory/item-service.js";
 import { loadPersistedForgeState } from "../forge/state.js";
 import { resolveHealthState, syncPlayerProgress } from "./progression-service.js";
@@ -419,7 +420,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
   }
 
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
-  const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
+  const academyEffects = await getCombinedGuildEffectTotals(prisma, profile.guildMembership?.guildId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: progress.experience.level,
@@ -570,7 +571,7 @@ export async function getPublicPlayerProfile(
   };
   const equipment = buildEquipmentState(profile.equipmentSlots);
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
-  const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
+  const academyEffects = await getCombinedGuildEffectTotals(prisma, profile.guildMembership?.guildId);
   const statSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: profile.level,

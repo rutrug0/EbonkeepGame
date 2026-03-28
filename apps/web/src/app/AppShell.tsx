@@ -88,6 +88,8 @@ import {
   levelUpPlayerCheats,
   moveInventoryItem,
   replenishPlayerCheats,
+  resetGuildRaidCheats,
+  seedGuildRaidSquadCheats,
   updatePlayerCheatSettings,
   updatePlayerPreferences,
   updatePortrait
@@ -344,7 +346,15 @@ type PendingContractResultPlayerState = {
   ducats: number;
 };
 
-type CheatActionKey = "settings" | "replenish" | "levelUp" | "generateEquipment" | "grantCurrency" | "gardenUnlocks";
+type CheatActionKey =
+  | "settings"
+  | "replenish"
+  | "levelUp"
+  | "generateEquipment"
+  | "grantCurrency"
+  | "gardenUnlocks"
+  | "guildRaidSquad"
+  | "guildRaidReset";
 type PanelTransitionPhase = "idle" | "preparing" | "revealing";
 type PanelRoute = {
   landingTab: LandingTab;
@@ -4173,6 +4183,39 @@ export function AppShell() {
     );
   }
 
+  function handleCheatSeedGuildRaidSquad() {
+    void runCheatAction(
+      "guildRaidSquad",
+      () => seedGuildRaidSquadCheats(token!),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatStatusMessage(
+          i18n.t("settings.cheats.guildRaidSquadSuccess", {
+            created: response.createdMembers,
+            joined: response.joinedRaiders,
+            members: response.guildMemberCount,
+            raid: response.raidJoinCount
+          })
+        );
+      }
+    );
+  }
+
+  function handleCheatResetGuildRaids() {
+    void runCheatAction(
+      "guildRaidReset",
+      () => resetGuildRaidCheats(token!),
+      (response) => {
+        applyAuthoritativePlayerState(response.playerState);
+        setCheatStatusMessage(
+          i18n.t("settings.cheats.guildRaidResetSuccess", {
+            count: response.removedInstances
+          })
+        );
+      }
+    );
+  }
+
   function startStatTraining(stat: TrainableStatKey) {
     if (!baseStats || !currencies) {
       return;
@@ -5738,6 +5781,33 @@ export function AppShell() {
                   ? i18n.t("settings.cheats.processing")
                   : i18n.t("settings.cheats.unlockGardenSlotsButton")}
               </button>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={handleCheatResetGuildRaids}
+                disabled={isCheatActionPending("guildRaidReset")}
+              >
+                {isCheatActionPending("guildRaidReset")
+                  ? i18n.t("settings.cheats.processing")
+                  : i18n.t("settings.cheats.guildRaidResetButton")}
+              </button>
+              <button
+                type="button"
+                onClick={handleCheatSeedGuildRaidSquad}
+                disabled={isCheatActionPending("guildRaidSquad")}
+              >
+                {isCheatActionPending("guildRaidSquad")
+                  ? i18n.t("settings.cheats.processing")
+                  : i18n.t("settings.cheats.guildRaidSquadButton")}
+              </button>
+              <span style={{ color: "var(--text-muted)", fontSize: "14px" }}>
+                {i18n.t("settings.cheats.guildRaidSquadHelp")}
+              </span>
+              <span style={{ color: "var(--text-muted)", fontSize: "14px" }}>
+                {i18n.t("settings.cheats.guildRaidResetHelp")}
+              </span>
             </div>
 
             <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "14px" }}>

@@ -5,6 +5,7 @@ import type {
   Guild,
   GuildActivityQuery,
   GuildActivityResponse,
+  GuildRaidStateResponse,
   GuildDetailsResponse,
   GuildMembersQuery,
   GuildMembersResponse,
@@ -18,6 +19,7 @@ import {
   guildActivityResponseSchema,
   guildDetailsResponseSchema,
   guildMembersResponseSchema,
+  guildRaidStateResponseSchema,
   guildSchema,
   guildSearchResponseSchema
 } from "@ebonkeep/shared/guild";
@@ -293,4 +295,69 @@ export async function cancelGuildInvite(token: string, inviteId: string): Promis
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "Failed to cancel invite"));
   }
+}
+
+export async function getGuildRaidState(token: string, guildId: string): Promise<GuildRaidStateResponse> {
+  const response = await fetch(`${API_URL}/v1/guild/${guildId}/raids`, {
+    method: "GET",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Failed to fetch guild raid state"));
+  }
+
+  return guildRaidStateResponseSchema.parse(await response.json());
+}
+
+export async function summonGuildRaid(token: string, guildId: string): Promise<GuildRaidStateResponse> {
+  const response = await fetch(`${API_URL}/v1/guild/${guildId}/raids/summon`, {
+    method: "POST",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Failed to summon guild raid"));
+  }
+
+  return guildRaidStateResponseSchema.parse(await response.json());
+}
+
+export async function joinGuildRaid(token: string, guildId: string): Promise<GuildRaidStateResponse> {
+  const response = await fetch(`${API_URL}/v1/guild/${guildId}/raids/join`, {
+    method: "POST",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Failed to join guild raid"));
+  }
+
+  return guildRaidStateResponseSchema.parse(await response.json());
+}
+
+export async function leaveGuildRaid(token: string, guildId: string): Promise<GuildRaidStateResponse> {
+  const response = await fetch(`${API_URL}/v1/guild/${guildId}/raids/leave`, {
+    method: "POST",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Failed to leave guild raid"));
+  }
+
+  return guildRaidStateResponseSchema.parse(await response.json());
+}
+
+export async function commenceGuildRaidNow(token: string, guildId: string): Promise<GuildRaidStateResponse> {
+  const response = await fetch(`${API_URL}/v1/guild/${guildId}/raids/commence`, {
+    method: "POST",
+    headers: authHeaders(token)
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Failed to commence guild raid"));
+  }
+
+  return guildRaidStateResponseSchema.parse(await response.json());
 }

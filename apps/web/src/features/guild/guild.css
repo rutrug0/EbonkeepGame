@@ -1755,12 +1755,14 @@
 /* â”€â”€ Guild Inner Nav â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 /* ── Academy full-height activation ─────────────────────────────────────── */
 
-.guildPanelShell--academy {
+.guildPanelShell--academy,
+.guildPanelShell--raids {
   height: 100%;
   overflow: hidden;
 }
 
-.guildPanelShell--academy .guildPanelStack {
+.guildPanelShell--academy .guildPanelStack,
+.guildPanelShell--raids .guildPanelStack {
   flex: 1;
   min-height: 0;
   height: 100%;
@@ -1771,10 +1773,20 @@
   flex-direction: column;
 }
 
+.guildPanelShell--raids .contentCard--raids {
+  display: flex;
+  flex-direction: column;
+}
+
 .guildPanelShell--academy .contentCard--academy .academyTreeLayout {
   flex: 1;
   min-height: 0;
   grid-template-rows: 1fr;
+}
+
+.guildPanelShell--raids .contentCard--raids > .guildRaidBoard {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .guildPanelShell--academy .academyTreeViewport {
@@ -1808,10 +1820,11 @@
 
 .guildCompactIdentity {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   min-width: 0;
   flex: 1;
+  flex-wrap: wrap;
 }
 
 .guildCompactName {
@@ -1867,6 +1880,52 @@
   color: color-mix(in srgb, var(--accent-info) 72%, #d7e8f2 28%);
   border-color: rgba(72, 126, 176, 0.28);
   background: rgba(72, 126, 176, 0.05);
+}
+
+.guildRaidTrophyStrip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.1rem;
+  flex-shrink: 0;
+}
+
+.guildRaidTrophyIcon {
+  width: 50px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.guildRaidTrophyIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.guildRaidTrophyIcon--cleared {
+  filter: none;
+}
+
+.guildRaidTrophyIcon--cleared img {
+  opacity: 1;
+  filter: none;
+}
+
+.guildRaidTrophyIcon--current {
+  border-color: rgba(190, 150, 81, 0.22);
+}
+
+.guildRaidTrophyIcon--current img,
+.guildRaidTrophyIcon--upcoming img {
+  opacity: 0.35;
+  filter: grayscale(1) saturate(0.2);
 }
 
 .guildInfoToggle {
@@ -3095,6 +3154,1336 @@
 .academyDonateActionBtn--all:hover:not(:disabled) {
   background: rgba(178, 143, 86, 0.24);
   border-color: rgba(178, 143, 86, 0.55);
+}
+
+/* Guild Raid Bosses */
+
+.guildRaidBoard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-content: start;
+  min-height: 100%;
+}
+
+.guildRaidCombatViewportGroup,
+.guildRaidCombatViewportExpanded {
+  min-height: 100%;
+  height: 100%;
+}
+
+.guildRaidBoard--compact {
+  gap: var(--space-3);
+}
+
+.guildRaidTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.guildRaidTopStats {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+
+.guildRaidTopStat,
+.guildRaidMiniStat,
+.guildRaidPathItem,
+.guildRaidCompactHero,
+.guildRaidPathCard {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--soft-radius);
+  background: linear-gradient(180deg, rgba(19, 24, 31, 0.92), rgba(10, 14, 19, 0.96));
+}
+
+.guildRaidTopStat,
+.guildRaidMiniStat {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 88px;
+  padding: 0.75rem 0.85rem;
+}
+
+.guildRaidTopStat span,
+.guildRaidMiniStat span,
+.guildRaidCompactSubtitle,
+.guildRaidCompactHint,
+.guildRaidPathTiny,
+.guildRaidPathText span,
+.guildRaidInfoCard span,
+.guildRaidInfoCard small,
+.guildRaidInfoEmpty,
+.guildRaidRuleList p {
+  color: var(--text-muted);
+}
+
+.guildRaidTopActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.guildRaidInfoButton,
+.guildRaidPrimaryButton,
+.guildRaidSecondaryButton {
+  min-height: 44px;
+}
+
+.guildRaidNoticeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-warn);
+}
+
+.guildRaidHistoryModal {
+  max-width: 720px;
+  width: min(720px, calc(100vw - 24px));
+}
+
+.guildRaidHistoryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.guildRaidHistoryBody {
+  max-height: min(68vh, 720px);
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: none;
+}
+
+.guildRaidHistoryBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.guildRaidHistoryList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.guildRaidHistoryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(190, 150, 81, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+}
+
+.guildRaidHistoryToggle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.guildRaidHistoryCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.guildRaidHistoryCardTopRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.guildRaidHistoryCardTop strong {
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.guildRaidHistoryBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(190, 150, 81, 0.12);
+  border: 1px solid rgba(190, 150, 81, 0.28);
+  color: var(--accent-warn);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guildRaidHistoryChevron {
+  color: var(--text-soft);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.guildRaidHistoryZone {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.guildRaidHistoryMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.guildRaidHistoryBonus {
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.guildRaidHistoryReport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-top: 0.2rem;
+}
+
+.guildRaidHistoryReportTitle {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guildRaidCompactHero {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.3fr);
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: 1rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.guildRaidHeroVisual {
+  position: relative;
+  min-height: clamp(320px, 44vh, 680px);
+  height: 100%;
+  border-radius: calc(var(--soft-radius) + 2px);
+  border: 1px solid rgba(190, 150, 81, 0.22);
+  background: linear-gradient(180deg, rgba(16, 19, 24, 0.98), rgba(8, 12, 17, 0.98));
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.guildRaidHeroVisual::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  background: linear-gradient(180deg, rgba(8, 12, 17, 0), rgba(8, 12, 17, 0.92));
+  pointer-events: none;
+}
+
+.guildRaidHeroVisual.hasPortrait {
+  padding: 0;
+  background: #0a0d12;
+  place-items: stretch;
+}
+
+.guildRaidHeroVisual.hasPortrait::after {
+  display: none;
+}
+
+.guildRaidHeroPortrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+
+.guildRaidCompactSummary {
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.guildRaidHeroPlaceholder {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
+  padding: 1rem;
+}
+
+.guildRaidHeroPlaceholder span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1px solid rgba(230, 219, 193, 0.18);
+  background: radial-gradient(circle at 35% 30%, rgba(246, 202, 137, 0.34), rgba(63, 35, 20, 0.95));
+  color: #f9ead3;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: 0.08em;
+}
+
+.guildRaidHeroPlaceholder small {
+  color: var(--text-muted);
+}
+
+.guildRaidCompactHead,
+.guildRaidPathHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.guildRaidCompactTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 4vw, 1.7rem);
+  color: var(--text-main);
+}
+
+.guildRaidCompactSubtitle,
+.guildRaidCompactHint {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.guildRaidCompactHint--role {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+}
+
+.guildRaidMiniStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.guildRaidPrimaryAction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+}
+
+.guildRaidRosterCompact {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.guildRaidRosterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 34px;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.guildRaidRosterChip.isSelf {
+  border-color: rgba(190, 150, 81, 0.28);
+  background: rgba(190, 150, 81, 0.12);
+  color: var(--text-main);
+}
+
+.guildRaidResultStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guildRaidBattlefieldCard {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--soft-radius);
+  background:
+    radial-gradient(circle at top center, rgba(177, 104, 48, 0.14), transparent 48%),
+    linear-gradient(180deg, rgba(18, 23, 31, 0.95), rgba(10, 13, 18, 0.98));
+}
+
+.guildRaidBattlefieldHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.guildRaidBattlefieldTitle {
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.guildRaidBattlefieldReplay {
+  min-height: 40px;
+}
+
+.guildRaidBattlefieldStage {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background:
+    linear-gradient(180deg, rgba(46, 31, 20, 0.14), rgba(13, 17, 24, 0.42)),
+    rgba(6, 10, 15, 0.72);
+}
+
+.guildRaidBossCard {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: center;
+  padding: 0.95rem;
+  border-radius: calc(var(--soft-radius) + 2px);
+  border: 1px solid rgba(191, 146, 84, 0.28);
+  background:
+    radial-gradient(circle at top center, rgba(213, 127, 63, 0.24), rgba(25, 18, 12, 0.24) 46%, rgba(11, 14, 18, 0.92)),
+    rgba(13, 16, 22, 0.92);
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.guildRaidBossCard.isHit {
+  transform: translateY(1px) scale(0.995);
+  border-color: rgba(214, 98, 82, 0.5);
+}
+
+.guildRaidBossSigil {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgba(241, 205, 157, 0.22);
+  background: radial-gradient(circle at 35% 30%, rgba(246, 202, 137, 0.34), rgba(63, 35, 20, 0.95));
+  color: #f9ead3;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+.guildRaidBossCopy {
+  display: grid;
+  gap: 0.15rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.guildRaidBossCopy strong {
+  color: var(--text-main);
+}
+
+.guildRaidBossCopy span {
+  color: var(--text-muted);
+}
+
+.guildRaidBossHp,
+.guildRaidUnitHp {
+  position: relative;
+  width: 100%;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 18, 0.9);
+}
+
+.guildRaidBossHpFill,
+.guildRaidUnitHpFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, rgba(183, 81, 69, 0.95), rgba(241, 155, 96, 0.92));
+}
+
+.guildRaidBossHp span,
+.guildRaidUnitHp span {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.guildRaidBattlefieldStatus {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.guildRaidBattlefieldStatus strong {
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+.guildRaidBattlefieldStatus span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.guildRaidFrontlineGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.guildRaidUnitCard {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  border-radius: calc(var(--soft-radius) - 2px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(18, 24, 33, 0.95), rgba(10, 13, 19, 0.98));
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.guildRaidUnitCard.isHighlighted {
+  transform: translateY(-1px);
+  border-color: rgba(112, 168, 226, 0.42);
+  box-shadow: 0 0 0 1px rgba(112, 168, 226, 0.12);
+}
+
+.guildRaidUnitCard.isTargeted {
+  border-color: rgba(214, 98, 82, 0.42);
+}
+
+.guildRaidUnitCard.isSelf {
+  background: linear-gradient(180deg, rgba(43, 33, 15, 0.92), rgba(11, 13, 19, 0.98));
+}
+
+.guildRaidUnitCard.isDown {
+  opacity: 0.52;
+  filter: saturate(0.65);
+}
+
+.guildRaidUnitCard--empty {
+  min-height: 112px;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.guildRaidUnitCard--empty span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.guildRaidUnitHead {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.guildRaidUnitHead > div {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.guildRaidUnitHead strong {
+  color: var(--text-main);
+  font-size: 0.92rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guildRaidUnitHead span {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.guildRaidReserveStrip {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.guildRaidReserveChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 30px;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.guildRaidReserveChip--count {
+  color: var(--text-main);
+}
+
+.guildRaidPathCard {
+  display: grid;
+  gap: var(--space-2);
+  padding: 1rem;
+}
+
+.guildRaidPathTiny {
+  font-size: 0.8rem;
+}
+
+.guildRaidPathList {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.guildRaidPathItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.guildRaidPathOrder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(190, 150, 81, 0.14);
+  color: var(--accent-warn);
+  font-weight: 700;
+}
+
+.guildRaidPathText {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.guildRaidPathItem--current {
+  border-color: rgba(190, 150, 81, 0.26);
+}
+
+.guildRaidInfoBackdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.42);
+  z-index: 200;
+}
+
+.guildRaidInfoPanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(720px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 20, 28, 0.99);
+  border-left: 1px solid rgba(230, 219, 193, 0.14);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.42);
+  z-index: 201;
+  animation: guildRaidInfoSlide 220ms ease-out forwards;
+}
+
+.guildRaidInfoHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid rgba(230, 219, 193, 0.1);
+}
+
+.guildRaidInfoHeader h3,
+.guildRaidInfoSection h4 {
+  margin: 0;
+  color: var(--text-main);
+}
+
+.guildRaidInfoClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(230, 219, 193, 0.14);
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.guildRaidInfoBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding: 1rem 1.15rem 1.35rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.guildRaidInfoBody::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.guildRaidInfoSection {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.guildRaidRuleList,
+.guildRaidInfoList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.guildRaidInfoCard {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guildRaidInfoCard--compact {
+  gap: 0.1rem;
+}
+
+.guildRaidInfoCard--current {
+  border-color: rgba(190, 150, 81, 0.26);
+}
+
+.guildRaidInfoCard--cleared {
+  border-color: rgba(71, 130, 90, 0.26);
+}
+
+.guildRaidProgressChain {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.guildRaidProgressStep {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
+}
+
+.guildRaidProgressStep::after {
+  content: "";
+  position: absolute;
+  left: 1.15rem;
+  top: 2.55rem;
+  bottom: -0.9rem;
+  width: 1px;
+  background: rgba(230, 219, 193, 0.12);
+}
+
+.guildRaidProgressStep:last-child::after {
+  display: none;
+}
+
+.guildRaidProgressStep--cleared::after {
+  background: rgba(93, 164, 115, 0.38);
+}
+
+.guildRaidProgressStep--current::after {
+  background: rgba(190, 150, 81, 0.28);
+}
+
+.guildRaidProgressMarker {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 219, 193, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
+.guildRaidProgressMarker--cleared {
+  border-color: rgba(93, 164, 115, 0.38);
+  background: rgba(93, 164, 115, 0.18);
+  color: #d8f0dd;
+}
+
+.guildRaidProgressMarker--current {
+  border-color: rgba(190, 150, 81, 0.34);
+  background: rgba(190, 150, 81, 0.18);
+  color: var(--text-main);
+  box-shadow: 0 0 0 4px rgba(190, 150, 81, 0.08);
+}
+
+.guildRaidProgressCard {
+  display: grid;
+  gap: 0.22rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guildRaidProgressCard--cleared {
+  border-color: rgba(93, 164, 115, 0.24);
+  background: linear-gradient(180deg, rgba(26, 45, 33, 0.5), rgba(13, 20, 17, 0.92));
+}
+
+.guildRaidProgressCard--current {
+  border-color: rgba(190, 150, 81, 0.28);
+  background: linear-gradient(180deg, rgba(53, 39, 19, 0.44), rgba(13, 16, 21, 0.94));
+}
+
+.guildRaidReportGrid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.guildRaidReportRow {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guildRaidReportRank {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.guildRaidReportName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guildRaidReportShare {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+@keyframes guildRaidInfoSlide {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@media (max-width: 820px) {
+  .guildRaidMiniStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guildRaidFrontlineGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .guildRaidBoard--compact {
+    gap: 0.75rem;
+  }
+
+  .guildRaidTopBar,
+  .guildRaidCompactHead,
+  .guildRaidPathHeader,
+  .guildRaidResultStrip {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guildRaidCompactHero {
+    grid-template-columns: 1fr;
+  }
+
+  .guildRaidHeroVisual {
+    min-height: 200px;
+  }
+
+  .guildRaidTopActions {
+    width: 100%;
+  }
+
+  .guildRaidTopActions > button,
+  .guildRaidPrimaryAction > button {
+    width: 100%;
+  }
+
+  .guildRaidMiniStats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .guildRaidTopStat,
+  .guildRaidMiniStat {
+    min-width: 0;
+  }
+
+  .guildRaidPathItem {
+    padding: 0.7rem 0.8rem;
+  }
+
+  .guildRaidBattlefieldHeader,
+  .guildRaidBattlefieldStatus {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .guildRaidBattlefieldReplay {
+    width: 100%;
+  }
+
+  .guildRaidFrontlineGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.guildRaidHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--accent-warn) 20%, var(--border));
+  border-radius: var(--soft-radius);
+  background:
+    radial-gradient(circle at top left, rgba(190, 150, 81, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(19, 24, 31, 0.92), rgba(11, 16, 22, 0.94));
+}
+
+.guildRaidHeroCopy {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.guildRaidEyebrow,
+.guildRaidCardEyebrow {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-soft));
+}
+
+.guildRaidTitle,
+.guildRaidCardTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--text-main);
+}
+
+.guildRaidTitle {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+}
+
+.guildRaidDescription,
+.guildRaidCardSubtitle,
+.guildRaidHint,
+.guildRaidReportSummary {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.guildRaidHeroMeta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.guildRaidHeroPill,
+.guildRaidStatItem,
+.guildRaidSummaryItem {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--soft-radius);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.guildRaidHeroPill span,
+.guildRaidStatItem span,
+.guildRaidSummaryItem span,
+.guildRaidTimerBlock span,
+.guildRaidParticipantCard span,
+.guildRaidBonusCard span,
+.guildRaidProgressCard span,
+.guildRaidProgressCard small,
+.guildRaidReportStats span,
+.guildRaidDpsIdentity span,
+.guildRaidDpsValues span,
+.guildRaidRewardBanner span,
+.guildRaidRewardBanner small {
+  color: var(--text-muted);
+}
+
+.guildRaidHeroPill strong,
+.guildRaidStatItem strong,
+.guildRaidSummaryItem strong,
+.guildRaidTimerBlock strong,
+.guildRaidParticipantCard strong,
+.guildRaidBonusCard strong,
+.guildRaidProgressCard strong,
+.guildRaidReportOutcome,
+.guildRaidDpsValues strong,
+.guildRaidRewardBanner strong {
+  color: var(--text-main);
+}
+
+.guildRaidColumns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.guildRaidMainColumn,
+.guildRaidSideColumn {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.guildRaidCard {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--soft-radius);
+  background:
+    linear-gradient(180deg, rgba(19, 24, 31, 0.9), rgba(10, 14, 19, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.guildRaidCard--focus {
+  border-color: color-mix(in srgb, var(--accent-warn) 24%, var(--border));
+}
+
+.guildRaidCardHeader,
+.guildRaidReportHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: start;
+  flex-wrap: wrap;
+}
+
+.guildRaidStateBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guildRaidStateBadge--ready,
+.guildRaidProgressCard--current {
+  color: var(--accent-warn);
+  border-color: rgba(190, 150, 81, 0.35);
+  background: rgba(190, 150, 81, 0.12);
+}
+
+.guildRaidStateBadge--lobby {
+  color: #b7d8ff;
+  border-color: rgba(92, 146, 201, 0.35);
+  background: rgba(82, 122, 166, 0.16);
+}
+
+.guildRaidStateBadge--locked,
+.guildRaidProgressCard--upcoming {
+  color: #cdbd95;
+  border-color: rgba(181, 160, 112, 0.24);
+  background: rgba(89, 72, 39, 0.18);
+}
+
+.guildRaidStatGrid,
+.guildRaidSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.guildRaidRewardBanner {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-3);
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(190, 150, 81, 0.22);
+  background:
+    linear-gradient(180deg, rgba(190, 150, 81, 0.11), rgba(190, 150, 81, 0.04));
+}
+
+.guildRaidActionStrip {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.guildRaidCostBlock {
+  display: grid;
+  gap: 4px;
+}
+
+.guildRaidCostBlock span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.guildRaidButtonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.guildRaidButtonRow--wide > * {
+  flex: 1 1 170px;
+}
+
+.guildRaidTimerBlock {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  text-align: right;
+}
+
+.guildRaidRoster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-2);
+}
+
+.guildRaidParticipantCard {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.guildRaidParticipantCard--self {
+  border-color: rgba(190, 150, 81, 0.26);
+  background: rgba(190, 150, 81, 0.09);
+}
+
+.guildRaidParticipantHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.guildRaidParticipantHead > div {
+  display: grid;
+  gap: 3px;
+}
+
+.guildRaidParticipantStats {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.guildRaidParticipantClassIcon {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.guildRaidReport {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.guildRaidReportStats {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
+
+.guildRaidReportOutcome {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.guildRaidDpsTable,
+.guildRaidBonusList,
+.guildRaidProgressList {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.guildRaidDpsRow,
+.guildRaidBonusCard,
+.guildRaidProgressCard {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--soft-radius);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.guildRaidDpsIdentity,
+.guildRaidProgressHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.guildRaidDpsIdentity > div,
+.guildRaidDpsValues,
+.guildRaidProgressMeta,
+.guildRaidBonusCard,
+.guildRaidProgressHead > div {
+  display: grid;
+  gap: 3px;
+}
+
+.guildRaidDpsValues {
+  justify-items: end;
+  text-align: right;
+}
+
+.guildRaidDpsRank,
+.guildRaidProgressOrder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: rgba(190, 150, 81, 0.15);
+  color: var(--accent-warn);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.guildRaidBonusCard,
+.guildRaidProgressCard {
+  align-items: stretch;
+}
+
+.guildRaidProgressCard {
+  flex-direction: column;
+}
+
+.guildRaidProgressCard--cleared {
+  border-color: rgba(71, 130, 90, 0.28);
+  background: linear-gradient(180deg, rgba(43, 74, 53, 0.32), rgba(17, 28, 21, 0.3));
+}
+
+.guildRaidProgressMeta {
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .guildRaidHero,
+  .guildRaidColumns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .guildRaidHeroMeta,
+  .guildRaidStatGrid,
+  .guildRaidSummaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .guildRaidHeroMeta,
+  .guildRaidStatGrid,
+  .guildRaidSummaryGrid,
+  .guildRaidRoster {
+    grid-template-columns: 1fr;
+  }
+
+  .guildRaidDpsRow,
+  .guildRaidBonusCard,
+  .guildRaidProgressCard {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .guildRaidDpsValues,
+  .guildRaidTimerBlock,
+  .guildRaidReportStats {
+    justify-items: start;
+    text-align: left;
+  }
 }
 
 

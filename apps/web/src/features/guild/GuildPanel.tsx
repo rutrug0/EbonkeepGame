@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { GuildMissions } from "./GuildMissions";
+import { GuildRaidBosses } from "./GuildRaidBosses";
 import DOMPurify from "dompurify";
 import { ClassIcon } from "../../app/ClassIcon";
 
@@ -19,6 +20,7 @@ import type {
   GuildDetailsResponse,
   GuildMemberWithPlayer,
   GuildActivityWithDetails,
+  GuildRaidStateResponse,
   Guild,
   GuildMember,
   GuildRole
@@ -29,6 +31,7 @@ import {
   getMyGuild,
   getGuildMembers,
   getGuildActivity,
+  getGuildRaidState,
   searchGuilds,
   leaveGuild,
   disbandGuild,
@@ -48,6 +51,11 @@ import { GuildCrestDisplay } from "./GuildList";
 import type { PlayerClass } from "@ebonkeep/shared/core";
 
 const GUILD_MIN_LEVEL = 10;
+const GUILD_RAID_TROPHY_POLL_MS = 30_000;
+
+function getGuildRaidTrophyPath(bossId: string): string {
+  return `/assets/raid_bosses/${bossId.replaceAll("-", "_")}_trophy.png`;
+}
 
 export interface GuildPanelProps {
   token: string | null;
@@ -65,7 +73,7 @@ export interface GuildPanelProps {
 }
 
 type GuildView = "myGuild" | "search";
-export type GuildDetailTab = "members" | "activity" | "academy" | "invites" | "settings" | "missions";
+export type GuildDetailTab = "members" | "activity" | "academy" | "raids" | "invites" | "settings" | "missions";
 
 // ── Shared shield icon ──────────────────────────────────────────────────
 function ShieldIcon({ size = 48 }: { size?: number }) {
@@ -189,7 +197,11 @@ export function GuildPanel({
   // When a mission is active, we just add height:100% so the travel/combat shells fill the panel.
   return (
     <section
-      className={`contentShell guildPanelShell${myGuildActiveTab === "academy" && currentView === "myGuild" ? " guildPanelShell--academy" : ""}`}
+      className={`contentShell guildPanelShell${
+        currentView === "myGuild" && (myGuildActiveTab === "academy" || myGuildActiveTab === "raids")
+          ? ` guildPanelShell--${myGuildActiveTab}`
+          : ""
+      }`}
       style={isActiveMission ? { height: "100%", background: "transparent", border: "none" } : undefined}
     >
       <section
@@ -308,6 +320,7 @@ function MyGuildView({
   const [pendingAction, setPendingAction] = useState<"leave" | "disband" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isGuildInfoExpanded, setIsGuildInfoExpanded] = useState(false);
+  const [raidProgression, setRaidProgression] = useState<GuildRaidStateResponse["progression"]>([]);
 
   useEffect(() => {
     loadGuildData();
@@ -351,6 +364,40 @@ function MyGuildView({
       hasSettled: true
     });
   }, [token, loading, guildData]);
+
+  useEffect(() => {
+    const guildId = guildData?.guild?.id;
+    if (typeof guildId !== "string") {
+      setRaidProgression([]);
+      return;
+    }
+    const resolvedGuildId: string = guildId;
+
+    let active = true;
+
+    async function loadRaidProgression() {
+      try {
+        const raidState = await getGuildRaidState(token, resolvedGuildId);
+        if (active) {
+          setRaidProgression(raidState.progression);
+        }
+      } catch {
+        if (active) {
+          setRaidProgression([]);
+        }
+      }
+    }
+
+    void loadRaidProgression();
+    const intervalId = window.setInterval(() => {
+      void loadRaidProgression();
+    }, GUILD_RAID_TROPHY_POLL_MS);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [guildData?.guild?.id, token]);
 
   const handleLeave = () => setPendingAction("leave");
   const handleDisband = () => setPendingAction("disband");
@@ -407,11 +454,13 @@ function MyGuildView({
   const isLeader = role === "leader";
   const isOfficer = role === "officer";
   const canManage = isLeader || isOfficer;
+  const clearedRaidProgression = raidProgression.filter((entry) => entry.status === "cleared");
 
   const tabs: Array<{ id: GuildDetailTab; label: string; manageOnly?: boolean; leaderOnly?: boolean }> = [
     { id: "members",   label: t("guild.memberList") },
     { id: "activity",  label: t("guild.activityLog") },
     { id: "academy",   label: t("academy.title") },
+    { id: "raids",     label: t("guild.raids.tab") },
     { id: "missions",  label: t("menu.missions") },
     { id: "invites",   label: t("guild.invite.invitesTab"), manageOnly: true },
     { id: "settings",  label: t("guild.settings"), manageOnly: true },
@@ -461,6 +510,22 @@ function MyGuildView({
               <div className="guildCompactIdentity">
                 <span className="guildCompactName">{guildData.guild.name}</span>
                 <span className="guildCompactTag">[{guildData.guild.tag}]</span>
+                {clearedRaidProgression.length > 0 ? (
+                  <div className="guildRaidTrophyStrip">
+                    {clearedRaidProgression.map((entry) => (
+                      <div
+                        key={entry.bossId}
+                        className={`guildRaidTrophyIcon guildRaidTrophyIcon--${entry.status}`}
+                        title={entry.bossName}
+                      >
+                        <img
+                          src={getGuildRaidTrophyPath(entry.bossId)}
+                          alt={entry.bossName}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <div className="guildCompactPills">
                 <span className="guildCompactPill">{t("guild.level")} {guildData.guild.level}</span>
@@ -527,7 +592,15 @@ function MyGuildView({
 
           {/* ── Tab content ── */}
           {activeTab !== "missions" && (
-            <article className={activeTab === "academy" ? "contentCard contentCard--academy" : "contentCard"}>
+            <article
+              className={
+                activeTab === "academy"
+                  ? "contentCard contentCard--academy"
+                  : activeTab === "raids"
+                    ? "contentCard guildPanelFillCard contentCard--raids"
+                    : "contentCard"
+              }
+            >
               {activeTab === "members" && (
                 <GuildMembersTab
                   token={token}
@@ -545,6 +618,13 @@ function MyGuildView({
                   guildId={guildData.guild.id}
                   playerDucats={playerDucats ?? 0}
                   onDucatsChanged={onDucatsChanged}
+                />
+              )}
+              {activeTab === "raids" && (
+                <GuildRaidBosses
+                  token={token}
+                  guildId={guildData.guild.id}
+                  guildName={guildData.guild.name}
                 />
               )}
               {activeTab === "invites" && canManage && (

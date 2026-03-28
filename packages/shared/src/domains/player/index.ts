@@ -114,6 +114,21 @@ export const playerCheatGrantCurrencyResponseSchema = z.object({
 });
 export type PlayerCheatGrantCurrencyResponse = z.infer<typeof playerCheatGrantCurrencyResponseSchema>;
 
+export const playerCheatGuildRaidSquadResponseSchema = z.object({
+  playerState: playerStateSchema,
+  createdMembers: z.number().int().min(0),
+  joinedRaiders: z.number().int().min(0),
+  guildMemberCount: z.number().int().min(0),
+  raidJoinCount: z.number().int().min(0)
+});
+export type PlayerCheatGuildRaidSquadResponse = z.infer<typeof playerCheatGuildRaidSquadResponseSchema>;
+
+export const playerCheatGuildRaidResetResponseSchema = z.object({
+  playerState: playerStateSchema,
+  removedInstances: z.number().int().min(0)
+});
+export type PlayerCheatGuildRaidResetResponse = z.infer<typeof playerCheatGuildRaidResetResponseSchema>;
+
 export const publicPlayerProfileSchema = z.object({
   playerId: z.string(),
   username: z.string(),

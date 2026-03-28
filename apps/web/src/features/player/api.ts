@@ -5,6 +5,8 @@ import type {
   PlayerCheatActionResponse,
   PlayerCheatGenerateEquipmentBody,
   PlayerCheatGenerateEquipmentResponse,
+  PlayerCheatGuildRaidResetResponse,
+  PlayerCheatGuildRaidSquadResponse,
   PlayerCheatGrantCurrencyResponse,
   PlayerCheatLevelUpBody,
   PlayerRestResponse,
@@ -18,6 +20,8 @@ import {
   devGuestLoginResponseSchema,
   playerCheatActionResponseSchema,
   playerCheatGenerateEquipmentResponseSchema,
+  playerCheatGuildRaidResetResponseSchema,
+  playerCheatGuildRaidSquadResponseSchema,
   playerCheatGrantCurrencyResponseSchema,
   playerRestResponseSchema,
   playerPreferencesSchema,
@@ -230,4 +234,38 @@ export async function grantCurrencyCheats(token: string): Promise<PlayerCheatGra
   }
 
   return playerCheatGrantCurrencyResponseSchema.parse(await response.json());
+}
+
+export async function seedGuildRaidSquadCheats(token: string): Promise<PlayerCheatGuildRaidSquadResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/guild-raid-squad`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Seed guild raid squad failed"));
+  }
+
+  return playerCheatGuildRaidSquadResponseSchema.parse(await response.json());
+}
+
+export async function resetGuildRaidCheats(token: string): Promise<PlayerCheatGuildRaidResetResponse> {
+  const response = await fetch(`${API_URL}/v1/player/cheats/guild-raid-reset`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Reset guild raid failed"));
+  }
+
+  return playerCheatGuildRaidResetResponseSchema.parse(await response.json());
 }

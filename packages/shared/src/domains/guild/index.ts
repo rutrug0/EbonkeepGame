@@ -432,3 +432,181 @@ export const academyMemberContributionsResponseSchema = z.object({
   contributions: z.array(academyMemberContributionSchema)
 });
 export type AcademyMemberContributionsResponse = z.infer<typeof academyMemberContributionsResponseSchema>;
+
+// Raid Bosses
+
+export const guildRaidEffectTypeSchema = z.enum([
+  "stamina_regen_percent",
+  "contract_ducats_percent",
+  "contract_xp_percent",
+  "contract_item_drop_bps",
+  "contract_replenish_percent",
+  "rest_cost_percent",
+  "strength_flat",
+  "armor_flat",
+  "physical_defense_flat",
+  "intelligence_flat",
+  "spell_shield_flat",
+  "magic_defense_flat",
+  "dexterity_flat",
+  "accuracy_flat",
+  "dodge_chance_bps"
+]);
+export type GuildRaidEffectType = z.infer<typeof guildRaidEffectTypeSchema>;
+
+export const guildRaidBonusSchema = z.object({
+  type: guildRaidEffectTypeSchema,
+  value: z.number(),
+  label: z.string(),
+  description: z.string()
+});
+export type GuildRaidBonus = z.infer<typeof guildRaidBonusSchema>;
+
+export const guildRaidBossDefinitionSchema = z.object({
+  id: z.string(),
+  orderIndex: z.number().int().min(0),
+  zoneKey: z.string(),
+  zoneName: z.string(),
+  bossName: z.string(),
+  bossTitle: z.string(),
+  flavorText: z.string(),
+  portraitAssetPath: z.string().nullable().optional(),
+  stageAssetPath: z.string().nullable().optional(),
+  recommendedGuildPower: z.number().int().min(0),
+  bossMaxHp: z.number().int().min(1),
+  minParticipants: z.number().int().min(1),
+  participantCap: z.number().int().min(1),
+  summonDucatsCost: z.number().int().min(0),
+  summonImperialsCost: z.number().int().min(0),
+  lobbyDurationHours: z.number().int().min(1),
+  lockDurationHours: z.number().int().min(1),
+  unlockedBonus: guildRaidBonusSchema
+});
+export type GuildRaidBossDefinition = z.infer<typeof guildRaidBossDefinitionSchema>;
+
+export const guildRaidProgressionEntrySchema = z.object({
+  bossId: z.string(),
+  orderIndex: z.number().int().min(0),
+  zoneName: z.string(),
+  bossName: z.string(),
+  status: z.enum(["cleared", "current", "upcoming"]),
+  clearedAt: z.string().datetime().nullable(),
+  unlockedBonus: guildRaidBonusSchema
+});
+export type GuildRaidProgressionEntry = z.infer<typeof guildRaidProgressionEntrySchema>;
+
+export const guildRaidParticipantSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  playerClass: playerClassSchema,
+  role: guildRoleSchema,
+  level: z.number().int().min(1),
+  power: z.number().int().min(0),
+  joinedAt: z.string().datetime(),
+  isCurrentUser: z.boolean()
+});
+export type GuildRaidParticipant = z.infer<typeof guildRaidParticipantSchema>;
+
+export const guildRaidDpsEntrySchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  playerClass: playerClassSchema,
+  role: guildRoleSchema,
+  damageDone: z.number().int().min(0),
+  damageShareBps: z.number().int().min(0).max(10_000),
+  power: z.number().int().min(0)
+});
+export type GuildRaidDpsEntry = z.infer<typeof guildRaidDpsEntrySchema>;
+
+export const guildRaidReportSchema = z.object({
+  outcome: z.enum(["victory", "defeat"]),
+  summary: z.string(),
+  resolvedAt: z.string().datetime(),
+  lockEndsAt: z.string().datetime().nullable(),
+  firstClear: z.boolean(),
+  totalDamage: z.number().int().min(0),
+  bossHpMax: z.number().int().min(1),
+  bossHpRemaining: z.number().int().min(0),
+  ranking: z.array(guildRaidDpsEntrySchema)
+});
+export type GuildRaidReport = z.infer<typeof guildRaidReportSchema>;
+
+export const guildRaidHistoryEntrySchema = z.object({
+  instanceId: z.string(),
+  bossId: z.string(),
+  bossName: z.string(),
+  zoneName: z.string(),
+  resolvedAt: z.string().datetime(),
+  totalDamage: z.number().int().min(0),
+  bossHpRemaining: z.number().int().min(0),
+  firstClear: z.boolean(),
+  unlockedBonus: guildRaidBonusSchema,
+  ranking: z.array(guildRaidDpsEntrySchema)
+});
+export type GuildRaidHistoryEntry = z.infer<typeof guildRaidHistoryEntrySchema>;
+
+export const guildRaidSummonerSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  role: guildRoleSchema
+});
+export type GuildRaidSummoner = z.infer<typeof guildRaidSummonerSchema>;
+
+export const guildRaidEncounterSchema = z.object({
+  instanceId: z.string(),
+  state: z.enum(["lobby", "locked", "resolved"]),
+  boss: guildRaidBossDefinitionSchema,
+  summonedBy: guildRaidSummonerSchema,
+  summonedAt: z.string().datetime(),
+  lobbyEndsAt: z.string().datetime(),
+  lockEndsAt: z.string().datetime().nullable(),
+  joinedPower: z.number().int().min(0),
+  joinCount: z.number().int().min(0),
+  currentUserJoined: z.boolean(),
+  canJoin: z.boolean(),
+  canLeave: z.boolean(),
+  canCommenceNow: z.boolean(),
+  joinBlockedReason: z.string().nullable(),
+  participants: z.array(guildRaidParticipantSchema),
+  report: guildRaidReportSchema.nullable()
+});
+export type GuildRaidEncounter = z.infer<typeof guildRaidEncounterSchema>;
+
+export const guildRaidSummonPreviewSchema = z.object({
+  ducatsCost: z.number().int().min(0),
+  imperialsCost: z.number().int().min(0),
+  canSummon: z.boolean(),
+  canAfford: z.boolean(),
+  blockedReason: z.string().nullable()
+});
+export type GuildRaidSummonPreview = z.infer<typeof guildRaidSummonPreviewSchema>;
+
+export const guildRaidStateResponseSchema = z.object({
+  guildId: z.string(),
+  raidLabel: z.string(),
+  totalBossCount: z.number().int().min(0),
+  bossesDefeatedCount: z.number().int().min(0),
+  activeBoss: guildRaidBossDefinitionSchema.nullable(),
+  activeEncounter: guildRaidEncounterSchema.nullable(),
+  latestResolvedEncounter: guildRaidEncounterSchema.nullable(),
+  latestReport: guildRaidReportSchema.nullable(),
+  history: z.array(guildRaidHistoryEntrySchema),
+  unlockedBonuses: z.array(guildRaidBonusSchema),
+  progression: z.array(guildRaidProgressionEntrySchema),
+  currentUserRole: guildRoleSchema.nullable(),
+  currentUserCanSummon: z.boolean(),
+  summonPreview: guildRaidSummonPreviewSchema
+});
+export type GuildRaidStateResponse = z.infer<typeof guildRaidStateResponseSchema>;
+
+export const summonGuildRaidResponseSchema = guildRaidStateResponseSchema;
+export type SummonGuildRaidResponse = z.infer<typeof summonGuildRaidResponseSchema>;
+
+export const joinGuildRaidResponseSchema = guildRaidStateResponseSchema;
+export type JoinGuildRaidResponse = z.infer<typeof joinGuildRaidResponseSchema>;
+
+export const leaveGuildRaidResponseSchema = guildRaidStateResponseSchema;
+export type LeaveGuildRaidResponse = z.infer<typeof leaveGuildRaidResponseSchema>;
+
+export const commenceGuildRaidResponseSchema = guildRaidStateResponseSchema;
+export type CommenceGuildRaidResponse = z.infer<typeof commenceGuildRaidResponseSchema>;
