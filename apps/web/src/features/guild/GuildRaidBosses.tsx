@@ -29,6 +29,7 @@ type GuildRaidBossesProps = {
 type RaidAction = "summon" | "join" | "leave" | "commence";
 type RaidParticipant = NonNullable<GuildRaidStateResponse["activeEncounter"]>["participants"][number];
 type RaidProgressionEntry = GuildRaidStateResponse["progression"][number];
+type RaidEncounter = NonNullable<GuildRaidStateResponse["activeEncounter"]>;
 
 function formatDuration(ms: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   if (ms <= 0) {
@@ -162,6 +163,21 @@ function getRaidDeploymentOrder(
 
     return left.playerName.localeCompare(right.playerName);
   });
+}
+
+function getResolvedPlaybackEncounter(state: GuildRaidStateResponse): RaidEncounter | null {
+  const candidates = [state.activeEncounter, state.latestResolvedEncounter].filter(
+    (encounter): encounter is RaidEncounter => Boolean(encounter?.report)
+  );
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  return [...candidates].sort((left, right) => {
+    const leftResolvedAt = Date.parse(left.report?.resolvedAt ?? "");
+    const rightResolvedAt = Date.parse(right.report?.resolvedAt ?? "");
+    return rightResolvedAt - leftResolvedAt;
+  })[0] ?? null;
 }
 
 function RaidNoticeModal(props: {
@@ -469,11 +485,12 @@ export function GuildRaidBosses({ token, guildId, guildName }: GuildRaidBossesPr
       }
 
       setRaidState(nextState);
-      if (action === "commence" && nextState.latestResolvedEncounter?.report) {
+      const playbackEncounter = action === "commence" ? getResolvedPlaybackEncounter(nextState) : null;
+      if (playbackEncounter?.report) {
         setInfoOpen(false);
         setActivePlayback(
           buildGuildRaidPlaybackState({
-            encounter: nextState.latestResolvedEncounter,
+            encounter: playbackEncounter,
             guildName,
             nowMs: Date.now()
           })

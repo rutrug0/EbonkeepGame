@@ -179,6 +179,13 @@ async function loadActiveRaidInstance(
   });
 }
 
+async function lockGuildRaidInstance(
+  tx: GuildRaidDbClient,
+  raidInstanceId: string
+): Promise<void> {
+  await tx.$queryRaw`SELECT id FROM "guild_raid_instances" WHERE id = ${raidInstanceId} FOR UPDATE`;
+}
+
 async function loadLatestResolvedRaidInstance(
   tx: GuildRaidDbClient,
   guildId: string,
@@ -878,13 +885,20 @@ export async function joinGuildRaid(
       throw new Error("NO_ACTIVE_RAID");
     }
 
-    if (activeEncounter.participants.some((participant) => participant.playerId === playerId)) {
-      return;
-    }
     if (!activeEncounterBoss) {
       throw new Error("INVALID_RAID_BOSS");
     }
-    if (activeEncounter.participants.length >= activeEncounterBoss.participantCap) {
+
+    await lockGuildRaidInstance(tx, activeEncounter.id);
+    const lockedEncounter = await loadActiveRaidInstance(tx, activeEncounter.id);
+    if (!lockedEncounter || lockedEncounter.state !== "lobby") {
+      throw new Error("NO_ACTIVE_RAID");
+    }
+
+    if (lockedEncounter.participants.some((participant) => participant.playerId === playerId)) {
+      return;
+    }
+    if (lockedEncounter.participants.length >= activeEncounterBoss.participantCap) {
       throw new Error("RAID_LOBBY_FULL");
     }
 
@@ -895,7 +909,7 @@ export async function joinGuildRaid(
 
     await tx.guildRaidParticipant.create({
       data: {
-        raidInstanceId: activeEncounter.id,
+        raidInstanceId: lockedEncounter.id,
         playerId,
         playerName: membership.playerName,
         playerClass: membership.playerClass,
@@ -906,7 +920,7 @@ export async function joinGuildRaid(
     });
 
     await tx.guildRaidInstance.update({
-      where: { id: activeEncounter.id },
+      where: { id: lockedEncounter.id },
       data: {
         joinedPower: { increment: membership.power },
         joinCount: { increment: 1 }
@@ -930,25 +944,33 @@ export async function leaveGuildRaid(
       throw new Error("NO_ACTIVE_RAID");
     }
 
-    const participant = activeEncounter.participants.find((entry) => entry.playerId === playerId);
+    await lockGuildRaidInstance(tx, activeEncounter.id);
+    const lockedEncounter = await loadActiveRaidInstance(tx, activeEncounter.id);
+    if (!lockedEncounter || lockedEncounter.state !== "lobby") {
+      throw new Error("NO_ACTIVE_RAID");
+    }
+
+    const participant = lockedEncounter.participants.find((entry) => entry.playerId === playerId);
     if (!participant) {
       throw new Error("NOT_JOINED");
     }
 
-    await tx.guildRaidParticipant.deleteMany({
+    const deleteResult = await tx.guildRaidParticipant.deleteMany({
       where: {
-        raidInstanceId: activeEncounter.id,
+        raidInstanceId: lockedEncounter.id,
         playerId
       }
     });
 
-    await tx.guildRaidInstance.update({
-      where: { id: activeEncounter.id },
-      data: {
-        joinedPower: { decrement: participant.power },
-        joinCount: { decrement: 1 }
-      }
-    });
+    if (deleteResult.count > 0) {
+      await tx.guildRaidInstance.update({
+        where: { id: lockedEncounter.id },
+        data: {
+          joinedPower: { decrement: participant.power },
+          joinCount: { decrement: 1 }
+        }
+      });
+    }
   });
 
   return buildGuildRaidStateInternal(prisma, guildId, playerId);
