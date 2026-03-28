@@ -8495,17 +8495,27 @@ button:focus-visible {
   line-height: 1.15;
 }
 
+.refineryRecipeMenuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: transparent;
+}
+
 .refineryRecipeMenu {
-  position: absolute;
-  bottom: 0;
-  right: calc(100% + 0.85rem);
-  z-index: 8;
-  width: min(460px, calc(100vw - 3rem));
+  position: relative;
+  z-index: 1;
+  width: min(560px, calc(100vw - 2rem));
+  height: min(78vh, calc(100dvh - 2rem));
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
   padding: 0.95rem;
-  max-height: min(62vh, calc(100dvh - 8rem));
+  min-height: 0;
   overflow: hidden;
   isolation: isolate;
   border-radius: 16px;
@@ -8529,7 +8539,16 @@ button:focus-visible {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.refineryRecipeScroller::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .refineryRecipeScroller::before,
@@ -8575,19 +8594,8 @@ button:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   align-content: start;
   gap: 0.75rem;
-  max-height: 100%;
   min-height: 0;
   padding: 0.15rem 0.25rem 0.25rem 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.refineryRecipeGrid::-webkit-scrollbar {
-  width: 0;
-  height: 0;
 }
 
 .refineryRecipeTileWrap {
@@ -8695,18 +8703,16 @@ button:focus-visible {
     justify-content: flex-start;
   }
 
-  .refineryRecipeMenu {
-    left: 0;
-    right: auto;
-    bottom: calc(100% + 0.7rem);
-  }
-
   .refineryCraftInventoryScroller {
     grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   }
 }
 
 @media (max-width: 760px) {
+  .refineryRecipeMenuOverlay {
+    padding: 0.75rem;
+  }
+
   .refineryCraftInventoryToggle {
     padding: 0.8rem 0.95rem;
   }
@@ -8729,9 +8735,7 @@ button:focus-visible {
   }
 
   .refineryRecipeMenu {
-    left: auto;
-    right: 0;
-    bottom: calc(100% + 0.7rem);
-    width: min(100vw - 2.4rem, 420px);
+    width: min(420px, calc(100vw - 1.5rem));
+    height: calc(100dvh - 1.5rem);
   }
 }

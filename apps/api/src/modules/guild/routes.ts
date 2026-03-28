@@ -33,7 +33,12 @@ import {
   declineGuildInvite,
   cancelGuildInvite,
   getGuildActivity,
-  getGuildLeaderboard
+  getGuildLeaderboard,
+  getGuildRaidState,
+  summonGuildRaid,
+  joinGuildRaid,
+  leaveGuildRaid,
+  commenceGuildRaidNow
 } from "./index.js";
 
 export const guildRoutes: FastifyPluginAsync = async (fastify) => {
@@ -587,6 +592,123 @@ export const guildRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (error: any) {
         fastify.log.error(error, "Error fetching guild leaderboards");
         return reply.code(500).send({ error: "Failed to fetch leaderboards" });
+      }
+    }
+  });
+
+  fastify.get<{ Params: { guildId: string } }>("/v1/guild/:guildId/raids", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      try {
+        const state = await getGuildRaidState(fastify.prisma, request.params.guildId, request.user.playerId);
+        return reply.send(state);
+      } catch (error: any) {
+        const mapped = error?.message === "NOT_GUILD_MEMBER"
+          ? { status: 403, message: "Not a guild member" }
+          : error?.message === "GUILD_NOT_FOUND"
+            ? { status: 404, message: "Guild not found" }
+            : null;
+        if (mapped) {
+          return reply.code(mapped.status).send({ error: mapped.message });
+        }
+        fastify.log.error(error, "Error fetching guild raid state");
+        return reply.code(500).send({ error: "Failed to fetch guild raid state" });
+      }
+    }
+  });
+
+  fastify.post<{ Params: { guildId: string } }>("/v1/guild/:guildId/raids/summon", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      try {
+        const state = await summonGuildRaid(fastify.prisma, request.params.guildId, request.user.playerId);
+        return reply.send(state);
+      } catch (error: any) {
+        const errorMap: Record<string, { status: number; message: string }> = {
+          NOT_GUILD_MEMBER: { status: 403, message: "Not a guild member" },
+          INSUFFICIENT_PERMISSIONS: { status: 403, message: "Only leaders and officers can summon a raid boss" },
+          RAID_ALREADY_ACTIVE: { status: 409, message: "A raid lobby is already active" },
+          RAID_LOCKED: { status: 409, message: "The guild raid is still locked" },
+          RAID_CHAIN_COMPLETE: { status: 400, message: "All configured raid bosses are already cleared" },
+          INSUFFICIENT_CURRENCY: { status: 400, message: "Not enough ducats or imperials to summon this raid" }
+        };
+        const mapped = errorMap[error?.message];
+        if (mapped) {
+          return reply.code(mapped.status).send({ error: mapped.message });
+        }
+        fastify.log.error(error, "Error summoning guild raid");
+        return reply.code(500).send({ error: "Failed to summon guild raid" });
+      }
+    }
+  });
+
+  fastify.post<{ Params: { guildId: string } }>("/v1/guild/:guildId/raids/join", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      try {
+        const state = await joinGuildRaid(fastify.prisma, request.params.guildId, request.user.playerId);
+        return reply.send(state);
+      } catch (error: any) {
+        const errorMessage = typeof error?.message === "string" ? error.message : "";
+        const errorMap: Record<string, { status: number; message: string }> = {
+          NOT_GUILD_MEMBER: { status: 403, message: "Not a guild member" },
+          NO_ACTIVE_RAID: { status: 409, message: "There is no active raid lobby to join" },
+          RAID_LOBBY_FULL: { status: 409, message: "The raid lobby is already full" }
+        };
+        const mapped = errorMap[errorMessage];
+        if (mapped) {
+          return reply.code(mapped.status).send({ error: mapped.message });
+        }
+        if (errorMessage.length > 0) {
+          return reply.code(400).send({ error: errorMessage });
+        }
+        fastify.log.error(error, "Error joining guild raid");
+        return reply.code(500).send({ error: "Failed to join guild raid" });
+      }
+    }
+  });
+
+  fastify.post<{ Params: { guildId: string } }>("/v1/guild/:guildId/raids/leave", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      try {
+        const state = await leaveGuildRaid(fastify.prisma, request.params.guildId, request.user.playerId);
+        return reply.send(state);
+      } catch (error: any) {
+        const errorMap: Record<string, { status: number; message: string }> = {
+          NOT_GUILD_MEMBER: { status: 403, message: "Not a guild member" },
+          NO_ACTIVE_RAID: { status: 409, message: "There is no active raid lobby to leave" },
+          NOT_JOINED: { status: 400, message: "You are not currently joined to the raid" }
+        };
+        const mapped = errorMap[error?.message];
+        if (mapped) {
+          return reply.code(mapped.status).send({ error: mapped.message });
+        }
+        fastify.log.error(error, "Error leaving guild raid");
+        return reply.code(500).send({ error: "Failed to leave guild raid" });
+      }
+    }
+  });
+
+  fastify.post<{ Params: { guildId: string } }>("/v1/guild/:guildId/raids/commence", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) => {
+      try {
+        const state = await commenceGuildRaidNow(fastify.prisma, request.params.guildId, request.user.playerId);
+        return reply.send(state);
+      } catch (error: any) {
+        const errorMap: Record<string, { status: number; message: string }> = {
+          NOT_GUILD_MEMBER: { status: 403, message: "Not a guild member" },
+          INSUFFICIENT_PERMISSIONS: { status: 403, message: "Only leaders and officers can commence a raid early" },
+          NO_ACTIVE_RAID: { status: 409, message: "There is no active raid lobby" },
+          NOT_ENOUGH_PARTICIPANTS: { status: 400, message: "Not enough participants are ready to commence the raid" }
+        };
+        const mapped = errorMap[error?.message];
+        if (mapped) {
+          return reply.code(mapped.status).send({ error: mapped.message });
+        }
+        fastify.log.error(error, "Error commencing guild raid");
+        return reply.code(500).send({ error: "Failed to commence guild raid" });
       }
     }
   });

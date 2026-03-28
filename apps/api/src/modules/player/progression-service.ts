@@ -10,6 +10,7 @@ import {
   applyAcademyRestCostDiscount,
   getGuildAcademyEffectTotals
 } from "../academy/effects.js";
+import { getCombinedGuildEffectTotals } from "../guild/raid-effects.js";
 
 const MAX_LEVEL = 100;
 const REST_HEALTH_PER_DUCAT = 10;
@@ -417,7 +418,7 @@ export async function syncPlayerProgress(prisma: PrismaClient | Prisma.Transacti
     throw new Error(`Player not found: ${playerId}`);
   }
 
-  const academyEffects = await getGuildAcademyEffectTotals(prisma, profile.guildMembership?.guildId);
+  const academyEffects = await getCombinedGuildEffectTotals(prisma, profile.guildMembership?.guildId);
   const progress = resolvePlayerProgressState({
     level: profile.level,
     experience: profile.experience,
@@ -541,7 +542,7 @@ export async function spendPlayerStamina(
     throw new Error(`Player not found: ${playerId}`);
   }
 
-  const academyEffects = await getGuildAcademyEffectTotals(tx, profile.guildMembership?.guildId);
+  const academyEffects = await getCombinedGuildEffectTotals(tx, profile.guildMembership?.guildId);
   const stamina = resolveStaminaState({
     current: profile.staminaCurrent,
     max: profile.staminaMax,
@@ -669,7 +670,7 @@ export async function restPlayerResources(args: {
     throw new Error(`Player not found: ${args.playerId}`);
   }
 
-  const academyEffects = await getGuildAcademyEffectTotals(args.tx, profile.guildMembership?.guildId);
+  const academyEffects = await getCombinedGuildEffectTotals(args.tx, profile.guildMembership?.guildId);
   const maxHealth = Math.max(1, Math.floor(args.maxHealth));
   const health = resolveHealthState({
     current: profile.hitpointsCurrent,

@@ -446,6 +446,12 @@
       "unlockGardenSlotsButton": "Unlock garden slots",
       "invalidGardenSlotCount": "Enter a valid garden slot count from {{min}} to {{max}}.",
       "gardenSlotsUnlocked": "Garden unlocked slots set to {{count}}.",
+      "guildRaidSquadButton": "Seed guild raid squad",
+      "guildRaidSquadHelp": "Adds up to 30 level 30 / power 100 bots to your guild and current raid lobby.",
+      "guildRaidSquadSuccess": "Raid squad ready: +{{created}} guild, +{{joined}} lobby. Guild {{members}}, raid {{raid}}.",
+      "guildRaidResetButton": "Reset guild raids",
+      "guildRaidResetHelp": "Clears this guild's raid progression and raid instances so you can test from boss 1 again.",
+      "guildRaidResetSuccess": "Guild raids reset. Removed {{count}} raid instances.",
       "currencyHelp": "Adds 1,000,000 ducats and 10,000 imperials.",
       "currencyGranted": "Granted {{ducats}} ducats and {{imperials}} imperials.",
       "rarities": {
@@ -985,6 +991,158 @@
     "loadMore": "Load More",
     "guildCount": "{{count}} guilds found",
     "alreadyInGuildHint": "You are already in a guild. Leave your current guild to join another.",
+    "raids": {
+      "tab": "Raid Bosses",
+      "title": "Raid Bosses",
+      "description": "Summon a guild raid, gather members into a 24 hour lobby, then resolve the boss together for permanent guild-wide power.",
+      "loading": "Loading raid boss state...",
+      "loadFailed": "Failed to load guild raid state.",
+      "actionFailed": "Failed to update the raid boss state.",
+      "refresh": "Refresh",
+      "historyButton": "History",
+      "historyTitle": "Raid History",
+      "historyEmpty": "No raid victories yet.",
+      "historyFirstClear": "First Clear",
+      "infoButton": "Info",
+      "infoTitle": "Raid Info",
+      "closeInfo": "Close info",
+      "rulesTitle": "Rules",
+      "formationTitle": "Order",
+      "formationHint": "Low power starts. Strongest goes last.",
+      "formationFront": "Start (1-5)",
+      "formationReserve": "Next (6+)",
+      "formationOpen": "Open",
+      "formationEmpty": "No reserve yet.",
+      "formationPower": "Power {{value}}",
+      "currentBoss": "Current Boss",
+      "currentBossSubtitle": "{{zone}} - {{title}}",
+      "activeLobby": "Active Lobby",
+      "lastReport": "Latest Report",
+      "imageSlot": "Boss image slot",
+      "summonedBy": "Summoned by {{player}} ({{role}})",
+      "lobbyEndsIn": "Lobby ends in",
+      "lockEndsIn": "Lock ends in",
+      "summonCost": "Summon Cost",
+      "unlockedBonus": "First-clear bonus",
+      "unlockedBonusesTitle": "Unlocked Bonuses",
+      "guildWidePower": "Guild-wide power spikes",
+      "noBonuses": "No raid boss bonuses are unlocked yet.",
+      "progressionTitle": "Progression Chain",
+      "progressionSubtitle": "Each clear unlocks the next guild raid boss.",
+      "chainComplete": "Chain Complete",
+      "chainCompleteSubtitle": "Your guild has cleared every configured raid boss in this chain.",
+      "hours": "{{count}}h",
+      "joinHint": "Join the lobby before it expires. Members with active jobs, contracts, or crafting runs must finish those first.",
+      "levelShort": "Lv. {{level}}",
+      "clearedAt": "Cleared {{time}}",
+      "nextTitle": "Next",
+      "infoHint": "More in Info",
+      "topHint": {
+        "lobby": "{{joinedCount}} joined",
+        "locked": "Raid cooldown active",
+        "ready": "Ready for summon",
+        "wait": "Not ready yet"
+      },
+      "top": {
+        "progress": "Progress",
+        "status": "Status",
+        "bonus": "Bonus",
+        "none": "None"
+      },
+      "mini": {
+        "power": "Power",
+        "hp": "HP",
+        "players": "Need / Max",
+        "playersValue": "{{min}} min · {{max}} max",
+        "timer": "Timer",
+        "cost": "Summon Cost",
+        "costValue": "{{ducats}} Ducats + {{imperials}} Imperials",
+        "costValueNoImperials": "{{ducats}} Ducats"
+      },
+      "summonRoleHint": "Only the guild leader or an officer can summon this raid.",
+      "hero": {
+        "progress": "Bosses Cleared",
+        "bonuses": "Unlocked Bonuses",
+        "status": "Status"
+      },
+      "rules": {
+        "lobby": "Summon opens a 24h lobby.",
+        "manualJoin": "Members must join manually.",
+        "lock": "Failing a raid locks the next summon for 24h. Victories can summon the next boss right away.",
+        "bonus": "First clear unlocks a permanent guild bonus."
+      },
+      "states": {
+        "lobby": "Lobby Open",
+        "locked": "Locked",
+        "ready": "Ready to Summon",
+        "cleared": "All Cleared"
+      },
+      "stats": {
+        "recommendedPower": "Recommended Power",
+        "bossHp": "Boss HP",
+        "minRaiders": "Minimum Raiders",
+        "capacity": "Lobby Capacity",
+        "lobby": "Lobby Duration",
+        "lock": "Lock Duration"
+      },
+      "currency": {
+        "ducats": "ducats",
+        "imperials": "imperials"
+      },
+      "actions": {
+        "summon": "Summon Raid",
+        "summoning": "Summoning...",
+        "join": "Join Lobby",
+        "joining": "Joining...",
+        "joined": "Joined",
+        "leave": "Leave Lobby",
+        "leaving": "Leaving...",
+        "commence": "Commence Now",
+        "commencing": "Commencing..."
+      },
+      "commenceBlocked": {
+        "permission": "Only the guild leader or an officer can commence the raid.",
+        "participants": "Need at least {{min}} joined players before commencing. Current: {{joined}}."
+      },
+      "summary": {
+        "joined": "Joined Raiders",
+        "joinedPower": "Joined Power",
+        "minimum": "Minimum Required",
+        "recommended": "Recommended"
+      },
+      "report": {
+        "title": "Battle Report",
+        "victory": "Victory",
+        "defeat": "Defeat",
+        "damage": "Damage",
+        "remainingHp": "Remaining HP"
+      },
+      "battlefield": {
+        "title": "Battle",
+        "replay": "Replay",
+        "replayReady": "Battle replay ready.",
+        "frontlineHint": "Front 5 fight first.",
+        "waiting": "Summon to stage the raid.",
+        "reserve": "Reserve {{count}}",
+        "attack": "{{player}} attacks",
+        "bossHit": "{{player}} takes a hit",
+        "replace": "{{player}} steps in",
+        "slotDown": "{{player}} falls",
+        "openSlot": "Open"
+      },
+      "progressStatus": {
+        "cleared": "Cleared",
+        "current": "Current Target",
+        "upcoming": "Upcoming"
+      },
+      "time": {
+        "ready": "Ready now",
+        "daysHours": "{{days}}d {{hours}}h",
+        "hoursMinutes": "{{hours}}h {{minutes}}m",
+        "minutesSeconds": "{{minutes}}m {{seconds}}s",
+        "seconds": "{{seconds}}s"
+      }
+    },
     "editor": {
       "h1": "Heading 1",
       "h2": "Heading 2",

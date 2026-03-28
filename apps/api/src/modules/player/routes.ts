@@ -2,6 +2,8 @@ import {
   playerCheatActionResponseSchema,
   playerCheatGenerateEquipmentBodySchema,
   playerCheatGenerateEquipmentResponseSchema,
+  playerCheatGuildRaidResetResponseSchema,
+  playerCheatGuildRaidSquadResponseSchema,
   playerCheatGrantCurrencyResponseSchema,
   playerCheatLevelUpBodySchema,
   playerPreferencesSchema,
@@ -17,6 +19,8 @@ import {
   grantCurrencyForCheats,
   levelPlayerForCheats,
   replenishPlayerForCheats,
+  resetGuildRaidProgressForCheats,
+  seedGuildRaidSquadForCheats,
   updatePlayerCheatSettings
 } from "./cheat-service.js";
 import { loadPlayerState, getPublicPlayerProfile } from "./state-service.js";
@@ -207,6 +211,44 @@ export const playerRoutes: FastifyPluginAsync = async (fastify) => {
         const message = error instanceof Error ? error.message : "Failed to grant cheat currency.";
         const statusCode = message.includes("not found") ? 404 : 500;
         return reply.code(statusCode).send({ error: message });
+      }
+    }
+  );
+
+  fastify.post(
+    "/v1/player/cheats/guild-raid-squad",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const result = await fastify.prisma.$transaction((tx) =>
+          seedGuildRaidSquadForCheats(tx, request.user.playerId)
+        );
+        return reply.send(playerCheatGuildRaidSquadResponseSchema.parse(result));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to seed the guild raid squad.";
+        if (message.includes("PLAYER_NOT_IN_GUILD")) {
+          return reply.code(400).send({ error: "Join a guild before seeding raid members." });
+        }
+        return reply.code(500).send({ error: message });
+      }
+    }
+  );
+
+  fastify.post(
+    "/v1/player/cheats/guild-raid-reset",
+    { preHandler: fastify.authenticate },
+    async (request, reply) => {
+      try {
+        const result = await fastify.prisma.$transaction((tx) =>
+          resetGuildRaidProgressForCheats(tx, request.user.playerId)
+        );
+        return reply.send(playerCheatGuildRaidResetResponseSchema.parse(result));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to reset guild raids.";
+        if (message.includes("PLAYER_NOT_IN_GUILD")) {
+          return reply.code(400).send({ error: "Join a guild before resetting guild raids." });
+        }
+        return reply.code(500).send({ error: message });
       }
     }
   );

@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
   type ReactElement
 } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -831,6 +832,29 @@ export function RefineryPanel({
     () => REFINERY_RECIPES.filter((recipe) => recipe.category === openMenuCategory),
     [openMenuCategory]
   );
+  const openMenuLane = openMenuLaneIndex !== null ? laneStates[openMenuLaneIndex] ?? null : null;
+  const openMenuLaneIsBusy = openMenuLane !== null && pendingLaneIndex === openMenuLane.laneIndex;
+  const openMenuHasUnclaimedOutput =
+    openMenuLane !== null &&
+    (openMenuLane.outputCount > 0 || openMenuLane.laneIndex in claimingOutputCountsByLane);
+
+  useEffect(() => {
+    if (openMenuLaneIndex === null) {
+      return;
+    }
+
+    function handleEscape(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpenMenuLaneIndex(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenuLaneIndex]);
 
   function toggleLaneMenu(laneIndex: number, category: RefineryCategory) {
     setOpenMenuLaneIndex((current) => (current === laneIndex ? null : laneIndex));
@@ -1200,98 +1224,109 @@ export function RefineryPanel({
                         onClick={() => toggleLaneMenu(lane.laneIndex, lane.selectedCategory)}
                         disabled={lane.status === "running" || hasUnclaimedOutput || laneIsBusy}
                         aria-expanded={openMenuLaneIndex === lane.laneIndex}
+                        aria-haspopup="dialog"
+                        aria-controls={openMenuLaneIndex === lane.laneIndex ? "refinery-recipes-menu" : undefined}
                       >
                         {t("refineryPanel.recipes")}
                       </button>
-
-                      {openMenuLaneIndex === lane.laneIndex ? (
-                        <div className="refineryRecipeMenu" role="dialog" aria-label={t("refineryPanel.recipes")}>
-                          <div className="refineryRecipeCategoryRow">
-                            {(["potions", "recycling"] as RefineryCategory[]).map((category) => (
-                              <button
-                                key={category}
-                                type="button"
-                                className={`refineryRecipeCategoryButton${openMenuCategory === category ? " isActive" : ""}`}
-                                onClick={() => setOpenMenuCategory(category)}
-                              >
-                                {t(`refineryPanel.category.${category}`)}
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="refineryRecipeScroller">
-                            <div className="refineryRecipeGrid">
-                              {activeMenuRecipes.map((recipe) => {
-                                const ingredientCraftableCount = getMaxCraftable(recipe, availableInventory);
-                                const currentDucats = effectivePlayerState.currency.ducats ?? 0;
-                                const isDisabled =
-                                  laneIsBusy
-                                  || hasUnclaimedOutput
-                                  || ingredientCraftableCount <= 0
-                                  || effectivePlayerState.level < recipe.requiredPlayerLevel
-                                  || currentDucats < recipe.ducatCost;
-                                const outputItem = buildItemDefinition(recipe.outputItemId, effectivePlayerState);
-                                const outputImagePath = getItemImagePath(outputItem);
-
-                                return (
-                                  <div
-                                    key={recipe.id}
-                                    className={`uiHoverTooltipTrigger refineryRecipeTileWrap${isDisabled ? " isDisabled" : ""}`}
-                                  >
-                                    <button
-                                      type="button"
-                                      className={`refineryRecipeTile${isDisabled ? " isDisabled" : ""}${outputItem ? ` tone-${outputItem.tone}` : ""}`}
-                                      onClick={() => {
-                                        void handleRecipeSelect(lane.laneIndex, recipe);
-                                      }}
-                                      disabled={isDisabled}
-                                      aria-label={recipe.displayName}
-                                    >
-                                      <span className="refineryRecipeTileIcon">
-                                        {outputImagePath ? (
-                                          <img src={outputImagePath} alt="" loading="lazy" draggable={false} />
-                                        ) : (
-                                          getItemMonogram(outputItem)
-                                        )}
-                                      </span>
-                                      <span className="refineryRecipeTileName">{recipe.displayName}</span>
-                                      <span className="refineryRecipeTileCount">
-                                        {t("refineryPanel.maxCraftable", {
-                                          count: ingredientCraftableCount
-                                        })}
-                                      </span>
-                                    </button>
-
-                                    <div className="uiHoverTooltip refineryRecipeTooltip" role="tooltip">
-                                      <p className="uiHoverTooltipTitle">{recipe.displayName}</p>
-                                      {recipe.inputs.map((input) => {
-                                        const inputDefinition = buildItemDefinition(input.itemId, effectivePlayerState);
-                                        const available = getAvailableQuantityForItem(input.itemId, availableInventory);
-
-                                        return (
-                                          <p
-                                            key={`${recipe.id}-${input.itemId}`}
-                                            className={`uiHoverTooltipLine refineryRecipeRequirement ${getRecipeRequirementClassName(input, availableInventory)}`}
-                                          >
-                                            <strong>{inputDefinition.displayName}</strong>{" "}
-                                            {input.perCraft} / {available}
-                                          </p>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 </section>
               );
             })}
           </section>
+
+          {openMenuLane && createPortal(
+            <div className="refineryRecipeMenuOverlay" onClick={() => setOpenMenuLaneIndex(null)}>
+              <div
+                id="refinery-recipes-menu"
+                className="refineryRecipeMenu"
+                role="dialog"
+                aria-modal="true"
+                aria-label={t("refineryPanel.recipes")}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="refineryRecipeCategoryRow">
+                  {(["potions", "recycling"] as RefineryCategory[]).map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`refineryRecipeCategoryButton${openMenuCategory === category ? " isActive" : ""}`}
+                      onClick={() => setOpenMenuCategory(category)}
+                    >
+                      {t(`refineryPanel.category.${category}`)}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="refineryRecipeScroller">
+                  <div className="refineryRecipeGrid">
+                    {activeMenuRecipes.map((recipe) => {
+                      const ingredientCraftableCount = getMaxCraftable(recipe, availableInventory);
+                      const currentDucats = effectivePlayerState.currency.ducats ?? 0;
+                      const isDisabled =
+                        openMenuLaneIsBusy
+                        || openMenuHasUnclaimedOutput
+                        || ingredientCraftableCount <= 0
+                        || effectivePlayerState.level < recipe.requiredPlayerLevel
+                        || currentDucats < recipe.ducatCost;
+                      const outputItem = buildItemDefinition(recipe.outputItemId, effectivePlayerState);
+                      const outputImagePath = getItemImagePath(outputItem);
+
+                      return (
+                        <div
+                          key={recipe.id}
+                          className={`uiHoverTooltipTrigger refineryRecipeTileWrap${isDisabled ? " isDisabled" : ""}`}
+                        >
+                          <button
+                            type="button"
+                            className={`refineryRecipeTile${isDisabled ? " isDisabled" : ""}${outputItem ? ` tone-${outputItem.tone}` : ""}`}
+                            onClick={() => {
+                              void handleRecipeSelect(openMenuLane.laneIndex, recipe);
+                            }}
+                            disabled={isDisabled}
+                            aria-label={recipe.displayName}
+                          >
+                            <span className="refineryRecipeTileIcon">
+                              {outputImagePath ? (
+                                <img src={outputImagePath} alt="" loading="lazy" draggable={false} />
+                              ) : (
+                                getItemMonogram(outputItem)
+                              )}
+                            </span>
+                            <span className="refineryRecipeTileName">{recipe.displayName}</span>
+                            <span className="refineryRecipeTileCount">
+                              {t("refineryPanel.maxCraftable", {
+                                count: ingredientCraftableCount
+                              })}
+                            </span>
+                          </button>
+
+                          <div className="uiHoverTooltip refineryRecipeTooltip" role="tooltip">
+                            <p className="uiHoverTooltipTitle">{recipe.displayName}</p>
+                            {recipe.inputs.map((input) => {
+                              const inputDefinition = buildItemDefinition(input.itemId, effectivePlayerState);
+                              const available = getAvailableQuantityForItem(input.itemId, availableInventory);
+
+                              return (
+                                <p
+                                  key={`${recipe.id}-${input.itemId}`}
+                                  className={`uiHoverTooltipLine refineryRecipeRequirement ${getRecipeRequirementClassName(input, availableInventory)}`}
+                                >
+                                  <strong>{inputDefinition.displayName}</strong> {input.perCraft} / {available}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )}
         </article>
       </section>
     </section>

@@ -43,6 +43,15 @@ export {
   getGuildStats
 } from "./service-activity.js";
 
+// Raid bosses
+export {
+  getGuildRaidState,
+  summonGuildRaid,
+  joinGuildRaid,
+  leaveGuildRaid,
+  commenceGuildRaidNow
+} from "./service-raids.js";
+
 // Validation
 export {
   validateGuildName,

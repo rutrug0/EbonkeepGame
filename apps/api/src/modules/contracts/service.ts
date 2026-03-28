@@ -29,10 +29,10 @@ import {
   applyAcademyContractReplenishDuration,
   applyAcademyBonusesToContractRewardPreview,
   getEffectiveContractSlotCount,
-  getPlayerAcademyEffectTotals,
   type AcademyEffectTotals
 } from "../academy/effects.js";
 import { grantCraftingStackableItem } from "../crafting/service.js";
+import { getPlayerCombinedGuildEffectTotals } from "../guild/raid-effects.js";
 import { rollMaterialDrops } from "../combat/material-drops.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { assertJobsActivityIdle } from "../jobs/service.js";
@@ -330,7 +330,7 @@ async function syncRunState(prisma: PrismaClient, runId: string, now: Date, grac
 }
 
 async function refreshBoardState(prisma: PrismaClient, playerId: string, now = new Date()): Promise<void> {
-  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
+  const academyEffects = await getPlayerCombinedGuildEffectTotals(prisma, playerId);
   const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
   await ensureBoardSlots(prisma, playerId, slotCount);
   const context = await getPlayerContractContext(prisma, playerId);
@@ -486,7 +486,7 @@ function coerceEncounterForRun(
 export async function getContractBoard(prisma: PrismaClient, playerId: string): Promise<ContractBoardResponse> {
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
-  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
+  const academyEffects = await getPlayerCombinedGuildEffectTotals(prisma, playerId);
   const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
   const slots = await prisma.contractBoardSlot.findMany({
     where: {
@@ -550,7 +550,7 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
       throw new Error("Another contract run is already active.");
     }
 
-    const academyEffects = await getPlayerAcademyEffectTotals(tx, playerId);
+    const academyEffects = await getPlayerCombinedGuildEffectTotals(tx, playerId);
     const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
     if (slotId < 1 || slotId > slotCount) {
       throw new Error("Contract slot is not available.");
@@ -651,7 +651,7 @@ export async function abandonContractOffer(prisma: PrismaClient, playerId: strin
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
   const context = await getPlayerContractContext(prisma, playerId);
-  const academyEffects = await getPlayerAcademyEffectTotals(prisma, playerId);
+  const academyEffects = await getPlayerCombinedGuildEffectTotals(prisma, playerId);
   const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
 
   if (slotId < 1 || slotId > slotCount) {
@@ -844,7 +844,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
           now,
           playerProfile.level,
           playerProfile.fastContractReplenishEnabled,
-          await getPlayerAcademyEffectTotals(tx, playerId)
+          await getPlayerCombinedGuildEffectTotals(tx, playerId)
         )
       }
     });
