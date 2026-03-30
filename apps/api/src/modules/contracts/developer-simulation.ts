@@ -1542,7 +1542,9 @@ export function createDeveloperContractSimulationJob(body: RunDeveloperContractS
   job.createdAtMs = Date.now();
 
   simulationJobs.set(jobId, job);
-  void runSimulationJob(jobId);
+  setTimeout(() => {
+    void runSimulationJob(jobId);
+  }, 0);
   return job;
 }
 

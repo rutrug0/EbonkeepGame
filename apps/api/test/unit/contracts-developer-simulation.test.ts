@@ -170,6 +170,17 @@ describe("contracts developer simulation", () => {
     expect(averageGear).toBe(slowGear);
   });
 
+  it("returns a queued job before the background simulation starts", () => {
+    const job = createDeveloperContractSimulationJob({
+      playerClass: "juggernaut",
+      sampleSize: 1,
+      maxLevel: 2
+    });
+
+    expect(job.status).toBe("queued");
+    expect(getDeveloperContractSimulationJob(job.jobId)?.status).toBe("queued");
+  });
+
   it("does not evict existing jobs when reading status at capacity", () => {
     const jobs = Array.from({ length: 10 }, () =>
       createDeveloperContractSimulationJob({
