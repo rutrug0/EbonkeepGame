@@ -15,15 +15,7 @@ export function isAdminAccountId(accountId: string): boolean {
   return getAdminAccountIds().has(accountId);
 }
 
-export async function isDeveloperToolsEnabledForAccount(prisma: PrismaLike, accountId: string): Promise<boolean> {
-  if (isAdminAccountId(accountId)) {
-    return true;
-  }
-
-  const account = await prisma.account.findUnique({
-    where: { id: accountId },
-    select: { provider: true }
-  });
-
-  return account?.provider === "dev-guest";
+export async function isDeveloperToolsEnabledForAccount(_prisma: PrismaLike, _accountId: string): Promise<boolean> {
+  // Temporary override: expose developer tools to every authenticated account.
+  return true;
 }

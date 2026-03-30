@@ -43,7 +43,7 @@ describe("jobs routes", () => {
     await context.close();
   });
 
-  it("restricts debug fast-forward to developer-enabled accounts", async () => {
+  it("allows debug fast-forward for all authenticated accounts", async () => {
     const guest = await loginAsGuest(context.app);
     const guestHeaders = authHeaders(guest.body.accessToken);
     await startFirstBoardJob(context, guestHeaders, 3);
@@ -62,14 +62,15 @@ describe("jobs routes", () => {
     const registeredHeaders = authHeaders(registered.body.accessToken);
     await startFirstBoardJob(context, registeredHeaders, 3);
 
-    const deniedAdvance = await context.app.inject({
+    const registeredAdvance = await context.app.inject({
       method: "POST",
       url: "/v1/jobs/debug/advance",
       headers: registeredHeaders,
       payload: { hours: 1 }
     });
 
-    expect(deniedAdvance.statusCode).toBe(403);
+    expect(registeredAdvance.statusCode).toBe(200);
+    expect(registeredAdvance.json().jobs.activeRun.debugOffsetMs).toBeGreaterThanOrEqual(60 * 60 * 1000);
   });
 
   it("blocks other timed activity starts while a jobs run is still active", async () => {
