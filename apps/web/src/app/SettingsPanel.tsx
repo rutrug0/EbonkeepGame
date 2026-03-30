@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { AccountOverviewResponse } from "@ebonkeep/shared/auth";
 import type { SupportedLocale } from "@ebonkeep/shared/core";
 
 import i18n from "../i18n";
+import { fetchObservabilityStatus, type ObservabilityServiceSnapshot, type ObservabilityStatusResponse } from "../lib/api/system";
 import { LOCALE_OPTIONS, normalizeLocale } from "../i18n/supportedLocales";
 
 export type SettingsPanelProps = {
@@ -17,8 +18,152 @@ export type SettingsPanelProps = {
   developerToolsPanel?: ReactNode;
 };
 
+const monitoringStatusStyles = {
+  ready: {
+    color: "#7ebf7a",
+    border: "1px solid rgba(126, 191, 122, 0.32)",
+    background: "rgba(58, 94, 56, 0.22)"
+  },
+  degraded: {
+    color: "#d6b36b",
+    border: "1px solid rgba(214, 179, 107, 0.32)",
+    background: "rgba(110, 78, 29, 0.24)"
+  },
+  down: {
+    color: "#e07e74",
+    border: "1px solid rgba(224, 126, 116, 0.28)",
+    background: "rgba(112, 39, 35, 0.22)"
+  }
+} as const;
+
+function getMonitoringStatusLabel(status: ObservabilityServiceSnapshot["status"]) {
+  switch (status) {
+    case "ready":
+      return i18n.t("settings.monitoringReady");
+    case "degraded":
+      return i18n.t("settings.monitoringDegraded");
+    default:
+      return i18n.t("settings.monitoringDown");
+  }
+}
+
+function MonitoringCard(args: {
+  title: string;
+  service: ObservabilityServiceSnapshot;
+  actionLabel: string;
+}) {
+  const statusStyle = monitoringStatusStyles[args.service.status];
+
+  return (
+    <article
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        padding: "14px",
+        borderRadius: "12px",
+        border: "1px solid rgba(186, 166, 131, 0.16)",
+        background: "rgba(13, 17, 24, 0.48)",
+        minHeight: "148px"
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+        <strong style={{ fontSize: "15px" }}>{args.title}</strong>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: "86px",
+            padding: "4px 10px",
+            borderRadius: "999px",
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+            ...statusStyle
+          }}
+        >
+          {getMonitoringStatusLabel(args.service.status)}
+        </span>
+      </div>
+      <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px", lineHeight: 1.5 }}>
+        {args.service.detail}
+      </p>
+      <a
+        href={args.service.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          alignSelf: "flex-start",
+          marginTop: "auto",
+          padding: "8px 14px",
+          borderRadius: "8px",
+          border: "1px solid rgba(186, 166, 131, 0.25)",
+          color: "var(--text-main)",
+          background: "rgba(186, 166, 131, 0.10)",
+          textDecoration: "none",
+          fontWeight: 600,
+          fontSize: "13px"
+        }}
+      >
+        {args.actionLabel}
+      </a>
+    </article>
+  );
+}
+
 export function SettingsPanel(props: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<"general" | "cheats">("general");
+  const [observability, setObservability] = useState<ObservabilityStatusResponse | null>(null);
+  const [isObservabilityLoading, setIsObservabilityLoading] = useState(true);
+  const [observabilityError, setObservabilityError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadObservability() {
+      try {
+        const next = await fetchObservabilityStatus();
+        if (cancelled) {
+          return;
+        }
+        setObservability(next);
+        setObservabilityError(null);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        setObservabilityError(i18n.t("settings.monitoringStatusFailed"));
+      } finally {
+        if (!cancelled) {
+          setIsObservabilityLoading(false);
+        }
+      }
+    }
+
+    void loadObservability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleRefreshObservability() {
+    setIsObservabilityLoading(true);
+    try {
+      const next = await fetchObservabilityStatus();
+      setObservability(next);
+      setObservabilityError(null);
+    } catch {
+      setObservabilityError(i18n.t("settings.monitoringStatusFailed"));
+    } finally {
+      setIsObservabilityLoading(false);
+    }
+  }
 
   return (
     <section className="contentShell">
@@ -120,57 +265,63 @@ export function SettingsPanel(props: SettingsPanelProps) {
               <p style={{ color: "var(--text-muted)", fontSize: "14px", marginTop: 0, marginBottom: "16px" }}>
                 {i18n.t("settings.monitoringDesc")}
               </p>
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <a
-                  href="http://localhost:3000"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", marginBottom: "16px" }}>
+                <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px" }}>
+                  {observability
+                    ? `${i18n.t("settings.monitoringCredentials")} ${observability.grafanaCredentials}`
+                    : i18n.t("settings.monitoringChecking")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void handleRefreshObservability()}
+                  disabled={isObservabilityLoading}
                   style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 16px",
-                    background: "rgba(242, 133, 57, 0.12)",
-                    border: "1px solid rgba(242, 133, 57, 0.35)",
-                    borderRadius: "6px",
-                    color: "#f28539",
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    textDecoration: "none",
-                    cursor: "pointer"
+                    padding: "8px 14px",
+                    borderRadius: "8px",
+                    border: "1px solid rgba(186, 166, 131, 0.22)",
+                    background: "rgba(24, 22, 19, 0.66)",
+                    color: "var(--text-main)",
+                    cursor: isObservabilityLoading ? "progress" : "pointer",
+                    fontWeight: 600
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
-                  </svg>
-                  {i18n.t("settings.openGrafana")}
-                </a>
-                <a
-                  href="http://localhost:9090"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    padding: "8px 16px",
-                    background: "rgba(229, 57, 53, 0.10)",
-                    border: "1px solid rgba(229, 57, 53, 0.30)",
-                    borderRadius: "6px",
-                    color: "#e25a5a",
-                    fontWeight: "600",
-                    fontSize: "14px",
-                    textDecoration: "none",
-                    cursor: "pointer"
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 3" />
-                  </svg>
-                  {i18n.t("settings.openPrometheus")}
-                </a>
+                  {i18n.t("settings.monitoringRefresh")}
+                </button>
               </div>
+              {observabilityError ? (
+                <p style={{ color: "#e07e74", fontSize: "13px", marginTop: 0 }}>
+                  {observabilityError}
+                </p>
+              ) : null}
+              {isObservabilityLoading && !observability ? (
+                <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: 0 }}>
+                  {i18n.t("settings.monitoringChecking")}
+                </p>
+              ) : null}
+              {observability ? (
+                <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                  <MonitoringCard
+                    title="Grafana"
+                    service={observability.services.grafana}
+                    actionLabel={i18n.t("settings.openGrafana")}
+                  />
+                  <MonitoringCard
+                    title="Prometheus"
+                    service={observability.services.prometheus}
+                    actionLabel={i18n.t("settings.openPrometheus")}
+                  />
+                  <MonitoringCard
+                    title="API Metrics"
+                    service={observability.services.apiMetrics}
+                    actionLabel={i18n.t("settings.openApiMetrics")}
+                  />
+                  <MonitoringCard
+                    title="Loki"
+                    service={observability.services.loki}
+                    actionLabel={i18n.t("settings.openLoki")}
+                  />
+                </div>
+              ) : null}
             </article>
             <article className="contentCard">
               <div className="settingsRow">

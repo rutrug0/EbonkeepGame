@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -24,6 +24,7 @@ type GuildRaidBossesProps = {
   token: string;
   guildId: string;
   guildName: string;
+  onActiveEncounterChange?: (active: boolean) => void;
 };
 
 type RaidAction = "summon" | "join" | "leave" | "commence";
@@ -399,7 +400,12 @@ function RaidInfoDrawer(props: {
   );
 }
 
-export function GuildRaidBosses({ token, guildId, guildName }: GuildRaidBossesProps) {
+export function GuildRaidBosses({
+  token,
+  guildId,
+  guildName,
+  onActiveEncounterChange
+}: GuildRaidBossesProps) {
   const { t } = useTranslation("common");
   const [raidState, setRaidState] = useState<GuildRaidStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -411,6 +417,21 @@ export function GuildRaidBosses({ token, guildId, guildName }: GuildRaidBossesPr
   const [infoOpen, setInfoOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [activePlayback, setActivePlayback] = useState<ActiveGuildRaidPlaybackState | null>(null);
+  const activeEncounterChangeRef = useRef(onActiveEncounterChange);
+
+  useEffect(() => {
+    activeEncounterChangeRef.current = onActiveEncounterChange;
+  }, [onActiveEncounterChange]);
+
+  useEffect(() => {
+    activeEncounterChangeRef.current?.(activePlayback !== null);
+  }, [activePlayback]);
+
+  useEffect(() => {
+    return () => {
+      activeEncounterChangeRef.current?.(false);
+    };
+  }, []);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

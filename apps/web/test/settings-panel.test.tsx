@@ -231,6 +231,39 @@ vi.mock("../src/features/contracts/api", () => ({
   fetchDeveloperContractSimulation: vi.fn()
 }));
 
+vi.mock("../src/lib/api/system", () => ({
+  fetchReady: vi.fn(),
+  fetchObservabilityStatus: vi.fn().mockResolvedValue({
+    status: "ok",
+    checkedAt: new Date().toISOString(),
+    grafanaCredentials: "admin / admin",
+    services: {
+      apiMetrics: {
+        status: "ready",
+        url: "http://localhost:4000/metrics",
+        detail: "Fastify exposes /metrics for Prometheus scraping."
+      },
+      prometheus: {
+        status: "ready",
+        url: "http://localhost:9090/targets?search=ebonkeep-api",
+        detail: "Prometheus is up and scraping the ebonkeep-api target.",
+        apiScrapeHealthy: true
+      },
+      grafana: {
+        status: "ready",
+        url: "http://localhost:3000/d/ebonkeep-api-v1/ebonkeep-api?orgId=1",
+        detail: "Grafana is up and the local Ebonkeep API dashboard is available."
+      },
+      loki: {
+        status: "ready",
+        url: "http://localhost:3000/explore?orgId=1",
+        detail: "Loki is up and API logs are configured for shipping."
+      }
+    }
+  }),
+  getWsUrl: () => "ws://localhost:4000/ws"
+}));
+
 import type { AccountOverviewResponse } from "@ebonkeep/shared/auth";
 
 import { SettingsPanel } from "../src/app/SettingsPanel";
@@ -251,6 +284,25 @@ function createAccountInfo(): AccountOverviewResponse {
 }
 
 describe("settings developer simulation", () => {
+  it("renders monitoring status cards", async () => {
+    render(
+      <SettingsPanel
+        accountInfo={createAccountInfo()}
+        preferredLocale="en"
+        isSavingLocale={false}
+        localeStatusMessage={null}
+        onResendVerification={() => {}}
+        onLocaleChange={() => {}}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Grafana")).not.toBeNull();
+      expect(screen.getByText("Prometheus is up and scraping the ebonkeep-api target.")).not.toBeNull();
+      expect(screen.getByText("Open Loki Logs")).not.toBeNull();
+    });
+  });
+
   it("renders the developer tools panel when provided", () => {
     render(
       <SettingsPanel

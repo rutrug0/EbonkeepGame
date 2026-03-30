@@ -575,9 +575,11 @@ export const combatPlaybackEncounterSchema = z.object({
   levelBand: contractLevelBandSchema,
   locationName: z.string(),
   travelImagePath: z.string().optional(),
+  travelFocusImagePath: z.string().optional(),
   combatBackgroundPath: z.string().optional(),
   travelImageMode: z.enum(["image", "silhouette"]).default("silhouette"),
   player: combatPlaybackActorSchema,
+  allies: z.array(combatPlaybackActorSchema).min(1).optional(),
   enemies: z.array(combatPlaybackActorSchema).min(1)
 });
 export type CombatPlaybackEncounter = z.infer<typeof combatPlaybackEncounterSchema>;

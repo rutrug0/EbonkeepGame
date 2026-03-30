@@ -5,6 +5,7 @@ import type { EquipmentSlotId, PlayerClass } from "@ebonkeep/shared/core";
 import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/inventory";
 import { DUCATS_ICON_PATH } from "../../constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
+import { getUploadedItemIconPathByItemCode } from "../../lib/itemIcons";
 import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
@@ -196,6 +197,7 @@ function sanitizeParsedItemData(input: Partial<ParsedItemData> & { itemCode?: st
   const rarity = typeof input.rarity === "string" && input.rarity.trim() ? input.rarity : "common";
   const category = typeof input.category === "string" && input.category.trim() ? input.category : "misc";
   const itemName = typeof input.itemName === "string" && input.itemName.trim() ? input.itemName : "Unknown item";
+  const uploadedIconPath = getUploadedItemIconPathByItemCode(input.itemCode);
   const levelRequirement =
     typeof input.levelRequirement === "number" && Number.isFinite(input.levelRequirement)
       ? Math.max(1, input.levelRequirement)
@@ -227,7 +229,9 @@ function sanitizeParsedItemData(input: Partial<ParsedItemData> & { itemCode?: st
         ? input.damageRoll
         : undefined,
     description: typeof input.description === "string" ? input.description : "",
-    iconAssetPath: typeof input.iconAssetPath === "string" && input.iconAssetPath.trim() ? input.iconAssetPath : undefined,
+    iconAssetPath:
+      uploadedIconPath
+      ?? (typeof input.iconAssetPath === "string" && input.iconAssetPath.trim() ? input.iconAssetPath : undefined),
     prefix:
       input.prefix && typeof input.prefix === "object" && !Array.isArray(input.prefix)
         ? input.prefix
@@ -1084,6 +1088,11 @@ export function AuctionHouse({
   };
 
   const resolveAuctionItemIconPath = (itemData: ParsedItemData): string | undefined => {
+    const uploadedIconPath = getUploadedItemIconPathByItemCode(itemData.itemCode);
+    if (uploadedIconPath) {
+      return uploadedIconPath;
+    }
+
     if (itemData.iconAssetPath) {
       return itemData.iconAssetPath;
     }
@@ -1099,13 +1108,16 @@ export function AuctionHouse({
 
   const getInventoryItemData = (item: ComparableInventoryItem): ParsedItemData => {
     const preferredSlotId = item.allowedSlotIds?.[0] as EquipmentSlotId | undefined;
-    const iconPath = getGeneratedItemIconPath({
-      majorCategory: item.archetype?.majorCategory as ItemMajorCategory,
-      weaponArchetype: item.archetype?.weaponArchetype as WeaponArchetype | undefined,
-      armorArchetype: item.archetype?.armorArchetype as ArmorArchetype,
-      itemName: item.itemName,
-      equipSlotId: preferredSlotId
-    });
+    const iconPath =
+      getUploadedItemIconPathByItemCode(item.itemCode)
+      ?? item.iconAssetPath
+      ?? getGeneratedItemIconPath({
+        majorCategory: item.archetype?.majorCategory as ItemMajorCategory,
+        weaponArchetype: item.archetype?.weaponArchetype as WeaponArchetype | undefined,
+        armorArchetype: item.archetype?.armorArchetype as ArmorArchetype,
+        itemName: item.itemName,
+        equipSlotId: preferredSlotId
+      });
 
     return sanitizeParsedItemData({
       itemCode: item.itemCode ?? item.itemName,

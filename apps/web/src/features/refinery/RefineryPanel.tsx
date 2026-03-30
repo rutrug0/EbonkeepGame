@@ -30,6 +30,7 @@ import {
 } from "@ebonkeep/shared/crafting";
 import { type PlayerState } from "@ebonkeep/shared/player";
 
+import { getUploadedItemIconPathByItemCode } from "../../lib/itemIcons";
 import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 import {
   claimCraftingJob,
@@ -306,7 +307,7 @@ function getItemImagePath(itemDefinition: RefineryItemDefinition | null): string
   if (!itemDefinition) {
     return null;
   }
-  return getCraftingVisualPath(itemDefinition.id);
+  return getUploadedItemIconPathByItemCode(itemDefinition.id) ?? getCraftingVisualPath(itemDefinition.id);
 }
 
 function createEmptyLaneState(

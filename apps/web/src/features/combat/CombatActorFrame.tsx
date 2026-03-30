@@ -1,4 +1,4 @@
-import { useState, type FocusEvent, type MouseEvent } from "react";
+import { useState, type CSSProperties, type FocusEvent, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +17,8 @@ type CombatActorFrameProps = {
   isHit: boolean;
   isReferenced: boolean;
   isDead: boolean;
+  size?: "default" | "compact" | "boss";
+  style?: CSSProperties;
 };
 
 const COMBAT_ACTOR_TOOLTIP_SIZING = {
@@ -84,7 +86,9 @@ export function CombatActorFrame({
   isAttacking,
   isHit,
   isReferenced,
-  isDead
+  isDead,
+  size = "default",
+  style
 }: CombatActorFrameProps) {
   const { t } = useTranslation();
   const hpPercent = Math.max(0, Math.min(100, Math.round((currentHp / actor.maxHp) * 100)));
@@ -95,6 +99,7 @@ export function CombatActorFrame({
   const frameClassName = [
     "combatActorFrame",
     `combatActorFrame-${actor.side}`,
+    size !== "default" ? `combatActorFrame--${size}` : "",
     showStatsTooltip ? "combatActorFrameTooltipTrigger" : "",
     tooltipPosition ? "isTooltipVisible" : "",
     isAttacking ? "isAttacking" : "",
@@ -163,6 +168,7 @@ export function CombatActorFrame({
   return (
     <article
       className={frameClassName}
+      style={style}
       aria-label={actorAriaLabel}
       aria-describedby={tooltipPosition ? tooltipId : undefined}
       tabIndex={showStatsTooltip ? 0 : undefined}
@@ -194,6 +200,9 @@ export function CombatActorFrame({
               </div>
             </>
           ) : null}
+        </div>
+        <div className="combatActorNameplate" title={actor.name}>
+          <span>{actor.name}</span>
         </div>
         <div
           className="combatActorHpBar"

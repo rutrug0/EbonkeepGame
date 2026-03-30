@@ -35,6 +35,8 @@ export type CombatEncounterPanelProps = {
   combatLogEventIds: string[];
   currentAction: CombatPlaybackActionResolved | null;
   impactTargetId: string | null;
+  displayedPlayerActorIds?: Array<string | null>;
+  reservePlayerActorIds?: string[];
   resolutionState: "playing" | "summarizing" | "awaiting_return";
   typedSummaryLine: string;
   playbackRate: number;
@@ -50,6 +52,59 @@ export type CombatEncounterPanelProps = {
   backButtonLabel?: string;
   formatDurationFromMs: (value: number) => string;
 };
+
+function getEncounterAllies(encounter: CombatPlaybackEncounter): CombatPlaybackActor[] {
+  return encounter.allies ?? [encounter.player];
+}
+
+function getRaidPlayerMotionStyle(slotIndex: number): CSSProperties {
+  const slotMotion = [
+    { attackX: "98px", attackY: "-214px", windupX: "-14px", hitPushX: "-18px" },
+    { attackX: "52px", attackY: "-224px", windupX: "-8px", hitPushX: "-10px" },
+    { attackX: "0px", attackY: "-236px", windupX: "0px", hitPushX: "0px" },
+    { attackX: "-52px", attackY: "-224px", windupX: "8px", hitPushX: "10px" },
+    { attackX: "-98px", attackY: "-214px", windupX: "14px", hitPushX: "18px" }
+  ][slotIndex] ?? { attackX: "0px", attackY: "-218px", windupX: "0px", hitPushX: "0px" };
+
+  return {
+    "--combat-windup-x": slotMotion.windupX,
+    "--combat-attack-x": slotMotion.attackX,
+    "--combat-attack-y": slotMotion.attackY,
+    "--combat-hit-push-x": slotMotion.hitPushX,
+    "--combat-hit-push-y": "34px",
+    "--combat-hit-anticipation-x": `calc(${slotMotion.hitPushX} * -0.4)`,
+    "--combat-hit-anticipation-y": "-12px"
+  } as CSSProperties;
+}
+
+function getRaidBossImpactStyle(args: {
+  currentAction: CombatPlaybackActionResolved | null;
+  displayedAllies: Array<CombatPlaybackActor | null>;
+}): CSSProperties | undefined {
+  if (!args.currentAction) {
+    return undefined;
+  }
+
+  const attackerIndex = args.displayedAllies.findIndex((ally) => ally?.id === args.currentAction?.actorId);
+  if (attackerIndex < 0) {
+    return undefined;
+  }
+
+  const slotMotion = [
+    { hitPushX: "22px" },
+    { hitPushX: "12px" },
+    { hitPushX: "0px" },
+    { hitPushX: "-12px" },
+    { hitPushX: "-22px" }
+  ][attackerIndex] ?? { hitPushX: "0px" };
+
+  return {
+    "--combat-hit-push-x": slotMotion.hitPushX,
+    "--combat-hit-push-y": "-28px",
+    "--combat-hit-anticipation-x": slotMotion.hitPushX,
+    "--combat-hit-anticipation-y": "12px"
+  } as CSSProperties;
+}
 
 export function CombatEncounterTravelPanel({
   encounter,
@@ -77,6 +132,8 @@ export function CombatEncounterTravelPanel({
     travelEndsAt === null
       ? 100
       : Math.max(0, Math.min(100, ((travelDurationMs - Math.max(0, travelEndsAt - nowMs)) / travelDurationMs) * 100));
+  const hasTravelFocusImage =
+    typeof encounter.travelFocusImagePath === "string" && encounter.travelFocusImagePath.length > 0;
 
   return (
     <section className="contentShell travelEncounterShell">
@@ -91,6 +148,18 @@ export function CombatEncounterTravelPanel({
               )}
             </div>
             <div className="travelEncounterOverlay">
+              <div className={`travelEncounterInfoCard${hasTravelFocusImage ? " hasFocusImage" : ""}`}>
+                {hasTravelFocusImage ? (
+                  <div className="travelEncounterFocusArt" aria-hidden="true">
+                    <img src={encounter.travelFocusImagePath} alt="" draggable={false} />
+                  </div>
+                ) : null}
+                <div className="travelEncounterInfoCopy">
+                  <p className="combatEncounterEyebrow">{encounter.locationName}</p>
+                  <h2 className="travelEncounterTitle">{encounter.contractName}</h2>
+                  <p className="travelEncounterDescription">{travelDescription}</p>
+                </div>
+              </div>
               <div className="travelEncounterProgressCluster">
                 <p className="travelEncounterTimer">{countdownLabel ?? "00m 00s"}</p>
                 <div className="travelEncounterCountdownBar" aria-hidden="true">
@@ -115,6 +184,8 @@ export function CombatEncounterArenaPanel({
   hpByActorId,
   currentAction,
   impactTargetId,
+  displayedPlayerActorIds,
+  reservePlayerActorIds,
   playbackRate,
   isFastForwardEnabled,
   hoveredActorId,
@@ -133,6 +204,8 @@ export function CombatEncounterArenaPanel({
   | "hpByActorId"
   | "currentAction"
   | "impactTargetId"
+  | "displayedPlayerActorIds"
+  | "reservePlayerActorIds"
   | "playbackRate"
   | "isFastForwardEnabled"
   | "hoveredActorId"
@@ -145,8 +218,13 @@ export function CombatEncounterArenaPanel({
   | "backButtonLabel"
 >) {
   const { t } = useTranslation();
-  const player = encounter.player;
+  const allies = getEncounterAllies(encounter);
   const enemyActors = encounter.enemies;
+  const actorById = new Map<string, CombatPlaybackActor>([
+    ...allies.map((ally) => [ally.id, ally] as const),
+    ...enemyActors.map((enemy) => [enemy.id, enemy] as const)
+  ]);
+  const isRaidBattlefield = Array.isArray(displayedPlayerActorIds);
   const hasCombatBackground =
     typeof encounter.combatBackgroundPath === "string" && encounter.combatBackgroundPath.length > 0;
   const combatAnimationStyle = {
@@ -154,12 +232,21 @@ export function CombatEncounterArenaPanel({
     "--combat-hit-duration": `${540 / playbackRate}ms`,
     "--combat-summary-cursor-duration": `${900 / playbackRate}ms`
   } as CSSProperties;
+  const renderedAllies = displayedPlayerActorIds
+    ? displayedPlayerActorIds.map((allyId) => (allyId ? actorById.get(allyId) ?? null : null))
+    : allies;
+  const raidBossImpactStyle = isRaidBattlefield
+    ? getRaidBossImpactStyle({
+        currentAction,
+        displayedAllies: renderedAllies
+      })
+    : undefined;
 
   return (
     <section className="contentShell combatEncounterShell">
       <section className="contentStack combatEncounterStackSingle" style={combatAnimationStyle}>
         <article className="contentCard combatEncounterCard">
-          <div className={`combatBattlefield${hasCombatBackground ? " hasBackdrop" : ""}`}>
+          <div className={`combatBattlefield${hasCombatBackground ? " hasBackdrop" : ""}${isRaidBattlefield ? " combatBattlefield--raid" : ""}`}>
             {hasCombatBackground ? (
               <div className="combatBattlefieldBackdrop" aria-hidden="true">
                 <img src={encounter.combatBackgroundPath} alt="" draggable={false} />
@@ -204,7 +291,7 @@ export function CombatEncounterArenaPanel({
                 </button>
               </div>
             ) : null}
-            <div className="combatLane combatLane-enemy">
+            <div className={`combatLane combatLane-enemy${isRaidBattlefield ? " combatLane-enemy--boss" : ""}`}>
               {enemyActors.map((enemy) => (
                 <CombatActorFrame
                   key={enemy.id}
@@ -215,21 +302,92 @@ export function CombatEncounterArenaPanel({
                   isHit={impactTargetId === enemy.id}
                   isReferenced={hoveredActorId === enemy.id}
                   isDead={(hpByActorId[enemy.id] ?? enemy.maxHp) <= 0}
+                  size={isRaidBattlefield && enemyActors.length === 1 ? "boss" : "default"}
+                  style={isRaidBattlefield ? raidBossImpactStyle : undefined}
                 />
               ))}
             </div>
             <div className="combatBattlefieldCenter" aria-hidden="true" />
-            <div className="combatLane combatLane-player">
-              <CombatActorFrame
-                actor={player}
-                currentHp={hpByActorId[player.id] ?? player.maxHp}
-                label={t("contracts.playerLabel")}
-                isAttacking={currentAction?.actorId === player.id}
-                isHit={impactTargetId === player.id}
-                isReferenced={hoveredActorId === player.id}
-                isDead={(hpByActorId[player.id] ?? player.maxHp) <= 0}
-              />
-            </div>
+            {isRaidBattlefield ? (
+              <div className="combatRaidPlayerCluster">
+                <div className="combatLane combatLane-player combatLane-player--raid">
+                  {renderedAllies.map((ally, index) =>
+                    ally ? (
+                      <CombatActorFrame
+                        key={ally.id}
+                        actor={ally}
+                        currentHp={hpByActorId[ally.id] ?? ally.maxHp}
+                        label={t("contracts.playerLabel")}
+                        isAttacking={currentAction?.actorId === ally.id}
+                        isHit={impactTargetId === ally.id}
+                        isReferenced={hoveredActorId === ally.id}
+                        isDead={(hpByActorId[ally.id] ?? ally.maxHp) <= 0}
+                        size="compact"
+                        style={getRaidPlayerMotionStyle(index)}
+                      />
+                    ) : (
+                      <div
+                        key={`raid-slot-${index}`}
+                        className="combatActorFrame combatActorFrame-player combatActorFrame--compact combatActorFramePlaceholder"
+                      >
+                        <div className="combatActorFrameShell">
+                          <div className="combatActorPortraitWrap combatActorPortraitWrap--placeholder">
+                            <div className="combatActorSilhouette" aria-hidden="true" />
+                          </div>
+                          <div className="combatActorNameplate">
+                            <span>{t("guild.raids.battlefield.openSlot")}</span>
+                          </div>
+                          <div className="combatActorHpBar combatActorHpBar--placeholder" aria-hidden="true">
+                            <div className="combatActorHpFill" style={{ width: "0%" }} />
+                            <span className="combatActorHpLabel">0/0</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+                {reservePlayerActorIds && reservePlayerActorIds.length > 0 ? (
+                  <div className="combatRaidReserveStrip">
+                    <span className="combatRaidReserveLabel">
+                      {t("guild.raids.battlefield.reserve", { count: reservePlayerActorIds.length })}
+                    </span>
+                    <div className="combatRaidReserveChips">
+                      {reservePlayerActorIds.slice(0, 6).map((allyId) => {
+                        const ally = actorById.get(allyId);
+                        if (!ally) {
+                          return null;
+                        }
+                        return (
+                          <span key={ally.id} className="combatRaidReserveChip">
+                            {ally.name}
+                          </span>
+                        );
+                      })}
+                      {reservePlayerActorIds.length > 6 ? (
+                        <span className="combatRaidReserveChip combatRaidReserveChip--count">
+                          +{reservePlayerActorIds.length - 6}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="combatLane combatLane-player">
+                {allies.map((ally) => (
+                  <CombatActorFrame
+                    key={ally.id}
+                    actor={ally}
+                    currentHp={hpByActorId[ally.id] ?? ally.maxHp}
+                    label={t("contracts.playerLabel")}
+                    isAttacking={currentAction?.actorId === ally.id}
+                    isHit={impactTargetId === ally.id}
+                    isReferenced={hoveredActorId === ally.id}
+                    isDead={(hpByActorId[ally.id] ?? ally.maxHp) <= 0}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </article>
       </section>
@@ -274,7 +432,7 @@ export function CombatEncounterLogPanel({
   const isSummaryVisible = resolutionState !== "playing";
   const showSummaryCursor = resolutionState === "summarizing";
   const actorById = new Map<string, CombatPlaybackActor>([
-    [encounter.player.id, encounter.player],
+    ...getEncounterAllies(encounter).map((ally) => [ally.id, ally] as const),
     ...encounter.enemies.map((enemy) => [enemy.id, enemy] as const)
   ]);
   const actionEvents = timeline.filter(
@@ -500,16 +658,17 @@ export function CombatEncounterTurnTrackPanel({
     state: "steady" | "entering" | "exiting";
   };
   const TURN_TRACK_VISIBLE_COUNT = 14;
+  const allies = getEncounterAllies(encounter);
   const actorById = new Map<string, CombatPlaybackActor>([
-    [encounter.player.id, encounter.player],
+    ...allies.map((ally) => [ally.id, ally] as const),
     ...encounter.enemies.map((enemy) => [enemy.id, enemy] as const)
   ]);
   const aliveActorIds = new Set(
-    [encounter.player, ...encounter.enemies]
+    [...allies, ...encounter.enemies]
       .filter((actor) => (hpByActorId[actor.id] ?? actor.maxHp) > 0)
       .map((actor) => actor.id)
   );
-  const hasAlivePlayerActors = (hpByActorId[encounter.player.id] ?? encounter.player.maxHp) > 0;
+  const hasAlivePlayerActors = allies.some((ally) => (hpByActorId[ally.id] ?? ally.maxHp) > 0);
   const hasAliveEnemyActors = encounter.enemies.some((enemy) => (hpByActorId[enemy.id] ?? enemy.maxHp) > 0);
   const actionEvents = timeline.filter(
     (event): event is CombatPlaybackActionResolved => event.type === "CombatPlaybackActionResolved"

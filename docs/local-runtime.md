@@ -4,6 +4,9 @@
 Local runtime starts:
 - Postgres (`localhost:<EBONKEEP_POSTGRES_HOST_PORT from .env>`, prefers `55432` and falls back automatically if Windows blocks it)
 - Redis (`localhost:6379`)
+- Prometheus (`http://localhost:9090`)
+- Loki (`http://localhost:3100`)
+- Grafana (`http://localhost:3000`, default local login `admin / admin`)
 - API (`http://localhost:4000`)
 - Web (`http://localhost:5173`)
 - Electron desktop shell is optional (`npm run dev:desktop`)
@@ -18,6 +21,10 @@ Local runtime starts:
 ## Readiness Endpoints
 - API health: `GET /health`
 - API ready: `GET /ready`
+- API observability summary: `GET /health/observability`
+- Prometheus ready: `GET http://localhost:9090/-/ready`
+- Loki ready: `GET http://localhost:3100/ready`
+- Grafana health: `GET http://localhost:3000/api/health`
 
 ## Dev Auth Flow
 - Use `POST /v1/dev/guest-login`.

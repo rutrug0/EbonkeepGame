@@ -10,7 +10,7 @@ Monorepo structure:
 - `apps/web` - React + Vite web client scaffold.
 - `apps/desktop` - Electron desktop wrapper scaffold.
 - `packages/shared` - shared contracts and schemas.
-- `infra/docker` - local Postgres/Redis compose stack.
+- `infra/docker` - local Postgres, Redis, and observability compose stack (Prometheus, Loki, Grafana).
 
 ## Local Run (Windows)
 

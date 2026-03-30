@@ -178,6 +178,7 @@ import { DEFAULT_PORTRAIT_ID, PORTRAIT_POOL, PORTRAIT_POOL_BY_TREE, getPortraitP
 import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
 import { GENERATED_ITEM_ENCYCLOPEDIA_DATA, type GeneratedEncyclopediaItem } from "../generated/itemEncyclopediaData";
 import i18n, { setLocale } from "../i18n";
+import { getUploadedItemIconPathByItemCode } from "../lib/itemIcons";
 import {
   getViewBackgroundAssetPaths,
   getViewBackgroundStyle,
@@ -868,6 +869,7 @@ function toLocalItemModifier(modifier: SharedItemModifier | undefined): ItemModi
 
 function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
   const preferredSlotId = item.allowedSlotIds[0];
+  const uploadedIconPath = getUploadedItemIconPathByItemCode(item.itemCode);
   return {
     id: item.id,
     itemCode: item.itemCode,
@@ -875,6 +877,8 @@ function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
     rarity: item.rarity,
     category: item.category,
     iconAssetPath:
+      uploadedIconPath ??
+      item.iconAssetPath ??
       getGeneratedItemIconPath({
         majorCategory: item.archetype.majorCategory,
         weaponArchetype: item.archetype.weaponArchetype,
