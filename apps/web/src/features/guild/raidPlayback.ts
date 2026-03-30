@@ -11,6 +11,7 @@ import {
   type CombatPlaybackRollBreakdown,
   type CombatPlaybackRollStats
 } from "../combat/playback";
+import { getGuildRaidScenePaths } from "./raidScenes";
 
 export type GuildRaidPlaybackPhase = "travel" | "combat";
 export type GuildRaidPlaybackResolutionState = "playing" | "summarizing" | "awaiting_return";
@@ -35,6 +36,11 @@ export type ActiveGuildRaidPlaybackState = {
   segmentPlaybackRate: 1 | 5;
   playbackProgressMs: number;
   lastPlaybackTickAtMs: number | null;
+  initialFrontlineSlots: Array<string | null>;
+  frontlineSlots: Array<string | null>;
+  initialReserveActorIds: string[];
+  reserveActorIds: string[];
+  fallenActorIds: string[];
 };
 
 export const GUILD_RAID_TRAVEL_DURATION_MS = 10_000;
@@ -42,10 +48,43 @@ export const GUILD_RAID_COMBAT_START_DELAY_MS = 330;
 export const GUILD_RAID_COMBAT_IMPACT_DELAY_MS = 760;
 export const GUILD_RAID_COMBAT_BEAT_MS = 1_470;
 export const GUILD_RAID_COMBAT_SUMMARY_TYPE_DELAY_MS = 30;
+
+const FRONTLINE_SIZE = 5;
 const GUILD_RAID_FAST_FORWARD_ANIMATION_RATE = 8;
+const PLAYER_CLASS_STAT: Record<string, "strength" | "dexterity" | "intelligence"> = {
+  juggernaut: "strength",
+  sentinel: "dexterity",
+  reaver: "intelligence",
+  shade: "intelligence",
+  arbalist: "strength",
+  disciple: "dexterity",
+  runecaster: "strength",
+  voidcaster: "dexterity",
+  arcanist: "intelligence",
+  warrior: "strength",
+  ranger: "dexterity",
+  mage: "intelligence"
+};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function hashUnitFloat(seed: string): number {
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 33 + seed.charCodeAt(index)) | 0;
+  }
+  return ((hash >>> 0) % 10_000) / 10_000;
+}
+
+function getJoinedAtMs(iso: string): number {
+  const value = Date.parse(iso);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function resolveRaidCombatStat(playerClass: string): "strength" | "dexterity" | "intelligence" {
+  return PLAYER_CLASS_STAT[playerClass] ?? "strength";
 }
 
 function buildRollStats(power: number, combatStat: "strength" | "dexterity" | "intelligence"): CombatPlaybackRollStats {
@@ -153,161 +192,402 @@ function buildRollBreakdown(args: {
   };
 }
 
-function splitScaledDamage(source: number[], totalTarget: number): number[] {
-  if (totalTarget <= 0 || source.length === 0) {
-    return source.map(() => 0);
+function buildDamageChunks(totalDamage: number, seed: string): number[] {
+  if (totalDamage <= 0) {
+    return [];
   }
 
-  const totalSource = source.reduce((sum, value) => sum + value, 0);
-  if (totalSource <= 0) {
-    const even = Math.floor(totalTarget / source.length);
-    let remaining = totalTarget - even * source.length;
-    return source.map(() => {
-      const next = even + (remaining > 0 ? 1 : 0);
-      remaining = Math.max(0, remaining - 1);
-      return next;
-    });
+  const chunkCount = clamp(Math.ceil(totalDamage / 450), 1, 7);
+  const weights = Array.from({ length: chunkCount }, (_, index) => 0.75 + hashUnitFloat(`${seed}:${index}`));
+  const totalWeight = weights.reduce((sum, value) => sum + value, 0);
+  let assigned = 0;
+
+  return weights.map((weight, index) => {
+    if (index === weights.length - 1) {
+      return Math.max(0, totalDamage - assigned);
+    }
+
+    const value = Math.max(1, Math.round((totalDamage * weight) / totalWeight));
+    assigned += value;
+    return value;
+  });
+}
+
+function buildRaidAllies(encounter: GuildRaidEncounter): CombatPlaybackActor[] {
+  const participants = [...encounter.participants].sort((left, right) => {
+    const joinedAtDelta = getJoinedAtMs(left.joinedAt) - getJoinedAtMs(right.joinedAt);
+    if (joinedAtDelta !== 0) {
+      return joinedAtDelta;
+    }
+    return left.playerName.localeCompare(right.playerName);
+  });
+
+  if (participants.length === 0) {
+    const power = Math.max(1, encounter.joinedPower);
+    const maxHp = Math.max(900, Math.round(encounter.joinedPower * 0.72));
+    return [
+      {
+        id: `raid:${encounter.instanceId}:guild`,
+        side: "player",
+        name: "Guild Vanguard",
+        maxHp,
+        power,
+        combatStat: "strength",
+        rollStats: buildRollStats(power, "strength"),
+        usesSilhouetteFallback: true
+      }
+    ];
   }
 
-  const scaled = source.map((value) => Math.max(0, Math.round((value / totalSource) * totalTarget)));
-  const scaledTotal = scaled.reduce((sum, value) => sum + value, 0);
-  const delta = totalTarget - scaledTotal;
-  if (delta === 0) {
-    return scaled;
-  }
+  return participants.map((participant) => {
+    const combatStat = resolveRaidCombatStat(participant.playerClass);
+    const maxHp = clamp(280 + participant.level * 18 + participant.power * 5, 420, 2_400);
+    return {
+      id: `raid:${participant.playerId}`,
+      side: "player" as const,
+      name: participant.playerName,
+      maxHp,
+      power: Math.max(1, participant.power),
+      combatStat,
+      rollStats: buildRollStats(Math.max(1, participant.power), combatStat),
+      usesSilhouetteFallback: true
+    };
+  });
+}
 
-  const largestIndex = scaled.reduce((bestIndex, value, index, values) =>
-    value > values[bestIndex]! ? index : bestIndex
-  , 0);
-  scaled[largestIndex] = Math.max(0, (scaled[largestIndex] ?? 0) + delta);
-  return scaled;
+function buildRaidBossActor(encounter: GuildRaidEncounter): CombatPlaybackActor {
+  const bossPower = Math.max(encounter.boss.recommendedGuildPower, Math.round(encounter.boss.bossMaxHp / 8));
+  return {
+    id: `boss:${encounter.boss.id}`,
+    side: "enemy",
+    name: encounter.boss.bossName,
+    maxHp: encounter.boss.bossMaxHp,
+    power: bossPower,
+    combatStat: "strength",
+    rollStats: buildRollStats(bossPower, "strength"),
+    avatarPath: encounter.boss.portraitAssetPath ?? undefined
+  };
+}
+
+function buildInitialFrontlineSlots(allies: readonly CombatPlaybackActor[]): Array<string | null> {
+  const frontlineSlots: Array<string | null> = allies.slice(0, FRONTLINE_SIZE).map((ally) => ally.id);
+  while (frontlineSlots.length < FRONTLINE_SIZE) {
+    frontlineSlots.push(null);
+  }
+  return frontlineSlots;
+}
+
+function buildInitialHpByActorId(encounter: CombatPlaybackEncounter): Record<string, number> {
+  const allies = encounter.allies ?? [encounter.player];
+  return {
+    ...Object.fromEntries(allies.map((ally) => [ally.id, ally.maxHp] as const)),
+    ...Object.fromEntries(encounter.enemies.map((enemy) => [enemy.id, enemy.maxHp] as const))
+  };
 }
 
 function buildRaidTimeline(args: {
   encounter: GuildRaidEncounter;
-  guildActor: CombatPlaybackActor;
+  allies: readonly CombatPlaybackActor[];
   bossActor: CombatPlaybackActor;
-  guildName: string;
+  initialFrontlineSlots: Array<string | null>;
+  initialReserveActorIds: string[];
 }): CombatPlaybackEvent[] {
-  const { encounter, guildActor, bossActor, guildName } = args;
-  const report = encounter.report;
-  if (!report) {
+  const report = args.encounter.report;
+  if (!report || args.allies.length === 0) {
     return combatPlaybackEventSchema.array().parse([
       {
         type: "CombatPlaybackStarted",
-        eventId: `${encounter.instanceId}-start`,
-        encounterId: encounter.instanceId
+        eventId: `${args.encounter.instanceId}-start`,
+        encounterId: args.encounter.instanceId
       },
       {
         type: "CombatPlaybackEnded",
-        eventId: `${encounter.instanceId}-end`,
-        encounterId: encounter.instanceId,
+        eventId: `${args.encounter.instanceId}-end`,
+        encounterId: args.encounter.instanceId,
         winnerSide: "enemy",
-        summaryLine: encounter.boss.flavorText
+        summaryLine: args.encounter.boss.flavorText
       }
     ]);
   }
 
-  const bossDamageTarget = Math.max(0, report.bossHpMax - report.bossHpRemaining);
-  const rankedRaiders = report.ranking.filter((entry) => entry.damageDone > 0);
-  const scaledRaiderDamage = splitScaledDamage(
-    rankedRaiders.map((entry) => entry.damageDone),
-    bossDamageTarget
+  const alliesById = new Map(
+    args.allies.map((ally) => [
+      ally.id,
+      {
+        actor: ally,
+        currentHp: ally.maxHp
+      }
+    ])
   );
-  const raidStrikes = rankedRaiders.map((entry, index) => ({
-    raiderName: entry.playerName,
-    damage: scaledRaiderDamage[index] ?? 0
-  })).filter((entry) => entry.damage > 0);
-  const bossTurnCount = Math.max(raidStrikes.length - 1, 1);
-  const guildHpLoss =
-    report.outcome === "victory"
-      ? Math.max(0, Math.round(guildActor.maxHp * 0.62))
-      : guildActor.maxHp;
-  const bossHits = splitScaledDamage(Array.from({ length: bossTurnCount }, (_, index) => bossTurnCount - index), guildHpLoss)
-    .filter((damage) => damage > 0);
-
+  const actorIdByPlayerId = new Map(
+    args.encounter.participants.map((participant) => [participant.playerId, `raid:${participant.playerId}`] as const)
+  );
+  const frontlineSlots = [...args.initialFrontlineSlots];
+  const reserveActorIds = [...args.initialReserveActorIds];
+  const rankingByPlayerId = new Map(report.ranking.map((entry) => [entry.playerId, entry] as const));
+  const pendingDamage = new Map(
+    args.allies.map((ally) => {
+      const playerId = ally.id.replace(/^raid:/, "");
+      const damageDone = rankingByPlayerId.get(playerId)?.damageDone ?? 0;
+      return [ally.id, buildDamageChunks(damageDone, `${report.resolvedAt}:${ally.id}`)] as const;
+    })
+  );
   const timeline: CombatPlaybackEvent[] = [
     {
       type: "CombatPlaybackStarted",
-      eventId: `${encounter.instanceId}-start`,
-      encounterId: encounter.instanceId
+      eventId: `${args.encounter.instanceId}-start`,
+      encounterId: args.encounter.instanceId
     }
   ];
 
   let turnIndex = 1;
-  let bossHp = bossActor.maxHp;
-  let guildHp = guildActor.maxHp;
-  let bossHitIndex = 0;
+  let allyTurnsSinceBossAttack = 0;
+  let bossAttackCount = 0;
+  let frontlineCursor = 0;
+  let bossHp = args.bossActor.maxHp;
 
-  raidStrikes.forEach((strike, index) => {
+  function getAliveFrontlineIndexes(): number[] {
+    return frontlineSlots
+      .map((allyId, index) => ({ allyId, index }))
+      .filter((entry) => {
+        if (!entry.allyId) {
+          return false;
+        }
+        return (alliesById.get(entry.allyId)?.currentHp ?? 0) > 0;
+      })
+      .map((entry) => entry.index);
+  }
+
+  function pickNextAttackerId(): string | null {
+    for (let attempts = 0; attempts < FRONTLINE_SIZE; attempts += 1) {
+      const slotIndex = (frontlineCursor + attempts) % FRONTLINE_SIZE;
+      const allyId = frontlineSlots[slotIndex];
+      if (!allyId) {
+        continue;
+      }
+
+      const allyState = alliesById.get(allyId);
+      const nextChunk = pendingDamage.get(allyId)?.[0] ?? 0;
+      if (allyState && allyState.currentHp > 0 && nextChunk > 0) {
+        frontlineCursor = (slotIndex + 1) % FRONTLINE_SIZE;
+        return allyId;
+      }
+    }
+
+    return null;
+  }
+
+  for (let step = 0; step < 280; step += 1) {
+    const attackerId = pickNextAttackerId();
+    if (!attackerId) {
+      break;
+    }
+
+    const attackerState = alliesById.get(attackerId);
+    const chunks = pendingDamage.get(attackerId) ?? [];
+    const damage = chunks.shift() ?? 0;
+    pendingDamage.set(attackerId, chunks);
+
+    if (!attackerState || damage <= 0) {
+      continue;
+    }
+
     const bossHpBefore = bossHp;
-    bossHp = Math.max(report.bossHpRemaining, bossHp - strike.damage);
+    bossHp = Math.max(report.bossHpRemaining, bossHp - damage);
     timeline.push({
       type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.instanceId}-raid-${turnIndex}`,
-      encounterId: encounter.instanceId,
+      eventId: `${args.encounter.instanceId}-raid-${turnIndex}`,
+      encounterId: args.encounter.instanceId,
       turnIndex,
-      actorId: guildActor.id,
-      targetId: bossActor.id,
+      actorId: attackerId,
+      targetId: args.bossActor.id,
       actionType: "basic_attack",
-      damage: strike.damage,
+      damage,
       targetHpAfter: bossHp,
       attackerLungeDirection: "left-to-right",
-      logLine: `${strike.raiderName} hits ${bossActor.name} for ${strike.damage} damage.`,
+      logLine: `${attackerState.actor.name} hits ${args.bossActor.name} for ${damage} damage.`,
       rollBreakdown: buildRollBreakdown({
-        attacker: guildActor,
-        defender: bossActor,
-        rawDamage: strike.damage,
-        finalDamage: strike.damage,
+        attacker: attackerState.actor,
+        defender: args.bossActor,
+        rawDamage: damage,
+        finalDamage: damage,
         targetHpBefore: bossHpBefore,
         targetHpAfter: bossHp,
         killed: bossHp <= 0
       })
     });
     turnIndex += 1;
+    allyTurnsSinceBossAttack += 1;
 
-    if (bossHp <= report.bossHpRemaining || bossHitIndex >= bossHits.length) {
-      return;
+    if (bossHp <= report.bossHpRemaining) {
+      break;
     }
 
-    const guildHpBefore = guildHp;
-    const bossDamage = bossHits[bossHitIndex] ?? 0;
-    bossHitIndex += 1;
-    guildHp = Math.max(report.outcome === "victory" ? Math.max(1, guildActor.maxHp - guildHpLoss) : 0, guildHp - bossDamage);
+    if (allyTurnsSinceBossAttack < FRONTLINE_SIZE) {
+      continue;
+    }
+    allyTurnsSinceBossAttack = 0;
+
+    const aliveFrontlineIndexes = getAliveFrontlineIndexes();
+    if (aliveFrontlineIndexes.length === 0) {
+      break;
+    }
+
+    const targetIndex = aliveFrontlineIndexes[bossAttackCount % aliveFrontlineIndexes.length] ?? aliveFrontlineIndexes[0] ?? 0;
+    bossAttackCount += 1;
+    const targetId = frontlineSlots[targetIndex];
+    if (!targetId) {
+      continue;
+    }
+
+    const targetState = alliesById.get(targetId);
+    if (!targetState) {
+      continue;
+    }
+
+    const hpBefore = targetState.currentHp;
+    const hitRoll = 0.3 + hashUnitFloat(`${report.resolvedAt}:${targetId}:${bossAttackCount}`) * 0.2;
+    const hitDamage = Math.max(
+      60,
+      Math.round(targetState.actor.maxHp * hitRoll * (report.outcome === "defeat" ? 1.18 : 0.94))
+    );
+    targetState.currentHp = Math.max(0, targetState.currentHp - hitDamage);
     timeline.push({
       type: "CombatPlaybackActionResolved",
-      eventId: `${encounter.instanceId}-boss-${turnIndex}`,
-      encounterId: encounter.instanceId,
+      eventId: `${args.encounter.instanceId}-boss-${turnIndex}`,
+      encounterId: args.encounter.instanceId,
       turnIndex,
-      actorId: bossActor.id,
-      targetId: guildActor.id,
+      actorId: args.bossActor.id,
+      targetId,
       actionType: "basic_attack",
-      damage: bossDamage,
-      targetHpAfter: guildHp,
+      damage: hitDamage,
+      targetHpAfter: targetState.currentHp,
       attackerLungeDirection: "right-to-left",
-      logLine: `${bossActor.name} crashes into ${guildName} for ${bossDamage} damage.`,
+      logLine: `${args.bossActor.name} crashes into ${targetState.actor.name} for ${hitDamage} damage.`,
       rollBreakdown: buildRollBreakdown({
-        attacker: bossActor,
-        defender: guildActor,
-        rawDamage: bossDamage,
-        finalDamage: bossDamage,
-        targetHpBefore: guildHpBefore,
-        targetHpAfter: guildHp,
-        killed: guildHp <= 0
+        attacker: args.bossActor,
+        defender: targetState.actor,
+        rawDamage: hitDamage,
+        finalDamage: hitDamage,
+        targetHpBefore: hpBefore,
+        targetHpAfter: targetState.currentHp,
+        killed: targetState.currentHp <= 0
       })
     });
     turnIndex += 1;
-  });
+
+    if (targetState.currentHp > 0) {
+      continue;
+    }
+
+    const replacementId = reserveActorIds.shift() ?? null;
+    frontlineSlots[targetIndex] = replacementId;
+
+    if (replacementId) {
+      const replacementPlayerId = replacementId.replace(/^raid:/, "");
+      const replacementDamage = rankingByPlayerId.get(replacementPlayerId)?.damageDone ?? 0;
+      const replacementActorId = actorIdByPlayerId.get(replacementPlayerId) ?? replacementId;
+      if ((pendingDamage.get(replacementActorId)?.length ?? 0) === 0 && replacementDamage > 0) {
+        pendingDamage.set(
+          replacementActorId,
+          buildDamageChunks(replacementDamage, `${report.resolvedAt}:${replacementActorId}`)
+        );
+      }
+    }
+  }
 
   timeline.push({
     type: "CombatPlaybackEnded",
-    eventId: `${encounter.instanceId}-end`,
-    encounterId: encounter.instanceId,
+    eventId: `${args.encounter.instanceId}-end`,
+    encounterId: args.encounter.instanceId,
     winnerSide: report.outcome === "victory" ? "player" : "enemy",
     summaryLine: report.summary
   });
 
   return combatPlaybackEventSchema.array().parse(timeline);
+}
+
+function buildRaidActorMap(encounter: CombatPlaybackEncounter): Map<string, CombatPlaybackActor> {
+  const allies = encounter.allies ?? [encounter.player];
+  return new Map([
+    ...allies.map((ally) => [ally.id, ally] as const),
+    ...encounter.enemies.map((enemy) => [enemy.id, enemy] as const)
+  ]);
+}
+
+export function applyGuildRaidResolvedAction(
+  previousEncounter: ActiveGuildRaidPlaybackState,
+  action: CombatPlaybackActionResolved
+): ActiveGuildRaidPlaybackState {
+  const snapshot = snapshotGuildRaidPlayback(previousEncounter);
+  const actorById = buildRaidActorMap(snapshot.encounter);
+  const nextCombatLogEntries = snapshot.combatLogEventIds.includes(action.eventId)
+    ? snapshot.combatLogEntries
+    : [...snapshot.combatLogEntries, action.logLine];
+  const nextCombatLogEventIds = snapshot.combatLogEventIds.includes(action.eventId)
+    ? snapshot.combatLogEventIds
+    : [...snapshot.combatLogEventIds, action.eventId];
+  const nextHpByActorId = {
+    ...snapshot.hpByActorId,
+    [action.targetId]: action.targetHpAfter
+  };
+  const allyIds = new Set((snapshot.encounter.allies ?? [snapshot.encounter.player]).map((ally) => ally.id));
+
+  if (!allyIds.has(action.targetId) || action.targetHpAfter > 0) {
+    return {
+      ...snapshot,
+      hpByActorId: nextHpByActorId,
+      combatLogEntries: nextCombatLogEntries,
+      combatLogEventIds: nextCombatLogEventIds,
+      impactTargetId: action.targetId
+    };
+  }
+
+  const frontlineIndex = snapshot.frontlineSlots.findIndex((allyId) => allyId === action.targetId);
+  if (frontlineIndex < 0) {
+    return {
+      ...snapshot,
+      hpByActorId: nextHpByActorId,
+      combatLogEntries: nextCombatLogEntries,
+      combatLogEventIds: nextCombatLogEventIds,
+      impactTargetId: action.targetId,
+      fallenActorIds: snapshot.fallenActorIds.includes(action.targetId)
+        ? snapshot.fallenActorIds
+        : [...snapshot.fallenActorIds, action.targetId]
+    };
+  }
+
+  const nextFrontlineSlots = [...snapshot.frontlineSlots];
+  const nextReserveActorIds = [...snapshot.reserveActorIds];
+  const nextFallenActorIds = snapshot.fallenActorIds.includes(action.targetId)
+    ? snapshot.fallenActorIds
+    : [...snapshot.fallenActorIds, action.targetId];
+  const replacementId = nextReserveActorIds.shift() ?? null;
+  nextFrontlineSlots[frontlineIndex] = replacementId;
+
+  const downedActor = actorById.get(action.targetId);
+  const replacementActor = replacementId ? actorById.get(replacementId) ?? null : null;
+  const replacementLogLine = replacementActor
+    ? `${downedActor?.name ?? "A raider"} falls. ${replacementActor.name} steps in.`
+    : `${downedActor?.name ?? "A raider"} falls and the line opens.`;
+  const replacementLogEventId = replacementActor
+    ? `raid-replace:${action.eventId}:${replacementActor.id}`
+    : `raid-fall:${action.eventId}:${frontlineIndex}`;
+
+  return {
+    ...snapshot,
+    hpByActorId: nextHpByActorId,
+    combatLogEntries: nextCombatLogEventIds.includes(replacementLogEventId)
+      ? nextCombatLogEntries
+      : [...nextCombatLogEntries, replacementLogLine],
+    combatLogEventIds: nextCombatLogEventIds.includes(replacementLogEventId)
+      ? nextCombatLogEventIds
+      : [...nextCombatLogEventIds, replacementLogEventId],
+    impactTargetId: action.targetId,
+    frontlineSlots: nextFrontlineSlots,
+    reserveActorIds: nextReserveActorIds,
+    fallenActorIds: nextFallenActorIds
+  };
 }
 
 export function buildGuildRaidPlaybackState(args: {
@@ -316,27 +596,24 @@ export function buildGuildRaidPlaybackState(args: {
   nowMs?: number;
 }): ActiveGuildRaidPlaybackState {
   const nowMs = args.nowMs ?? Date.now();
-  const guildActor = {
-    id: `guild:${args.encounter.instanceId}`,
-    side: "player",
+  const allies = buildRaidAllies(args.encounter);
+  const bossActor = buildRaidBossActor(args.encounter);
+  const currentUserParticipant = args.encounter.participants.find((participant) => participant.isCurrentUser);
+  const primaryAlly = (currentUserParticipant
+    ? allies.find((ally) => ally.id === `raid:${currentUserParticipant.playerId}`)
+    : null) ?? allies[0] ?? {
+    id: `raid:${args.encounter.instanceId}:guild`,
+    side: "player" as const,
     name: args.guildName,
-    maxHp: Math.max(1_050, Math.round(args.encounter.joinedPower * 0.9) + args.encounter.joinCount * 110),
+    maxHp: Math.max(900, Math.round(args.encounter.joinedPower * 0.72)),
     power: Math.max(1, args.encounter.joinedPower),
-    combatStat: "strength",
+    combatStat: "strength" as const,
     rollStats: buildRollStats(Math.max(1, args.encounter.joinedPower), "strength"),
     usesSilhouetteFallback: true
-  } satisfies CombatPlaybackActor;
-  const bossPower = Math.max(args.encounter.boss.recommendedGuildPower, Math.round(args.encounter.boss.bossMaxHp / 8));
-  const bossActor = {
-    id: `boss:${args.encounter.boss.id}`,
-    side: "enemy",
-    name: args.encounter.boss.bossName,
-    maxHp: args.encounter.boss.bossMaxHp,
-    power: bossPower,
-    combatStat: "strength",
-    rollStats: buildRollStats(bossPower, "strength"),
-    avatarPath: args.encounter.boss.portraitAssetPath ?? undefined
-  } satisfies CombatPlaybackActor;
+  };
+  const initialFrontlineSlots = buildInitialFrontlineSlots(allies);
+  const initialReserveActorIds = allies.slice(FRONTLINE_SIZE).map((ally) => ally.id);
+  const scenePaths = getGuildRaidScenePaths(args.encounter.boss);
   const encounter = combatPlaybackEncounterSchema.parse({
     encounterId: args.encounter.instanceId,
     contractInstanceId: args.encounter.instanceId,
@@ -344,17 +621,20 @@ export function buildGuildRaidPlaybackState(args: {
     contractLevel: args.encounter.boss.orderIndex + 1,
     levelBand: "over_level",
     locationName: args.encounter.boss.zoneName,
-    travelImagePath: args.encounter.boss.portraitAssetPath ?? undefined,
-    combatBackgroundPath: undefined,
-    travelImageMode: args.encounter.boss.portraitAssetPath ? "image" : "silhouette",
-    player: guildActor,
+    travelImagePath: scenePaths.travelImagePath,
+    travelFocusImagePath: scenePaths.travelFocusImagePath,
+    combatBackgroundPath: scenePaths.combatBackgroundPath,
+    travelImageMode: scenePaths.travelImagePath ? "image" : "silhouette",
+    player: primaryAlly,
+    allies,
     enemies: [bossActor]
   });
   const timeline = buildRaidTimeline({
     encounter: args.encounter,
-    guildActor,
+    allies,
     bossActor,
-    guildName: args.guildName
+    initialFrontlineSlots,
+    initialReserveActorIds
   });
 
   return {
@@ -365,10 +645,7 @@ export function buildGuildRaidPlaybackState(args: {
     encounter,
     timeline,
     currentEventIndex: 0,
-    hpByActorId: {
-      [guildActor.id]: guildActor.maxHp,
-      [bossActor.id]: bossActor.maxHp
-    },
+    hpByActorId: buildInitialHpByActorId(encounter),
     combatLogEntries: [],
     combatLogEventIds: [],
     activeAction: null,
@@ -379,7 +656,12 @@ export function buildGuildRaidPlaybackState(args: {
     playbackRate: 1,
     segmentPlaybackRate: 1,
     playbackProgressMs: 0,
-    lastPlaybackTickAtMs: null
+    lastPlaybackTickAtMs: null,
+    initialFrontlineSlots: [...initialFrontlineSlots],
+    frontlineSlots: [...initialFrontlineSlots],
+    initialReserveActorIds: [...initialReserveActorIds],
+    reserveActorIds: [...initialReserveActorIds],
+    fallenActorIds: []
   };
 }
 
@@ -389,12 +671,7 @@ export function resetGuildRaidPlayback(previousEncounter: ActiveGuildRaidPlaybac
     phase: "combat",
     travelEndsAt: null,
     currentEventIndex: 0,
-    hpByActorId: {
-      [previousEncounter.encounter.player.id]: previousEncounter.encounter.player.maxHp,
-      ...Object.fromEntries(
-        previousEncounter.encounter.enemies.map((enemy) => [enemy.id, enemy.maxHp] as const)
-      )
-    },
+    hpByActorId: buildInitialHpByActorId(previousEncounter.encounter),
     combatLogEntries: [],
     combatLogEventIds: [],
     activeAction: null,
@@ -405,22 +682,27 @@ export function resetGuildRaidPlayback(previousEncounter: ActiveGuildRaidPlaybac
     playbackRate: previousEncounter.playbackRate,
     segmentPlaybackRate: previousEncounter.playbackRate,
     playbackProgressMs: 0,
-    lastPlaybackTickAtMs: null
+    lastPlaybackTickAtMs: null,
+    frontlineSlots: [...previousEncounter.initialFrontlineSlots],
+    reserveActorIds: [...previousEncounter.initialReserveActorIds],
+    fallenActorIds: []
   };
 }
 
 export function skipToEndGuildRaidPlayback(encounter: ActiveGuildRaidPlaybackState): ActiveGuildRaidPlaybackState {
-  const updatedHp = { ...encounter.hpByActorId };
-  const newLogEntries = [...encounter.combatLogEntries];
-  const newLogEventIds = [...encounter.combatLogEventIds];
-  const appliedEventIds = new Set(encounter.combatLogEventIds);
+  let nextState: ActiveGuildRaidPlaybackState = {
+    ...encounter,
+    hpByActorId: { ...encounter.hpByActorId },
+    combatLogEntries: [...encounter.combatLogEntries],
+    combatLogEventIds: [...encounter.combatLogEventIds],
+    frontlineSlots: [...encounter.frontlineSlots],
+    reserveActorIds: [...encounter.reserveActorIds],
+    fallenActorIds: [...encounter.fallenActorIds]
+  };
 
   for (const event of encounter.timeline) {
-    if (event.type === "CombatPlaybackActionResolved" && !appliedEventIds.has(event.eventId)) {
-      updatedHp[event.targetId] = event.targetHpAfter;
-      newLogEntries.push(event.logLine);
-      newLogEventIds.push(event.eventId);
-      appliedEventIds.add(event.eventId);
+    if (event.type === "CombatPlaybackActionResolved" && !nextState.combatLogEventIds.includes(event.eventId)) {
+      nextState = applyGuildRaidResolvedAction(nextState, event);
     }
   }
 
@@ -430,11 +712,8 @@ export function skipToEndGuildRaidPlayback(encounter: ActiveGuildRaidPlaybackSta
   const summaryLine = endedEvent?.summaryLine ?? "";
 
   return {
-    ...encounter,
+    ...nextState,
     currentEventIndex: encounter.timeline.length,
-    hpByActorId: updatedHp,
-    combatLogEntries: newLogEntries,
-    combatLogEventIds: newLogEventIds,
     activeAction: null,
     impactTargetId: null,
     resolutionState: "awaiting_return",

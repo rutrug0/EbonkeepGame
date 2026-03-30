@@ -21,9 +21,13 @@ export interface LoggerConfig {
  * loggers (request-scoped loggers inherit request.id automatically via
  * Fastify's built-in child logger behaviour).
  */
+export function resolveLokiUrl(config: Pick<LoggerConfig, "lokiUrl"> = {}): string | undefined {
+  return config.lokiUrl ?? process.env.LOKI_URL ?? (process.env.NODE_ENV === "development" ? "http://localhost:3100" : undefined);
+}
+
 export function createLogger(config: LoggerConfig = {}): Logger {
   const level = config.level ?? process.env.LOG_LEVEL ?? "info";
-  const lokiUrl = config.lokiUrl ?? process.env.LOKI_URL;
+  const lokiUrl = resolveLokiUrl({ lokiUrl: config.lokiUrl });
   const pretty = config.pretty ?? process.env.LOG_PRETTY === "true";
 
   const pinoOptions: LoggerOptions = {

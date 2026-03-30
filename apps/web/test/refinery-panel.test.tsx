@@ -116,7 +116,9 @@ describe("refinery panel", () => {
     expect(screen.queryByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "menu.refinery refineryPanel.materialStashTitle" }));
-    expect(screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" })).toBeTruthy();
+    const ironSandChip = screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" });
+    expect(ironSandChip).toBeTruthy();
+    expect(ironSandChip.querySelector("img")?.getAttribute("src")).toBe("/assets/materials/mat_iron_ore.png");
 
     firstRender.unmount();
 
@@ -160,7 +162,9 @@ describe("refinery panel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "menu.refinery refineryPanel.materialStashTitle" }));
 
-    expect(screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" })).toBeTruthy();
+    const ironSandChip = screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Iron Sand" });
+    expect(ironSandChip).toBeTruthy();
+    expect(ironSandChip.querySelector("img")?.getAttribute("src")).toBe("/assets/materials/mat_iron_ore.png");
     expect(screen.getByRole("img", { name: "refineryPanel.materialChipLabel:Voidlord's Ash" })).toBeTruthy();
   });
 });

@@ -25,6 +25,7 @@ import { inventoryRoutes } from "./modules/inventory/routes.js";
 import { leaderboardRoutes } from "./modules/leaderboard/routes.js";
 import { playerRoutes } from "./modules/player/routes.js";
 import { schedulerRoutes } from "./modules/scheduler/routes.js";
+import { getLocalObservabilityStatus } from "./modules/telemetry/observability.js";
 import { telemetryRoutes } from "./modules/telemetry/routes.js";
 import { authPlugin } from "./plugins/auth.js";
 import { metricsPlugin } from "./plugins/metrics.js";
@@ -120,6 +121,7 @@ export async function buildServer(options: BuildServerOptions = {}): Promise<Fas
       postgres: "ok"
     });
   });
+  fastify.get("/health/observability", async () => getLocalObservabilityStatus());
 
   await fastify.register(authRoutes);
   await fastify.register(playerRoutes);

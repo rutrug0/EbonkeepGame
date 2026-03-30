@@ -155,8 +155,10 @@ export function GuildPanel({
   const { t } = useTranslation("common");
   const [currentView, setCurrentView] = useState<GuildView>("myGuild");
   const [hasGuild, setHasGuild] = useState(false);
-  const [isActiveMission, setIsActiveMission] = useState(false);
+  const [isActiveGuildMission, setIsActiveGuildMission] = useState(false);
+  const [isActiveGuildRaid, setIsActiveGuildRaid] = useState(false);
   const [myGuildActiveTab, setMyGuildActiveTab] = useState<GuildDetailTab>("members");
+  const isActiveEncounter = isActiveGuildMission || isActiveGuildRaid;
 
   useEffect(() => {
     if (token) {
@@ -175,9 +177,16 @@ export function GuildPanel({
     setMyGuildActiveTab(requestedTab);
   }, [requestedTab]);
 
+  useEffect(() => {
+    onActiveMissionChange?.(isActiveEncounter);
+  }, [isActiveEncounter, onActiveMissionChange]);
+
   function handleMissionActiveChange(active: boolean) {
-    setIsActiveMission(active);
-    onActiveMissionChange?.(active);
+    setIsActiveGuildMission(active);
+  }
+
+  function handleRaidActiveChange(active: boolean) {
+    setIsActiveGuildRaid(active);
   }
 
   if (!token) {
@@ -202,14 +211,14 @@ export function GuildPanel({
           ? ` guildPanelShell--${myGuildActiveTab}`
           : ""
       }`}
-      style={isActiveMission ? { height: "100%", background: "transparent", border: "none" } : undefined}
+      style={isActiveEncounter ? { height: "100%", background: "transparent", border: "none" } : undefined}
     >
       <section
         className="contentStack guildPanelStack"
-        style={isActiveMission ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}
+        style={isActiveEncounter ? { height: "100%", display: "flex", flexDirection: "column" } : undefined}
       >
         {/* Nav only visible when no active mission — but kept at stable position (index 0) */}
-        {!isActiveMission && (
+        {!isActiveEncounter && (
           <article className="contentCard">
             <div className="profileSwitchBar">
               <div className="profileSwitchButtons">
@@ -242,8 +251,11 @@ export function GuildPanel({
             playerClass={playerClass}
             playerPower={playerPower}
             playerDucats={playerDucats}
-            isActiveMission={isActiveMission}
+            isActiveEncounter={isActiveEncounter}
+            isActiveGuildMission={isActiveGuildMission}
+            isActiveGuildRaid={isActiveGuildRaid}
             onActiveMissionChange={handleMissionActiveChange}
+            onActiveRaidChange={handleRaidActiveChange}
             onSearchClick={() => setCurrentView("search")}
             onDucatsChanged={onDucatsChanged}
             requestedTab={requestedTab}
@@ -254,7 +266,7 @@ export function GuildPanel({
             }}
           />
         )}
-        {!isActiveMission && currentView === "search" && (
+        {!isActiveEncounter && currentView === "search" && (
           <article className="contentCard">
             <SearchGuildsView token={token} hasGuild={hasGuild} />
           </article>
@@ -288,8 +300,11 @@ function MyGuildView({
   playerClass,
   playerPower,
   playerDucats,
-  isActiveMission = false,
+  isActiveEncounter = false,
+  isActiveGuildMission = false,
+  isActiveGuildRaid = false,
   onActiveMissionChange,
+  onActiveRaidChange,
   onSearchClick,
   onDucatsChanged,
   requestedTab,
@@ -303,8 +318,11 @@ function MyGuildView({
   playerClass?: PlayerClass | null;
   playerPower?: number | null;
   playerDucats?: number | null;
-  isActiveMission?: boolean;
+  isActiveEncounter?: boolean;
+  isActiveGuildMission?: boolean;
+  isActiveGuildRaid?: boolean;
   onActiveMissionChange?: (active: boolean) => void;
+  onActiveRaidChange?: (active: boolean) => void;
   onSearchClick: () => void;
   onDucatsChanged?: (newAmount: number) => void;
   requestedTab?: GuildDetailTab | null;
@@ -469,7 +487,7 @@ function MyGuildView({
   return (
     <>
       {/* ── Guild chrome: hidden while mission is in travel/combat ── */}
-      {!isActiveMission && (
+      {!isActiveEncounter && (
         <>
           {/* ── Confirm modal ── */}
           {pendingAction && (
@@ -591,14 +609,12 @@ function MyGuildView({
           </article>
 
           {/* ── Tab content ── */}
-          {activeTab !== "missions" && (
+          {activeTab !== "missions" && activeTab !== "raids" && (
             <article
               className={
                 activeTab === "academy"
                   ? "contentCard contentCard--academy"
-                  : activeTab === "raids"
-                    ? "contentCard guildPanelFillCard contentCard--raids"
-                    : "contentCard"
+                  : "contentCard"
               }
             >
               {activeTab === "members" && (
@@ -620,13 +636,6 @@ function MyGuildView({
                   onDucatsChanged={onDucatsChanged}
                 />
               )}
-              {activeTab === "raids" && (
-                <GuildRaidBosses
-                  token={token}
-                  guildId={guildData.guild.id}
-                  guildName={guildData.guild.name}
-                />
-              )}
               {activeTab === "invites" && canManage && (
                 <GuildInvitesTab token={token} guildId={guildData.guild.id} />
               )}
@@ -645,8 +654,25 @@ function MyGuildView({
           )}
         </>
       )}
+      {(activeTab === "raids" || isActiveGuildRaid) && (
+        <article
+          className="contentCard guildPanelFillCard contentCard--raids"
+          style={
+            isActiveGuildRaid
+              ? { flex: 1, height: "100%", padding: 0, border: "none", background: "transparent" }
+              : undefined
+          }
+        >
+          <GuildRaidBosses
+            token={token}
+            guildId={guildData.guild.id}
+            guildName={guildData.guild.name}
+            onActiveEncounterChange={onActiveRaidChange}
+          />
+        </article>
+      )}
       {/* GuildMissions at stable position — always rendered when missions tab OR mission active */}
-      {(activeTab === "missions" || isActiveMission) && (
+      {(activeTab === "missions" || isActiveGuildMission) && (
         <GuildMissions
           playerName={playerName ?? "Warden"}
           playerClass={playerClass ?? "juggernaut"}

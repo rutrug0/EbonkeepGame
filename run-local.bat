@@ -104,6 +104,21 @@ if errorlevel 1 (
   set "FAILED=1"
   goto :fail
 )
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-http.ps1" -Url "http://localhost:9090/-/ready" -TimeoutSeconds 90
+if errorlevel 1 (
+  set "FAILED=1"
+  goto :fail
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-http.ps1" -Url "http://localhost:3100/ready" -TimeoutSeconds 90
+if errorlevel 1 (
+  set "FAILED=1"
+  goto :fail
+)
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\windows\wait-for-http.ps1" -Url "http://localhost:3000/api/health" -TimeoutSeconds 120
+if errorlevel 1 (
+  set "FAILED=1"
+  goto :fail
+)
 
 echo [5/8] Installing dependencies...
 call npm.cmd install
@@ -154,6 +169,8 @@ start "" "http://localhost:5173"
 echo Local stack started.
 echo API: http://localhost:4000
 echo Web: http://localhost:5173
+echo Grafana: http://localhost:3000  (login: admin / admin)
+echo Prometheus: http://localhost:9090
 echo Desktop shell is not auto-started by run-local.bat.
 echo Run stop-local.bat to stop services and spawned windows.
 exit /b 0

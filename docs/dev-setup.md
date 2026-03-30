@@ -12,7 +12,8 @@
    - stop existing local processes and reset docker volumes (`stop-local.bat --purge-data`)
    - create `.env` from `.env.example` (if missing)
    - select a usable local Postgres host port and write it to `.env` as `EBONKEEP_POSTGRES_HOST_PORT`
-   - boot Postgres and Redis with Docker Compose
+   - boot Postgres, Redis, Prometheus, Loki, and Grafana with Docker Compose
+   - wait for the local observability endpoints to become healthy before opening the app
    - run Prisma generate/migrate/seed
    - start API and Web windows
 

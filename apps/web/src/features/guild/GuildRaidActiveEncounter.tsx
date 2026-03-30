@@ -8,6 +8,7 @@ import {
   CombatEncounterTurnTrackPanel
 } from "../combat";
 import {
+  applyGuildRaidResolvedAction,
   getGuildRaidEncounterAnimationRate,
   getGuildRaidPlaybackProgress,
   getGuildRaidPlaybackThresholdMs,
@@ -31,11 +32,11 @@ type GuildRaidActiveEncounterProps = {
 
 export function GuildRaidActiveEncounter(props: GuildRaidActiveEncounterProps) {
   const { t } = useTranslation("common");
-  const [isCombatLogVisible, setIsCombatLogVisible] = useState(true);
+  const [isCombatLogVisible, setIsCombatLogVisible] = useState(false);
   const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsCombatLogVisible(true);
+    setIsCombatLogVisible(false);
     setHoveredCombatActorId(null);
   }, [props.playback.encounter.encounterId]);
 
@@ -160,21 +161,7 @@ export function GuildRaidActiveEncounter(props: GuildRaidActiveEncounterProps) {
 
       if (!impactApplied && effectiveProgressMs >= impactThresholdMs) {
         props.onChange((currentPlayback) => {
-          const snapshot = snapshotGuildRaidPlayback(currentPlayback);
-          return {
-            ...snapshot,
-            hpByActorId: {
-              ...snapshot.hpByActorId,
-              [currentEvent.targetId]: currentEvent.targetHpAfter
-            },
-            combatLogEntries: snapshot.combatLogEventIds.includes(currentEvent.eventId)
-              ? snapshot.combatLogEntries
-              : [...snapshot.combatLogEntries, currentEvent.logLine],
-            combatLogEventIds: snapshot.combatLogEventIds.includes(currentEvent.eventId)
-              ? snapshot.combatLogEventIds
-              : [...snapshot.combatLogEventIds, currentEvent.eventId],
-            impactTargetId: currentEvent.targetId
-          };
+          return applyGuildRaidResolvedAction(currentPlayback, currentEvent);
         });
         return;
       }
@@ -283,6 +270,8 @@ export function GuildRaidActiveEncounter(props: GuildRaidActiveEncounterProps) {
             hpByActorId={props.playback.hpByActorId}
             currentAction={props.playback.activeAction}
             impactTargetId={props.playback.impactTargetId}
+            displayedPlayerActorIds={props.playback.frontlineSlots}
+            reservePlayerActorIds={props.playback.reserveActorIds}
             playbackRate={getGuildRaidEncounterAnimationRate(props.playback)}
             isFastForwardEnabled={props.playback.playbackRate === 5}
             hoveredActorId={hoveredCombatActorId}
@@ -329,6 +318,8 @@ export function GuildRaidActiveEncounter(props: GuildRaidActiveEncounterProps) {
           hpByActorId={props.playback.hpByActorId}
           currentAction={props.playback.activeAction}
           impactTargetId={props.playback.impactTargetId}
+          displayedPlayerActorIds={props.playback.frontlineSlots}
+          reservePlayerActorIds={props.playback.reserveActorIds}
           playbackRate={getGuildRaidEncounterAnimationRate(props.playback)}
           isFastForwardEnabled={props.playback.playbackRate === 5}
           hoveredActorId={hoveredCombatActorId}
