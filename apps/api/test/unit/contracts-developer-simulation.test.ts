@@ -170,6 +170,43 @@ describe("contracts developer simulation", () => {
     expect(averageGear).toBe(slowGear);
   });
 
+  it("reports concrete progress updates while the simulation is running", async () => {
+    const progressUpdates: Array<{
+      totalSamples: number;
+      completedSamples: number;
+      currentArchetype: string | null;
+      currentLevel: number | null;
+      currentSampleIndex: number | null;
+    }> = [];
+
+    await simulateDeveloperContractProgression({
+      body: {
+        playerClass: "juggernaut",
+        sampleSize: 1,
+        maxLevel: 3
+      },
+      onProgress: (progress) => {
+        progressUpdates.push(progress);
+      }
+    });
+
+    expect(progressUpdates.length).toBeGreaterThan(0);
+    expect(progressUpdates[0]).toMatchObject({
+      totalSamples: 6,
+      completedSamples: 0,
+      currentArchetype: "active",
+      currentLevel: 2,
+      currentSampleIndex: 1
+    });
+    expect(progressUpdates.at(-1)).toMatchObject({
+      totalSamples: 6,
+      completedSamples: 6,
+      currentArchetype: "slow",
+      currentLevel: 3,
+      currentSampleIndex: 1
+    });
+  });
+
   it("returns a queued job before the background simulation starts", () => {
     const job = createDeveloperContractSimulationJob({
       playerClass: "juggernaut",

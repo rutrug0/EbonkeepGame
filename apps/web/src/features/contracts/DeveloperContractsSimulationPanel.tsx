@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CartesianGrid,
@@ -480,6 +480,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
   const [error, setError] = useState<string | null>(null);
   const [staticCurvesError, setStaticCurvesError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
+  const startLockRef = useRef(false);
 
   useEffect(() => {
     void fetchDeveloperContractsStaticCurves(props.token)
@@ -604,6 +605,9 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
     if (!job) {
       return t("settings.simulation.idle");
     }
+    if (job.status === "queued") {
+      return t("settings.simulation.starting");
+    }
     if (job.status === "failed") {
       return job.error ?? t("settings.simulation.failed");
     }
@@ -617,12 +621,18 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
     });
   }, [job, t]);
 
+  const hasActiveJob = isStarting || job?.status === "queued" || job?.status === "running";
   const progressPercent = job
     ? Math.round((job.progress.completedSamples / Math.max(job.progress.totalSamples, 1)) * 100)
     : 0;
 
   async function handleRunSimulation() {
+    if (startLockRef.current || hasActiveJob) {
+      return;
+    }
+
     try {
+      startLockRef.current = true;
       setIsStarting(true);
       setError(null);
       const nextJob = await runDeveloperContractSimulation(props.token, {
@@ -633,6 +643,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : t("settings.simulation.startFailed"));
     } finally {
+      startLockRef.current = false;
       setIsStarting(false);
     }
   }
@@ -652,7 +663,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
             id="developer-sim-class"
             value={selectedClass}
             onChange={(event) => setSelectedClass(event.currentTarget.value as PlayerClass)}
-            disabled={isStarting || job?.status === "running" || job?.status === "queued"}
+            disabled={hasActiveJob}
           >
             {allPlayerClasses.map((playerClass) => (
               <option key={playerClass} value={playerClass}>
@@ -663,7 +674,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
           <button
             type="button"
             onClick={() => void handleRunSimulation()}
-            disabled={isStarting || job?.status === "running" || job?.status === "queued"}
+            disabled={hasActiveJob}
             style={{
               padding: "10px 18px",
               borderRadius: "8px",

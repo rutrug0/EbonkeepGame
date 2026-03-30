@@ -48,6 +48,7 @@ import { createExpectedPlayerState, getExpectedPlayerCombatMetrics, SIMULATION_B
 const JOB_TTL_MS = 30 * 60 * 1000;
 const MAX_STORED_JOBS = 10;
 const MAX_FIGHTS_PER_LEVEL = 400;
+const EVENT_LOOP_YIELD_EVERY_WORK_UNITS = 8;
 const SIMULATION_ARTIFACT_DIR = resolve(process.cwd(), "artifacts", "contracts-simulations");
 const DEFAULT_WIN_RATE_BY_BAND: Record<ContractLevelBand, number> = {
   under_level: 0.9,
@@ -327,6 +328,20 @@ function evictExpiredJobs(nowMs = Date.now()): void {
   if (oldestTerminalJob) {
     simulationJobs.delete(oldestTerminalJob.jobId);
   }
+}
+
+function getSimulationProgressTotalWorkUnits(sampleSize: number, maxLevel: number): number {
+  return ARCHETYPE_POLICIES.length * sampleSize * Math.max(1, maxLevel - 1);
+}
+
+async function yieldToEventLoopIfNeeded(workUnitsCompleted: number): Promise<void> {
+  if (workUnitsCompleted % EVENT_LOOP_YIELD_EVERY_WORK_UNITS !== 0) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }
 
 function withScopedMathRandom<T>(rng: () => number, callback: () => T): T {
@@ -1039,8 +1054,8 @@ async function runSimulationJob(jobId: string): Promise<void> {
     latest.status = "completed";
     latest.finishedAt = new Date().toISOString();
     latest.progress = {
-      totalSamples: latest.config.sampleSize * ARCHETYPE_POLICIES.length,
-      completedSamples: latest.config.sampleSize * ARCHETYPE_POLICIES.length,
+      totalSamples: getSimulationProgressTotalWorkUnits(latest.config.sampleSize, latest.config.maxLevel),
+      completedSamples: getSimulationProgressTotalWorkUnits(latest.config.sampleSize, latest.config.maxLevel),
       currentArchetype: null,
       currentLevel: null,
       currentSampleIndex: null
@@ -1272,8 +1287,8 @@ export async function simulateDeveloperContractProgression(args: {
   const maxLevel = Math.min(body.maxLevel ?? playerProgressionConfig.maxLevel, playerProgressionConfig.maxLevel);
   const sampleSize = body.sampleSize;
   const archetypeResults: DeveloperContractSimulationResult["archetypes"] = [];
-  const totalSamples = ARCHETYPE_POLICIES.length * sampleSize;
-  let completedSamples = 0;
+  const totalWorkUnits = getSimulationProgressTotalWorkUnits(sampleSize, maxLevel);
+  let completedWorkUnits = 0;
 
   for (const policy of ARCHETYPE_POLICIES) {
     const levelAccumulators = new Map<number, LevelAccumulator>();
@@ -1285,8 +1300,8 @@ export async function simulateDeveloperContractProgression(args: {
       for (let level = 1; level < maxLevel; level += 1) {
         const targetLevel = level + 1;
         args.onProgress?.({
-          totalSamples,
-          completedSamples,
+          totalSamples: totalWorkUnits,
+          completedSamples: completedWorkUnits,
           currentArchetype: policy.archetype,
           currentLevel: targetLevel,
           currentSampleIndex: sampleIndex + 1
@@ -1486,9 +1501,16 @@ export async function simulateDeveloperContractProgression(args: {
         }
 
         levelAccumulators.set(targetLevel, accumulator);
+        completedWorkUnits += 1;
+        args.onProgress?.({
+          totalSamples: totalWorkUnits,
+          completedSamples: completedWorkUnits,
+          currentArchetype: policy.archetype,
+          currentLevel: targetLevel,
+          currentSampleIndex: sampleIndex + 1
+        });
+        await yieldToEventLoopIfNeeded(completedWorkUnits);
       }
-
-      completedSamples += 1;
     }
 
     const levels = Array.from(levelAccumulators.entries())
@@ -1527,7 +1549,7 @@ export function createDeveloperContractSimulationJob(body: RunDeveloperContractS
     status: "queued",
     config,
     progress: {
-      totalSamples: config.sampleSize * ARCHETYPE_POLICIES.length,
+      totalSamples: getSimulationProgressTotalWorkUnits(config.sampleSize, config.maxLevel),
       completedSamples: 0,
       currentArchetype: null,
       currentLevel: null,
