@@ -79,7 +79,7 @@ describe("shared contracts", () => {
       playerClass: "juggernaut"
     });
 
-    expect(body.sampleSize).toBe(200);
+    expect(body.sampleSize).toBe(100);
     expect(
       developerContractSimulationJobSchema.parse({
         jobId: "job_1",

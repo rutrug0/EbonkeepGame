@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -b",
     "start": "node dist/index.js",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "vitest run -c vitest.config.ts test/unit",

@@ -707,95 +707,68 @@ describe("contracts routes", () => {
     expect(replenishMs).toBeLessThanOrEqual(8_000);
   });
 
-  it("exposes developer contracts simulation only to developer-enabled accounts", async () => {
-    const originalAdminIds = process.env.ADMIN_ACCOUNT_IDS;
-    try {
-      const guest = await loginAsGuest(context.app);
-      const guestHeaders = authHeaders(guest.body.accessToken);
+  it("exposes developer contracts simulation to all authenticated accounts", async () => {
+    const guest = await loginAsGuest(context.app);
+    const guestHeaders = authHeaders(guest.body.accessToken);
 
-      const guestOverview = await context.app.inject({
+    const guestOverview = await context.app.inject({
+      method: "GET",
+      url: "/v1/account/overview",
+      headers: guestHeaders
+    });
+    expect(guestOverview.statusCode).toBe(200);
+    expect(guestOverview.json().developerToolsEnabled).toBe(true);
+
+    const startGuestJob = await context.app.inject({
+      method: "POST",
+      url: "/v1/contracts/simulations",
+      headers: guestHeaders,
+      payload: {
+        playerClass: "juggernaut",
+        sampleSize: 1,
+        maxLevel: 2
+      }
+    });
+    expect(startGuestJob.statusCode).toBe(200);
+
+    const guestJobId = startGuestJob.json().jobId as string;
+    let guestJob = startGuestJob.json();
+    for (let attempt = 0; attempt < 50 && (guestJob.status === "queued" || guestJob.status === "running"); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      const poll = await context.app.inject({
         method: "GET",
-        url: "/v1/account/overview",
+        url: `/v1/contracts/simulations/${guestJobId}`,
         headers: guestHeaders
       });
-      expect(guestOverview.statusCode).toBe(200);
-      expect(guestOverview.json().developerToolsEnabled).toBe(true);
-
-      const startGuestJob = await context.app.inject({
-        method: "POST",
-        url: "/v1/contracts/simulations",
-        headers: guestHeaders,
-        payload: {
-          playerClass: "juggernaut",
-          sampleSize: 1,
-          maxLevel: 2
-        }
-      });
-      expect(startGuestJob.statusCode).toBe(200);
-
-      const guestJobId = startGuestJob.json().jobId as string;
-      let guestJob = startGuestJob.json();
-      for (let attempt = 0; attempt < 50 && (guestJob.status === "queued" || guestJob.status === "running"); attempt += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-        const poll = await context.app.inject({
-          method: "GET",
-          url: `/v1/contracts/simulations/${guestJobId}`,
-          headers: guestHeaders
-        });
-        expect(poll.statusCode).toBe(200);
-        guestJob = poll.json();
-      }
-
-      expect(guestJob.status).toBe("completed");
-      expect(guestJob.result.playerClass).toBe("juggernaut");
-
-      const registered = await registerUser(context.app);
-      const registeredHeaders = authHeaders(registered.body.accessToken);
-
-      const userOverview = await context.app.inject({
-        method: "GET",
-        url: "/v1/account/overview",
-        headers: registeredHeaders
-      });
-      expect(userOverview.statusCode).toBe(200);
-      expect(userOverview.json().developerToolsEnabled).toBe(false);
-
-      const deniedJob = await context.app.inject({
-        method: "POST",
-        url: "/v1/contracts/simulations",
-        headers: registeredHeaders,
-        payload: {
-          playerClass: "juggernaut",
-          sampleSize: 1,
-          maxLevel: 2
-        }
-      });
-      expect(deniedJob.statusCode).toBe(403);
-
-      process.env.ADMIN_ACCOUNT_IDS = registered.body.accountId;
-
-      const adminOverview = await context.app.inject({
-        method: "GET",
-        url: "/v1/account/overview",
-        headers: registeredHeaders
-      });
-      expect(adminOverview.statusCode).toBe(200);
-      expect(adminOverview.json().developerToolsEnabled).toBe(true);
-
-      const adminJob = await context.app.inject({
-        method: "POST",
-        url: "/v1/contracts/simulations",
-        headers: registeredHeaders,
-        payload: {
-          playerClass: "juggernaut",
-          sampleSize: 1,
-          maxLevel: 2
-        }
-      });
-      expect(adminJob.statusCode).toBe(200);
-    } finally {
-      process.env.ADMIN_ACCOUNT_IDS = originalAdminIds;
+      expect(poll.statusCode).toBe(200);
+      guestJob = poll.json();
     }
+
+    expect(guestJob.status).toBe("completed");
+    expect(guestJob.result.playerClass).toBe("juggernaut");
+
+    const registered = await registerUser(context.app);
+    const registeredHeaders = authHeaders(registered.body.accessToken);
+
+    const userOverview = await context.app.inject({
+      method: "GET",
+      url: "/v1/account/overview",
+      headers: registeredHeaders
+    });
+    expect(userOverview.statusCode).toBe(200);
+    expect(userOverview.json().developerToolsEnabled).toBe(true);
+
+    const registeredJob = await context.app.inject({
+      method: "POST",
+      url: "/v1/contracts/simulations",
+      headers: registeredHeaders,
+      payload: {
+        playerClass: "juggernaut",
+        sampleSize: 1,
+        maxLevel: 2
+      }
+    });
+    expect(registeredJob.statusCode).toBe(200);
   });
 
   it("returns developer contracts static pacing curves for developer-enabled accounts", async () => {
