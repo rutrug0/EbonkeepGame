@@ -5831,7 +5831,7 @@ export function AppShell() {
         onLocaleChange={(locale) => void handleLocaleChange(locale)}
         cheatsPanel={renderCheatsPanel()}
         developerToolsPanel={
-          accountInfo?.developerToolsEnabled && token && playerState ? (
+          token && playerState ? (
             <DeveloperContractsSimulationPanel token={token} initialPlayerClass={playerState.class} />
           ) : undefined
         }
