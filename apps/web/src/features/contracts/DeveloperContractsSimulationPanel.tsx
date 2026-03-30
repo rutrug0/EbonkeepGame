@@ -637,7 +637,7 @@ export function DeveloperContractsSimulationPanel(props: DeveloperContractsSimul
       setError(null);
       const nextJob = await runDeveloperContractSimulation(props.token, {
         playerClass: selectedClass,
-        sampleSize: 200
+        sampleSize: 100
       });
       setJob(nextJob);
     } catch (nextError) {

@@ -390,7 +390,7 @@ export type DeveloperContractSimulationBandHitRate = z.infer<typeof developerCon
 
 export const runDeveloperContractSimulationBodySchema = z.object({
   playerClass: playerClassSchema,
-  sampleSize: z.number().int().min(1).max(1_000).default(200),
+  sampleSize: z.number().int().min(1).max(1_000).default(100),
   maxLevel: z.number().int().min(1).max(100).optional()
 });
 export type RunDeveloperContractSimulationBody = z.infer<typeof runDeveloperContractSimulationBodySchema>;
