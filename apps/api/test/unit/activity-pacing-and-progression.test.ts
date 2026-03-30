@@ -34,20 +34,24 @@ describe("activity pacing tables", () => {
       replenishMaxSeconds: 150
     });
     expect(getContractReplenishPacingRow(20)).toMatchObject({
-      replenishMinSeconds: 240,
-      replenishMaxSeconds: 360
+      replenishMinSeconds: 180,
+      replenishMaxSeconds: 300
     });
-    expect(getContractReplenishPacingRow(50)).toMatchObject({
-      replenishMinSeconds: 1080,
-      replenishMaxSeconds: 1500
+    expect(getContractReplenishPacingRow(40)).toMatchObject({
+      replenishMinSeconds: 900,
+      replenishMaxSeconds: 1350
     });
     expect(getContractReplenishPacingRow(60)).toMatchObject({
-      replenishMinSeconds: 1500,
-      replenishMaxSeconds: 2100
+      replenishMinSeconds: 2400,
+      replenishMaxSeconds: 3300
+    });
+    expect(getContractReplenishPacingRow(80)).toMatchObject({
+      replenishMinSeconds: 5400,
+      replenishMaxSeconds: 6900
     });
     expect(getContractReplenishPacingRow(100)).toMatchObject({
-      replenishMinSeconds: 3900,
-      replenishMaxSeconds: 4500
+      replenishMinSeconds: 9000,
+      replenishMaxSeconds: 10800
     });
   });
 
@@ -64,15 +68,15 @@ describe("activity pacing tables", () => {
     const levelHundred = rows.find((row) => row.level === 100);
 
     expect(levelSixty).toMatchObject({
-      averageStaminaWaitSecondsForContract: 3876,
-      weightedAverageStaminaWaitSecondsForContract: 3876,
-      weightedAverageStaminaCostPerContract: 16.15
+      averageStaminaWaitSecondsForContract: 3984,
+      weightedAverageStaminaWaitSecondsForContract: 3984,
+      weightedAverageStaminaCostPerContract: 16.6
     });
     expect(levelEighty).toMatchObject({
-      weightedAverageStaminaCostPerContract: 19.3
+      weightedAverageStaminaCostPerContract: 22.25
     });
     expect(levelHundred).toMatchObject({
-      weightedAverageStaminaCostPerContract: 23.15
+      weightedAverageStaminaCostPerContract: 27.9
     });
   });
 });
