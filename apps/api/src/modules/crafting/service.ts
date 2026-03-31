@@ -226,28 +226,28 @@ async function ensureCurrencyBalance(tx: CraftingDbClient, playerId: string) {
   });
 }
 
-async function hasUnlimitedRefineryMaterials(
+async function getCraftingProfileSettings(
   tx: CraftingDbClient,
   playerId: string
-): Promise<boolean> {
+): Promise<{
+  level: number;
+  unlimitedRefineryMaterialsEnabled: boolean;
+  fastCraftTimeEnabled: boolean;
+}> {
   const profile = await tx.playerProfile.findUnique({
     where: { id: playerId },
-    select: { unlimitedRefineryMaterialsEnabled: true }
+    select: {
+      level: true,
+      unlimitedRefineryMaterialsEnabled: true,
+      fastCraftTimeEnabled: true
+    }
   });
 
-  return profile?.unlimitedRefineryMaterialsEnabled ?? false;
-}
+  if (!profile) {
+    throw new CraftingError("PLAYER_NOT_FOUND", 404, "Player profile not found.");
+  }
 
-async function hasFastCraftTimeEnabled(
-  tx: CraftingDbClient,
-  playerId: string
-): Promise<boolean> {
-  const profile = await tx.playerProfile.findUnique({
-    where: { id: playerId },
-    select: { fastCraftTimeEnabled: true }
-  });
-
-  return profile?.fastCraftTimeEnabled ?? false;
+  return profile;
 }
 
 function getEffectiveCraftingTimeSec(baseCraftingTimeSec: number, fastCraftTimeEnabled: boolean): number {
@@ -505,10 +505,11 @@ export async function startCraftingJob(
       }),
       ensureCurrencyBalance(tx, playerId)
     ]);
-    const [unlimitedRefineryMaterialsEnabled, fastCraftTimeEnabled] = await Promise.all([
-      hasUnlimitedRefineryMaterials(tx, playerId),
-      hasFastCraftTimeEnabled(tx, playerId)
-    ]);
+    const {
+      level: playerLevel,
+      unlimitedRefineryMaterialsEnabled,
+      fastCraftTimeEnabled
+    } = await getCraftingProfileSettings(tx, playerId);
     const effectiveCraftingTimeSec = getEffectiveCraftingTimeSec(recipe.craftingTimeSec, fastCraftTimeEnabled);
 
     if (effectiveCraftingTimeSec > 0) {
@@ -521,6 +522,9 @@ export async function startCraftingJob(
     }
     if (currency.ducats < recipe.ducatCost) {
       throw new CraftingError("INSUFFICIENT_DUCATS", 400, "Not enough ducats for that craft.");
+    }
+    if ("requiredPlayerLevel" in recipe && playerLevel < recipe.requiredPlayerLevel) {
+      throw new CraftingError("LEVEL_TOO_LOW", 403, "Player level is too low for that craft.");
     }
 
     const inventoryRows = await loadInventoryRows(tx, playerId, getInventoryQueryCodesForRecipe(recipe.ingredients));

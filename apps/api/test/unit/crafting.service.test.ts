@@ -33,7 +33,7 @@ describe("crafting service", () => {
     await context?.close();
   });
 
-  async function createPlayerWithDucats(amount = 50_000) {
+  async function createPlayerWithDucats(amount = 50_000, level = 50) {
     if (!context) {
       throw new Error("Crafting tests require the test database to be available.");
     }
@@ -52,7 +52,7 @@ describe("crafting service", () => {
         class: "juggernaut",
         portraitId: "str_01",
         backgroundId: "bg_01",
-        level: 50,
+        level,
         gearScore: 0
       }
     });
@@ -295,6 +295,40 @@ describe("crafting service", () => {
       startCraftingJob(context.prisma, playerId, "combine_t1_metal_uncommon_to_rare", "combine", 0)
     ).rejects.toMatchObject({
       code: "INSUFFICIENT_DUCATS"
+    });
+  });
+
+  it("rejects crafts when the player is below the recipe level requirement", async () => {
+    if (!context) {
+      return;
+    }
+    const playerId = await createPlayerWithDucats(50_000, 1);
+
+    await context.prisma.inventoryItem.createMany({
+      data: [
+        {
+          id: `item_${randomUUID().replaceAll("-", "")}`,
+          playerId,
+          itemCode: "ingredient_shadecap",
+          slotKey: "inventory",
+          quantity: 1
+        },
+        {
+          id: `item_${randomUUID().replaceAll("-", "")}`,
+          playerId,
+          itemCode: "ingredient_sunspike",
+          slotKey: "inventory",
+          quantity: 1
+        }
+      ]
+    });
+    await grantCraftingStackableItem(context.prisma, playerId, "reagent_aether_catalyst", 1, "output");
+
+    await expect(
+      startCraftingJob(context.prisma, playerId, "craft_consumable_chroniclers_elixir", "item", 0)
+    ).rejects.toMatchObject({
+      code: "LEVEL_TOO_LOW",
+      statusCode: 403
     });
   });
 
@@ -547,6 +581,7 @@ describe("crafting service", () => {
       },
       playerProfile: {
         findUnique: vi.fn().mockResolvedValue({
+          level: 50,
           unlimitedRefineryMaterialsEnabled: true,
           fastCraftTimeEnabled: false
         })
