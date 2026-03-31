@@ -37,6 +37,7 @@ This document set defines the high-level, implementation-ready blueprint for Ebo
 23. [local-runtime.md](./local-runtime.md)
 24. [23-consumables-and-refinery-balance-v1.md](./23-consumables-and-refinery-balance-v1.md)
 25. [24-garden-growth-and-starter-catalog-v1.md](./24-garden-growth-and-starter-catalog-v1.md)
+26. [25-consumables-taxonomy-and-rules-v2.md](./25-consumables-taxonomy-and-rules-v2.md)
 
 ## Decision Log (Locked)
 Date: 2026-02-28

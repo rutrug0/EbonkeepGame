@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { consumableCatalog, consumableRecipes, type ConsumableCatalogEntry, type ConsumableRecipe } from "../consumables/index.js";
 import { inventoryItemSchema } from "../inventory/index.js";
 
 export const craftingTierSchema = z.enum(["t1", "t2", "t3", "t4"]);
@@ -18,7 +19,7 @@ export const craftingItemRecipeCategorySchema = z.enum([
   "catalyst",
   "reagent",
   "tempering",
-  "raid_consumable",
+  "consumable",
   "distillation"
 ]);
 export type CraftingItemRecipeCategory = z.infer<typeof craftingItemRecipeCategorySchema>;
@@ -330,7 +331,7 @@ const MATERIAL_AFFINITY_DESCRIPTION: Record<CraftingAffinity, string> = {
   binding: "Universal bonding stock required by nearly every upgrade recipe."
 };
 
-export const CRAFTING_OUTPUT_DEFINITIONS = {
+const BASE_CRAFTING_OUTPUT_DEFINITIONS = {
   forge_catalyst_common: {
     displayName: "Forge Catalyst",
     description: "A common forge catalyst prepared from arcane dust.",
@@ -477,136 +478,38 @@ export const CRAFTING_OUTPUT_DEFINITIONS = {
     iconKey: "mat_tempering_draught",
     tier: "t1",
     rarity: "uncommon"
-  },
-  consumable_vigorous_restorative: {
-    displayName: "Vigorous Restorative",
-    description: "A potent clan preparation draught for recovery-heavy pushes.",
-    iconKey: "consumable_vigorous_restorative",
-    tier: "t3",
-    rarity: "uncommon"
-  },
-  consumable_sunspike_elixir: {
-    displayName: "Sunspike Elixir",
-    description: "A high-energy offensive elixir prepared for raid damage windows.",
-    iconKey: "consumable_sunspike_elixir",
-    tier: "t3",
-    rarity: "uncommon"
-  },
-  consumable_graveward_elixir: {
-    displayName: "Graveward Elixir",
-    description: "A costly clan brew for survival and attrition-focused encounters.",
-    iconKey: "consumable_graveward_elixir",
-    tier: "t3",
-    rarity: "uncommon"
-  },
-  consumable_hexcleanse_phial: {
-    displayName: "Hexcleanse Phial",
-    description: "A concentrated cleansing phial for severe affliction control.",
-    iconKey: "consumable_hexcleanse_phial",
-    tier: "t3",
-    rarity: "uncommon"
-  },
-  consumable_contractors_resolve: {
-    displayName: "Contractor's Resolve",
-    description: "An endgame efficiency tonic stockpiled for coordinated pushes.",
-    iconKey: "consumable_contractors_resolve",
-    tier: "t4",
-    rarity: "rare"
-  },
-  consumable_soulbound_draught: {
-    displayName: "Soulbound Draught",
-    description: "A sovereign-grade draught reserved for the hardest clan preparations.",
-    iconKey: "consumable_soulbound_draught",
-    tier: "t4",
-    rarity: "rare"
-  },
-  consumable_vigorous_restorative_d1: {
-    displayName: "Vigorous Restorative (Distilled I)",
-    description: "A first distillation of Vigorous Restorative.",
-    iconKey: "consumable_vigorous_restorative_d1",
-    tier: "t3",
-    rarity: "rare"
-  },
-  consumable_sunspike_elixir_d1: {
-    displayName: "Sunspike Elixir (Distilled I)",
-    description: "A first distillation of Sunspike Elixir.",
-    iconKey: "consumable_sunspike_elixir_d1",
-    tier: "t3",
-    rarity: "rare"
-  },
-  consumable_graveward_elixir_d1: {
-    displayName: "Graveward Elixir (Distilled I)",
-    description: "A first distillation of Graveward Elixir.",
-    iconKey: "consumable_graveward_elixir_d1",
-    tier: "t3",
-    rarity: "rare"
-  },
-  consumable_hexcleanse_phial_d1: {
-    displayName: "Hexcleanse Phial (Distilled I)",
-    description: "A first distillation of Hexcleanse Phial.",
-    iconKey: "consumable_hexcleanse_phial_d1",
-    tier: "t3",
-    rarity: "rare"
-  },
-  consumable_contractors_resolve_d1: {
-    displayName: "Contractor's Resolve (Distilled I)",
-    description: "A first distillation of Contractor's Resolve.",
-    iconKey: "consumable_contractors_resolve_d1",
-    tier: "t4",
-    rarity: "rare"
-  },
-  consumable_soulbound_draught_d1: {
-    displayName: "Soulbound Draught (Distilled I)",
-    description: "A first distillation of Soulbound Draught.",
-    iconKey: "consumable_soulbound_draught_d1",
-    tier: "t4",
-    rarity: "rare"
-  },
-  consumable_vigorous_restorative_d2: {
-    displayName: "Vigorous Restorative (Distilled II)",
-    description: "The second distillation of Vigorous Restorative.",
-    iconKey: "consumable_vigorous_restorative_d2",
-    tier: "t3",
-    rarity: "epic"
-  },
-  consumable_sunspike_elixir_d2: {
-    displayName: "Sunspike Elixir (Distilled II)",
-    description: "The second distillation of Sunspike Elixir.",
-    iconKey: "consumable_sunspike_elixir_d2",
-    tier: "t3",
-    rarity: "epic"
-  },
-  consumable_graveward_elixir_d2: {
-    displayName: "Graveward Elixir (Distilled II)",
-    description: "The second distillation of Graveward Elixir.",
-    iconKey: "consumable_graveward_elixir_d2",
-    tier: "t3",
-    rarity: "epic"
-  },
-  consumable_hexcleanse_phial_d2: {
-    displayName: "Hexcleanse Phial (Distilled II)",
-    description: "The second distillation of Hexcleanse Phial.",
-    iconKey: "consumable_hexcleanse_phial_d2",
-    tier: "t3",
-    rarity: "epic"
-  },
-  consumable_contractors_resolve_d2: {
-    displayName: "Contractor's Resolve (Distilled II)",
-    description: "The second distillation of Contractor's Resolve.",
-    iconKey: "consumable_contractors_resolve_d2",
-    tier: "t4",
-    rarity: "epic"
-  },
-  consumable_soulbound_draught_d2: {
-    displayName: "Soulbound Draught (Distilled II)",
-    description: "The second distillation of Soulbound Draught.",
-    iconKey: "consumable_soulbound_draught_d2",
-    tier: "t4",
-    rarity: "epic"
   }
 } as const;
 
-export type CraftingOutputItemCode = keyof typeof CRAFTING_OUTPUT_DEFINITIONS;
+function toCraftingOutputDefinition(entry: ConsumableCatalogEntry) {
+  return {
+    displayName: entry.displayName,
+    description: entry.description,
+    iconKey: entry.iconKey,
+    tier: entry.craftingTier,
+    rarity: entry.rarity
+  };
+}
+
+const CONSUMABLE_CRAFTING_OUTPUT_DEFINITIONS = Object.freeze(
+  Object.fromEntries(consumableCatalog.map((entry) => [entry.itemCode, toCraftingOutputDefinition(entry)])) as Record<
+    string,
+    ReturnType<typeof toCraftingOutputDefinition>
+  >
+);
+
+export const CRAFTING_OUTPUT_DEFINITIONS = Object.freeze({
+  ...BASE_CRAFTING_OUTPUT_DEFINITIONS,
+  ...CONSUMABLE_CRAFTING_OUTPUT_DEFINITIONS
+}) as Readonly<Record<string, {
+  displayName: string;
+  description: string;
+  iconKey: string;
+  tier: CraftingTier;
+  rarity: CraftingRarity;
+}>>;
+
+export type CraftingOutputItemCode = string;
 
 export const CRAFTING_TIERS = craftingTierSchema.options;
 export const CRAFTING_AFFINITIES = craftingAffinitySchema.options;
@@ -629,6 +532,13 @@ const UNCOMMON_TO_RARE_TIME_BY_TIER: Record<CraftingTier, number> = {
   t2: minutes(60),
   t3: minutes(90),
   t4: minutes(120)
+};
+
+const COMMON_TO_UNCOMMON_TIME_BY_TIER: Record<CraftingTier, number> = {
+  t1: minutes(5),
+  t2: minutes(10),
+  t3: minutes(15),
+  t4: minutes(20)
 };
 
 const RARE_TO_EPIC_TIME_BY_TIER: Record<CraftingTier, number> = {
@@ -698,7 +608,7 @@ function buildCommonToUncommonRecipe(tier: CraftingTier, rule: CombineIngredient
         { itemCode: getMaterialItemCode(tier, "binding", "common"), quantity: 1 }
       ],
       ducatCost: 0,
-      craftingTimeSec: 0
+      craftingTimeSec: COMMON_TO_UNCOMMON_TIME_BY_TIER[tier]
     });
   }
 
@@ -713,7 +623,7 @@ function buildCommonToUncommonRecipe(tier: CraftingTier, rule: CombineIngredient
         { itemCode: getMaterialItemCode(tier, "binding", "common"), quantity: 1 }
       ],
       ducatCost: 0,
-      craftingTimeSec: 0
+      craftingTimeSec: COMMON_TO_UNCOMMON_TIME_BY_TIER[tier]
     });
   }
 
@@ -728,7 +638,7 @@ function buildCommonToUncommonRecipe(tier: CraftingTier, rule: CombineIngredient
         { itemCode: getMaterialItemCode(tier, "binding", "common"), quantity: 1 }
       ],
       ducatCost: 0,
-      craftingTimeSec: 0
+      craftingTimeSec: COMMON_TO_UNCOMMON_TIME_BY_TIER[tier]
     });
   }
 
@@ -738,7 +648,7 @@ function buildCommonToUncommonRecipe(tier: CraftingTier, rule: CombineIngredient
     outputQuantity: 1,
     ingredients: [{ itemCode: getMaterialItemCode(tier, "binding", "common"), quantity: 3 }],
     ducatCost: 0,
-    craftingTimeSec: 0
+    craftingTimeSec: COMMON_TO_UNCOMMON_TIME_BY_TIER[tier]
   });
 }
 
@@ -863,6 +773,30 @@ function buildCatalystRecipesForTier(tier: CraftingTier): ItemCraftRecipe[] {
   ];
 }
 
+function toItemCraftRecipe(recipe: ConsumableRecipe): ItemCraftRecipe {
+  return itemCraftRecipeSchema.parse({
+    recipeId: recipe.recipeId,
+    category: "consumable",
+    outputItemType: recipe.outputItemCode,
+    outputRarity: recipe.outputRarity,
+    outputTier: recipe.outputCraftingTier,
+    ilvlMin: 0,
+    ilvlMax: 0,
+    ingredients: recipe.ingredients,
+    ducatCost: recipe.ducatCost,
+    craftingTimeSec: recipe.craftingTimeSec,
+    requiredPlayerLevel: recipe.requiredLevel
+  });
+}
+
+const CONSUMABLE_ITEM_CRAFT_RECIPES = consumableRecipes
+  .filter((recipe) => recipe.recipeKind === "craft")
+  .map((recipe) => toItemCraftRecipe(recipe));
+
+const CONSUMABLE_DISTILLATION_RECIPES_RAW = consumableRecipes
+  .filter((recipe) => recipe.recipeKind === "distill")
+  .map((recipe) => toItemCraftRecipe(recipe));
+
 export const ITEM_CRAFT_RECIPES = itemCraftRecipeSchema.array().parse([
   ...CRAFTING_TIERS.flatMap((tier) => buildCatalystRecipesForTier(tier)),
   itemCraftRecipeSchema.parse({
@@ -936,266 +870,10 @@ export const ITEM_CRAFT_RECIPES = itemCraftRecipeSchema.array().parse([
     craftingTimeSec: hours(1),
     requiredPlayerLevel: 1
   }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "craft_consumable_vigorous_restorative",
-    category: "raid_consumable",
-    outputItemType: "consumable_vigorous_restorative",
-    outputRarity: "uncommon",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [
-      { itemCode: "mat_t3_nature_rare", quantity: 2 },
-      { itemCode: "mat_t3_shadow_rare", quantity: 1 },
-      { itemCode: "mat_t3_binding_uncommon", quantity: 2 }
-    ],
-    ducatCost: 2000,
-    craftingTimeSec: hours(4),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "craft_consumable_sunspike_elixir",
-    category: "raid_consumable",
-    outputItemType: "consumable_sunspike_elixir",
-    outputRarity: "uncommon",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [
-      { itemCode: "mat_t3_arcane_rare", quantity: 2 },
-      { itemCode: "mat_t3_nature_rare", quantity: 1 },
-      { itemCode: "mat_t3_binding_uncommon", quantity: 2 }
-    ],
-    ducatCost: 2000,
-    craftingTimeSec: hours(4),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "craft_consumable_graveward_elixir",
-    category: "raid_consumable",
-    outputItemType: "consumable_graveward_elixir",
-    outputRarity: "uncommon",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [
-      { itemCode: "mat_t3_shadow_rare", quantity: 1 },
-      { itemCode: "mat_t3_nature_rare", quantity: 2 },
-      { itemCode: "mat_t3_binding_rare", quantity: 1 }
-    ],
-    ducatCost: 3200,
-    craftingTimeSec: hours(6),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "craft_consumable_hexcleanse_phial",
-    category: "raid_consumable",
-    outputItemType: "consumable_hexcleanse_phial",
-    outputRarity: "uncommon",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [
-      { itemCode: "mat_t3_shadow_rare", quantity: 2 },
-      { itemCode: "mat_t3_binding_rare", quantity: 1 }
-    ],
-    ducatCost: 2400,
-    craftingTimeSec: hours(4),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "craft_consumable_contractors_resolve",
-    category: "raid_consumable",
-    outputItemType: "consumable_contractors_resolve",
-    outputRarity: "rare",
-    outputTier: "t4",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [
-      { itemCode: "mat_t4_nature_rare", quantity: 2 },
-      { itemCode: "mat_t4_arcane_rare", quantity: 1 },
-      { itemCode: "mat_t4_binding_uncommon", quantity: 2 }
-    ],
-    ducatCost: 4000,
-    craftingTimeSec: hours(6),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "craft_consumable_soulbound_draught",
-    category: "raid_consumable",
-    outputItemType: "consumable_soulbound_draught",
-    outputRarity: "rare",
-    outputTier: "t4",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [
-      { itemCode: "mat_t4_shadow_epic", quantity: 1 },
-      { itemCode: "mat_t4_binding_rare", quantity: 1 }
-    ],
-    ducatCost: 6400,
-    craftingTimeSec: hours(8),
-    requiredPlayerLevel: 1
-  })
+  ...CONSUMABLE_ITEM_CRAFT_RECIPES
 ]);
 
-export const POTION_DISTILLATION_RECIPES = itemCraftRecipeSchema.array().parse([
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_vigorous_restorative_d1",
-    category: "distillation",
-    outputItemType: "consumable_vigorous_restorative_d1",
-    outputRarity: "rare",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_vigorous_restorative", quantity: 3 }],
-    ducatCost: 400,
-    craftingTimeSec: minutes(30),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_sunspike_elixir_d1",
-    category: "distillation",
-    outputItemType: "consumable_sunspike_elixir_d1",
-    outputRarity: "rare",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_sunspike_elixir", quantity: 3 }],
-    ducatCost: 400,
-    craftingTimeSec: minutes(30),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_graveward_elixir_d1",
-    category: "distillation",
-    outputItemType: "consumable_graveward_elixir_d1",
-    outputRarity: "rare",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_graveward_elixir", quantity: 3 }],
-    ducatCost: 600,
-    craftingTimeSec: minutes(30),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_hexcleanse_phial_d1",
-    category: "distillation",
-    outputItemType: "consumable_hexcleanse_phial_d1",
-    outputRarity: "rare",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_hexcleanse_phial", quantity: 3 }],
-    ducatCost: 480,
-    craftingTimeSec: minutes(30),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_vigorous_restorative_d2",
-    category: "distillation",
-    outputItemType: "consumable_vigorous_restorative_d2",
-    outputRarity: "epic",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_vigorous_restorative_d1", quantity: 3 }],
-    ducatCost: 1200,
-    craftingTimeSec: minutes(90),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_sunspike_elixir_d2",
-    category: "distillation",
-    outputItemType: "consumable_sunspike_elixir_d2",
-    outputRarity: "epic",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_sunspike_elixir_d1", quantity: 3 }],
-    ducatCost: 1200,
-    craftingTimeSec: minutes(90),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_graveward_elixir_d2",
-    category: "distillation",
-    outputItemType: "consumable_graveward_elixir_d2",
-    outputRarity: "epic",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_graveward_elixir_d1", quantity: 3 }],
-    ducatCost: 1800,
-    craftingTimeSec: minutes(90),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_hexcleanse_phial_d2",
-    category: "distillation",
-    outputItemType: "consumable_hexcleanse_phial_d2",
-    outputRarity: "epic",
-    outputTier: "t3",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_hexcleanse_phial_d1", quantity: 3 }],
-    ducatCost: 1440,
-    craftingTimeSec: minutes(90),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_contractors_resolve_d1",
-    category: "distillation",
-    outputItemType: "consumable_contractors_resolve_d1",
-    outputRarity: "rare",
-    outputTier: "t4",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_contractors_resolve", quantity: 3 }],
-    ducatCost: 800,
-    craftingTimeSec: minutes(60),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_soulbound_draught_d1",
-    category: "distillation",
-    outputItemType: "consumable_soulbound_draught_d1",
-    outputRarity: "rare",
-    outputTier: "t4",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_soulbound_draught", quantity: 3 }],
-    ducatCost: 1280,
-    craftingTimeSec: minutes(60),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_contractors_resolve_d2",
-    category: "distillation",
-    outputItemType: "consumable_contractors_resolve_d2",
-    outputRarity: "epic",
-    outputTier: "t4",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_contractors_resolve_d1", quantity: 3 }],
-    ducatCost: 2400,
-    craftingTimeSec: minutes(180),
-    requiredPlayerLevel: 1
-  }),
-  itemCraftRecipeSchema.parse({
-    recipeId: "distill_consumable_soulbound_draught_d2",
-    category: "distillation",
-    outputItemType: "consumable_soulbound_draught_d2",
-    outputRarity: "epic",
-    outputTier: "t4",
-    ilvlMin: 0,
-    ilvlMax: 0,
-    ingredients: [{ itemCode: "consumable_soulbound_draught_d1", quantity: 3 }],
-    ducatCost: 3840,
-    craftingTimeSec: minutes(180),
-    requiredPlayerLevel: 1
-  })
-]);
+export const CONSUMABLE_DISTILLATION_RECIPES = itemCraftRecipeSchema.array().parse(CONSUMABLE_DISTILLATION_RECIPES_RAW);
 
 export const MATERIAL_COMBINE_RECIPE_BY_ID = Object.freeze(
   Object.fromEntries(MATERIAL_COMBINE_RECIPES.map((recipe) => [recipe.recipeId, recipe])) as Record<string, MaterialCombineRecipe>
@@ -1205,8 +883,8 @@ export const ITEM_CRAFT_RECIPE_BY_ID = Object.freeze(
   Object.fromEntries(ITEM_CRAFT_RECIPES.map((recipe) => [recipe.recipeId, recipe])) as Record<string, ItemCraftRecipe>
 );
 
-export const POTION_DISTILLATION_RECIPE_BY_ID = Object.freeze(
-  Object.fromEntries(POTION_DISTILLATION_RECIPES.map((recipe) => [recipe.recipeId, recipe])) as Record<string, ItemCraftRecipe>
+export const CONSUMABLE_DISTILLATION_RECIPE_BY_ID = Object.freeze(
+  Object.fromEntries(CONSUMABLE_DISTILLATION_RECIPES.map((recipe) => [recipe.recipeId, recipe])) as Record<string, ItemCraftRecipe>
 );
 
 export function getCraftingTierForLevel(level: number): CraftingTier {
@@ -1227,5 +905,5 @@ export function getCraftingMaterialDefinition(itemCode: string): CraftingMateria
 }
 
 export function getCraftingOutputDefinition(itemCode: string) {
-  return CRAFTING_OUTPUT_DEFINITIONS[itemCode as CraftingOutputItemCode] ?? null;
+  return CRAFTING_OUTPUT_DEFINITIONS[itemCode] ?? null;
 }

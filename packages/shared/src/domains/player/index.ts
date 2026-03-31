@@ -17,6 +17,7 @@ export const playerCheatSettingsSchema = z.object({
   fastArenaReplenishEnabled: z.boolean().default(false),
   invincibilityEnabled: z.boolean().default(false),
   fastTrainTimeEnabled: z.boolean().default(false),
+  fastCraftTimeEnabled: z.boolean().default(false),
   unlimitedAcademyDonationsEnabled: z.boolean().default(false),
   unlimitedForgeConsumablesEnabled: z.boolean().default(false),
   unlimitedRefineryMaterialsEnabled: z.boolean().default(false)

@@ -170,7 +170,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate art assets from docs/data CSV files.")
     parser.add_argument(
         "--sources",
-        choices=["all", "weapons", "armor", "jewelry", "characters", "monsters"],
+        choices=["all", "weapons", "armor", "jewelry", "consumables", "characters", "monsters"],
         default="all",
         help="Subset of configured sources to process.",
     )
@@ -545,6 +545,9 @@ def build_item_record(
         return None
 
     output_name = display_name
+    output_name_field = str(source.get("output_name_field") or "").strip()
+    if output_name_field:
+        output_name = (row.get(output_name_field) or "").strip() or output_name
     if major == "character":
         output_name = character_output_name(row, sequence_int)
 

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { CRAFTING_JOB_SLOT_INDEXES } from "@ebonkeep/shared/crafting";
 import {
   allPlayerClasses,
   normalizePlayerClass,
@@ -12,6 +13,7 @@ import type { InventoryItem, ItemRarity } from "@ebonkeep/shared/inventory";
 import type { PlayerCheatSettings, PlayerState } from "@ebonkeep/shared/player";
 
 import { allDefinedItemTemplates, rollInventoryItem } from "../inventory/item-service.js";
+import { CHEAT_FAST_CRAFT_DURATION_SEC } from "../crafting/service.js";
 import { getCumulativeExperienceToReachLevel, playerProgressionConfig } from "./progression-service.js";
 import { ensurePlayerEquipmentSlots, loadPlayerState } from "./state-service.js";
 import { getGuildRaidBossDefinition } from "../guild/raid-config.js";
@@ -93,20 +95,36 @@ export async function updatePlayerCheatSettings(
   playerId: string,
   settings: PlayerCheatSettings
 ): Promise<PlayerState> {
-  await prisma.$executeRaw`
-    UPDATE "player_profiles"
-    SET
-      "fastTravelEnabled" = ${settings.fastTravelEnabled},
-      "fastContractReplenishEnabled" = ${settings.fastContractReplenishEnabled},
-      "fastArenaReplenishEnabled" = ${settings.fastArenaReplenishEnabled},
-      "invincibilityEnabled" = ${settings.invincibilityEnabled},
-      "fastTrainTimeEnabled" = ${settings.fastTrainTimeEnabled},
-      "unlimitedAcademyDonationsEnabled" = ${settings.unlimitedAcademyDonationsEnabled},
-      "unlimitedForgeConsumablesEnabled" = ${settings.unlimitedForgeConsumablesEnabled},
-      "unlimitedRefineryMaterialsEnabled" = ${settings.unlimitedRefineryMaterialsEnabled},
-      "updatedAt" = CURRENT_TIMESTAMP
-    WHERE "id" = ${playerId}
-  `;
+  await prisma.playerProfile.update({
+    where: { id: playerId },
+    data: {
+      fastTravelEnabled: settings.fastTravelEnabled,
+      fastContractReplenishEnabled: settings.fastContractReplenishEnabled,
+      fastArenaReplenishEnabled: settings.fastArenaReplenishEnabled,
+      invincibilityEnabled: settings.invincibilityEnabled,
+      fastTrainTimeEnabled: settings.fastTrainTimeEnabled,
+      fastCraftTimeEnabled: settings.fastCraftTimeEnabled,
+      unlimitedAcademyDonationsEnabled: settings.unlimitedAcademyDonationsEnabled,
+      unlimitedForgeConsumablesEnabled: settings.unlimitedForgeConsumablesEnabled,
+      unlimitedRefineryMaterialsEnabled: settings.unlimitedRefineryMaterialsEnabled
+    },
+    select: { id: true }
+  });
+
+  if (settings.fastCraftTimeEnabled) {
+    const acceleratedFinishesAt = new Date(Date.now() + (CHEAT_FAST_CRAFT_DURATION_SEC * 1000));
+    await prisma.craftingJob.updateMany({
+      where: {
+        playerId,
+        claimed: false,
+        slotIndex: { in: [...CRAFTING_JOB_SLOT_INDEXES] },
+        finishesAt: { gt: acceleratedFinishesAt }
+      },
+      data: {
+        finishesAt: acceleratedFinishesAt
+      }
+    });
+  }
 
   return loadRequiredPlayerState(prisma, playerId);
 }

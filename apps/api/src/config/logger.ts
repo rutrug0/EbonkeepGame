@@ -85,9 +85,8 @@ export function createLogger(config: LoggerConfig = {}): Logger {
         replaceTimestamp: true,
         timeout: 10_000,
         silenceErrors: false,
-        errorHandler: (err: Error) => {
-          process.stderr.write(`[pino-loki] Failed to ship logs: ${err.message}\n`);
-        },
+        // Pino transports run in a worker thread. Transport options must remain
+        // structured-cloneable, so avoid passing callback functions here.
       },
     });
   }

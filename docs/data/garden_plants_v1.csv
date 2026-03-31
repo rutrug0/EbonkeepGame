@@ -1,6 +1,10 @@
 plant_id,display_name,rarity,seed_item_code,ingredient_item_code,growth_seconds,pre_bloom_seconds,bloom_seconds,post_bloom_seconds,base_yield,bloom_yield,recipe_refs
-bloodleaf,Bloodleaf,common,seed_bloodleaf,ingredient_bloodleaf,5,0,5,5,2,4,Field Tonic;Healing Potion;Warden's Draft
-fenroot,Fenroot,common,seed_fenroot,ingredient_fenroot,5,0,5,5,2,4,Field Tonic
-ironbloom,Ironbloom,common,seed_ironbloom,ingredient_ironbloom,5,0,5,5,2,4,Warden's Draft;Hunter's Draft;Bulwark Distillate
-duskmint,Duskmint,common,seed_duskmint,ingredient_duskmint,5,0,5,5,2,4,Healing Potion;Hunter's Draft;Purge Philter
-kingsfoil,Kingsfoil,uncommon,seed_kingsfoil,ingredient_kingsfoil,5,0,5,5,1,2,Greater Healing Potion;Bulwark Distillate;Wardwash Tonic;Traveler's Distillate
+bloodleaf,Bloodleaf,common,seed_bloodleaf,ingredient_bloodleaf,5,0,5,5,2,4,Healing Potion;Warden's Tonic
+fenroot,Fenroot,common,seed_fenroot,ingredient_fenroot,5,0,5,5,2,4,Healing Potion;Second Wind Potion;Traveler's Elixir
+ironbloom,Ironbloom,common,seed_ironbloom,ingredient_ironbloom,5,0,5,5,2,4,Warden's Tonic;Hunter's Tonic;Emberwake Tonic;Bulwark Tonic
+duskmint,Duskmint,common,seed_duskmint,ingredient_duskmint,5,0,5,5,2,4,Second Wind Potion;Hunter's Tonic;Berserker's Tonic;Wardwash Tonic;Deadeye Elixir
+kingsfoil,Kingsfoil,uncommon,seed_kingsfoil,ingredient_kingsfoil,5,0,5,5,1,2,Bulwark Tonic;Wardwash Tonic;Deadeye Elixir;Traveler's Elixir;Contractor's Resolve Elixir
+emberbud,Emberbud,uncommon,seed_emberbud,ingredient_emberbud,6,0,6,6,1,2,Emberwake Tonic;Berserker's Tonic;Contractor's Resolve Elixir;Sunspike Elixir
+gravebloom,Gravebloom,rare,seed_gravebloom,ingredient_gravebloom,7,0,7,7,1,2,Graveward Elixir;Hexcleanse Tonic;Ravager's Tonic;Warcaller's Elixir
+shadecap,Shadecap,rare,seed_shadecap,ingredient_shadecap,7,0,7,7,1,2,Hexcleanse Tonic;Chronicler's Elixir
+sunspike,Sunspike,rare,seed_sunspike,ingredient_sunspike,8,0,8,8,1,2,Sunspike Elixir;Chronicler's Elixir;Ravager's Tonic;Warcaller's Elixir

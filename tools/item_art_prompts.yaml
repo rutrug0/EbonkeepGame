@@ -62,6 +62,10 @@
     "jewelry:ring": "One ring only. Macro-style object render, clear metalwork, gem/sigil details readable.",
     "jewelry:necklace": "One necklace/amulet only. Pendant-focused composition, chain/cord craftsmanship clear.",
 
+    "consumable:potion": "One potion vial only. Shared silhouette is locked for the whole potion group: short squat apothecary vial with thick clear glass, broad rounded body, short neck, plain cork stopper, and no hanging tags, labels, ribbon wraps, or wax seals. Camera angle, framing scale, and glass shape must stay consistent across all potion renders. Only the liquid inside the vial may change between potion products.",
+    "consumable:tonic": "One tonic flask only. Shared silhouette is locked for the whole tonic group: taller field-flask bottle with straight-sided body, sturdy shoulders, short practical neck, plain cork stopper, and no labels, charms, straps, or custom ornament. Camera angle, framing scale, and glass shape must stay consistent across all tonic renders. Only the liquid inside the flask may change between tonic products.",
+    "consumable:elixir": "One elixir bottle only. Shared silhouette is locked for the whole elixir group: refined long-neck alchemical bottle with elegant teardrop body, slimmer neck, premium but restrained stopper, and no labels, chains, charms, or custom crestwork. Camera angle, framing scale, and glass shape must stay consistent across all elixir renders. Only the liquid inside the bottle may change between elixir products.",
+
     "character:strength": "Strength archetype portrait. Emphasize sturdy build cues, practical armor or heavy cloth layers, disciplined and serious expression, restrained accents selected from crimson, steel-blue, or ember-gold, weathered realism. No weapon props, no stylized anime traits.",
     "character:intelligence": "Intelligence archetype portrait. Emphasize scholar or arcane attire cues, layered robes or structured collars, focused and serious expression, subtle accents selected from teal, ink-blue, or sage, weathered realism. No weapon props, no stylized anime traits.",
     "character:dexterity": "Dexterity archetype portrait. Emphasize agile travel-ready attire, layered leather and cloth, alert but serious expression, subtle accents selected from amber, moss-green, or copper, weathered realism. No weapon props, no stylized anime traits."
@@ -114,6 +118,14 @@
       "group": "jewelry",
       "path": "docs/data/jewelry_necklace_name_ranges_v1.csv",
       "major_category": "jewelry"
+    },
+    {
+      "id": "consumable_icon_prompts_v1",
+      "group": "consumables",
+      "path": "docs/data/consumable_icon_prompts_v1.csv",
+      "major_category": "consumable",
+      "family_key_template": "consumable:{item_type}",
+      "output_name_field": "consumable_id"
     },
     {
       "id": "character_avatar_templates_v1",

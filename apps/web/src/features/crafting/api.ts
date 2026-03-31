@@ -69,7 +69,7 @@ export async function craftItem(token: string, recipeId: string, slotIndex: numb
   return startCraftingJob(token, recipeId, "item", slotIndex);
 }
 
-export async function distillPotion(token: string, recipeId: string, slotIndex: number): Promise<CraftingStartJobResponse> {
+export async function distillConsumable(token: string, recipeId: string, slotIndex: number): Promise<CraftingStartJobResponse> {
   return startCraftingJob(token, recipeId, "distill", slotIndex);
 }
 

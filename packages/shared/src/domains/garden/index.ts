@@ -42,7 +42,13 @@ export const gardenPlantCatalogEntrySchema = z.object({
 export type GardenPlantCatalogEntry = z.infer<typeof gardenPlantCatalogEntrySchema>;
 
 export const gardenPlantCatalog = z.array(gardenPlantCatalogEntrySchema).parse(GARDEN_PLANT_CATALOG);
-export const starterGardenPlantIds: readonly GardenPlantId[] = GARDEN_PLANT_IDS;
+export const starterGardenPlantIds = [
+  "bloodleaf",
+  "fenroot",
+  "ironbloom",
+  "duskmint",
+  "kingsfoil"
+] as const satisfies readonly GardenPlantId[];
 
 export const gardenInventoryEntrySchema = z.object({
   inventoryEntryId: z.string(),
@@ -134,6 +140,14 @@ export const gardenPlantCatalogById = Object.freeze(
   >
 );
 
+export const gardenPlantCatalogBySeedItemCode = Object.freeze(
+  Object.fromEntries(gardenPlantCatalog.map((entry) => [entry.seedItemCode, entry])) as Record<string, GardenPlantCatalogEntry>
+);
+
+export const gardenPlantCatalogByIngredientItemCode = Object.freeze(
+  Object.fromEntries(gardenPlantCatalog.map((entry) => [entry.ingredientItemCode, entry])) as Record<string, GardenPlantCatalogEntry>
+);
+
 function toDate(value: Date | string | null | undefined): Date | null {
   if (!value) {
     return null;
@@ -145,6 +159,10 @@ function toDate(value: Date | string | null | undefined): Date | null {
 
 export function getGardenPlantDefinition(plantId: GardenPlantId): GardenPlantCatalogEntry {
   return gardenPlantCatalogById[plantId];
+}
+
+export function getGardenPlantDefinitionByItemCode(itemCode: string): GardenPlantCatalogEntry | null {
+  return gardenPlantCatalogByIngredientItemCode[itemCode] ?? gardenPlantCatalogBySeedItemCode[itemCode] ?? null;
 }
 
 export function normalizeGardenUnlockedSlotCount(unlockedSlotCount: number): number {

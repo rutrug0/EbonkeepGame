@@ -44,6 +44,7 @@ model PlayerProfile {
   fastArenaReplenishEnabled    Boolean @default(false)
   invincibilityEnabled         Boolean @default(false)
   fastTrainTimeEnabled         Boolean @default(false)
+  fastCraftTimeEnabled         Boolean @default(false)
   unlimitedAcademyDonationsEnabled Boolean @default(false)
   unlimitedForgeConsumablesEnabled Boolean @default(false)
   unlimitedRefineryMaterialsEnabled Boolean @default(false)

@@ -8321,6 +8321,16 @@ button:focus-visible {
   object-fit: contain;
   padding: 0.35rem;
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.24));
+  transform: translate3d(0, 0, 0) scale(0.92) rotate(-3deg);
+  transform-origin: center center;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), filter 260ms ease;
+  will-change: transform, filter;
+}
+
+.refinerySlot:hover .refinerySlotVisual img,
+.refinerySlot:focus-within .refinerySlotVisual img {
+  transform: translate3d(0, -2px, 0) scale(1.08) rotate(2.5deg);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 6px rgba(183, 165, 123, 0.12));
 }
 
 .refinerySlotVisualContent {
@@ -8338,7 +8348,11 @@ button:focus-visible {
 }
 
 .refinerySlotVisualContent.isPulse:not(.isClaiming) {
-  animation: refinerySlotPulse 0.56s ease-out;
+  animation: gardenPlantFadeIn 0.32s ease-out both;
+}
+
+.refinerySlotVisualContent.isClaiming {
+  animation: gardenPlantHarvestOut 0.56s ease-out both;
 }
 
 .refineryOutputVisualContent {
@@ -8365,16 +8379,97 @@ button:focus-visible {
 }
 
 .refineryRecipeTileIcon {
+  position: relative;
   width: 62px;
   height: 62px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 16px;
+  border: 1px solid rgba(168, 181, 194, 0.36);
+  border-radius: var(--soft-radius);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(173, 184, 194, 0.16), transparent 54%),
+    linear-gradient(170deg, rgba(27, 35, 43, 0.92), rgba(17, 24, 31, 0.96));
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.06),
     0 12px 20px rgba(0, 0, 0, 0.18);
+}
+
+.refineryConsumableTierBadge {
+  position: absolute;
+  top: 0.38rem;
+  left: 0.38rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  padding: 0.12rem 0.34rem 0.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 183, 151, 0.24);
+  background: linear-gradient(180deg, rgba(16, 19, 25, 0.9), rgba(9, 12, 17, 0.94));
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+.refineryMaterialTierBadge {
+  position: absolute;
+  top: 0.38rem;
+  left: 0.38rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  padding: 0.12rem 0.34rem 0.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 183, 151, 0.24);
+  background: linear-gradient(180deg, rgba(16, 19, 25, 0.9), rgba(9, 12, 17, 0.94));
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+.refineryConsumableTierBadge.isBase {
+  color: #72d05b;
+}
+
+.refineryConsumableTierBadge.isPotent {
+  color: #f0cf66;
+}
+
+.refineryConsumableTierBadge.isMythic {
+  color: #e36a62;
+}
+
+.refineryMaterialTierBadge.isT1 {
+  color: #72d05b;
+}
+
+.refineryMaterialTierBadge.isT2 {
+  color: #7cb9ff;
+}
+
+.refineryMaterialTierBadge.isT3 {
+  color: #c58cff;
+}
+
+.refineryMaterialTierBadge.isT4 {
+  color: #e7bf5f;
 }
 
 .refineryRecipeTileIcon img {
@@ -8383,9 +8478,19 @@ button:focus-visible {
   height: 100%;
   object-fit: contain;
   padding: 0.35rem;
+  transform: translate3d(0, 0, 0) scale(1.38) rotate(-3deg);
+  transform-origin: center;
   filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.22));
   user-select: none;
   pointer-events: none;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), filter 260ms ease;
+  will-change: transform, filter;
+}
+
+.refineryRecipeTileWrap:hover .refineryRecipeTileIcon img,
+.refineryRecipeTile:focus-visible .refineryRecipeTileIcon img {
+  transform: translate3d(0, -2px, 0) scale(1.62) rotate(2.5deg);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 6px rgba(183, 165, 123, 0.12));
 }
 
 .refinerySlotPlaceholder {
@@ -8417,6 +8522,10 @@ button:focus-visible {
 }
 
 .refineryOutputSlot.isClaiming .refinerySlotCountBadge {
+  animation: gardenPlantFadeOut 0.32s ease-out both;
+}
+
+.refinerySlot.isClaiming .refinerySlotCountBadge {
   animation: gardenPlantFadeOut 0.32s ease-out both;
 }
 
@@ -8509,7 +8618,7 @@ button:focus-visible {
 .refineryRecipeMenu {
   position: relative;
   z-index: 1;
-  width: min(560px, calc(100vw - 2rem));
+  width: min(1120px, calc(100vw - 2rem));
   height: min(78vh, calc(100dvh - 2rem));
   display: flex;
   flex-direction: column;
@@ -8591,11 +8700,112 @@ button:focus-visible {
 
 .refineryRecipeGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   align-content: start;
   gap: 0.75rem;
   min-height: 0;
   padding: 0.15rem 0.25rem 0.25rem 0;
+}
+
+.refineryRecipeProgressionList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
+  gap: 0.95rem;
+  align-items: start;
+  min-height: 0;
+  padding: 0.15rem 0.25rem 0.25rem 0;
+}
+
+.refineryRecipeProgressionCard {
+  position: relative;
+  display: grid;
+  padding: 0.8rem;
+  border-radius: 18px;
+  border: 1px solid rgba(224, 196, 139, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    linear-gradient(165deg, rgba(16, 20, 28, 0.94), rgba(24, 18, 15, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 16px 28px rgba(0, 0, 0, 0.18);
+}
+
+.refineryRecipeProgressionCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(214, 182, 118, 0.08), rgba(214, 182, 118, 0)),
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.04), transparent 32%);
+}
+
+.refineryRecipeProgressionRow {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26px minmax(0, 1fr) 26px minmax(0, 1fr);
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.refineryRecipeProgressionArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  align-self: center;
+  width: 100%;
+  max-width: 26px;
+  height: 42px;
+  color: rgba(231, 207, 156, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, rgba(70, 56, 34, 0.7), rgba(111, 84, 43, 0.46));
+  border: 1px solid rgba(211, 180, 121, 0.22);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.refineryRecipeProgressionArrow svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.refineryRecipeGroup {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.55rem 0;
+  padding: 0.95rem 0;
+  border-top: 1px solid rgba(224, 196, 139, 0.12);
+  border-bottom: 1px solid rgba(224, 196, 139, 0.08);
+}
+
+.refineryRecipeGroup:first-child {
+  margin-top: 0;
+  padding-top: 0.2rem;
+  border-top: 0;
+}
+
+.refineryRecipeGroup:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0.2rem;
+  border-bottom: 0;
+}
+
+.refineryRecipeGroupTitle {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .refineryRecipeTileWrap {
@@ -8603,6 +8813,7 @@ button:focus-visible {
 }
 
 .refineryRecipeTile {
+  position: relative;
   width: 100%;
   min-height: 158px;
   display: flex;
@@ -8617,6 +8828,10 @@ button:focus-visible {
   color: var(--text-main);
   cursor: pointer;
   transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.refineryRecipeTile.isProgression {
+  min-height: 150px;
 }
 
 .refineryRecipeTile:hover:not(:disabled) {
@@ -8639,14 +8854,83 @@ button:focus-visible {
 }
 
 .refineryRecipeTileCount {
+  align-self: flex-start;
+  margin-top: auto;
+  padding-right: 4.25rem;
   font-size: 0.76rem;
   color: var(--text-muted);
+}
+
+.refineryRecipeTileTime {
+  position: absolute;
+  right: 0.72rem;
+  bottom: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.15rem;
+  padding: 0.16rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 189, 144, 0.18);
+  background: linear-gradient(180deg, rgba(12, 16, 22, 0.92), rgba(8, 11, 16, 0.96));
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: color-mix(in srgb, var(--text-main) 78%, var(--accent-warn) 22%);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
 }
 
 .refineryRecipeTooltip {
   width: max-content;
   min-width: 220px;
   max-width: 280px;
+}
+
+.refineryRecipeTooltipFloating {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: auto;
+  z-index: 10020;
+  width: min(340px, calc(100vw - 24px));
+  min-width: min(260px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  opacity: 1;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+}
+
+.refineryRecipeTooltipFloating.isBelow {
+  transform: translate(-50%, 0);
+}
+
+.refineryRecipeTooltipFloating.isBelow::after {
+  top: auto;
+  bottom: 100%;
+  border-right: none;
+  border-bottom: none;
+  border-left: 1px solid rgba(196, 178, 147, 0.26);
+  border-top: 1px solid rgba(196, 178, 147, 0.26);
+}
+
+.refineryRecipeTooltipSectionTitle {
+  margin: 0.15rem 0 0;
+  color: color-mix(in srgb, var(--text-main) 70%, var(--accent-warn) 30%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.refineryRecipeTooltipBody {
+  color: var(--text-main);
+}
+
+.refineryRecipeEffectLine {
+  color: #dfe9f4;
 }
 
 .refineryRecipeRequirement.isSufficient {
@@ -8671,13 +8955,26 @@ button:focus-visible {
 .refinerySlot.tone-reagent .refinerySlotFallback,
 .refineryInventoryChip.tone-reagent .refineryInventoryChipIcon,
 .refineryRecipeTile.tone-potion .refineryRecipeTileIcon {
-  background: linear-gradient(135deg, rgba(71, 84, 118, 0.95), rgba(111, 143, 191, 0.95));
+  border-color: rgba(113, 168, 98, 0.38);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(114, 179, 97, 0.2), transparent 54%),
+    linear-gradient(170deg, rgba(25, 37, 34, 0.92), rgba(16, 27, 24, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 148, 83, 0.14),
+    0 12px 20px rgba(0, 0, 0, 0.18);
 }
 
 .refinerySlot.tone-scrap .refinerySlotFallback,
 .refineryInventoryChip.tone-scrap .refineryInventoryChipIcon,
 .refineryRecipeTile.tone-salvage .refineryRecipeTileIcon {
-  background: linear-gradient(135deg, rgba(104, 84, 60, 0.95), rgba(146, 118, 78, 0.95));
+  border-color: rgba(212, 175, 55, 0.46);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(216, 170, 62, 0.26), transparent 54%),
+    linear-gradient(170deg, rgba(36, 33, 25, 0.92), rgba(24, 22, 16, 0.96));
+  box-shadow:
+    inset 0 0 0 1px rgba(187, 145, 45, 0.17),
+    0 0 12px rgba(186, 143, 38, 0.09),
+    0 12px 20px rgba(0, 0, 0, 0.18);
 }
 
 .refinerySlot.tone-potion .refinerySlotFallback,
@@ -8706,6 +9003,24 @@ button:focus-visible {
   .refineryCraftInventoryScroller {
     grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
   }
+
+  .refineryRecipeMenu {
+    width: min(920px, calc(100vw - 2rem));
+  }
+
+  .refineryRecipeProgressionList {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1181px) {
+  .refineryRecipeGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .refineryRecipeProgressionList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -8732,6 +9047,21 @@ button:focus-visible {
 
   .refineryRecipeGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .refineryRecipeProgressionRow {
+    grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr) 20px minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .refineryRecipeProgressionCard {
+    padding: 0.65rem;
+  }
+
+  .refineryRecipeProgressionArrow {
+    min-width: 0;
+    max-width: 20px;
+    height: 34px;
   }
 
   .refineryRecipeMenu {

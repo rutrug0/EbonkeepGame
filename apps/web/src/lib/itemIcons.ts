@@ -1,4 +1,6 @@
 import { getCraftingMaterialDefinition, getCraftingOutputDefinition } from "@ebonkeep/shared/crafting";
+import { getGardenPlantDefinitionByItemCode } from "@ebonkeep/shared/garden";
+import { GENERATED_ITEM_ICON_PATHS } from "../generated/itemArtManifest";
 
 const MATERIAL_ICON_KEYS = [
   "mat_alum_crystal",
@@ -29,21 +31,22 @@ const MATERIAL_ICON_KEYS = [
 ] as const;
 
 const CONSUMABLE_ICON_KEYS = [
-  "consumable_bulwark_distillate",
-  "consumable_contractors_resolve",
-  "consumable_emberwake_draft",
-  "consumable_field_tonic",
+  "consumable_berserkers_tonic",
+  "consumable_bulwark_tonic",
+  "consumable_chroniclers_elixir",
+  "consumable_contractors_resolve_elixir",
+  "consumable_deadeye_elixir",
+  "consumable_emberwake_tonic",
   "consumable_graveward_elixir",
-  "consumable_greater_healing_potion",
   "consumable_healing_potion",
-  "consumable_hexcleanse_phial",
-  "consumable_hunters_draft",
-  "consumable_purge_philter",
-  "consumable_soulbound_draught",
+  "consumable_hexcleanse_tonic",
+  "consumable_hunters_tonic",
+  "consumable_ravagers_tonic",
+  "consumable_second_wind_potion",
   "consumable_sunspike_elixir",
-  "consumable_travelers_distillate",
-  "consumable_vigorous_restorative",
-  "consumable_wardens_draft",
+  "consumable_travelers_elixir",
+  "consumable_warcallers_elixir",
+  "consumable_wardens_tonic",
   "consumable_wardwash_tonic"
 ] as const;
 
@@ -72,7 +75,7 @@ export function getUploadedItemIconPathByIconKey(iconKey: string | null | undefi
   }
 
   const normalizedKey = normalizeUploadedIconKey(iconKey);
-  return UPLOADED_ITEM_ICON_PATHS[normalizedKey];
+  return UPLOADED_ITEM_ICON_PATHS[normalizedKey] ?? GENERATED_ITEM_ICON_PATHS[normalizedKey];
 }
 
 export function getUploadedItemIconPathByItemCode(itemCode: string | null | undefined): string | undefined {
@@ -98,6 +101,16 @@ export function getUploadedItemIconPathByItemCode(itemCode: string | null | unde
   const outputDefinition = getCraftingOutputDefinition(itemCode);
   if (outputDefinition) {
     return getUploadedItemIconPathByIconKey(outputDefinition.iconKey);
+  }
+
+  const gardenDefinition = getGardenPlantDefinitionByItemCode(itemCode);
+  if (gardenDefinition) {
+    if (itemCode === gardenDefinition.ingredientItemCode) {
+      return `/assets/items/generated/garden/${gardenDefinition.plantId}/${gardenDefinition.plantId}_ingredient.png`;
+    }
+    if (itemCode === gardenDefinition.seedItemCode) {
+      return `/assets/items/generated/garden/${gardenDefinition.plantId}/${gardenDefinition.plantId}_seed.png`;
+    }
   }
 
   return undefined;

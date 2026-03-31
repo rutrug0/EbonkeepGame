@@ -448,6 +448,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       fastArenaReplenishEnabled: boolean;
       invincibilityEnabled: boolean;
       fastTrainTimeEnabled: boolean;
+      fastCraftTimeEnabled: boolean;
       unlimitedAcademyDonationsEnabled: boolean;
       unlimitedForgeConsumablesEnabled: boolean;
       unlimitedRefineryMaterialsEnabled: boolean;
@@ -459,6 +460,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       "fastArenaReplenishEnabled",
       "invincibilityEnabled",
       "fastTrainTimeEnabled",
+      "fastCraftTimeEnabled",
       "unlimitedAcademyDonationsEnabled",
       "unlimitedForgeConsumablesEnabled",
       "unlimitedRefineryMaterialsEnabled"
@@ -472,6 +474,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false,
+    fastCraftTimeEnabled: false,
     unlimitedAcademyDonationsEnabled: false,
     unlimitedForgeConsumablesEnabled: false,
     unlimitedRefineryMaterialsEnabled: false
@@ -534,6 +537,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       fastArenaReplenishEnabled: cheatSettingsRow.fastArenaReplenishEnabled,
       invincibilityEnabled: cheatSettingsRow.invincibilityEnabled,
       fastTrainTimeEnabled: cheatSettingsRow.fastTrainTimeEnabled,
+      fastCraftTimeEnabled: cheatSettingsRow.fastCraftTimeEnabled,
       unlimitedAcademyDonationsEnabled: cheatSettingsRow.unlimitedAcademyDonationsEnabled,
       unlimitedForgeConsumablesEnabled: cheatSettingsRow.unlimitedForgeConsumablesEnabled,
       unlimitedRefineryMaterialsEnabled: cheatSettingsRow.unlimitedRefineryMaterialsEnabled

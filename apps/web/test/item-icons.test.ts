@@ -24,11 +24,11 @@ describe("uploaded item icon mappings", () => {
   });
 
   it("maps uploaded icon keys directly", () => {
-    expect(getUploadedItemIconPathByIconKey("consumable_contractors_resolve")).toBe(
-      "/assets/consumables/consumable_contractors_resolve.png"
+    expect(getUploadedItemIconPathByIconKey("consumable_contractors_resolve_elixir")).toBe(
+      "/assets/consumables/consumable_contractors_resolve_elixir.png"
     );
-    expect(getUploadedItemIconPathByIconKey("consumable_contractors_resolve_d1")).toBe(
-      "/assets/consumables/consumable_contractors_resolve.png"
+    expect(getUploadedItemIconPathByIconKey("consumable_contractors_resolve_elixir_d1")).toBe(
+      "/assets/consumables/consumable_contractors_resolve_elixir.png"
     );
   });
 });

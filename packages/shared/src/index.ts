@@ -10,3 +10,5 @@ export * from "./domains/leaderboard/index.js";
 export * from "./domains/garden/index.js";
 export * from "./domains/jobs/index.js";
 export * from "./domains/forge/index.js";
+export * from "./domains/consumables/index.js";
+export * from "./domains/crafting/index.js";

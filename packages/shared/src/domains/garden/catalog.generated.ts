@@ -6,7 +6,11 @@ export const GARDEN_PLANT_IDS = [
   "fenroot",
   "ironbloom",
   "duskmint",
-  "kingsfoil"
+  "kingsfoil",
+  "emberbud",
+  "gravebloom",
+  "shadecap",
+  "sunspike"
 ] as const;
 
 export const GARDEN_PLANT_CATALOG = [
@@ -23,9 +27,8 @@ export const GARDEN_PLANT_CATALOG = [
     "baseYield": 2,
     "bloomYield": 4,
     "recipeRefs": [
-      "Field Tonic",
       "Healing Potion",
-      "Warden's Draft"
+      "Warden's Tonic"
     ]
   },
   {
@@ -41,7 +44,9 @@ export const GARDEN_PLANT_CATALOG = [
     "baseYield": 2,
     "bloomYield": 4,
     "recipeRefs": [
-      "Field Tonic"
+      "Healing Potion",
+      "Second Wind Potion",
+      "Traveler's Elixir"
     ]
   },
   {
@@ -57,9 +62,10 @@ export const GARDEN_PLANT_CATALOG = [
     "baseYield": 2,
     "bloomYield": 4,
     "recipeRefs": [
-      "Warden's Draft",
-      "Hunter's Draft",
-      "Bulwark Distillate"
+      "Warden's Tonic",
+      "Hunter's Tonic",
+      "Emberwake Tonic",
+      "Bulwark Tonic"
     ]
   },
   {
@@ -75,9 +81,11 @@ export const GARDEN_PLANT_CATALOG = [
     "baseYield": 2,
     "bloomYield": 4,
     "recipeRefs": [
-      "Healing Potion",
-      "Hunter's Draft",
-      "Purge Philter"
+      "Second Wind Potion",
+      "Hunter's Tonic",
+      "Berserker's Tonic",
+      "Wardwash Tonic",
+      "Deadeye Elixir"
     ]
   },
   {
@@ -93,10 +101,85 @@ export const GARDEN_PLANT_CATALOG = [
     "baseYield": 1,
     "bloomYield": 2,
     "recipeRefs": [
-      "Greater Healing Potion",
-      "Bulwark Distillate",
+      "Bulwark Tonic",
       "Wardwash Tonic",
-      "Traveler's Distillate"
+      "Deadeye Elixir",
+      "Traveler's Elixir",
+      "Contractor's Resolve Elixir"
+    ]
+  },
+  {
+    "plantId": "emberbud",
+    "displayName": "Emberbud",
+    "rarity": "uncommon",
+    "seedItemCode": "seed_emberbud",
+    "ingredientItemCode": "ingredient_emberbud",
+    "growthSeconds": 6,
+    "preBloomSeconds": 0,
+    "bloomSeconds": 6,
+    "postBloomSeconds": 6,
+    "baseYield": 1,
+    "bloomYield": 2,
+    "recipeRefs": [
+      "Emberwake Tonic",
+      "Berserker's Tonic",
+      "Contractor's Resolve Elixir",
+      "Sunspike Elixir"
+    ]
+  },
+  {
+    "plantId": "gravebloom",
+    "displayName": "Gravebloom",
+    "rarity": "rare",
+    "seedItemCode": "seed_gravebloom",
+    "ingredientItemCode": "ingredient_gravebloom",
+    "growthSeconds": 7,
+    "preBloomSeconds": 0,
+    "bloomSeconds": 7,
+    "postBloomSeconds": 7,
+    "baseYield": 1,
+    "bloomYield": 2,
+    "recipeRefs": [
+      "Graveward Elixir",
+      "Hexcleanse Tonic",
+      "Ravager's Tonic",
+      "Warcaller's Elixir"
+    ]
+  },
+  {
+    "plantId": "shadecap",
+    "displayName": "Shadecap",
+    "rarity": "rare",
+    "seedItemCode": "seed_shadecap",
+    "ingredientItemCode": "ingredient_shadecap",
+    "growthSeconds": 7,
+    "preBloomSeconds": 0,
+    "bloomSeconds": 7,
+    "postBloomSeconds": 7,
+    "baseYield": 1,
+    "bloomYield": 2,
+    "recipeRefs": [
+      "Hexcleanse Tonic",
+      "Chronicler's Elixir"
+    ]
+  },
+  {
+    "plantId": "sunspike",
+    "displayName": "Sunspike",
+    "rarity": "rare",
+    "seedItemCode": "seed_sunspike",
+    "ingredientItemCode": "ingredient_sunspike",
+    "growthSeconds": 8,
+    "preBloomSeconds": 0,
+    "bloomSeconds": 8,
+    "postBloomSeconds": 8,
+    "baseYield": 1,
+    "bloomYield": 2,
+    "recipeRefs": [
+      "Sunspike Elixir",
+      "Chronicler's Elixir",
+      "Ravager's Tonic",
+      "Warcaller's Elixir"
     ]
   }
 ] as const;

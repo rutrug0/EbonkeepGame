@@ -60,26 +60,25 @@ describe("crafting service", () => {
     return profile.id;
   }
 
-  it("grants instant combine outputs without creating a crafting job", async () => {
+  it("grants instant catalyst outputs without creating a crafting job", async () => {
     if (!context) {
       return;
     }
     const playerId = await createPlayerWithDucats();
 
-    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_metal_common", 2, "material");
-    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_binding_common", 1, "material");
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_arcane_common", 3, "material");
 
     const result = await startCraftingJob(
       context.prisma,
       playerId,
-      "combine_t1_metal_common_to_uncommon",
-      "combine",
+      "craft_forge_catalyst_common",
+      "item",
       0
     );
 
     expect(result.instant).toBe(true);
     expect(result.granted).toEqual({
-      itemCode: "mat_t1_metal_uncommon",
+      itemCode: "forge_catalyst_common",
       quantity: 1
     });
 
@@ -95,7 +94,7 @@ describe("crafting service", () => {
       where: {
         playerId,
         itemCode: {
-          in: ["mat_t1_metal_common", "mat_t1_binding_common"]
+          in: ["mat_t1_arcane_common"]
         }
       }
     });
@@ -104,10 +103,40 @@ describe("crafting service", () => {
     const outputRow = await context.prisma.inventoryItem.findFirst({
       where: {
         playerId,
-        itemCode: "mat_t1_metal_uncommon"
+        itemCode: "forge_catalyst_common"
       }
     });
     expect(outputRow?.quantity).toBe(1);
+  });
+
+  it("creates timed common-to-uncommon combine jobs instead of granting instantly", async () => {
+    if (!context) {
+      return;
+    }
+    const playerId = await createPlayerWithDucats();
+
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t3_metal_common", 1, "material");
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t3_arcane_common", 1, "material");
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t3_binding_common", 1, "material");
+
+    const started = await startCraftingJob(
+      context.prisma,
+      playerId,
+      "combine_t3_arcane_common_to_uncommon",
+      "combine",
+      0
+    );
+
+    expect(started.instant).toBe(false);
+    expect(Date.parse(started.job.finishesAt)).toBeGreaterThan(Date.parse(started.job.startedAt));
+
+    const outputBeforeClaim = await context.prisma.inventoryItem.findFirst({
+      where: {
+        playerId,
+        itemCode: "mat_t3_arcane_uncommon"
+      }
+    });
+    expect(outputBeforeClaim).toBeNull();
   });
 
   it("creates timed combine jobs and only grants the output after claim", async () => {
@@ -196,7 +225,7 @@ describe("crafting service", () => {
       1
     );
 
-    expect(result.instant).toBe(true);
+    expect(result.instant).toBe(false);
 
     const salvageRow = await context.prisma.inventoryItem.findFirst({
       where: {
@@ -205,6 +234,15 @@ describe("crafting service", () => {
       }
     });
     expect(salvageRow).toBeNull();
+
+    await context.prisma.craftingJob.update({
+      where: { id: result.job.id },
+      data: {
+        finishesAt: new Date(Date.now() - 1_000)
+      }
+    });
+
+    await claimCraftingJob(context.prisma, playerId, result.job.id);
 
     const outputRow = await context.prisma.inventoryItem.findFirst({
       where: {
@@ -223,8 +261,7 @@ describe("crafting service", () => {
 
     await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_metal_uncommon", 6, "material");
     await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_arcane_uncommon", 3, "material");
-    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_metal_common", 2, "material");
-    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_binding_common", 1, "material");
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_arcane_common", 3, "material");
 
     await startCraftingJob(context.prisma, playerId, "combine_t1_metal_uncommon_to_rare", "combine", 0);
     await startCraftingJob(context.prisma, playerId, "combine_t1_metal_uncommon_to_rare", "combine", 1);
@@ -233,14 +270,14 @@ describe("crafting service", () => {
     const result = await startCraftingJob(
       context.prisma,
       playerId,
-      "combine_t1_metal_common_to_uncommon",
-      "combine",
+      "craft_forge_catalyst_common",
+      "item",
       0
     );
 
     expect(result.instant).toBe(true);
     expect(result.granted).toEqual({
-      itemCode: "mat_t1_metal_uncommon",
+      itemCode: "forge_catalyst_common",
       quantity: 1
     });
   });
@@ -267,12 +304,12 @@ describe("crafting service", () => {
     }
     const playerId = await createPlayerWithDucats();
 
-    await grantCraftingStackableItem(context.prisma, playerId, "consumable_vigorous_restorative", 3, "output");
+    await grantCraftingStackableItem(context.prisma, playerId, "consumable_healing_potion", 3, "output");
 
     const started = await startCraftingJob(
       context.prisma,
       playerId,
-      "distill_consumable_vigorous_restorative_d1",
+      "distill_consumable_healing_potion_d1",
       "distill",
       2
     );
@@ -282,7 +319,7 @@ describe("crafting service", () => {
     const consumedBase = await context.prisma.inventoryItem.findFirst({
       where: {
         playerId,
-        itemCode: "consumable_vigorous_restorative"
+        itemCode: "consumable_healing_potion"
       }
     });
     expect(consumedBase).toBeNull();
@@ -295,12 +332,12 @@ describe("crafting service", () => {
     });
 
     const claimed = await claimCraftingJob(context.prisma, playerId, started.job.id);
-    expect(claimed.item?.itemCode).toBe("consumable_vigorous_restorative_d1");
+    expect(claimed.item?.itemCode).toBe("consumable_healing_potion_d1");
 
     const distilled = await context.prisma.inventoryItem.findFirst({
       where: {
         playerId,
-        itemCode: "consumable_vigorous_restorative_d1"
+        itemCode: "consumable_healing_potion_d1"
       }
     });
     expect(distilled?.quantity).toBe(1);
@@ -312,12 +349,12 @@ describe("crafting service", () => {
     }
     const playerId = await createPlayerWithDucats();
 
-    await grantCraftingStackableItem(context.prisma, playerId, "consumable_vigorous_restorative_d1", 3, "output");
+    await grantCraftingStackableItem(context.prisma, playerId, "consumable_healing_potion_d1", 3, "output");
 
     const started = await startCraftingJob(
       context.prisma,
       playerId,
-      "distill_consumable_vigorous_restorative_d2",
+      "distill_consumable_healing_potion_d2",
       "distill",
       1
     );
@@ -330,12 +367,12 @@ describe("crafting service", () => {
     });
 
     const claimed = await claimCraftingJob(context.prisma, playerId, started.job.id);
-    expect(claimed.item?.itemCode).toBe("consumable_vigorous_restorative_d2");
+    expect(claimed.item?.itemCode).toBe("consumable_healing_potion_d2");
 
     const distilled = await context.prisma.inventoryItem.findFirst({
       where: {
         playerId,
-        itemCode: "consumable_vigorous_restorative_d2"
+        itemCode: "consumable_healing_potion_d2"
       }
     });
     expect(distilled?.quantity).toBe(1);
@@ -352,12 +389,12 @@ describe("crafting service", () => {
       data: {
         id: existingId,
         playerId,
-        itemCode: "consumable_vigorous_restorative",
+        itemCode: "consumable_healing_potion",
         slotKey: "inventory",
         quantity: 1,
         itemData: {
           id: existingId,
-          itemCode: "consumable_vigorous_restorative",
+          itemCode: "consumable_healing_potion",
           itemName: "Broken Icon Potion",
           iconAssetPath: "/assets/materials/missing-icon.png"
         }
@@ -365,7 +402,7 @@ describe("crafting service", () => {
     });
 
     await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_metal_common", 1, "material");
-    await grantCraftingStackableItem(context.prisma, playerId, "consumable_vigorous_restorative", 2, "output");
+    await grantCraftingStackableItem(context.prisma, playerId, "consumable_healing_potion", 2, "output");
 
     const materialRow = await context.prisma.inventoryItem.findFirst({
       where: {
@@ -401,13 +438,13 @@ describe("crafting service", () => {
     }
     const playerId = await createPlayerWithDucats();
 
-    await grantCraftingStackableItem(context.prisma, playerId, "consumable_vigorous_restorative", 2, "output");
+    await grantCraftingStackableItem(context.prisma, playerId, "consumable_healing_potion", 2, "output");
 
     await expect(
       startCraftingJob(
         context.prisma,
         playerId,
-        "distill_consumable_vigorous_restorative_d1",
+        "distill_consumable_healing_potion_d1",
         "distill",
         0
       )
@@ -463,6 +500,37 @@ describe("crafting service", () => {
     });
   });
 
+  it("shortens timed refinery jobs to 3 seconds when the fast craft cheat is enabled", async () => {
+    if (!context) {
+      return;
+    }
+    const playerId = await createPlayerWithDucats();
+
+    await context.prisma.playerProfile.update({
+      where: { id: playerId },
+      data: {
+        fastCraftTimeEnabled: true
+      }
+    });
+
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_metal_uncommon", 2, "material");
+    await grantCraftingStackableItem(context.prisma, playerId, "mat_t1_arcane_uncommon", 1, "material");
+
+    const beforeStartMs = Date.now();
+    const started = await startCraftingJob(
+      context.prisma,
+      playerId,
+      "combine_t1_metal_uncommon_to_rare",
+      "combine",
+      0
+    );
+    const finishesAtMs = Date.parse(started.job.finishesAt);
+
+    expect(started.instant).toBe(false);
+    expect(finishesAtMs - beforeStartMs).toBeGreaterThanOrEqual(2_000);
+    expect(finishesAtMs - beforeStartMs).toBeLessThanOrEqual(4_500);
+  });
+
   it("surfaces slot insert races as a conflict instead of a generic failure", async () => {
     const fakeTx = {
       craftingJob: {
@@ -479,7 +547,8 @@ describe("crafting service", () => {
       },
       playerProfile: {
         findUnique: vi.fn().mockResolvedValue({
-          unlimitedRefineryMaterialsEnabled: true
+          unlimitedRefineryMaterialsEnabled: true,
+          fastCraftTimeEnabled: false
         })
       },
       inventoryItem: {

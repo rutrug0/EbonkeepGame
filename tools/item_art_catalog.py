@@ -136,6 +136,11 @@ def key_for_generated_asset(rel: Path) -> tuple[str, str] | None:
         key = f"jewelry:{jewelry_type}:{normalize_name_for_key(item_slug.replace('_', ' '))}"
         return key, f"/assets/items/generated/{rel.as_posix()}"
 
+    if major == "consumable":
+        if len(parts) < 3:
+            return None
+        return filename, f"/assets/items/generated/{rel.as_posix()}"
+
     if major == "character":
         if len(parts) < 3:
             return None

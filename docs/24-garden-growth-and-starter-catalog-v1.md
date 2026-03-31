@@ -5,6 +5,7 @@ Define the first implemented Garden slice for Estate:
 - `18` total plots
 - `7` unlocked at start in a deterministic center-out pattern
 - `5` starter plant families
+- `4` reserved advanced herbs defined for refinery progression
 - server-authoritative growth timers
 - seed-only Garden inventory
 - harvest timing that rewards bloom windows without adding care actions yet
@@ -18,6 +19,7 @@ Included in Garden v1:
 - planting, harvesting, and clearing wilted crops
 - countdown and progress display for each phase
 - ingredient persistence for future refinery use
+- extended herb definitions for medium/hard consumable recipes, without starter seed grants
 
 Explicitly deferred:
 - watering, pruning, blight, or other care actions
@@ -52,18 +54,29 @@ Rules:
 
 | Plant | Rarity | Seed item code | Ingredient item code | Growth | Pre-bloom | Bloom | Post-bloom | Base yield | Bloom yield | Refinery recipe references |
 |---|---|---|---|---:|---:|---:|---:|---:|---:|---|
-| Bloodleaf | common | `seed_bloodleaf` | `ingredient_bloodleaf` | `90s` | `30s` | `60s` | `60s` | `2` | `4` | Field Tonic, Healing Potion, Warden's Draft |
-| Fenroot | common | `seed_fenroot` | `ingredient_fenroot` | `120s` | `30s` | `60s` | `60s` | `2` | `4` | Field Tonic |
-| Ironbloom | common | `seed_ironbloom` | `ingredient_ironbloom` | `150s` | `30s` | `60s` | `60s` | `2` | `4` | Warden's Draft, Hunter's Draft, Bulwark Distillate |
-| Duskmint | common | `seed_duskmint` | `ingredient_duskmint` | `180s` | `30s` | `60s` | `60s` | `2` | `4` | Healing Potion, Hunter's Draft, Purge Philter |
-| Kingsfoil | uncommon | `seed_kingsfoil` | `ingredient_kingsfoil` | `240s` | `30s` | `60s` | `60s` | `1` | `2` | Greater Healing Potion, Bulwark Distillate, Wardwash Tonic, Traveler's Distillate |
+| Bloodleaf | common | `seed_bloodleaf` | `ingredient_bloodleaf` | `90s` | `30s` | `60s` | `60s` | `2` | `4` | Healing Potion, Warden's Tonic |
+| Fenroot | common | `seed_fenroot` | `ingredient_fenroot` | `120s` | `30s` | `60s` | `60s` | `2` | `4` | Healing Potion, Second Wind Potion, Traveler's Elixir |
+| Ironbloom | common | `seed_ironbloom` | `ingredient_ironbloom` | `150s` | `30s` | `60s` | `60s` | `2` | `4` | Warden's Tonic, Hunter's Tonic, Emberwake Tonic, Bulwark Tonic |
+| Duskmint | common | `seed_duskmint` | `ingredient_duskmint` | `180s` | `30s` | `60s` | `60s` | `2` | `4` | Second Wind Potion, Hunter's Tonic, Berserker's Tonic, Wardwash Tonic, Deadeye Elixir |
+| Kingsfoil | uncommon | `seed_kingsfoil` | `ingredient_kingsfoil` | `240s` | `30s` | `60s` | `60s` | `1` | `2` | Bulwark Tonic, Wardwash Tonic, Deadeye Elixir, Traveler's Elixir, Contractor's Resolve Elixir |
+
+## Extended Refinery Herbs
+
+These herbs are data-defined for medium and hard consumable recipes, but they are not part of the Garden bootstrap seed grant yet.
+
+| Plant | Rarity | Seed item code | Ingredient item code | Growth | Pre-bloom | Bloom | Post-bloom | Base yield | Bloom yield | Refinery recipe references |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---|
+| Emberbud | uncommon | `seed_emberbud` | `ingredient_emberbud` | `360s` | `30s` | `60s` | `60s` | `1` | `2` | Emberwake Tonic, Berserker's Tonic, Contractor's Resolve Elixir, Sunspike Elixir |
+| Gravebloom | rare | `seed_gravebloom` | `ingredient_gravebloom` | `420s` | `30s` | `60s` | `60s` | `1` | `2` | Graveward Elixir, Hexcleanse Tonic, Ravager's Tonic, Warcaller's Elixir |
+| Shadecap | rare | `seed_shadecap` | `ingredient_shadecap` | `420s` | `30s` | `60s` | `60s` | `1` | `2` | Hexcleanse Tonic, Chronicler's Elixir |
+| Sunspike | rare | `seed_sunspike` | `ingredient_sunspike` | `480s` | `30s` | `60s` | `60s` | `1` | `2` | Sunspike Elixir, Chronicler's Elixir, Ravager's Tonic, Warcaller's Elixir |
 
 ## Bootstrap Rules
 On first Garden state load, the player receives:
 - `18` garden plots, with `7` unlocked for immediate use
 - `999` seeds of each starter plant
 
-This is a development-friendly bootstrap and not the final acquisition model.
+This is a development-friendly bootstrap and not the final acquisition model. Advanced herbs remain cataloged for later acquisition sources.
 
 ## UI Baseline
 The Estate -> Garden panel is split into two sections:

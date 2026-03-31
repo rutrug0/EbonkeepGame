@@ -1,5 +1,6 @@
 import {
   useEffect,
+  Fragment,
   useMemo,
   useRef,
   useState,
@@ -14,20 +15,29 @@ import {
   CRAFTING_JOB_SLOT_INDEXES,
   CRAFTING_MATERIALS,
   CRAFTING_RECYCLING_ITEM_CODES,
+  CONSUMABLE_DISTILLATION_RECIPES,
+  CONSUMABLE_DISTILLATION_RECIPE_BY_ID,
   ITEM_CRAFT_RECIPES,
   ITEM_CRAFT_RECIPE_BY_ID,
   MATERIAL_COMBINE_RECIPES,
   MATERIAL_COMBINE_RECIPE_BY_ID,
-  POTION_DISTILLATION_RECIPES,
-  POTION_DISTILLATION_RECIPE_BY_ID,
   getCraftingMaterialDefinition,
   getCraftingOutputDefinition,
+  type CraftingTier,
   type CraftingInventoryResponse,
   type CraftingJob,
   type CraftingRecipeType,
   type ItemCraftRecipe,
   type MaterialCombineRecipe
 } from "@ebonkeep/shared/crafting";
+import {
+  getConsumableDefinition,
+  type ConsumableCatalogEntry,
+  type ConsumableDistillTier,
+  type ConsumableEffect,
+  type ConsumableType
+} from "@ebonkeep/shared/consumables";
+import { getGardenPlantDefinitionByItemCode } from "@ebonkeep/shared/garden";
 import { type PlayerState } from "@ebonkeep/shared/player";
 
 import { getUploadedItemIconPathByItemCode } from "../../lib/itemIcons";
@@ -36,12 +46,12 @@ import {
   claimCraftingJob,
   combineMaterials,
   craftItem,
-  distillPotion,
+  distillConsumable,
   fetchCraftingInventory
 } from "../crafting/api";
 import { fetchPlayerState } from "../player";
 
-export type RefineryCategory = "potions" | "recycling";
+export type RefineryCategory = "consumables" | "materials" | "recycling";
 
 type RefineryItemTone = "garden" | "reagent" | "scrap" | "potion" | "salvage";
 
@@ -49,7 +59,10 @@ type RefineryItemDefinition = {
   id: string;
   displayName: string;
   shortLabel: string;
+  description: string | null;
   tone: RefineryItemTone;
+  consumableDistillTier: ConsumableDistillTier | null;
+  materialTier: CraftingTier | null;
 };
 
 type RefineryRecipeInput = {
@@ -57,10 +70,32 @@ type RefineryRecipeInput = {
   perCraft: number;
 };
 
+type RefineryTooltipPlacement = "top" | "bottom";
+
+type ActiveRecipeTooltip = {
+  recipe: RefineryRecipe;
+  consumableDefinition: ConsumableCatalogEntry | null;
+  left: number;
+  top: number;
+  placement: RefineryTooltipPlacement;
+};
+
+type ActiveItemTooltip = {
+  item: RefineryItemDefinition;
+  quantity: number | null;
+  left: number;
+  top: number;
+  placement: RefineryTooltipPlacement;
+};
+
 export type RefineryRecipe = {
   id: string;
   category: RefineryCategory;
   recipeType: CraftingRecipeType;
+  consumableType: ConsumableType | null;
+  consumableId: string | null;
+  distillGroup: string | null;
+  distillTier: ConsumableDistillTier | null;
   displayName: string;
   outputItemId: string;
   outputDisplayName: string;
@@ -70,6 +105,20 @@ export type RefineryRecipe = {
   requiredPlayerLevel: number;
   inputs: readonly RefineryRecipeInput[];
 };
+
+type RefineryRecipeMenuGroup =
+  | {
+      key: string;
+      label: string | null;
+      layout: "grid";
+      recipes: readonly RefineryRecipe[];
+    }
+  | {
+      key: string;
+      label: string | null;
+      layout: "progression";
+      rows: readonly (readonly RefineryRecipe[])[];
+    };
 
 export type RefineryInventoryEntry = {
   itemId: string;
@@ -164,7 +213,7 @@ const REFINERY_RELEVANT_ITEM_CODES = Object.freeze(
         recipe.outputItemType,
         ...recipe.ingredients.map((ingredient) => ingredient.itemCode)
       ]),
-      ...POTION_DISTILLATION_RECIPES.flatMap((recipe) => [
+      ...CONSUMABLE_DISTILLATION_RECIPES.flatMap((recipe) => [
         recipe.outputItemType,
         ...recipe.ingredients.map((ingredient) => ingredient.itemCode)
       ])
@@ -190,10 +239,10 @@ function formatHumanToken(token: string): string {
     return token.toUpperCase();
   }
   if (token.toLowerCase() === "d1") {
-    return "Distilled I";
+    return "Potent";
   }
   if (token.toLowerCase() === "d2") {
-    return "Distilled II";
+    return "Mythic";
   }
   return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
 }
@@ -209,8 +258,8 @@ function humanizeCode(code: string): string {
     .replace(/^reagent_/, "")
     .replace(/^all_/, "")
     .replace(/^consumable_/, "")
-    .replace(/_d1$/, " distilled i")
-    .replace(/_d2$/, " distilled ii")
+    .replace(/_d1$/, " potent")
+    .replace(/_d2$/, " mythic")
     .replace(/_/g, " ")
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
@@ -228,6 +277,19 @@ function getItemDisplayName(itemCode: string, playerState: PlayerState | null): 
   const outputDefinition = getCraftingOutputDefinition(itemCode);
   if (outputDefinition) {
     return outputDefinition.displayName;
+  }
+
+  const consumableDefinition = getConsumableDefinition(itemCode);
+  if (consumableDefinition) {
+    return consumableDefinition.displayName;
+  }
+
+  const gardenDefinition = getGardenPlantDefinitionByItemCode(itemCode);
+  if (gardenDefinition) {
+    if (itemCode === gardenDefinition.seedItemCode) {
+      return `${gardenDefinition.displayName} Seeds`;
+    }
+    return gardenDefinition.displayName;
   }
 
   const inventoryItem = playerState?.inventory.find((entry) => entry.itemCode === itemCode);
@@ -272,14 +334,128 @@ function getItemTone(itemCode: string): RefineryItemTone {
   return "salvage";
 }
 
+function getItemDescription(itemCode: string, playerState: PlayerState | null): string | null {
+  const materialDefinition = getCraftingMaterialDefinition(itemCode);
+  if (materialDefinition) {
+    return materialDefinition.description;
+  }
+
+  const outputDefinition = getCraftingOutputDefinition(itemCode);
+  if (outputDefinition) {
+    return outputDefinition.description;
+  }
+
+  const consumableDefinition = getConsumableDefinition(itemCode);
+  if (consumableDefinition) {
+    return consumableDefinition.description;
+  }
+
+  const gardenDefinition = getGardenPlantDefinitionByItemCode(itemCode);
+  if (gardenDefinition) {
+    if (itemCode === gardenDefinition.seedItemCode) {
+      return `${gardenDefinition.displayName} seeds.`;
+    }
+    return `${gardenDefinition.displayName}, cultivated for Refinery use.`;
+  }
+
+  const inventoryItem = playerState?.inventory.find((entry) => entry.itemCode === itemCode);
+  return inventoryItem?.description ?? null;
+}
+
 function buildItemDefinition(itemCode: string, playerState: PlayerState | null): RefineryItemDefinition {
   const displayName = getItemDisplayName(itemCode, playerState);
+  const consumableDefinition = getConsumableDefinition(itemCode);
+  const materialDefinition = getCraftingMaterialDefinition(itemCode);
   return {
     id: itemCode,
     displayName,
     shortLabel: getShortLabel(displayName),
-    tone: getItemTone(itemCode)
+    description: getItemDescription(itemCode, playerState),
+    tone: getItemTone(itemCode),
+    consumableDistillTier: consumableDefinition?.distillTier ?? null,
+    materialTier: materialDefinition?.tier ?? null
   };
+}
+
+function getConsumableTierBadge(
+  distillTier: ConsumableDistillTier | null
+): { label: "I" | "II" | "III"; toneClass: "isBase" | "isPotent" | "isMythic" } | null {
+  if (distillTier === null) {
+    return null;
+  }
+
+  if (distillTier === "d1") {
+    return { label: "II", toneClass: "isPotent" };
+  }
+
+  if (distillTier === "d2") {
+    return { label: "III", toneClass: "isMythic" };
+  }
+
+  return { label: "I", toneClass: "isBase" };
+}
+
+function renderConsumableTierBadge(distillTier: ConsumableDistillTier | null) {
+  const badge = getConsumableTierBadge(distillTier);
+  if (!badge) {
+    return null;
+  }
+
+  return (
+    <span className={`refineryConsumableTierBadge ${badge.toneClass}`} aria-hidden="true">
+      {badge.label}
+    </span>
+  );
+}
+
+function getMaterialTierBadge(
+  materialTier: CraftingTier | null
+): { label: "I" | "II" | "III" | "IV"; toneClass: "isT1" | "isT2" | "isT3" | "isT4" } | null {
+  if (materialTier === null) {
+    return null;
+  }
+
+  if (materialTier === "t2") {
+    return { label: "II", toneClass: "isT2" };
+  }
+
+  if (materialTier === "t3") {
+    return { label: "III", toneClass: "isT3" };
+  }
+
+  if (materialTier === "t4") {
+    return { label: "IV", toneClass: "isT4" };
+  }
+
+  return { label: "I", toneClass: "isT1" };
+}
+
+function renderMaterialTierBadge(materialTier: CraftingTier | null) {
+  const badge = getMaterialTierBadge(materialTier);
+  if (!badge) {
+    return null;
+  }
+
+  return (
+    <span className={`refineryMaterialTierBadge ${badge.toneClass}`} aria-hidden="true">
+      {badge.label}
+    </span>
+  );
+}
+
+function renderItemTierBadge(itemDefinition: RefineryItemDefinition | null) {
+  if (!itemDefinition) {
+    return null;
+  }
+
+  return (
+    <>
+      {renderConsumableTierBadge(itemDefinition.consumableDistillTier)}
+      {itemDefinition.consumableDistillTier === null
+        ? renderMaterialTierBadge(itemDefinition.materialTier)
+        : null}
+    </>
+  );
 }
 
 function hashString(value: string): number {
@@ -312,7 +488,7 @@ function getItemImagePath(itemDefinition: RefineryItemDefinition | null): string
 
 function createEmptyLaneState(
   laneIndex: number,
-  selectedCategory: RefineryCategory = "potions"
+  selectedCategory: RefineryCategory = "consumables"
 ): RefineryLaneState {
   return {
     laneIndex,
@@ -444,9 +620,9 @@ function getMaxCraftable(recipe: RefineryRecipe, availableInventory: Record<stri
 }
 
 function getRefineryCategoryForItemRecipe(recipe: ItemCraftRecipe): RefineryCategory {
-  return recipe.category === "raid_consumable" || recipe.category === "distillation"
-    ? "potions"
-    : "recycling";
+  return recipe.category === "consumable" || recipe.category === "distillation"
+    ? "consumables"
+    : "materials";
 }
 
 function toRefineryRecipe(recipe: MaterialCombineRecipe): RefineryRecipe;
@@ -458,8 +634,12 @@ function toRefineryRecipe(
   if ("outputItemCode" in recipe) {
     return {
       id: recipe.recipeId,
-      category: "recycling",
+      category: "materials",
       recipeType: "combine",
+      consumableType: null,
+      consumableId: null,
+      distillGroup: null,
+      distillTier: null,
       displayName: getItemDisplayName(recipe.outputItemCode, null),
       outputItemId: recipe.outputItemCode,
       outputDisplayName: getItemDisplayName(recipe.outputItemCode, null),
@@ -474,10 +654,15 @@ function toRefineryRecipe(
     };
   }
 
+  const consumableDefinition = getConsumableDefinition(recipe.outputItemType);
   return {
     id: recipe.recipeId,
-    category: recipeType === "distill" ? "potions" : getRefineryCategoryForItemRecipe(recipe),
+    category: recipeType === "distill" ? "consumables" : getRefineryCategoryForItemRecipe(recipe),
     recipeType,
+    consumableType: consumableDefinition?.type ?? null,
+    consumableId: consumableDefinition?.consumableId ?? null,
+    distillGroup: consumableDefinition?.distillGroup ?? null,
+    distillTier: consumableDefinition?.distillTier ?? null,
     displayName: getItemDisplayName(recipe.outputItemType, null),
     outputItemId: recipe.outputItemType,
     outputDisplayName: getItemDisplayName(recipe.outputItemType, null),
@@ -495,8 +680,36 @@ function toRefineryRecipe(
 const REFINERY_RECIPES: readonly RefineryRecipe[] = [
   ...MATERIAL_COMBINE_RECIPES.map((recipe) => toRefineryRecipe(recipe)),
   ...ITEM_CRAFT_RECIPES.map((recipe) => toRefineryRecipe(recipe, "item")),
-  ...POTION_DISTILLATION_RECIPES.map((recipe) => toRefineryRecipe(recipe, "distill"))
+  ...CONSUMABLE_DISTILLATION_RECIPES.map((recipe) => toRefineryRecipe(recipe, "distill"))
 ];
+
+const REFINERY_RECIPE_BY_ID = Object.freeze(
+  Object.fromEntries(REFINERY_RECIPES.map((recipe) => [recipe.id, recipe])) as Record<string, RefineryRecipe>
+);
+
+const DISTILL_TIER_ORDER: Record<ConsumableDistillTier, number> = {
+  base: 0,
+  d1: 1,
+  d2: 2
+};
+
+function getRecipeSortName(recipe: RefineryRecipe): string {
+  return recipe.outputDisplayName.toLocaleLowerCase();
+}
+
+function formatSignedNumber(value: number): string {
+  return value >= 0 ? `+${value}` : `${value}`;
+}
+
+function formatBasisPoints(value: number): string {
+  const percent = value / 100;
+  const formatted = Number.isInteger(percent) ? percent.toString() : percent.toFixed(1);
+  return `${formatted}%`;
+}
+
+function formatSignedBasisPoints(value: number): string {
+  return `${value >= 0 ? "+" : "-"}${formatBasisPoints(Math.abs(value))}`;
+}
 
 function getRecipeForJob(job: CraftingJob): RefineryRecipe | null {
   if (job.recipeType === "combine") {
@@ -507,25 +720,36 @@ function getRecipeForJob(job: CraftingJob): RefineryRecipe | null {
     const recipe = ITEM_CRAFT_RECIPE_BY_ID[job.recipeId];
     return recipe ? toRefineryRecipe(recipe, "item") : null;
   }
-  const recipe = POTION_DISTILLATION_RECIPE_BY_ID[job.recipeId];
+  const recipe = CONSUMABLE_DISTILLATION_RECIPE_BY_ID[job.recipeId];
   return recipe ? toRefineryRecipe(recipe, "distill") : null;
+}
+
+function expandRecipeInputs(recipe: RefineryRecipe): RefineryRecipeInput[] {
+  return recipe.inputs.flatMap((input) =>
+    Array.from({ length: input.perCraft }, () => ({
+      itemId: input.itemId,
+      perCraft: 1
+    }))
+  );
 }
 
 function getRecipeInputSlots(
   recipe: RefineryRecipe,
   isComplete: boolean
 ): [RefineryLaneSlot, RefineryLaneSlot, RefineryLaneSlot] {
+  const expandedInputs = expandRecipeInputs(recipe).slice(0, 3);
+
   return Array.from({ length: 3 }, (_, index) => {
-    const input = recipe.inputs[index];
+    const input = expandedInputs[index];
     if (!input) {
       return { ...EMPTY_LANE_SLOT };
     }
 
     return {
       itemId: input.itemId,
-      initialCount: input.perCraft,
-      remainingCount: isComplete ? 0 : input.perCraft,
-      perCraft: input.perCraft
+      initialCount: 1,
+      remainingCount: isComplete ? 0 : 1,
+      perCraft: 1
     };
   }) as [RefineryLaneSlot, RefineryLaneSlot, RefineryLaneSlot];
 }
@@ -613,7 +837,9 @@ export function RefineryPanel({
     () => initialCacheEntry?.playerState ?? null
   );
   const [openMenuLaneIndex, setOpenMenuLaneIndex] = useState<number | null>(null);
-  const [openMenuCategory, setOpenMenuCategory] = useState<RefineryCategory>("potions");
+  const [openMenuCategory, setOpenMenuCategory] = useState<RefineryCategory>("consumables");
+  const [activeRecipeTooltip, setActiveRecipeTooltip] = useState<ActiveRecipeTooltip | null>(null);
+  const [activeItemTooltip, setActiveItemTooltip] = useState<ActiveItemTooltip | null>(null);
   const [laneCategoryPreferences, setLaneCategoryPreferences] = useState<Record<number, RefineryCategory>>({});
   const [claimingOutputCountsByLane, setClaimingOutputCountsByLane] = useState<Record<number, number>>({});
   const [inputInsertTokensBySlot, setInputInsertTokensBySlot] = useState<Record<string, number>>({});
@@ -785,7 +1011,7 @@ export function RefineryPanel({
       buildLaneStateFromJob(
         laneIndex,
         jobsBySlot.get(laneIndex) ?? null,
-        laneCategoryPreferences[laneIndex] ?? "potions",
+        laneCategoryPreferences[laneIndex] ?? "consumables",
         nowMs
       )
     );
@@ -833,11 +1059,272 @@ export function RefineryPanel({
     () => REFINERY_RECIPES.filter((recipe) => recipe.category === openMenuCategory),
     [openMenuCategory]
   );
+  const activeMenuRecipeGroups = useMemo<readonly RefineryRecipeMenuGroup[]>(() => {
+    if (openMenuCategory !== "consumables") {
+      return activeMenuRecipes.length > 0
+        ? [{ key: openMenuCategory, label: null, layout: "grid", recipes: activeMenuRecipes }]
+        : [];
+    }
+
+    return (["potion", "tonic", "elixir"] as ConsumableType[])
+      .map((type) => {
+        const typedRecipes = activeMenuRecipes.filter((recipe) => recipe.consumableType === type);
+        const groupedRows = Object.values(
+          typedRecipes.reduce<Record<string, RefineryRecipe[]>>((accumulator, recipe) => {
+            const groupKey = recipe.distillGroup ?? recipe.consumableId ?? recipe.id;
+            accumulator[groupKey] ??= [];
+            accumulator[groupKey].push(recipe);
+            return accumulator;
+          }, {})
+        )
+          .map((row) =>
+            [...row].sort(
+              (left, right) =>
+                (DISTILL_TIER_ORDER[left.distillTier ?? "base"] ?? 0)
+                - (DISTILL_TIER_ORDER[right.distillTier ?? "base"] ?? 0)
+            )
+          )
+          .sort((left, right) => getRecipeSortName(left[0] ?? left.at(-1)!) .localeCompare(getRecipeSortName(right[0] ?? right.at(-1)!)));
+
+        return {
+          key: type,
+          label: t(`refineryPanel.type.${type}`),
+          layout: "progression" as const,
+          rows: groupedRows
+        };
+      })
+      .filter((group) => group.rows.length > 0);
+  }, [activeMenuRecipes, openMenuCategory, t]);
   const openMenuLane = openMenuLaneIndex !== null ? laneStates[openMenuLaneIndex] ?? null : null;
   const openMenuLaneIsBusy = openMenuLane !== null && pendingLaneIndex === openMenuLane.laneIndex;
   const openMenuHasUnclaimedOutput =
     openMenuLane !== null &&
     (openMenuLane.outputCount > 0 || openMenuLane.laneIndex in claimingOutputCountsByLane);
+
+  const getConsumableStatLabel = (stat: string): string => {
+    const labels: Partial<Record<string, string>> = {
+      armor: t("profile.armor"),
+      spellShield: t("profile.spellShield"),
+      missileResistance: t("profile.missileResistance"),
+      physicalDefense: t("profile.physicalDefense"),
+      magicDefense: t("profile.magicDefense"),
+      maxHitpoints: t("profile.maxHitpoints"),
+      accuracy: t("profile.accuracy"),
+      dodgeChance: t("profile.dodgeChance"),
+      damage: t("profile.mainDamage"),
+      critChance: t("profile.critChance"),
+      critMultiplier: t("profile.critDamage"),
+      extraAttackChance: t("profile.extraAttackChance"),
+      strength: "Strength",
+      intelligence: "Intelligence",
+      dexterity: "Dexterity",
+      vitality: "Vitality",
+      initiative: "Initiative",
+      luck: "Luck"
+    };
+
+    return labels[stat] ?? humanizeCode(stat);
+  };
+
+  const getConsumableDurationLabel = (consumableDefinition: ConsumableCatalogEntry): string => {
+    if (consumableDefinition.durationKind === "instant") {
+      return t("refineryPanel.tooltip.instantDuration");
+    }
+    if (consumableDefinition.durationKind === "encounters") {
+      return t("refineryPanel.tooltip.encounterDuration", { count: consumableDefinition.durationValue });
+    }
+    return t("refineryPanel.tooltip.hourDuration", { count: consumableDefinition.durationValue });
+  };
+
+  const formatConsumableEffect = (effect: ConsumableEffect): string => {
+    switch (effect.type) {
+      case "restore_health_pct_max":
+        return t("refineryPanel.tooltip.restoreHealth", { value: `${effect.value}%` });
+      case "restore_stamina_pct_max":
+        return t("refineryPanel.tooltip.restoreStamina", { value: `${effect.value}%` });
+      case "stat_flat":
+        return t("refineryPanel.tooltip.increaseStat", {
+          stat: getConsumableStatLabel(effect.target),
+          value: formatSignedNumber(effect.value)
+        });
+      case "stat_bps":
+        return t("refineryPanel.tooltip.increaseStat", {
+          stat: getConsumableStatLabel(effect.target),
+          value: formatSignedBasisPoints(effect.value)
+        });
+      case "contract_xp_percent":
+        return t("refineryPanel.tooltip.increaseContractXp", { value: `+${effect.value}%` });
+      case "contract_ducats_percent":
+        return t("refineryPanel.tooltip.increaseContractDucats", { value: `+${effect.value}%` });
+      case "contract_replenish_percent":
+        return t("refineryPanel.tooltip.increaseContractReplenish", { value: `+${effect.value}%` });
+      case "contract_stamina_cost_percent":
+        return t("refineryPanel.tooltip.reduceContractStaminaCost", { value: `-${effect.value}%` });
+      case "contract_travel_duration_percent":
+        return t("refineryPanel.tooltip.reduceTravelDuration", { value: `-${effect.value}%` });
+      case "contract_item_drop_bps":
+        return t("refineryPanel.tooltip.increaseItemDrop", { value: `+${formatBasisPoints(effect.value)}` });
+      case "clear_affliction":
+        return t("refineryPanel.tooltip.clearAffliction", { count: effect.value });
+      case "affliction_resist_bps":
+        return t("refineryPanel.tooltip.increaseAfflictionResist", { value: `+${formatBasisPoints(effect.value)}` });
+    }
+  };
+
+  const getTooltipAnchor = (anchorElement: HTMLElement) => {
+    const anchorRect = anchorElement.getBoundingClientRect();
+    const tooltipWidth = Math.max(260, Math.min(340, window.innerWidth - 24));
+    const horizontalMargin = 12;
+    const preferredCenter = anchorRect.left + anchorRect.width / 2;
+    const minCenter = horizontalMargin + tooltipWidth / 2;
+    const maxCenter = window.innerWidth - horizontalMargin - tooltipWidth / 2;
+    const left = Math.min(maxCenter, Math.max(minCenter, preferredCenter));
+    const placement: RefineryTooltipPlacement = anchorRect.top < 260 ? "bottom" : "top";
+    const top = placement === "top" ? anchorRect.top - 12 : anchorRect.bottom + 12;
+
+    return { left, top, placement };
+  };
+
+  const showRecipeTooltip = (recipe: RefineryRecipe, anchorElement: HTMLElement) => {
+    const { left, top, placement } = getTooltipAnchor(anchorElement);
+
+    setActiveItemTooltip(null);
+    setActiveRecipeTooltip({
+      recipe,
+      consumableDefinition: getConsumableDefinition(recipe.outputItemId),
+      left,
+      top,
+      placement
+    });
+  };
+
+  const hideRecipeTooltip = (recipeId?: string) => {
+    setActiveRecipeTooltip((current) => {
+      if (!current) {
+        return null;
+      }
+      if (recipeId && current.recipe.id !== recipeId) {
+        return current;
+      }
+      return null;
+    });
+  };
+
+  const showItemTooltip = (item: RefineryItemDefinition, anchorElement: HTMLElement, quantity: number | null = null) => {
+    const { left, top, placement } = getTooltipAnchor(anchorElement);
+
+    setActiveRecipeTooltip(null);
+    setActiveItemTooltip({
+      item,
+      quantity,
+      left,
+      top,
+      placement
+    });
+  };
+
+  const hideItemTooltip = (itemId?: string) => {
+    setActiveItemTooltip((current) => {
+      if (!current) {
+        return null;
+      }
+      if (itemId && current.item.id !== itemId) {
+        return current;
+      }
+      return null;
+    });
+  };
+
+  useEffect(() => {
+    if (!activeRecipeTooltip && !activeItemTooltip) {
+      return;
+    }
+
+    function clearTooltip() {
+      setActiveRecipeTooltip(null);
+      setActiveItemTooltip(null);
+    }
+
+    window.addEventListener("resize", clearTooltip);
+    window.addEventListener("scroll", clearTooltip, true);
+
+    return () => {
+      window.removeEventListener("resize", clearTooltip);
+      window.removeEventListener("scroll", clearTooltip, true);
+    };
+  }, [activeRecipeTooltip, activeItemTooltip]);
+
+  useEffect(() => {
+    if (!openMenuLane) {
+      setActiveRecipeTooltip(null);
+      setActiveItemTooltip(null);
+    }
+  }, [openMenuLane]);
+
+  function renderRecipeTile(recipe: RefineryRecipe, options?: { progression?: boolean }) {
+    if (!openMenuLane) {
+      return null;
+    }
+
+    const ingredientCraftableCount = getMaxCraftable(recipe, availableInventory);
+    const tooltipId = `refinery-recipe-tooltip-${recipe.id}`;
+    const currentDucats = effectivePlayerState?.currency.ducats ?? 0;
+    const currentLevel = effectivePlayerState?.level ?? 0;
+    const isDisabled =
+      openMenuLaneIsBusy
+      || openMenuHasUnclaimedOutput
+      || ingredientCraftableCount <= 0
+      || currentLevel < recipe.requiredPlayerLevel
+      || currentDucats < recipe.ducatCost;
+    const outputItem = buildItemDefinition(recipe.outputItemId, effectivePlayerState);
+    const outputImagePath = getItemImagePath(outputItem);
+    const craftTimeLabel =
+      recipe.craftingTimeSec <= 0
+        ? t("refineryPanel.tooltip.instantDuration")
+        : formatDurationFromMs(recipe.craftingTimeSec * 1000);
+
+    return (
+      <div
+        key={recipe.id}
+        className={`uiHoverTooltipTrigger refineryRecipeTileWrap${isDisabled ? " isDisabled" : ""}${
+          options?.progression ? " isProgression" : ""
+        }`}
+        onMouseEnter={(event) => showRecipeTooltip(recipe, event.currentTarget)}
+        onMouseLeave={() => hideRecipeTooltip(recipe.id)}
+      >
+        <button
+          type="button"
+          className={`refineryRecipeTile${isDisabled ? " isDisabled" : ""}${outputItem ? ` tone-${outputItem.tone}` : ""}${
+            options?.progression ? " isProgression" : ""
+          }`}
+          onClick={() => {
+            void handleRecipeSelect(openMenuLane.laneIndex, recipe);
+          }}
+          onFocus={(event) => showRecipeTooltip(recipe, event.currentTarget)}
+          onBlur={() => hideRecipeTooltip(recipe.id)}
+          disabled={isDisabled}
+          aria-label={recipe.displayName}
+          aria-describedby={activeRecipeTooltip?.recipe.id === recipe.id ? tooltipId : undefined}
+        >
+          <span className="refineryRecipeTileIcon">
+            {renderItemTierBadge(outputItem)}
+            {outputImagePath ? (
+              <img src={outputImagePath} alt="" loading="lazy" draggable={false} />
+            ) : (
+              getItemMonogram(outputItem)
+            )}
+          </span>
+          <span className="refineryRecipeTileName">{recipe.displayName}</span>
+          <span className="refineryRecipeTileCount">
+            {t("refineryPanel.maxCraftable", {
+              count: ingredientCraftableCount
+            })}
+          </span>
+          <span className="refineryRecipeTileTime" aria-hidden="true">{craftTimeLabel}</span>
+        </button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (openMenuLaneIndex === null) {
@@ -860,6 +1347,7 @@ export function RefineryPanel({
   function toggleLaneMenu(laneIndex: number, category: RefineryCategory) {
     setOpenMenuLaneIndex((current) => (current === laneIndex ? null : laneIndex));
     setOpenMenuCategory(category);
+    setActiveItemTooltip(null);
   }
 
   async function handleRecipeSelect(laneIndex: number, recipe: RefineryRecipe) {
@@ -883,6 +1371,7 @@ export function RefineryPanel({
     }
 
     setError(null);
+    setActiveItemTooltip(null);
     setPendingLaneIndex(laneIndex);
     setLaneCategoryPreferences((current) => ({
       ...current,
@@ -891,7 +1380,7 @@ export function RefineryPanel({
     setInputInsertTokensBySlot((current) => {
       const nextState = { ...current };
 
-      recipe.inputs.slice(0, 3).forEach((input, slotIndex) => {
+      expandRecipeInputs(recipe).slice(0, 3).forEach((input, slotIndex) => {
         const slotKey = `${laneIndex}-${slotIndex}`;
         nextState[slotKey] = (nextState[slotKey] ?? 0) + 1;
       });
@@ -905,7 +1394,7 @@ export function RefineryPanel({
       } else if (recipe.recipeType === "item") {
         await craftItem(token, recipe.id, laneIndex);
       } else {
-        await distillPotion(token, recipe.id, laneIndex);
+        await distillConsumable(token, recipe.id, laneIndex);
       }
 
       await refreshState(token);
@@ -932,6 +1421,8 @@ export function RefineryPanel({
     }
 
     setError(null);
+    setActiveRecipeTooltip(null);
+    setActiveItemTooltip(null);
     setOpenMenuLaneIndex((current) => (current === laneIndex ? null : current));
     setClaimingOutputCountsByLane((current) => ({
       ...current,
@@ -941,7 +1432,6 @@ export function RefineryPanel({
 
     try {
       await claimCraftingJob(token, lane.jobId);
-      await refreshState(token);
 
       const existingTimeoutId = claimTimeoutsRef.current[laneIndex];
       if (existingTimeoutId) {
@@ -949,13 +1439,21 @@ export function RefineryPanel({
       }
 
       claimTimeoutsRef.current[laneIndex] = window.setTimeout(() => {
-        setClaimingOutputCountsByLane((current) => {
-          const nextState = { ...current };
-          delete nextState[laneIndex];
-          return nextState;
-        });
+        void (async () => {
+          try {
+            await refreshState(token);
+          } catch (nextError) {
+            setError(nextError instanceof Error ? nextError.message : t("refineryPanel.unavailable"));
+          } finally {
+            setClaimingOutputCountsByLane((current) => {
+              const nextState = { ...current };
+              delete nextState[laneIndex];
+              return nextState;
+            });
 
-        delete claimTimeoutsRef.current[laneIndex];
+            delete claimTimeoutsRef.current[laneIndex];
+          }
+        })();
       }, REFINERY_OUTPUT_CLAIM_DURATION_MS);
     } catch (nextError) {
       setClaimingOutputCountsByLane((current) => {
@@ -1081,6 +1579,7 @@ export function RefineryPanel({
 
           <section className="refineryLaneList">
             {laneStates.map((lane) => {
+              const laneRecipe = lane.selectedRecipeId ? REFINERY_RECIPE_BY_ID[lane.selectedRecipeId] ?? null : null;
               const outputDefinition = lane.outputItemId
                 ? buildItemDefinition(lane.outputItemId, effectivePlayerState)
                 : null;
@@ -1115,7 +1614,9 @@ export function RefineryPanel({
                         return (
                           <article
                             key={`${lane.laneIndex}-${slotIndex}`}
-                            className={`refinerySlot rarity-common${itemDefinition ? ` tone-${itemDefinition.tone}` : ""}`}
+                            className={`refinerySlot rarity-common${itemDefinition ? ` tone-${itemDefinition.tone}` : ""}${
+                              isClaimingOutput ? " isClaiming" : ""
+                            }`}
                             aria-label={
                               itemDefinition
                                 ? t("refineryPanel.inputSlotLabel", {
@@ -1124,6 +1625,23 @@ export function RefineryPanel({
                                   })
                                 : t("refineryPanel.emptyInput")
                             }
+                            aria-describedby={
+                              itemDefinition && activeItemTooltip?.item.id === itemDefinition.id
+                                ? `refinery-item-tooltip-${itemDefinition.id}`
+                                : undefined
+                            }
+                            onMouseEnter={
+                              itemDefinition
+                                ? (event) => showItemTooltip(itemDefinition, event.currentTarget, slot.remainingCount)
+                                : undefined
+                            }
+                            onMouseLeave={itemDefinition ? () => hideItemTooltip(itemDefinition.id) : undefined}
+                            onFocus={
+                              itemDefinition
+                                ? (event) => showItemTooltip(itemDefinition, event.currentTarget, slot.remainingCount)
+                                : undefined
+                            }
+                            onBlur={itemDefinition ? () => hideItemTooltip(itemDefinition.id) : undefined}
                           >
                             <div className="refinerySlotVisual">
                               {itemDefinition ? (
@@ -1131,8 +1649,9 @@ export function RefineryPanel({
                                   key={`${lane.laneIndex}-${slotIndex}-${inputInsertToken}-${inputPulseToken}`}
                                   className={`refinerySlotVisualContent${
                                     inputInsertToken > 0 && inputPulseToken === 0 ? " isInsert" : ""
-                                  }${inputPulseToken > 0 ? " isPulse" : ""}`}
+                                  }${inputPulseToken > 0 ? " isPulse" : ""}${isClaimingOutput ? " isClaiming" : ""}`}
                                 >
+                                  {renderItemTierBadge(itemDefinition)}
                                   {itemImagePath ? (
                                     <img src={itemImagePath} alt="" loading="lazy" draggable={false} />
                                   ) : (
@@ -1190,6 +1709,31 @@ export function RefineryPanel({
                       role={lane.outputCount > 0 && !isClaimingOutput ? "button" : undefined}
                       aria-disabled={lane.outputCount > 0 && !isClaimingOutput ? undefined : true}
                       tabIndex={lane.outputCount > 0 && !isClaimingOutput ? 0 : -1}
+                      aria-describedby={
+                        laneRecipe && showOutputItem && activeRecipeTooltip?.recipe.id === laneRecipe.id
+                          ? `refinery-recipe-tooltip-${laneRecipe.id}`
+                          : undefined
+                      }
+                      onMouseEnter={
+                        laneRecipe && showOutputItem
+                          ? (event) => showRecipeTooltip(laneRecipe, event.currentTarget)
+                          : undefined
+                      }
+                      onMouseLeave={
+                        laneRecipe && showOutputItem
+                          ? () => hideRecipeTooltip(laneRecipe.id)
+                          : undefined
+                      }
+                      onFocus={
+                        laneRecipe && showOutputItem
+                          ? (event) => showRecipeTooltip(laneRecipe, event.currentTarget)
+                          : undefined
+                      }
+                      onBlur={
+                        laneRecipe && showOutputItem
+                          ? () => hideRecipeTooltip(laneRecipe.id)
+                          : undefined
+                      }
                       onClick={() => {
                         void handleClaimOutput(lane.laneIndex);
                       }}
@@ -1203,6 +1747,7 @@ export function RefineryPanel({
                               outputPulseToken > 0 ? " isPulse" : ""
                             }${isClaimingOutput ? " isClaiming" : ""}`}
                           >
+                            {renderItemTierBadge(outputDefinition)}
                             {outputImagePath ? (
                               <img src={outputImagePath} alt="" loading="lazy" draggable={false} />
                             ) : (
@@ -1248,7 +1793,7 @@ export function RefineryPanel({
                 onClick={(event) => event.stopPropagation()}
               >
                 <div className="refineryRecipeCategoryRow">
-                  {(["potions", "recycling"] as RefineryCategory[]).map((category) => (
+                  {(["consumables", "materials", "recycling"] as RefineryCategory[]).map((category) => (
                     <button
                       key={category}
                       type="button"
@@ -1261,70 +1806,122 @@ export function RefineryPanel({
                 </div>
 
                 <div className="refineryRecipeScroller">
-                  <div className="refineryRecipeGrid">
-                    {activeMenuRecipes.map((recipe) => {
-                      const ingredientCraftableCount = getMaxCraftable(recipe, availableInventory);
-                      const currentDucats = effectivePlayerState.currency.ducats ?? 0;
-                      const isDisabled =
-                        openMenuLaneIsBusy
-                        || openMenuHasUnclaimedOutput
-                        || ingredientCraftableCount <= 0
-                        || effectivePlayerState.level < recipe.requiredPlayerLevel
-                        || currentDucats < recipe.ducatCost;
-                      const outputItem = buildItemDefinition(recipe.outputItemId, effectivePlayerState);
-                      const outputImagePath = getItemImagePath(outputItem);
-
-                      return (
-                        <div
-                          key={recipe.id}
-                          className={`uiHoverTooltipTrigger refineryRecipeTileWrap${isDisabled ? " isDisabled" : ""}`}
-                        >
-                          <button
-                            type="button"
-                            className={`refineryRecipeTile${isDisabled ? " isDisabled" : ""}${outputItem ? ` tone-${outputItem.tone}` : ""}`}
-                            onClick={() => {
-                              void handleRecipeSelect(openMenuLane.laneIndex, recipe);
-                            }}
-                            disabled={isDisabled}
-                            aria-label={recipe.displayName}
-                          >
-                            <span className="refineryRecipeTileIcon">
-                              {outputImagePath ? (
-                                <img src={outputImagePath} alt="" loading="lazy" draggable={false} />
-                              ) : (
-                                getItemMonogram(outputItem)
-                              )}
-                            </span>
-                            <span className="refineryRecipeTileName">{recipe.displayName}</span>
-                            <span className="refineryRecipeTileCount">
-                              {t("refineryPanel.maxCraftable", {
-                                count: ingredientCraftableCount
-                              })}
-                            </span>
-                          </button>
-
-                          <div className="uiHoverTooltip refineryRecipeTooltip" role="tooltip">
-                            <p className="uiHoverTooltipTitle">{recipe.displayName}</p>
-                            {recipe.inputs.map((input) => {
-                              const inputDefinition = buildItemDefinition(input.itemId, effectivePlayerState);
-                              const available = getAvailableQuantityForItem(input.itemId, availableInventory);
-
-                              return (
-                                <p
-                                  key={`${recipe.id}-${input.itemId}`}
-                                  className={`uiHoverTooltipLine refineryRecipeRequirement ${getRecipeRequirementClassName(input, availableInventory)}`}
-                                >
-                                  <strong>{inputDefinition.displayName}</strong> {input.perCraft} / {available}
-                                </p>
-                              );
-                            })}
+                  {activeMenuRecipeGroups.length > 0 ? (
+                    activeMenuRecipeGroups.map((group) => (
+                      <section key={group.key} className="refineryRecipeGroup">
+                        {group.label ? <h3 className="refineryRecipeGroupTitle">{group.label}</h3> : null}
+                        {group.layout === "grid" ? (
+                          <div className="refineryRecipeGrid">
+                            {group.recipes.map((recipe) => renderRecipeTile(recipe))}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        ) : (
+                          <div className="refineryRecipeProgressionList">
+                            {group.rows.map((row) => (
+                              <section
+                                key={row[0]?.consumableId ?? row[0]?.id}
+                                className="refineryRecipeProgressionCard"
+                              >
+                                <div className="refineryRecipeProgressionRow">
+                                  {row.map((recipe, index) => (
+                                    <Fragment key={recipe.id}>
+                                      {renderRecipeTile(recipe, { progression: true })}
+                                      {index < row.length - 1 ? (
+                                        <span className="refineryRecipeProgressionArrow" aria-hidden="true">
+                                          <svg viewBox="0 0 24 24" focusable="false">
+                                            <path d="M5 12h12" />
+                                            <path d="m13 7 6 5-6 5" />
+                                          </svg>
+                                        </span>
+                                      ) : null}
+                                    </Fragment>
+                                  ))}
+                                </div>
+                              </section>
+                            ))}
+                          </div>
+                        )}
+                      </section>
+                    ))
+                  ) : (
+                    <p className="refineryRecipeEmptyState">
+                      {openMenuCategory === "recycling"
+                        ? t("refineryPanel.emptyRecycling")
+                        : t("refineryPanel.emptyRecipes")}
+                    </p>
+                  )}
                 </div>
               </div>
+            </div>,
+            document.body
+          )}
+
+          {activeRecipeTooltip && createPortal(
+            <div
+              id={`refinery-recipe-tooltip-${activeRecipeTooltip.recipe.id}`}
+              className={`uiHoverTooltip refineryRecipeTooltip refineryRecipeTooltipFloating${
+                activeRecipeTooltip.placement === "bottom" ? " isBelow" : ""
+              }`}
+              role="tooltip"
+              style={{
+                left: `${activeRecipeTooltip.left}px`,
+                top: `${activeRecipeTooltip.top}px`
+              }}
+            >
+              <p className="uiHoverTooltipTitle">{activeRecipeTooltip.recipe.displayName}</p>
+              {activeRecipeTooltip.consumableDefinition ? (
+                <>
+                  <p className="uiHoverTooltipLine refineryRecipeTooltipBody">
+                    {activeRecipeTooltip.consumableDefinition.description}
+                  </p>
+                  <p className="refineryRecipeTooltipSectionTitle">{t("refineryPanel.tooltip.duration")}</p>
+                  <p className="uiHoverTooltipLine">{getConsumableDurationLabel(activeRecipeTooltip.consumableDefinition)}</p>
+                  <p className="refineryRecipeTooltipSectionTitle">{t("refineryPanel.tooltip.effects")}</p>
+                  {activeRecipeTooltip.consumableDefinition.effects.map((effect, index) => (
+                    <p key={`${activeRecipeTooltip.recipe.id}-effect-${index}`} className="uiHoverTooltipLine refineryRecipeEffectLine">
+                      {formatConsumableEffect(effect)}
+                    </p>
+                  ))}
+                </>
+              ) : null}
+              <p className="refineryRecipeTooltipSectionTitle">{t("refineryPanel.tooltip.recipe")}</p>
+              {activeRecipeTooltip.recipe.inputs.map((input) => {
+                const inputDefinition = buildItemDefinition(input.itemId, effectivePlayerState);
+                const available = getAvailableQuantityForItem(input.itemId, availableInventory);
+
+                return (
+                  <p
+                    key={`${activeRecipeTooltip.recipe.id}-${input.itemId}`}
+                    className={`uiHoverTooltipLine refineryRecipeRequirement ${getRecipeRequirementClassName(input, availableInventory)}`}
+                  >
+                    <strong>{inputDefinition.displayName}</strong> {input.perCraft} / {available}
+                  </p>
+                );
+              })}
+            </div>,
+            document.body
+          )}
+
+          {activeItemTooltip && createPortal(
+            <div
+              id={`refinery-item-tooltip-${activeItemTooltip.item.id}`}
+              className={`uiHoverTooltip refineryRecipeTooltip refineryRecipeTooltipFloating${
+                activeItemTooltip.placement === "bottom" ? " isBelow" : ""
+              }`}
+              role="tooltip"
+              style={{
+                left: `${activeItemTooltip.left}px`,
+                top: `${activeItemTooltip.top}px`
+              }}
+            >
+              <p className="uiHoverTooltipTitle">{activeItemTooltip.item.displayName}</p>
+              {activeItemTooltip.item.description ? (
+                <p className="uiHoverTooltipLine refineryRecipeTooltipBody">{activeItemTooltip.item.description}</p>
+              ) : null}
+              {activeItemTooltip.quantity !== null ? (
+                <p className="uiHoverTooltipLine">
+                  <strong>x{activeItemTooltip.quantity.toLocaleString()}</strong>
+                </p>
+              ) : null}
             </div>,
             document.body
           )}

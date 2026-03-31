@@ -376,6 +376,7 @@ const INVENTORY_STAT_FLASH_DURATION_MS = 2100;
 export const PANEL_READY_BUDGET_MS = 500;
 export const PANEL_REVEAL_MS = 140;
 const APP_WIDE_PANEL_ART_ASPECT_RATIO = 1536 / 1024;
+const PANEL_FIT_SCENE_WIDTH_RATIO_SNAP_EPSILON = 0.015;
 const DESKTOP_PANEL_OVERFLOW_MIN_WIDTH_PX = 1850;
 const DESKTOP_PANEL_OVERFLOW_MIN_HEIGHT_PX = 980;
 const EMPTY_PANEL_FIT_METRICS: PanelFitMetrics = {
@@ -2252,6 +2253,7 @@ export function AppShell() {
     fastArenaReplenishEnabled: false,
     invincibilityEnabled: false,
     fastTrainTimeEnabled: false,
+    fastCraftTimeEnabled: false,
     unlimitedAcademyDonationsEnabled: false,
     unlimitedForgeConsumablesEnabled: false,
     unlimitedRefineryMaterialsEnabled: false
@@ -3032,9 +3034,14 @@ export function AppShell() {
         measuredRightPanelWidth > 0 && measuredSceneShellWidth > 0
           ? measuredSceneShellWidth / measuredRightPanelWidth
           : null;
+      const normalizedSceneWidthRatio =
+        measuredSceneWidthRatio !== null
+        && Math.abs(1 - measuredSceneWidthRatio) <= PANEL_FIT_SCENE_WIDTH_RATIO_SNAP_EPSILON
+          ? 1
+          : measuredSceneWidthRatio;
       const sceneWidthRatio = Math.min(
         1,
-        Math.max(0.01, measuredSceneWidthRatio ?? fallbackSceneWidthRatio)
+        Math.max(0.01, normalizedSceneWidthRatio ?? fallbackSceneWidthRatio)
       );
       const baseBackgroundFitHeight = (baseSurfaceWidth * sceneWidthRatio) / APP_WIDE_PANEL_ART_ASPECT_RATIO;
 
@@ -5663,6 +5670,21 @@ export function AppShell() {
                   <strong>{i18n.t("settings.cheats.fastTrainTimeLabel")}</strong>
                   <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
                     {i18n.t("settings.cheats.fastTrainTimeHelp")}
+                  </span>
+                </span>
+              </label>
+              <label style={cheatToggleLabelStyle}>
+                <input
+                  type="checkbox"
+                  style={cheatToggleInputStyle}
+                  checked={cheatSettings.fastCraftTimeEnabled}
+                  disabled={isCheatActionPending("settings")}
+                  onChange={(event) => handleCheatSettingToggle("fastCraftTimeEnabled", event.currentTarget.checked)}
+                />
+                <span style={{ flex: 1 }}>
+                  <strong>{i18n.t("settings.cheats.fastCraftTimeLabel")}</strong>
+                  <span style={{ display: "block", color: "var(--text-muted)", fontSize: "14px", marginTop: "4px" }}>
+                    {i18n.t("settings.cheats.fastCraftTimeHelp")}
                   </span>
                 </span>
               </label>

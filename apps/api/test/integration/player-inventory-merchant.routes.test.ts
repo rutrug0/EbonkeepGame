@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { startCraftingJob } from "../../src/modules/crafting/service.js";
 import { getCumulativeExperienceToReachLevel } from "../../src/modules/player/progression-service.js";
 
 import {
@@ -133,6 +134,7 @@ describe("player, inventory, and merchant routes", () => {
       fastArenaReplenishEnabled: false,
       invincibilityEnabled: false,
       fastTrainTimeEnabled: false,
+      fastCraftTimeEnabled: false,
       unlimitedAcademyDonationsEnabled: false,
       unlimitedForgeConsumablesEnabled: false,
       unlimitedRefineryMaterialsEnabled: false
@@ -148,6 +150,7 @@ describe("player, inventory, and merchant routes", () => {
         fastArenaReplenishEnabled: true,
         invincibilityEnabled: true,
         fastTrainTimeEnabled: true,
+        fastCraftTimeEnabled: true,
         unlimitedAcademyDonationsEnabled: true,
         unlimitedRefineryMaterialsEnabled: true
       }
@@ -159,6 +162,7 @@ describe("player, inventory, and merchant routes", () => {
       fastArenaReplenishEnabled: true,
       invincibilityEnabled: true,
       fastTrainTimeEnabled: true,
+      fastCraftTimeEnabled: true,
       unlimitedAcademyDonationsEnabled: true,
       unlimitedForgeConsumablesEnabled: false,
       unlimitedRefineryMaterialsEnabled: true
@@ -173,6 +177,7 @@ describe("player, inventory, and merchant routes", () => {
     expect(persistedStateResponse.json().cheatSettings.fastTravelEnabled).toBe(true);
     expect(persistedStateResponse.json().cheatSettings.fastContractReplenishEnabled).toBe(true);
     expect(persistedStateResponse.json().cheatSettings.fastArenaReplenishEnabled).toBe(true);
+    expect(persistedStateResponse.json().cheatSettings.fastCraftTimeEnabled).toBe(true);
     expect(persistedStateResponse.json().cheatSettings.unlimitedRefineryMaterialsEnabled).toBe(true);
 
     await context.prisma.playerProfile.update({
@@ -256,6 +261,45 @@ describe("player, inventory, and merchant routes", () => {
     expect(grantCurrencyResponse.json().imperialsGranted).toBe(10_000);
     expect(grantCurrencyResponse.json().playerState.currency.ducats).toBe(currencyBefore.ducats + 1_000_000);
     expect(grantCurrencyResponse.json().playerState.currency.imperials).toBe(currencyBefore.imperials + 10_000);
+  });
+
+  it("compresses active crafting timers when the fast craft cheat is enabled", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    await grantCraftingMaterialsForFastCraftTimerTest(context, guest.body.playerId);
+
+    const started = await startCraftingJob(
+      context.prisma,
+      guest.body.playerId,
+      "combine_t3_arcane_common_to_uncommon",
+      "combine",
+      0
+    );
+
+    const originalRemainingMs = Date.parse(started.job.finishesAt) - Date.now();
+    expect(originalRemainingMs).toBeGreaterThan(10 * 60 * 1000);
+
+    const beforeToggleMs = Date.now();
+    const settingsResponse = await context.app.inject({
+      method: "PATCH",
+      url: "/v1/player/cheats/settings",
+      headers,
+      payload: {
+        fastCraftTimeEnabled: true
+      }
+    });
+
+    expect(settingsResponse.statusCode).toBe(200);
+
+    const job = await context.prisma.craftingJob.findUnique({
+      where: { id: started.job.id }
+    });
+
+    expect(job).not.toBeNull();
+    const acceleratedRemainingMs = job!.finishesAt.getTime() - beforeToggleMs;
+    expect(acceleratedRemainingMs).toBeGreaterThanOrEqual(1_500);
+    expect(acceleratedRemainingMs).toBeLessThanOrEqual(4_500);
   });
 
   it("prevents concurrent rest requests from double-charging the player", async () => {
@@ -527,3 +571,34 @@ describe("player, inventory, and merchant routes", () => {
     expect(buyResponse.statusCode).toBe(400);
   });
 });
+
+async function grantCraftingMaterialsForFastCraftTimerTest(
+  context: Awaited<ReturnType<typeof createApiTestContext>>,
+  playerId: string
+) {
+  await context.prisma.inventoryItem.createMany({
+    data: [
+      {
+        id: `item_${playerId}_craft_1`,
+        playerId,
+        itemCode: "mat_t3_metal_common",
+        slotKey: "inventory",
+        quantity: 1
+      },
+      {
+        id: `item_${playerId}_craft_2`,
+        playerId,
+        itemCode: "mat_t3_arcane_common",
+        slotKey: "inventory",
+        quantity: 1
+      },
+      {
+        id: `item_${playerId}_craft_3`,
+        playerId,
+        itemCode: "mat_t3_binding_common",
+        slotKey: "inventory",
+        quantity: 1
+      }
+    ]
+  });
+}

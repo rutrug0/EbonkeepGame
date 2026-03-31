@@ -58,6 +58,10 @@
       "types": "./src/domains/forge/index.ts",
       "default": "./src/domains/forge/index.ts"
     },
+    "./consumables": {
+      "types": "./src/domains/consumables/index.ts",
+      "default": "./src/domains/consumables/index.ts"
+    },
     "./crafting": {
       "types": "./src/domains/crafting/index.ts",
       "default": "./src/domains/crafting/index.ts"

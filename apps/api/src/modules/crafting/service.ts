@@ -7,9 +7,9 @@ import {
   CRAFTING_RECYCLING_ITEM_CODES,
   CRAFTING_RECYCLING_SUBSTITUTIONS,
   CRAFTING_MATERIAL_BY_CODE,
+  CONSUMABLE_DISTILLATION_RECIPE_BY_ID,
   ITEM_CRAFT_RECIPE_BY_ID,
   MATERIAL_COMBINE_RECIPE_BY_ID,
-  POTION_DISTILLATION_RECIPE_BY_ID,
   craftingClaimJobResponseSchema,
   craftingInventoryResponseSchema,
   craftingJobSchema,
@@ -40,6 +40,7 @@ type CraftingRecipeLookup =
 
 const ACTIVE_SLOT_INDEXES = [0, 1, 2] as const;
 const ARCHIVED_SLOT_INDEX_BASE = 1000;
+export const CHEAT_FAST_CRAFT_DURATION_SEC = 3;
 const RANDOM_CRAFTING_ICON_FILES: readonly string[] = Array.from(
   { length: 23 },
   (_, index) => `material-${(index + 1).toString().padStart(2, "0")}.png`
@@ -99,7 +100,7 @@ function getRecipeLookup(recipeId: string, recipeType: CraftingRecipeType): Craf
     return { recipeType, recipe };
   }
 
-  const recipe = POTION_DISTILLATION_RECIPE_BY_ID[recipeId];
+  const recipe = CONSUMABLE_DISTILLATION_RECIPE_BY_ID[recipeId];
   if (!recipe) {
     throw new CraftingError("RECIPE_NOT_FOUND", 404, "Crafting recipe not found.");
   }
@@ -235,6 +236,26 @@ async function hasUnlimitedRefineryMaterials(
   });
 
   return profile?.unlimitedRefineryMaterialsEnabled ?? false;
+}
+
+async function hasFastCraftTimeEnabled(
+  tx: CraftingDbClient,
+  playerId: string
+): Promise<boolean> {
+  const profile = await tx.playerProfile.findUnique({
+    where: { id: playerId },
+    select: { fastCraftTimeEnabled: true }
+  });
+
+  return profile?.fastCraftTimeEnabled ?? false;
+}
+
+function getEffectiveCraftingTimeSec(baseCraftingTimeSec: number, fastCraftTimeEnabled: boolean): number {
+  if (baseCraftingTimeSec <= 0) {
+    return 0;
+  }
+
+  return fastCraftTimeEnabled ? CHEAT_FAST_CRAFT_DURATION_SEC : baseCraftingTimeSec;
 }
 
 async function getArchivedSlotIndex(tx: CraftingDbClient, playerId: string): Promise<number> {
@@ -484,9 +505,13 @@ export async function startCraftingJob(
       }),
       ensureCurrencyBalance(tx, playerId)
     ]);
-    const unlimitedRefineryMaterialsEnabled = await hasUnlimitedRefineryMaterials(tx, playerId);
+    const [unlimitedRefineryMaterialsEnabled, fastCraftTimeEnabled] = await Promise.all([
+      hasUnlimitedRefineryMaterials(tx, playerId),
+      hasFastCraftTimeEnabled(tx, playerId)
+    ]);
+    const effectiveCraftingTimeSec = getEffectiveCraftingTimeSec(recipe.craftingTimeSec, fastCraftTimeEnabled);
 
-    if (recipe.craftingTimeSec > 0) {
+    if (effectiveCraftingTimeSec > 0) {
       if (activeCount >= ACTIVE_SLOT_INDEXES.length) {
         throw new CraftingError("CRAFTING_SLOTS_FULL", 409, "All crafting slots are currently busy.");
       }
@@ -515,7 +540,7 @@ export async function startCraftingJob(
       });
     }
 
-    if (recipe.craftingTimeSec === 0) {
+    if (effectiveCraftingTimeSec === 0) {
       if (lookup.recipeType === "combine") {
         const combineRecipe = lookup.recipe;
         await grantCraftingStackableItem(
@@ -571,7 +596,7 @@ export async function startCraftingJob(
       });
     }
 
-    const finishesAt = new Date(now.getTime() + (recipe.craftingTimeSec * 1000));
+    const finishesAt = new Date(now.getTime() + (effectiveCraftingTimeSec * 1000));
     let job;
     try {
       job = await tx.craftingJob.create({

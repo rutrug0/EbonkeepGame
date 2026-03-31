@@ -293,6 +293,8 @@
       "invincibilityHelp": "Contract enemies can no longer reduce your HP during combat simulation.",
       "fastTrainTimeLabel": "Fast train time",
       "fastTrainTimeHelp": "Active stat training finishes after 2 seconds while enabled.",
+      "fastCraftTimeLabel": "Fast craft time",
+      "fastCraftTimeHelp": "Refinery combines, crafts, and distillation jobs finish after 3 seconds while enabled.",
       "unlimitedAcademyDonationsLabel": "Unlimited academy donations",
       "unlimitedAcademyDonationsHelp": "Guild academy donations always refresh to full charges so you can donate repeatedly.",
       "processing": "Processing...",
@@ -1283,7 +1285,7 @@
   "refineryPanel": {
     "loading": "Loading refinery materials...",
     "unavailable": "Refinery inventory unavailable. Login again to refresh your data.",
-    "subtitle": "Queue mock potion and recycling recipes with shared materials across three active lanes.",
+    "subtitle": "Queue consumables and materials across three active lanes, with consumables grouped by potion, tonic, and elixir.",
     "materialStashTitle": "Available Materials",
     "materialChipLabel": "{{item}}: {{quantity}}",
     "laneLabel": "Lane {{lane}}",
@@ -1301,17 +1303,44 @@
     "inputPlaceholder": "IN",
     "outputPlaceholder": "OUT",
     "maxCraftable": "{{count}} queued",
-    "noGardenIngredientsHint": "Harvest Garden ingredients to unlock more potion recipes in this mockup.",
+    "noGardenIngredientsHint": "Harvest Garden ingredients to unlock more consumable recipes in this mockup.",
     "status": {
       "idle": "Idle",
       "running": "Processing",
       "complete": "Complete"
     },
-    "category": {
-      "potions": "Potions",
-      "recycling": "Recycling"
-    }
-  },
+      "category": {
+        "consumables": "Consumables",
+        "materials": "Materials",
+        "recycling": "Recycling"
+      },
+      "emptyRecipes": "No recipes are available in this category right now.",
+      "emptyRecycling": "Recycling recipes are not available yet.",
+      "type": {
+        "potion": "Potion",
+        "tonic": "Tonic",
+        "elixir": "Elixir"
+      },
+      "tooltip": {
+        "duration": "Duration",
+        "effects": "Effects",
+        "recipe": "Recipe",
+        "instantDuration": "Instant",
+        "encounterDuration": "{{count}} encounters",
+        "hourDuration": "{{count}} hours",
+        "restoreHealth": "Restore {{value}} of max HP",
+        "restoreStamina": "Restore {{value}} of max stamina",
+        "increaseStat": "Increase {{stat}} by {{value}}",
+        "increaseContractXp": "Increase contract XP by {{value}}",
+        "increaseContractDucats": "Increase ducats gained by {{value}}",
+        "increaseContractReplenish": "Increase contract replenishment by {{value}}",
+        "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
+        "reduceTravelDuration": "Reduce travel duration by {{value}}",
+        "increaseItemDrop": "Increase item drop rate by {{value}}",
+        "clearAffliction": "Clear {{count}} affliction",
+        "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
+      }
+    },
   "jobsPanel": {
     "eyebrow": "Estate Jobs",
     "subtitle": "A long-session lane for materials, ducats, and botanical sourcing with hourly checkpoints and interrupt salvage.",

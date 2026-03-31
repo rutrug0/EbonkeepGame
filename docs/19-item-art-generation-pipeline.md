@@ -33,6 +33,7 @@ Current sources include:
 - `docs/data/robe_armor_name_ranges_v1.csv`
 - `docs/data/jewelry_ring_name_ranges_v1.csv`
 - `docs/data/jewelry_necklace_name_ranges_v1.csv`
+- `docs/data/consumable_icon_prompts_v1.csv` (consumables)
 - `docs/data/character_avatar_prompt_templates_v1.csv` (characters)
 - `docs/data/monster_family_members_v1.csv` joined with `docs/data/monster_families_v1.csv` (monsters)
 - `docs/data/monster_families_v1.csv` rows with `prompt_combat_stage` (monster combat stages)
@@ -115,6 +116,7 @@ Set in `.env` (see `.env.example`):
 python tools/generate_item_art.py --dry-run
 python tools/generate_item_art.py --sources weapons
 python tools/generate_item_art.py --sources armor --armor-archetype heavy --base-level 0
+python tools/generate_item_art.py --sources consumables --dry-run --verbose
 python tools/generate_item_art.py --sources monsters --monster-family tallow_cellar_00 --dry-run --verbose
 python tools/generate_item_art.py --sources all --limit 10 --verbose
 python tools/generate_item_art.py --force
@@ -126,7 +128,7 @@ python tools/process_generated_item_art.py --force
 ```
 
 Arguments:
-- `--sources all|weapons|armor|jewelry|characters|monsters`
+- `--sources all|weapons|armor|jewelry|consumables|characters|monsters`
 - `--output-dir <path>`
 - `--limit <n>`
 - `--base-level <n>`
@@ -172,6 +174,7 @@ Generated app metadata files:
 
 Processed runtime asset rules:
 - weapons, armor, and jewelry generate a sibling `*_p.png` at `150x150`
+- consumables generate a sibling `*_p.png` at `150x150`
 - those processed PNGs use explicit Pillow PNG compression with `optimize=True` and `compress_level=9`
 - monsters generate a sibling `*_p.jpg` at `300x300`
 - those processed monster JPGs use explicit Pillow JPEG settings with `quality=82`, `optimize=True`, `progressive=True`, and `4:2:0` chroma subsampling
@@ -213,6 +216,7 @@ Examples:
 - `.../weapon/melee/sword/warrior_melee_iron_shortsword.png`
 - `.../armor/heavy/helmet/heavy_armor_crude_cap.png`
 - `.../jewelry/ring/ring_tin_ring.png`
+- `.../consumable/potion/consumable_healing_potion.png`
 - `.../monster/tallow_cellar_00/monster_grease_gnawer.png`
 - `.../combat_stage/snagtooth_hollow_00/combat_stage_snagtooth_hollow_field.png`
 - `.../travel_stage/snagtooth_hollow_00/travel_stage_default.png`
@@ -222,7 +226,7 @@ Examples:
 - Retry with exponential backoff for transient failures (`429`, `5xx`, network).
 - Script writes a machine-readable run report after each run.
 - Manifest + encyclopedia metadata are refreshed from current generated assets and `docs/data` tables.
-- `tools/generate_item_art.py` also writes the processed runtime sibling immediately for newly generated weapons, armor, jewelry, and monster renders.
+- `tools/generate_item_art.py` also writes the processed runtime sibling immediately for newly generated weapons, armor, jewelry, consumables, and monster renders.
 - Generated assets may be checked into git as part of the repo output contract; cache files remain ephemeral.
 - TLS behavior:
   - default: verified TLS with system CA / `certifi` bundle (if installed)

@@ -39,6 +39,15 @@ PROCESSED_OUTPUT_CONFIG_BY_RULE: dict[str, dict[str, Any]] = {
             "compress_level": 9,
         },
     },
+    "consumable": {
+        "target_size": (150, 150),
+        "extension": ".png",
+        "format": "PNG",
+        "save_options": {
+            "optimize": True,
+            "compress_level": 9,
+        },
+    },
     "monster": {
         "target_size": (300, 300),
         "extension": ".jpg",
