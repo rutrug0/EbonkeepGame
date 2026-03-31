@@ -51,10 +51,6 @@ import {
 } from "@ebonkeep/shared/core";
 import { type AccountOverviewResponse } from "@ebonkeep/shared/auth";
 import {
-  combatPlaybackActionResolvedSchema,
-  type CombatPlaybackActionResolved
-} from "../features/combat/playback";
-import {
   isItemUsableByClass,
   type DevWeapon,
   type EquipmentState as SharedEquipmentState,
@@ -67,7 +63,14 @@ import {
   type WeaponDamageRoll
 } from "@ebonkeep/shared/inventory";
 import { type MerchantState as SharedMerchantState, type MerchantTransactionResponse } from "@ebonkeep/shared/economy";
-import { MAX_GARDEN_SLOT_COUNT, MIN_GARDEN_UNLOCKED_SLOT_COUNT } from "@ebonkeep/shared/garden";
+import {
+  MAX_GARDEN_SLOT_COUNT,
+  MIN_GARDEN_UNLOCKED_SLOT_COUNT,
+  getGardenPlantDefinition,
+  type GardenInventoryEntry,
+  type GardenStateResponse
+} from "@ebonkeep/shared/garden";
+import { getConsumableDefinition, type ConsumableType } from "@ebonkeep/shared/consumables";
 import { PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE, type PlayerState, type RenownState } from "@ebonkeep/shared/player";
 
 import {
@@ -103,7 +106,9 @@ import {
   CombatEncounterArenaPanel,
   CombatEncounterLogPanel,
   CombatEncounterPanel,
-  CombatEncounterTurnTrackPanel
+  CombatEncounterTurnTrackPanel,
+  combatPlaybackActionResolvedSchema,
+  type CombatPlaybackActionResolved
 } from "../features/combat";
 import {
   COMBAT_FAST_FORWARD_ANIMATION_RATE,
@@ -209,6 +214,10 @@ type EquipmentSlot = {
   majorCategory: ItemMajorCategory;
 };
 
+type ProfileSideMaterialFilter = "seed" | "plant" | "other";
+type ProfileSideSubtype = ConsumableType | ProfileSideMaterialFilter;
+type ProfileSideSource = "inventory" | "garden";
+
 type InventoryItem = {
   id: string;
   itemCode?: string;
@@ -216,6 +225,7 @@ type InventoryItem = {
   rarity: Rarity;
   category: string;
   iconAssetPath?: string;
+  quantity?: number;
   equipable: boolean;
   archetype?: {
     majorCategory: ItemMajorCategory;
@@ -237,6 +247,8 @@ type InventoryItem = {
   description: string;
   temperingFailed?: boolean;
   damagePenaltyBps?: number;
+  profileSideSubtype?: ProfileSideSubtype;
+  profileSideSource?: ProfileSideSource;
 };
 
 type ItemModifier = {
@@ -877,6 +889,7 @@ function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
     itemName: item.itemName,
     rarity: item.rarity,
     category: item.category,
+    quantity: item.quantity,
     iconAssetPath:
       uploadedIconPath ??
       item.iconAssetPath ??
@@ -901,7 +914,66 @@ function toLocalInventoryItem(item: SharedInventoryItem): InventoryItem {
     power: item.power,
     description: item.description,
     temperingFailed: item.temperingFailed,
-    damagePenaltyBps: item.damagePenaltyBps
+    damagePenaltyBps: item.damagePenaltyBps,
+    profileSideSource: "inventory"
+  };
+}
+
+function getInventoryItemConsumableType(item: InventoryItem): ConsumableType | null {
+  if (!item.itemCode) {
+    return null;
+  }
+
+  return getConsumableDefinition(item.itemCode)?.type ?? null;
+}
+
+function isConsumableInventoryItem(item: InventoryItem): boolean {
+  return getInventoryItemConsumableType(item) !== null
+    || item.category.toLowerCase() === "consumable"
+    || item.itemCode?.startsWith("consumable_") === true;
+}
+
+function isMaterialInventoryItem(item: InventoryItem): boolean {
+  if (item.equipable || isConsumableInventoryItem(item)) {
+    return false;
+  }
+
+  const normalizedCategory = item.category.toLowerCase();
+  return normalizedCategory === "material"
+    || normalizedCategory === "catalyst"
+    || normalizedCategory === "reagent"
+    || item.itemCode?.startsWith("mat_") === true
+    || item.itemCode?.startsWith("reagent_") === true
+    || item.itemCode?.startsWith("forge_catalyst") === true;
+}
+
+function toProfileGardenInventoryItem(entry: GardenInventoryEntry): InventoryItem {
+  const plantDefinition = getGardenPlantDefinition(entry.plantId);
+  const isSeed = entry.kind === "seed";
+
+  return {
+    id: `garden-${entry.inventoryEntryId}`,
+    itemCode: entry.itemCode,
+    itemName: entry.displayName,
+    rarity: entry.rarity,
+    category: isSeed ? "Seed" : "Plant",
+    iconAssetPath: getUploadedItemIconPathByItemCode(entry.itemCode),
+    quantity: entry.quantity,
+    equipable: false,
+    archetype: {
+      majorCategory: "consumable"
+    },
+    equipSlotId: "weapon",
+    allowedSlotIds: [],
+    levelRequirement: 1,
+    baseLevel: 1,
+    statBonuses: {},
+    power: 0,
+    description: isSeed
+      ? i18n.t("profile.gardenSeedDescription", { plant: plantDefinition.displayName })
+      : i18n.t("profile.gardenPlantDescription", { plant: plantDefinition.displayName }),
+    profileSideSubtype: isSeed ? "seed" : "plant",
+    profileSideSource: "garden"
   };
 }
 
@@ -1169,6 +1241,25 @@ function formatLedgerBonusPercent(value: number): string {
 }
 
 function getItemSubtypeLabel(item: InventoryItem): string {
+  if (item.profileSideSubtype === "potion") {
+    return i18n.t("profile.potionsFilter");
+  }
+  if (item.profileSideSubtype === "tonic") {
+    return i18n.t("profile.tonicsFilter");
+  }
+  if (item.profileSideSubtype === "elixir") {
+    return i18n.t("profile.elixirsFilter");
+  }
+  if (item.profileSideSubtype === "seed") {
+    return i18n.t("profile.seedsFilter");
+  }
+  if (item.profileSideSubtype === "plant") {
+    return i18n.t("profile.plantsFilter");
+  }
+  if (item.profileSideSubtype === "other") {
+    return i18n.t("profile.otherMaterialsFilter");
+  }
+
   const majorCategory = item.archetype?.majorCategory;
   if (majorCategory === "armor" && item.archetype?.armorArchetype) {
     return `${formatArchetypeLabel(item.archetype.armorArchetype)} ${i18n.t("profile.armor")}`;
@@ -1287,6 +1378,9 @@ function canPlayerUseItem(item: InventoryItem, playerState: PlayerState | null):
 function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean, priceLabel?: string): ReactElement {
   const displayItemName = getDisplayItemName(item);
   const useImageOnlyIcon = Boolean(item.iconAssetPath);
+  const showPowerBadge = item.equipable || item.power > 0;
+  const showLevelBadge = item.equipable || item.levelRequirement > 1;
+  const showQuantityBadge = !item.equipable && typeof item.quantity === "number" && item.quantity > 0;
 
   return (
     <div className={`inventoryCompactVisual${canUseItem ? "" : " isRestricted"}${item.temperingFailed ? " isTemperingFailed" : ""}`}>
@@ -1301,12 +1395,21 @@ function renderInventoryItemCardBody(item: InventoryItem, canUseItem: boolean, p
         className: useImageOnlyIcon ? undefined : `inventoryCompactIcon${canUseItem ? "" : " isRestricted"}`,
         renderMode: useImageOnlyIcon ? "imageOnly" : "default"
       })}
-      <span className="inventoryCompactPowerBadge" aria-hidden="true">
-        {item.power}
-      </span>
-      <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
-        Lv. {item.levelRequirement}
-      </span>
+      {showPowerBadge ? (
+        <span className="inventoryCompactPowerBadge" aria-hidden="true">
+          {item.power}
+        </span>
+      ) : null}
+      {showLevelBadge ? (
+        <span className={`inventoryCompactLevelBadge${canUseItem ? "" : " isRestricted"}`} aria-hidden="true">
+          Lv. {item.levelRequirement}
+        </span>
+      ) : null}
+      {showQuantityBadge ? (
+        <span className="inventoryCompactQuantityBadge" aria-hidden="true">
+          {i18n.t("profile.stackCountCompact", { count: item.quantity })}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -1328,6 +1431,12 @@ function renderInventoryItemDetailCardBody(
   const defenseSummary = getDefenseSummary(item);
   const displayItemName = getDisplayItemName(item);
   const useImageOnlyIcon = Boolean(item.iconAssetPath);
+  const showPowerFooter = item.equipable || item.power > 0;
+  const showLevelFooter = item.equipable || item.levelRequirement > 1;
+  const stackCountLabel =
+    !item.equipable && typeof item.quantity === "number" && item.quantity > 0
+      ? i18n.t("profile.stackCountLabel", { count: item.quantity })
+      : null;
 
   return (
     <>
@@ -1339,6 +1448,7 @@ function renderInventoryItemDetailCardBody(
         <div className="inventoryCardTopAside">
           <span className="inventoryCardRarity">{formatRarityLabel(item.rarity)}</span>
           {priceLabel ? <span className="merchantCardPriceOverlay">{priceLabel}</span> : null}
+          {stackCountLabel ? <span className="inventoryCardStackCount">{stackCountLabel}</span> : null}
           {asideNote ? <span className="inventoryCardTopAsideNote">{asideNote}</span> : null}
         </div>
       </div>
@@ -1393,18 +1503,24 @@ function renderInventoryItemDetailCardBody(
       <div className="inventoryCardDetails">
         <p className="inventoryCardDescription inventoryCardFlavor">{item.description}</p>
         <div className="inventoryCardFooter">
-          <span className="inventoryCardPower">
-            {i18n.t("inventory.power", { value: item.power })}
-            {typeof powerDelta === "number" && powerDelta !== 0 ? (
-              <span className={`inventoryCardPowerDelta ${powerDelta > 0 ? "positive" : "negative"}`}>
-                {" "}
-                ({powerDelta > 0 ? `+${powerDelta}` : powerDelta})
-              </span>
-            ) : null}
-          </span>
-          <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>
-            {i18n.t("inventory.requiredLevel", { value: item.levelRequirement })}
-          </span>
+          {showPowerFooter ? (
+            <span className="inventoryCardPower">
+              {i18n.t("inventory.power", { value: item.power })}
+              {typeof powerDelta === "number" && powerDelta !== 0 ? (
+                <span className={`inventoryCardPowerDelta ${powerDelta > 0 ? "positive" : "negative"}`}>
+                  {" "}
+                  ({powerDelta > 0 ? `+${powerDelta}` : powerDelta})
+                </span>
+              ) : null}
+            </span>
+          ) : <span />}
+          {showLevelFooter ? (
+            <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>
+              {i18n.t("inventory.requiredLevel", { value: item.levelRequirement })}
+            </span>
+          ) : stackCountLabel ? (
+            <span className="inventoryCardLevel">{stackCountLabel}</span>
+          ) : null}
         </div>
       </div>
     </>
@@ -1427,6 +1543,18 @@ function resolveItemIconVisual(args: {
   category?: string;
   itemName?: string | null;
 }): { variant: ItemIconVariant; label: string } {
+  const category = (args.category ?? "").toLowerCase();
+  if (
+    category.includes("material")
+    || category.includes("catalyst")
+    || category.includes("reagent")
+    || category.includes("seed")
+    || category.includes("plant")
+    || category.includes("ingredient")
+  ) {
+    return { variant: "material", label: "MT" };
+  }
+
   if (args.majorCategory) {
     if (args.majorCategory === "armor") {
       return { variant: "armor", label: "AR" };
@@ -1445,12 +1573,8 @@ function resolveItemIconVisual(args: {
     }
   }
 
-  const category = (args.category ?? "").toLowerCase();
   if (category.includes("consumable")) {
     return { variant: "consumable", label: "CO" };
-  }
-  if (category.includes("material")) {
-    return { variant: "material", label: "MT" };
   }
   if (category.includes("container")) {
     return { variant: "container", label: "CT" };
@@ -1636,12 +1760,8 @@ export function InventoryCardGrid(props: InventoryCardGridProps): ReactElement {
                   }
                 : undefined
             }
-            onMouseEnter={
-              props.allowDrag
-                ? (event) => props.onInventoryCardMouseEnter(item, item.id, event.currentTarget, "left")
-                : undefined
-            }
-            onMouseLeave={props.allowDrag ? () => props.onInventoryCardMouseLeave(item.id) : undefined}
+            onMouseEnter={(event) => props.onInventoryCardMouseEnter(item, item.id, event.currentTarget, "left")}
+            onMouseLeave={() => props.onInventoryCardMouseLeave(item.id)}
             onDragEnd={props.allowDrag ? props.onInventoryCardDragEnd : undefined}
           >
             {renderInventoryItemCardBody(item, canUseItem)}
@@ -1951,6 +2071,9 @@ export function AppShell() {
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => getLayoutMode(window.innerWidth));
   const [profileSideTab, setProfileSideTab] = useState<ProfileSideTab>("inventory");
+  const [profileGardenState, setProfileGardenState] = useState<GardenStateResponse | null>(null);
+  const [activeConsumableFilter, setActiveConsumableFilter] = useState<ConsumableType | null>(null);
+  const [activeMaterialFilter, setActiveMaterialFilter] = useState<ProfileSideMaterialFilter | null>(null);
   const [draggingInventoryCardId, setDraggingInventoryCardId] = useState<string | null>(null);
   const [draggingEquipmentSlotId, setDraggingEquipmentSlotId] = useState<EquipmentSlotId | null>(null);
   const [dropTargetInventoryCardId, setDropTargetInventoryCardId] = useState<string | null>(null);
@@ -2344,15 +2467,63 @@ export function AppShell() {
     );
   }
 
+  const equippableProfileItems = useMemo(
+    () => inventoryItems.filter((item) => item.equipable),
+    [inventoryItems]
+  );
+  const consumableProfileItems = useMemo(
+    () =>
+      inventoryItems
+        .filter((item) => isConsumableInventoryItem(item))
+        .map((item) => ({
+          ...item,
+          profileSideSubtype: getInventoryItemConsumableType(item) ?? item.profileSideSubtype,
+          profileSideSource: item.profileSideSource ?? "inventory"
+        })),
+    [inventoryItems]
+  );
+  const inventoryMaterialItems = useMemo(
+    () =>
+      inventoryItems
+        .filter((item) => isMaterialInventoryItem(item))
+        .map((item) => ({
+          ...item,
+          profileSideSubtype: "other" as const,
+          profileSideSource: item.profileSideSource ?? "inventory"
+        })),
+    [inventoryItems]
+  );
+  const gardenMaterialItems = useMemo(
+    () => (profileGardenState?.inventory ?? []).map((entry) => toProfileGardenInventoryItem(entry)),
+    [profileGardenState]
+  );
+  const materialProfileItems = useMemo(
+    () => [...inventoryMaterialItems, ...gardenMaterialItems],
+    [gardenMaterialItems, inventoryMaterialItems]
+  );
   const filteredInventoryItems = useMemo(() => {
-    return applyInventoryFilters(inventoryItems, {
+    return applyInventoryFilters(equippableProfileItems, {
       showOnlyWeapons,
       showOnlyArmor,
       showOnlyJewelry,
       showOnlyWearable,
       powerSortDirection
     });
-  }, [inventoryItems, powerSortDirection, showOnlyArmor, showOnlyJewelry, showOnlyWeapons, showOnlyWearable]);
+  }, [equippableProfileItems, powerSortDirection, showOnlyArmor, showOnlyJewelry, showOnlyWeapons, showOnlyWearable]);
+  const filteredConsumableItems = useMemo(() => {
+    if (!activeConsumableFilter) {
+      return consumableProfileItems;
+    }
+
+    return consumableProfileItems.filter((item) => item.profileSideSubtype === activeConsumableFilter);
+  }, [activeConsumableFilter, consumableProfileItems]);
+  const filteredMaterialItems = useMemo(() => {
+    if (!activeMaterialFilter) {
+      return materialProfileItems;
+    }
+
+    return materialProfileItems.filter((item) => item.profileSideSubtype === activeMaterialFilter);
+  }, [activeMaterialFilter, materialProfileItems]);
   const activeChatMessages = chatMessagesByChannel[activeChatChannel];
   const isInventoryChatVisible = canDockInventoryChat ? isInventoryChatDockedVisible : isInventoryChatOverlayOpen;
 
@@ -3369,6 +3540,7 @@ export function AppShell() {
     let active = true;
 
     if (!token || !playerState) {
+      setProfileGardenState(null);
       return () => {
         active = false;
       };
@@ -3380,14 +3552,19 @@ export function AppShell() {
           return;
         }
 
+        setProfileGardenState(state);
         setCheatGardenUnlockedSlotsInput(String(state.unlockedSlotCount));
       })
-      .catch(() => {});
+      .catch(() => {
+        if (active) {
+          setProfileGardenState(null);
+        }
+      });
 
     return () => {
       active = false;
     };
-  }, [playerState?.playerId, token]);
+  }, [activeTab, playerState?.playerId, token]);
 
   useEffect(() => {
     if (!playerState) {
@@ -4437,6 +4614,14 @@ export function AppShell() {
     setShowOnlyJewelry(filter === "jewelry" ? nextActive : false);
   }
 
+  function toggleConsumableProfileFilter(filter: ConsumableType) {
+    setActiveConsumableFilter((previous) => previous === filter ? null : filter);
+  }
+
+  function toggleMaterialProfileFilter(filter: ProfileSideMaterialFilter) {
+    setActiveMaterialFilter((previous) => previous === filter ? null : filter);
+  }
+
   function toggleFilterStatePowerSort(setter: (updater: (previous: InventoryFilterState) => InventoryFilterState) => void) {
     setter((previous) => ({
       ...previous,
@@ -4583,7 +4768,7 @@ export function AppShell() {
   function renderInventoryComparisonOverlay(): ReactElement | null {
     if (
       !inventoryComparisonHover ||
-      (activeTab === "inventory" && profileSideTab !== "inventory") ||
+      (activeTab === "inventory" && profileSideTab === "stats") ||
       (activeTab !== "inventory" && activeTab !== "merchant")
     ) {
       return null;
@@ -5411,12 +5596,17 @@ export function AppShell() {
           embedded={embedded}
           isLoadingState={isLoadingState}
           playerState={playerState}
-          inventoryItems={inventoryItems}
+          inventoryItems={equippableProfileItems}
           inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
           profileSideTab={profileSideTab}
           sidePanelScrollRef={sidePanelScrollRef}
           filteredInventoryItems={filteredInventoryItems}
           consumableItems={[]}
+          filteredConsumableItems={[]}
+          materialItems={[]}
+          filteredMaterialItems={[]}
+          activeConsumableFilter={activeConsumableFilter}
+          activeMaterialFilter={activeMaterialFilter}
           groupedStats={[]}
           onTabChange={setProfileSideTab}
           onInventoryScroll={() => setInventoryComparisonHover(null)}
@@ -5424,6 +5614,8 @@ export function AppShell() {
           onInventoryDrop={handleInventoryListDrop}
           onToggleInventoryPowerSort={toggleInventoryPowerSort}
           onToggleInventoryCategory={toggleExclusiveInventoryCategoryFilter}
+          onToggleConsumableFilter={toggleConsumableProfileFilter}
+          onToggleMaterialFilter={toggleMaterialProfileFilter}
           onToggleWearable={() => setShowOnlyWearable((previous) => !previous)}
           showOnlyWeapons={showOnlyWeapons}
           showOnlyArmor={showOnlyArmor}
@@ -5482,19 +5674,22 @@ export function AppShell() {
       }
     ];
 
-    const consumableItems = inventoryItems.filter((item) => item.category === "Consumable");
-
     return (
       <ProfileSidePanel
         embedded={embedded}
         isLoadingState={isLoadingState}
         playerState={playerState}
-        inventoryItems={inventoryItems}
+        inventoryItems={equippableProfileItems}
         inventorySlotCapacity={INVENTORY_ITEM_LIMIT}
         profileSideTab={profileSideTab}
         sidePanelScrollRef={sidePanelScrollRef}
         filteredInventoryItems={filteredInventoryItems}
-        consumableItems={consumableItems}
+        consumableItems={consumableProfileItems}
+        filteredConsumableItems={filteredConsumableItems}
+        materialItems={materialProfileItems}
+        filteredMaterialItems={filteredMaterialItems}
+        activeConsumableFilter={activeConsumableFilter}
+        activeMaterialFilter={activeMaterialFilter}
         groupedStats={groupedStats}
         onTabChange={setProfileSideTab}
         onInventoryScroll={() => setInventoryComparisonHover(null)}
@@ -5502,6 +5697,8 @@ export function AppShell() {
         onInventoryDrop={handleInventoryListDrop}
         onToggleInventoryPowerSort={toggleInventoryPowerSort}
         onToggleInventoryCategory={toggleExclusiveInventoryCategoryFilter}
+        onToggleConsumableFilter={toggleConsumableProfileFilter}
+        onToggleMaterialFilter={toggleMaterialProfileFilter}
         onToggleWearable={() => setShowOnlyWearable((previous) => !previous)}
         showOnlyWeapons={showOnlyWeapons}
         showOnlyArmor={showOnlyArmor}

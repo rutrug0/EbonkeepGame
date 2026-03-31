@@ -2562,14 +2562,89 @@ button:focus-visible {
 }
 
 .profileSideTabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.profileSideTabs .profileSwitchButton {
-  width: 100%;
+.profileSideTabGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   min-width: 0;
+}
+
+.profileSideTabGroupRight {
+  margin-left: auto;
+}
+
+.profileSideTabControl {
+  flex: 0 0 auto;
+}
+
+.profileSideTabButton {
+  width: 64px;
+  height: 64px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-soft) 86%, white 14%);
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 120ms ease, transform 120ms ease;
+}
+
+.profileSideTabButton:hover {
+  color: color-mix(in srgb, var(--text-main) 84%, var(--accent-focus) 16%);
+}
+
+.profileSideTabButton:active {
+  transform: scale(0.96);
+}
+
+.profileSideTabButton.active,
+.profileSideTabButton[aria-pressed="true"] {
+  color: color-mix(in srgb, var(--accent-warn) 76%, var(--text-main) 24%);
+}
+
+.profileSideTabButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-focus) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.profileSideTabButton svg {
+  width: 42px;
+  height: 42px;
+  display: block;
+  fill: currentColor;
+}
+
+@media (max-width: 680px) {
+  .profileSideTabs {
+    flex-wrap: wrap;
+  }
+
+  .profileSideTabButton {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+  }
+
+  .profileSideTabButton svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .inventoryControlsRowReadOnly {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .sidePanelBodyCard {
@@ -4484,6 +4559,17 @@ button:focus-visible {
   align-items: baseline;
 }
 
+.inventoryHeaderCompact {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.inventoryHeaderCompact h3,
+.inventoryHeaderCompact p {
+  margin: 0;
+}
+
 .inventoryToolbarSticky {
   position: sticky;
   top: 0;
@@ -4500,6 +4586,10 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+}
+
+.inventoryControlsRowReadOnly {
+  align-items: flex-start;
 }
 
 .inventoryFilterButtons {
@@ -6120,6 +6210,22 @@ button:focus-visible {
   color: #d56a6a;
 }
 
+.inventoryCompactQuantityBadge {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  z-index: 2;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(9, 14, 19, 0.82);
+  color: color-mix(in srgb, var(--text-main) 90%, white 10%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(3, 5, 8, 0.34);
+  pointer-events: none;
+}
+
 /* Tempering failure badge — positioned top-left, same corner as enchant badge */
 .inventoryTemperingFailedBadge {
   position: absolute;
@@ -6300,6 +6406,13 @@ button:focus-visible {
   font-weight: 800;
   line-height: 1;
   color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
+}
+
+.inventoryCardStackCount {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-soft) 92%, white 8%);
 }
 
 .inventoryCardTopAsideNote {
@@ -6488,9 +6601,9 @@ button:focus-visible {
 }
 
 .contentCard.merchantSceneCard.characterMergedPrimaryTabsCard .profileSwitchButton,
-.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSwitchButton,
+.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSideTabButton,
 .contentCard.merchantSceneCard.characterMergedPrimaryTabsCard .profileSwitchButton.active,
-.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSwitchButton.active {
+.contentCard.merchantSceneCard.mergedCharacterSideTabsCard .profileSideTabButton.active {
   border-color: transparent;
 }
 

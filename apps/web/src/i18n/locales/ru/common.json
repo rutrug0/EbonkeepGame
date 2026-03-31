@@ -526,7 +526,22 @@
     "combatSpeed": "Скорость боя",
     "chanceToExtraAttack": "Шанс доп. атаки",
     "physicalDefense": "Физическая защита",
-    "magicDefense": "Магическая защита"
+    "magicDefense": "Магическая защита",
+    "materialsTab": "?????????",
+    "inventoryTabAria": "???????? ??????????? ?????????",
+    "consumablesTabAria": "???????? ??????????",
+    "materialsTabAria": "???????? ?????????",
+    "statsTabAria": "???????? ??????????????",
+    "potionsFilter": "?????",
+    "tonicsFilter": "??????",
+    "elixirsFilter": "????????",
+    "seedsFilter": "??????",
+    "plantsFilter": "????????",
+    "otherMaterialsFilter": "?????? ?????????",
+    "stackCountCompact": "x{{count}}",
+    "stackCountLabel": "{{count}} ? ??????",
+    "gardenSeedDescription": "?????? {{plant}}, ?????????????? ??? ??????? ? ????.",
+    "gardenPlantDescription": "????????? {{plant}}, ??????????? ??? ??????? ???????? ?????????????."
   },
   "leaderboards": {
     "title": "Рейтинги",
@@ -1312,38 +1327,38 @@
       "running": "Processing",
       "complete": "Complete"
     },
-      "category": {
-        "consumables": "Consumables",
-        "materials": "Materials",
-        "recycling": "Recycling"
-      },
-      "emptyRecipes": "No recipes are available in this category right now.",
-      "emptyRecycling": "Recycling recipes are not available yet.",
-      "type": {
-        "potion": "Potion",
-        "tonic": "Tonic",
-        "elixir": "Elixir"
-      },
-      "tooltip": {
-        "duration": "Duration",
-        "effects": "Effects",
-        "recipe": "Recipe",
-        "instantDuration": "Instant",
-        "encounterDuration": "{{count}} encounters",
-        "hourDuration": "{{count}} hours",
-        "restoreHealth": "Restore {{value}} of max HP",
-        "restoreStamina": "Restore {{value}} of max stamina",
-        "increaseStat": "Increase {{stat}} by {{value}}",
-        "increaseContractXp": "Increase contract XP by {{value}}",
-        "increaseContractDucats": "Increase ducats gained by {{value}}",
-        "increaseContractReplenish": "Increase contract replenishment by {{value}}",
-        "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
-        "reduceTravelDuration": "Reduce travel duration by {{value}}",
-        "increaseItemDrop": "Increase item drop rate by {{value}}",
-        "clearAffliction": "Clear {{count}} affliction",
-        "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
-      }
+    "category": {
+      "consumables": "Consumables",
+      "materials": "Materials",
+      "recycling": "Recycling"
     },
+    "emptyRecipes": "No recipes are available in this category right now.",
+    "emptyRecycling": "Recycling recipes are not available yet.",
+    "type": {
+      "potion": "Potion",
+      "tonic": "Tonic",
+      "elixir": "Elixir"
+    },
+    "tooltip": {
+      "duration": "Duration",
+      "effects": "Effects",
+      "recipe": "Recipe",
+      "instantDuration": "Instant",
+      "encounterDuration": "{{count}} encounters",
+      "hourDuration": "{{count}} hours",
+      "restoreHealth": "Restore {{value}} of max HP",
+      "restoreStamina": "Restore {{value}} of max stamina",
+      "increaseStat": "Increase {{stat}} by {{value}}",
+      "increaseContractXp": "Increase contract XP by {{value}}",
+      "increaseContractDucats": "Increase ducats gained by {{value}}",
+      "increaseContractReplenish": "Increase contract replenishment by {{value}}",
+      "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
+      "reduceTravelDuration": "Reduce travel duration by {{value}}",
+      "increaseItemDrop": "Increase item drop rate by {{value}}",
+      "clearAffliction": "Clear {{count}} affliction",
+      "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
+    }
+  },
   "jobsPanel": {
     "eyebrow": "Estate Jobs",
     "subtitle": "A long-session lane for materials, ducats, and botanical sourcing with hourly checkpoints and interrupt salvage.",

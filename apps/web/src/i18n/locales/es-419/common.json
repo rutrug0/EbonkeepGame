@@ -526,7 +526,22 @@
     "combatSpeed": "Velocidad de Combate",
     "chanceToExtraAttack": "Prob. de Ataque Extra",
     "physicalDefense": "Defensa Física",
-    "magicDefense": "Defensa Mágica"
+    "magicDefense": "Defensa Mágica",
+    "materialsTab": "Materiales",
+    "inventoryTabAria": "Mostrar inventario equipable",
+    "consumablesTabAria": "Mostrar consumibles",
+    "materialsTabAria": "Mostrar materiales",
+    "statsTabAria": "Mostrar estad?sticas",
+    "potionsFilter": "Pociones",
+    "tonicsFilter": "T?nicos",
+    "elixirsFilter": "Elixires",
+    "seedsFilter": "Semillas",
+    "plantsFilter": "Plantas",
+    "otherMaterialsFilter": "Otros materiales",
+    "stackCountCompact": "x{{count}}",
+    "stackCountLabel": "{{count}} en la pila",
+    "gardenSeedDescription": "Semillas de {{plant}} preparadas para plantar en el jard?n.",
+    "gardenPlantDescription": "{{plant}} cosechada y guardada para futuras recetas de refiner?a."
   },
   "leaderboards": {
     "title": "Clasificaciones",
@@ -1312,38 +1327,38 @@
       "running": "Processing",
       "complete": "Complete"
     },
-      "category": {
-        "consumables": "Consumables",
-        "materials": "Materials",
-        "recycling": "Recycling"
-      },
-      "emptyRecipes": "No recipes are available in this category right now.",
-      "emptyRecycling": "Recycling recipes are not available yet.",
-      "type": {
-        "potion": "Potion",
-        "tonic": "Tonic",
-        "elixir": "Elixir"
-      },
-      "tooltip": {
-        "duration": "Duration",
-        "effects": "Effects",
-        "recipe": "Recipe",
-        "instantDuration": "Instant",
-        "encounterDuration": "{{count}} encounters",
-        "hourDuration": "{{count}} hours",
-        "restoreHealth": "Restore {{value}} of max HP",
-        "restoreStamina": "Restore {{value}} of max stamina",
-        "increaseStat": "Increase {{stat}} by {{value}}",
-        "increaseContractXp": "Increase contract XP by {{value}}",
-        "increaseContractDucats": "Increase ducats gained by {{value}}",
-        "increaseContractReplenish": "Increase contract replenishment by {{value}}",
-        "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
-        "reduceTravelDuration": "Reduce travel duration by {{value}}",
-        "increaseItemDrop": "Increase item drop rate by {{value}}",
-        "clearAffliction": "Clear {{count}} affliction",
-        "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
-      }
+    "category": {
+      "consumables": "Consumables",
+      "materials": "Materials",
+      "recycling": "Recycling"
     },
+    "emptyRecipes": "No recipes are available in this category right now.",
+    "emptyRecycling": "Recycling recipes are not available yet.",
+    "type": {
+      "potion": "Potion",
+      "tonic": "Tonic",
+      "elixir": "Elixir"
+    },
+    "tooltip": {
+      "duration": "Duration",
+      "effects": "Effects",
+      "recipe": "Recipe",
+      "instantDuration": "Instant",
+      "encounterDuration": "{{count}} encounters",
+      "hourDuration": "{{count}} hours",
+      "restoreHealth": "Restore {{value}} of max HP",
+      "restoreStamina": "Restore {{value}} of max stamina",
+      "increaseStat": "Increase {{stat}} by {{value}}",
+      "increaseContractXp": "Increase contract XP by {{value}}",
+      "increaseContractDucats": "Increase ducats gained by {{value}}",
+      "increaseContractReplenish": "Increase contract replenishment by {{value}}",
+      "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
+      "reduceTravelDuration": "Reduce travel duration by {{value}}",
+      "increaseItemDrop": "Increase item drop rate by {{value}}",
+      "clearAffliction": "Clear {{count}} affliction",
+      "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
+    }
+  },
   "jobsPanel": {
     "eyebrow": "Estate Jobs",
     "subtitle": "A long-session lane for materials, ducats, and botanical sourcing with hourly checkpoints and interrupt salvage.",

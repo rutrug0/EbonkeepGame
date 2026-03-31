@@ -819,7 +819,6 @@ export function GuildAcademy({ token, guildId, playerDucats, onDucatsChanged }: 
     if (detailPane === "history" || detailPane === "contributions") {
       loadHistory();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detailPane]);
 
   // -- Node interaction ------------------------------------------------------

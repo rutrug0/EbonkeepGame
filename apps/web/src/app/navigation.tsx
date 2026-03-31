@@ -29,7 +29,7 @@ export type MenuGroup = {
 
 export type LayoutMode = "compact" | "standard" | "wide";
 export type CharacterHubTab = "character" | "renown" | "ledger" | "encyclopedia";
-export type ProfileSideTab = "inventory" | "consumables" | "stats";
+export type ProfileSideTab = "inventory" | "consumables" | "materials" | "stats";
 export type ChatChannel = "world" | "guild";
 
 export const CHAT_CHANNEL_LABEL_KEYS: Record<ChatChannel, string> = {

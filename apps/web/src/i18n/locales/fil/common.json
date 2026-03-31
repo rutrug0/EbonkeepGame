@@ -394,7 +394,22 @@
     "combatSpeed": "Bilis ng Labanan",
     "chanceToExtraAttack": "Tsansa ng Dagdag na Atake",
     "physicalDefense": "Pisikal na Depensa",
-    "magicDefense": "Mahikang Depensa"
+    "magicDefense": "Mahikang Depensa",
+    "materialsTab": "Materials",
+    "inventoryTabAria": "Show equippable inventory",
+    "consumablesTabAria": "Show consumables",
+    "materialsTabAria": "Show materials",
+    "statsTabAria": "Show stats",
+    "potionsFilter": "Potions",
+    "tonicsFilter": "Tonics",
+    "elixirsFilter": "Elixirs",
+    "seedsFilter": "Seeds",
+    "plantsFilter": "Plants",
+    "otherMaterialsFilter": "Other Materials",
+    "stackCountCompact": "x{{count}}",
+    "stackCountLabel": "{{count}} in stack",
+    "gardenSeedDescription": "{{plant}} seeds prepared for planting in the garden.",
+    "gardenPlantDescription": "Harvested {{plant}} stored for future refinery recipes."
   },
   "auction": {
     "title": "Auction House",
@@ -1347,38 +1362,38 @@
       "running": "Processing",
       "complete": "Complete"
     },
-      "category": {
-        "consumables": "Consumables",
-        "materials": "Materials",
-        "recycling": "Recycling"
-      },
-      "emptyRecipes": "No recipes are available in this category right now.",
-      "emptyRecycling": "Recycling recipes are not available yet.",
-      "type": {
-        "potion": "Potion",
-        "tonic": "Tonic",
-        "elixir": "Elixir"
-      },
-      "tooltip": {
-        "duration": "Duration",
-        "effects": "Effects",
-        "recipe": "Recipe",
-        "instantDuration": "Instant",
-        "encounterDuration": "{{count}} encounters",
-        "hourDuration": "{{count}} hours",
-        "restoreHealth": "Restore {{value}} of max HP",
-        "restoreStamina": "Restore {{value}} of max stamina",
-        "increaseStat": "Increase {{stat}} by {{value}}",
-        "increaseContractXp": "Increase contract XP by {{value}}",
-        "increaseContractDucats": "Increase ducats gained by {{value}}",
-        "increaseContractReplenish": "Increase contract replenishment by {{value}}",
-        "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
-        "reduceTravelDuration": "Reduce travel duration by {{value}}",
-        "increaseItemDrop": "Increase item drop rate by {{value}}",
-        "clearAffliction": "Clear {{count}} affliction",
-        "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
-      }
+    "category": {
+      "consumables": "Consumables",
+      "materials": "Materials",
+      "recycling": "Recycling"
     },
+    "emptyRecipes": "No recipes are available in this category right now.",
+    "emptyRecycling": "Recycling recipes are not available yet.",
+    "type": {
+      "potion": "Potion",
+      "tonic": "Tonic",
+      "elixir": "Elixir"
+    },
+    "tooltip": {
+      "duration": "Duration",
+      "effects": "Effects",
+      "recipe": "Recipe",
+      "instantDuration": "Instant",
+      "encounterDuration": "{{count}} encounters",
+      "hourDuration": "{{count}} hours",
+      "restoreHealth": "Restore {{value}} of max HP",
+      "restoreStamina": "Restore {{value}} of max stamina",
+      "increaseStat": "Increase {{stat}} by {{value}}",
+      "increaseContractXp": "Increase contract XP by {{value}}",
+      "increaseContractDucats": "Increase ducats gained by {{value}}",
+      "increaseContractReplenish": "Increase contract replenishment by {{value}}",
+      "reduceContractStaminaCost": "Reduce contract stamina cost by {{value}}",
+      "reduceTravelDuration": "Reduce travel duration by {{value}}",
+      "increaseItemDrop": "Increase item drop rate by {{value}}",
+      "clearAffliction": "Clear {{count}} affliction",
+      "increaseAfflictionResist": "Increase affliction resistance by {{value}}"
+    }
+  },
   "jobsPanel": {
     "eyebrow": "Estate Jobs",
     "subtitle": "A long-session lane for materials, ducats, and botanical sourcing with hourly checkpoints and interrupt salvage.",

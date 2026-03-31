@@ -7,6 +7,7 @@ import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 type InventoryItemLike = {
   category: string;
+  profileSideSubtype?: "potion" | "tonic" | "elixir" | "seed" | "plant" | "other";
 } & Record<string, any>;
 
 type StatsGroup = {
@@ -14,23 +15,34 @@ type StatsGroup = {
   rows: Array<{ label: string; value: string | number }>;
 };
 
+type ProfileSideTab = "inventory" | "consumables" | "materials" | "stats";
+type ConsumableFilter = "potion" | "tonic" | "elixir";
+type MaterialFilter = "seed" | "plant" | "other";
+
 export type ProfileSidePanelProps = {
   embedded?: boolean;
   isLoadingState: boolean;
   playerState: PlayerState | null;
   inventoryItems: InventoryItemLike[];
   inventorySlotCapacity: number;
-  profileSideTab: "inventory" | "consumables" | "stats";
+  profileSideTab: ProfileSideTab;
   sidePanelScrollRef: RefObject<HTMLDivElement | null>;
   filteredInventoryItems: InventoryItemLike[];
   consumableItems: InventoryItemLike[];
+  filteredConsumableItems: InventoryItemLike[];
+  materialItems: InventoryItemLike[];
+  filteredMaterialItems: InventoryItemLike[];
+  activeConsumableFilter: ConsumableFilter | null;
+  activeMaterialFilter: MaterialFilter | null;
   groupedStats: StatsGroup[];
-  onTabChange: (tab: "inventory" | "consumables" | "stats") => void;
+  onTabChange: (tab: ProfileSideTab) => void;
   onInventoryScroll: () => void;
   onInventoryDragOver: DragEventHandler<HTMLDivElement>;
   onInventoryDrop: DragEventHandler<HTMLDivElement>;
   onToggleInventoryPowerSort: () => void;
   onToggleInventoryCategory: (filter: "weapon" | "armor" | "jewelry") => void;
+  onToggleConsumableFilter: (filter: ConsumableFilter) => void;
+  onToggleMaterialFilter: (filter: MaterialFilter) => void;
   onToggleWearable: () => void;
   showOnlyWeapons: boolean;
   showOnlyArmor: boolean;
@@ -58,28 +70,48 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
   const bodyClassName = `contentCard statsViewportBody sidePanelBodyCard${
     props.embedded ? " merchantSceneCard mergedCharacterSideBodyCard" : " indoorSceneShell"
   }`;
+
   const content = (
     <section className={stackClassName}>
       <article className={tabsCardClassName}>
         <div className="profileSideTabs">
-          <button
-            className={`profileSwitchButton${props.profileSideTab === "inventory" ? " active" : ""}`}
-            onClick={() => props.onTabChange("inventory")}
-          >
-            {i18n.t("profile.inventoryTab")}
-          </button>
-          <button
-            className={`profileSwitchButton${props.profileSideTab === "consumables" ? " active" : ""}`}
-            onClick={() => props.onTabChange("consumables")}
-          >
-            {i18n.t("profile.consumablesTab")}
-          </button>
-          <button
-            className={`profileSwitchButton${props.profileSideTab === "stats" ? " active" : ""}`}
-            onClick={() => props.onTabChange("stats")}
-          >
-            {i18n.t("profile.statsTab")}
-          </button>
+          <div className="profileSideTabGroup">
+            <TabIconButton
+              active={props.profileSideTab === "inventory"}
+              ariaLabel={i18n.t("profile.inventoryTabAria")}
+              tooltipId="profile-tab-inventory-tooltip"
+              tooltipLabel={i18n.t("profile.inventoryTab")}
+              onClick={() => props.onTabChange("inventory")}
+              path="M4 6.5h12l1.5 2.4V16a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 3 16V8.9L4 6.5zm1.1 2.2-.6.9V16h11V9.6l-.6-.9H5.1zm2 1.3h5.8v2H7.1v-2z"
+            />
+            <TabIconButton
+              active={props.profileSideTab === "consumables"}
+              ariaLabel={i18n.t("profile.consumablesTabAria")}
+              tooltipId="profile-tab-consumables-tooltip"
+              tooltipLabel={i18n.t("profile.consumablesTab")}
+              onClick={() => props.onTabChange("consumables")}
+              path="M8 3h4v2l1 1.2v2.1l2.2 5.1A2.2 2.2 0 0 1 13.2 17H6.8a2.2 2.2 0 0 1-2-3.6L7 8.3V6.2L8 5V3zm.6 6.3-2 4.5a.8.8 0 0 0 .7 1.2h5.4a.8.8 0 0 0 .7-1.2l-2-4.5H8.6z"
+            />
+            <TabIconButton
+              active={props.profileSideTab === "materials"}
+              ariaLabel={i18n.t("profile.materialsTabAria")}
+              tooltipId="profile-tab-materials-tooltip"
+              tooltipLabel={i18n.t("profile.materialsTab")}
+              onClick={() => props.onTabChange("materials")}
+              path="M10 3c1.8 0 3 1.2 3 3 0 .3 0 .6-.1.9 2 .4 3.1 1.8 3.1 3.8 0 2.6-2.3 4.5-6 6.3-3.7-1.8-6-3.7-6-6.3 0-2 1.1-3.4 3.1-3.8C7 6.6 7 6.3 7 6c0-1.8 1.2-3 3-3zm0 2c-.6 0-1 .4-1 1 0 .4.1.7.4 1l.6.7.6-.7c.3-.3.4-.6.4-1 0-.6-.4-1-1-1z"
+            />
+          </div>
+          <div className="profileSideTabGroup profileSideTabGroupRight">
+            <TabIconButton
+              active={props.profileSideTab === "stats"}
+              ariaLabel={i18n.t("profile.statsTabAria")}
+              tooltipId="profile-tab-stats-tooltip"
+              tooltipLabel={i18n.t("profile.statsTab")}
+              onClick={() => props.onTabChange("stats")}
+              path="M4 15h2V9H4v6zm5 0h2V5H9v10zm5 0h2V11h-2v4zM3 17h14v1H3z"
+              align="right"
+            />
+          </div>
         </div>
       </article>
 
@@ -87,7 +119,7 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
         <div
           className="sidePanelScroll"
           ref={props.sidePanelScrollRef}
-          onScroll={props.profileSideTab === "inventory" ? props.onInventoryScroll : undefined}
+          onScroll={props.onInventoryScroll}
           onDragOver={props.profileSideTab === "inventory" ? props.onInventoryDragOver : undefined}
           onDrop={props.profileSideTab === "inventory" ? props.onInventoryDrop : undefined}
         >
@@ -144,14 +176,6 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
                       onClick={() => props.onToggleInventoryCategory("jewelry")}
                       path="M10 5a5 5 0 105 5 5 5 0 00-5-5zm0 2a3 3 0 110 6 3 3 0 010-6zM4 4h3v2H4zM13 4h3v2h-3z"
                     />
-                    <FilterButton
-                      active={props.showOnlyWearable}
-                      ariaLabel={i18n.t("inventory.filterWearableAria")}
-                      tooltipId="inventory-filter-wearable-tooltip"
-                      tooltipLabel={i18n.t("inventory.filterWearable")}
-                      onClick={props.onToggleWearable}
-                      path="M7 3h6l2 3-2 2-1-1v9H8V7L7 8 5 6l2-3z"
-                    />
                   </div>
                 </div>
                 <p className="inventoryFilterSummary">
@@ -167,11 +191,73 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
 
           {!props.isLoadingState && props.playerState && props.profileSideTab === "consumables" ? (
             <>
-              <div className="inventoryHeader">
-                <h3>{i18n.t("inventory.consumables")}</h3>
-                <p>{i18n.t("inventory.itemCount", { count: props.consumableItems.length })}</p>
-              </div>
-              {props.renderInventoryCards(props.consumableItems, false)}
+              <ReadOnlyCollectionToolbar
+                title={i18n.t("profile.consumablesTab")}
+                shownCount={props.filteredConsumableItems.length}
+                totalCount={props.consumableItems.length}
+              >
+                <FilterButton
+                  active={props.activeConsumableFilter === "potion"}
+                  ariaLabel={i18n.t("profile.potionsFilter")}
+                  tooltipId="consumables-filter-potion-tooltip"
+                  tooltipLabel={i18n.t("profile.potionsFilter")}
+                  onClick={() => props.onToggleConsumableFilter("potion")}
+                  path="M8 3h4v2l1 1v2.2l2 5A2.1 2.1 0 0 1 13 16H7a2.1 2.1 0 0 1-2-2.8l2-5V6l1-1V3zm.8 6.2-1.2 3.2h4.8l-1.2-3.2H8.8z"
+                />
+                <FilterButton
+                  active={props.activeConsumableFilter === "tonic"}
+                  ariaLabel={i18n.t("profile.tonicsFilter")}
+                  tooltipId="consumables-filter-tonic-tooltip"
+                  tooltipLabel={i18n.t("profile.tonicsFilter")}
+                  onClick={() => props.onToggleConsumableFilter("tonic")}
+                  path="M9 3h2v2l2 2v1.5L15.5 12A2.5 2.5 0 0 1 13.4 16H6.6A2.5 2.5 0 0 1 4.5 12L7 8.5V7l2-2V3zm-.8 6-1.7 2.7a.9.9 0 0 0 .8 1.3h5.4a.9.9 0 0 0 .8-1.3L11.8 9H8.2z"
+                />
+                <FilterButton
+                  active={props.activeConsumableFilter === "elixir"}
+                  ariaLabel={i18n.t("profile.elixirsFilter")}
+                  tooltipId="consumables-filter-elixir-tooltip"
+                  tooltipLabel={i18n.t("profile.elixirsFilter")}
+                  onClick={() => props.onToggleConsumableFilter("elixir")}
+                  path="M10 2.8 11.2 6l3.3.2-2.6 2.1.9 3.2L10 9.9 7.2 11.5l.9-3.2-2.6-2.1L8.8 6 10 2.8zm-2 10.4h4l1.6 2.8H6.4L8 13.2z"
+                />
+              </ReadOnlyCollectionToolbar>
+              {props.renderInventoryCards(props.filteredConsumableItems, false)}
+            </>
+          ) : null}
+
+          {!props.isLoadingState && props.playerState && props.profileSideTab === "materials" ? (
+            <>
+              <ReadOnlyCollectionToolbar
+                title={i18n.t("profile.materialsTab")}
+                shownCount={props.filteredMaterialItems.length}
+                totalCount={props.materialItems.length}
+              >
+                <FilterButton
+                  active={props.activeMaterialFilter === "seed"}
+                  ariaLabel={i18n.t("profile.seedsFilter")}
+                  tooltipId="materials-filter-seeds-tooltip"
+                  tooltipLabel={i18n.t("profile.seedsFilter")}
+                  onClick={() => props.onToggleMaterialFilter("seed")}
+                  path="M10 3c1.6 0 2.8 1.3 2.8 2.8 0 2.6-2 4.5-2.8 5.1-.8-.6-2.8-2.5-2.8-5.1C7.2 4.3 8.4 3 10 3zm0 2a.8.8 0 0 0-.8.8c0 .9.5 1.8.8 2.3.3-.5.8-1.4.8-2.3A.8.8 0 0 0 10 5zm-.8 8.4h1.6V17H9.2z"
+                />
+                <FilterButton
+                  active={props.activeMaterialFilter === "plant"}
+                  ariaLabel={i18n.t("profile.plantsFilter")}
+                  tooltipId="materials-filter-plants-tooltip"
+                  tooltipLabel={i18n.t("profile.plantsFilter")}
+                  onClick={() => props.onToggleMaterialFilter("plant")}
+                  path="M10 17v-6.4c0-2.9 2.1-5.1 4.8-5.4-.3 3.1-2.1 5.6-4.8 6V17H8.8v-2.8c-2.1-.3-3.8-1.9-4.1-4.1 2.4.2 4.1 1.6 4.5 4.1H10z"
+                />
+                <FilterButton
+                  active={props.activeMaterialFilter === "other"}
+                  ariaLabel={i18n.t("profile.otherMaterialsFilter")}
+                  tooltipId="materials-filter-other-tooltip"
+                  tooltipLabel={i18n.t("profile.otherMaterialsFilter")}
+                  onClick={() => props.onToggleMaterialFilter("other")}
+                  path="M6 6.5 10 4l4 2.5v4.8L10 14l-4-2.7V6.5zm4 .1-2 1.2V10l2 1.3 2-1.3V7.8L10 6.6zm-5 7.5 2.4-1.4 1 .6L6 14.8V17H5v-2.9zm10 0V17h-1v-2.2l-2.4-1.5 1-.6L15 14.1z"
+                />
+              </ReadOnlyCollectionToolbar>
+              {props.renderInventoryCards(props.filteredMaterialItems, false)}
             </>
           ) : null}
 
@@ -215,6 +301,33 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
   return <section className="contentShell statsViewportShell">{content}</section>;
 }
 
+type ReadOnlyCollectionToolbarProps = {
+  title: string;
+  shownCount: number;
+  totalCount: number;
+  children: ReactElement | ReactElement[];
+};
+
+function ReadOnlyCollectionToolbar(props: ReadOnlyCollectionToolbarProps) {
+  return (
+    <div className="inventoryToolbarSticky">
+      <div className="inventoryControlsRow inventoryControlsRowReadOnly">
+        <div className="inventoryHeader inventoryHeaderCompact">
+          <h3>{props.title}</h3>
+          <p>{i18n.t("inventory.itemCount", { count: props.totalCount })}</p>
+        </div>
+        <div className="inventoryFilterButtons">{props.children}</div>
+      </div>
+      <p className="inventoryFilterSummary">
+        {i18n.t("inventory.summary", {
+          shown: props.shownCount,
+          total: props.totalCount
+        })}
+      </p>
+    </div>
+  );
+}
+
 type FilterButtonProps = {
   active: boolean;
   ariaLabel: string;
@@ -240,6 +353,40 @@ function FilterButton(props: FilterButtonProps) {
         </svg>
       </button>
       <div id={props.tooltipId} className="uiHoverTooltip uiHoverTooltipBottom uiHoverTooltipAnchorEnd" role="tooltip">
+        <p className="uiHoverTooltipTitle">{props.tooltipLabel}</p>
+      </div>
+    </div>
+  );
+}
+
+type TabIconButtonProps = {
+  active: boolean;
+  ariaLabel: string;
+  tooltipId: string;
+  tooltipLabel: string;
+  onClick: () => void;
+  path: string;
+  align?: "left" | "right";
+};
+
+function TabIconButton(props: TabIconButtonProps) {
+  const tooltipAnchorClass = props.align === "right" ? "uiHoverTooltipAnchorEnd" : "uiHoverTooltipAnchorStart";
+
+  return (
+    <div className="inventoryControlWithTooltip profileSideTabControl">
+      <button
+        type="button"
+        className={`profileSideTabButton${props.active ? " active" : ""}`}
+        onClick={props.onClick}
+        aria-label={props.ariaLabel}
+        aria-pressed={props.active}
+        aria-describedby={props.tooltipId}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path d={props.path} />
+        </svg>
+      </button>
+      <div id={props.tooltipId} className={`uiHoverTooltip uiHoverTooltipBottom ${tooltipAnchorClass}`} role="tooltip">
         <p className="uiHoverTooltipTitle">{props.tooltipLabel}</p>
       </div>
     </div>
