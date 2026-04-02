@@ -113,7 +113,10 @@ function createPlayerState(): PlayerState {
       fastContractReplenishEnabled: false,
       fastArenaReplenishEnabled: false,
       fastTrainTimeEnabled: false,
-      unlimitedAcademyDonationsEnabled: false
+      fastCraftTimeEnabled: false,
+      unlimitedAcademyDonationsEnabled: false,
+      unlimitedForgeConsumablesEnabled: false,
+      unlimitedRefineryMaterialsEnabled: false
     }
   };
 }

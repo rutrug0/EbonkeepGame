@@ -221,7 +221,7 @@ export function ProfileSidePanel(props: ProfileSidePanelProps): ReactElement {
                   path="M10 2.8 11.2 6l3.3.2-2.6 2.1.9 3.2L10 9.9 7.2 11.5l.9-3.2-2.6-2.1L8.8 6 10 2.8zm-2 10.4h4l1.6 2.8H6.4L8 13.2z"
                 />
               </ReadOnlyCollectionToolbar>
-              {props.renderInventoryCards(props.filteredConsumableItems, false)}
+              {props.renderInventoryCards(props.filteredConsumableItems, true)}
             </>
           ) : null}
 

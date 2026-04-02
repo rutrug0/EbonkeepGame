@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { inventoryItemSchema } from "@ebonkeep/shared/inventory";
+import { getConsumableDefinition } from "@ebonkeep/shared/consumables";
 
 import { startCraftingJob } from "../../src/modules/crafting/service.js";
 import { getCumulativeExperienceToReachLevel } from "../../src/modules/player/progression-service.js";
@@ -482,6 +484,152 @@ describe("player, inventory, and merchant routes", () => {
     expect(duplicateVestigeResponse.statusCode).toBe(400);
   });
 
+  it("consumes a tonic, activates the effect, and decrements stack quantity", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const tonicItem = await createConsumableStackItem(context.prisma, guest.body.playerId, {
+      itemCode: "consumable_wardens_tonic",
+      quantity: 2
+    });
+
+    const consumeResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/inventory/consume-item",
+      headers,
+      payload: { itemId: tonicItem.id }
+    });
+
+    expect(consumeResponse.statusCode).toBe(200);
+    const consumeBody = consumeResponse.json();
+    expect(consumeBody.consumedItem.itemCode).toBe("consumable_wardens_tonic");
+    expect(consumeBody.consumedItem.remainingQuantity).toBe(1);
+    expect(consumeBody.consumedItem.instantResolved).toBe(false);
+    expect(consumeBody.consumedItem.activated).toBe(true);
+    expect(consumeBody.playerState.activeConsumables.length).toBe(1);
+    expect(consumeBody.playerState.activeConsumables[0].itemCode).toBe("consumable_wardens_tonic");
+
+    const persistedItem = await context.prisma.inventoryItem.findUnique({
+      where: { id: tonicItem.id },
+      select: { quantity: true }
+    });
+    expect(persistedItem?.quantity).toBe(1);
+
+    const activeRows = await context.prisma.$queryRaw<Array<{ id: string; remainingEncounters: number | null }>>`
+      SELECT "id", "remainingEncounters"
+      FROM "player_active_consumables"
+      WHERE "playerId" = ${guest.body.playerId}
+    `;
+    expect(activeRows).toHaveLength(1);
+    expect(activeRows[0]?.remainingEncounters).toBeGreaterThan(0);
+  });
+
+  it("rejects tonic activation on family conflict and type cap without consuming inventory", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+    const now = new Date();
+
+    const familyConflictItem = await createConsumableStackItem(context.prisma, guest.body.playerId, {
+      itemCode: "consumable_wardens_tonic",
+      quantity: 1
+    });
+    await seedActiveEncounterConsumable(context.prisma, guest.body.playerId, "consumable_wardens_tonic", now, 3);
+
+    const familyConflictResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/inventory/consume-item",
+      headers,
+      payload: { itemId: familyConflictItem.id }
+    });
+
+    expect(familyConflictResponse.statusCode).toBe(409);
+    const familyConflictItemRow = await context.prisma.inventoryItem.findUnique({
+      where: { id: familyConflictItem.id },
+      select: { quantity: true }
+    });
+    expect(familyConflictItemRow?.quantity).toBe(1);
+
+    await context.prisma.$executeRaw`
+      DELETE FROM "player_active_consumables"
+      WHERE "playerId" = ${guest.body.playerId}
+    `;
+
+    await seedActiveEncounterConsumable(context.prisma, guest.body.playerId, "consumable_wardens_tonic", now, 3);
+    await seedActiveEncounterConsumable(context.prisma, guest.body.playerId, "consumable_hunters_tonic", now, 3);
+    await seedActiveEncounterConsumable(context.prisma, guest.body.playerId, "consumable_emberwake_tonic", now, 3);
+    const capConflictItem = await createConsumableStackItem(context.prisma, guest.body.playerId, {
+      itemCode: "consumable_berserkers_tonic",
+      quantity: 1
+    });
+
+    const capConflictResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/inventory/consume-item",
+      headers,
+      payload: { itemId: capConflictItem.id }
+    });
+
+    expect(capConflictResponse.statusCode).toBe(409);
+    const capConflictItemRow = await context.prisma.inventoryItem.findUnique({
+      where: { id: capConflictItem.id },
+      select: { quantity: true }
+    });
+    expect(capConflictItemRow?.quantity).toBe(1);
+  });
+
+  it("resolves instant potion effects and clamps restored health and stamina to max", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+
+    const stateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+    expect(stateResponse.statusCode).toBe(200);
+    const state = stateResponse.json();
+
+    await context.prisma.playerProfile.update({
+      where: { id: guest.body.playerId },
+      data: {
+        hitpointsCurrent: state.health.max - 1,
+        hitpointsUpdatedAt: new Date(),
+        staminaCurrent: state.stamina.max - 1,
+        staminaUpdatedAt: new Date()
+      }
+    });
+
+    const healingPotion = await createConsumableStackItem(context.prisma, guest.body.playerId, {
+      itemCode: "consumable_healing_potion",
+      quantity: 1
+    });
+    const staminaPotion = await createConsumableStackItem(context.prisma, guest.body.playerId, {
+      itemCode: "consumable_second_wind_potion",
+      quantity: 1
+    });
+
+    const healthConsumeResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/inventory/consume-item",
+      headers,
+      payload: { itemId: healingPotion.id }
+    });
+    expect(healthConsumeResponse.statusCode).toBe(200);
+    expect(healthConsumeResponse.json().consumedItem.instantResolved).toBe(true);
+    expect(healthConsumeResponse.json().playerState.health.current).toBe(healthConsumeResponse.json().playerState.health.max);
+
+    const staminaConsumeResponse = await context.app.inject({
+      method: "POST",
+      url: "/v1/inventory/consume-item",
+      headers,
+      payload: { itemId: staminaPotion.id }
+    });
+    expect(staminaConsumeResponse.statusCode).toBe(200);
+    expect(staminaConsumeResponse.json().consumedItem.instantResolved).toBe(true);
+    expect(staminaConsumeResponse.json().playerState.stamina.current).toBe(staminaConsumeResponse.json().playerState.stamina.max);
+    expect(staminaConsumeResponse.json().playerState.activeConsumables).toHaveLength(0);
+  });
+
   it("buys, sells, and restocks merchant offers", async () => {
     const guest = await loginAsGuest(context.app);
 
@@ -601,4 +749,91 @@ async function grantCraftingMaterialsForFastCraftTimerTest(
       }
     ]
   });
+}
+
+async function createConsumableStackItem(
+  prisma: Awaited<ReturnType<typeof createApiTestContext>>["prisma"],
+  playerId: string,
+  args: {
+    itemCode: string;
+    quantity: number;
+  }
+) {
+  const definition = getConsumableDefinition(args.itemCode);
+  if (!definition) {
+    throw new Error(`Missing consumable definition: ${args.itemCode}`);
+  }
+
+  const id = `item_${playerId}_${args.itemCode}_${Math.random().toString(36).slice(2, 8)}`;
+  const itemData = inventoryItemSchema.parse({
+    id,
+    itemCode: definition.itemCode,
+    itemName: definition.displayName,
+    rarity: definition.rarity,
+    category: "Consumable",
+    equipable: false,
+    levelRequirement: 1,
+    allowedSlotIds: [],
+    baseLevel: 1,
+    power: 0,
+    archetype: { majorCategory: "consumable" },
+    statBonuses: {},
+    description: definition.description
+  });
+
+  await prisma.inventoryItem.create({
+    data: {
+      id,
+      playerId,
+      itemCode: definition.itemCode,
+      slotKey: "inventory",
+      quantity: Math.max(1, Math.floor(args.quantity)),
+      itemData
+    }
+  });
+
+  return { id };
+}
+
+async function seedActiveEncounterConsumable(
+  prisma: Awaited<ReturnType<typeof createApiTestContext>>["prisma"],
+  playerId: string,
+  itemCode: string,
+  appliedAt: Date,
+  remainingEncounters: number
+) {
+  const definition = getConsumableDefinition(itemCode);
+  if (!definition) {
+    throw new Error(`Missing consumable definition: ${itemCode}`);
+  }
+
+  await prisma.$executeRaw`
+    INSERT INTO "player_active_consumables" (
+      "id",
+      "playerId",
+      "itemCode",
+      "consumableType",
+      "consumableFamily",
+      "effects",
+      "appliedAt",
+      "remainingEncounters",
+      "originalDurationKind",
+      "originalDurationValue",
+      "createdAt",
+      "updatedAt"
+    ) VALUES (
+      ${`pac_test_${Math.random().toString(36).slice(2, 10)}`},
+      ${playerId},
+      ${definition.itemCode},
+      ${definition.type},
+      ${definition.family},
+      ${JSON.stringify(definition.effects)}::jsonb,
+      ${appliedAt},
+      ${remainingEncounters},
+      ${definition.durationKind},
+      ${definition.durationValue},
+      NOW(),
+      NOW()
+    )
+  `;
 }

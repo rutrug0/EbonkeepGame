@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { getConsumableDefinition } from "@ebonkeep/shared/consumables";
+import { inventoryItemSchema } from "@ebonkeep/shared/inventory";
 
 const postgresPort = process.env.EBONKEEP_POSTGRES_HOST_PORT ?? "55432";
 const databaseUrl =
@@ -98,4 +100,49 @@ export async function seedPlayableAuction(playerId: string) {
   });
 
   return { auction, item, itemPayload };
+}
+
+export async function seedConsumableInventoryItem(
+  playerId: string,
+  itemCode: string,
+  quantity = 1
+) {
+  const definition = getConsumableDefinition(itemCode);
+  if (!definition) {
+    throw new Error(`Missing consumable definition: ${itemCode}`);
+  }
+
+  const id = `e2e_item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const itemData = inventoryItemSchema.parse({
+    id,
+    itemCode: definition.itemCode,
+    itemName: definition.displayName,
+    rarity: definition.rarity,
+    category: "Consumable",
+    equipable: false,
+    levelRequirement: 1,
+    allowedSlotIds: [],
+    baseLevel: 1,
+    power: 0,
+    archetype: { majorCategory: "consumable" },
+    statBonuses: {},
+    description: definition.description
+  });
+
+  await prisma.inventoryItem.create({
+    data: {
+      id,
+      playerId,
+      itemCode: definition.itemCode,
+      slotKey: "inventory",
+      quantity: Math.max(1, Math.floor(quantity)),
+      itemData
+    }
+  });
+
+  return {
+    id,
+    itemCode: definition.itemCode,
+    displayName: definition.displayName
+  };
 }

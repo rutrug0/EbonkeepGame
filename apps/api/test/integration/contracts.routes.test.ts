@@ -5,6 +5,7 @@ import {
   combatEventSchema,
   developerContractsStaticCurvesResponseSchema
 } from "@ebonkeep/shared/combat";
+import { getConsumableDefinition } from "@ebonkeep/shared/consumables";
 
 import {
   getContractReplenishPacingRow,
@@ -174,6 +175,83 @@ describe("contracts routes", () => {
     const refreshedSlot = refreshedBoard.json().slots.find((slot: { slotId: number }) => slot.slotId === availableSlot.slotId);
     expect(refreshedSlot.state).toBe("replenishing");
     expect(refreshedSlot.startedRunId).toBeNull();
+  });
+
+  it("decrements encounter-based consumables when claiming a contract run", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+    const tonicDefinition = getConsumableDefinition("consumable_wardens_tonic");
+    expect(tonicDefinition).toBeTruthy();
+
+    await context.prisma.$executeRaw`
+      INSERT INTO "player_active_consumables" (
+        "id",
+        "playerId",
+        "itemCode",
+        "consumableType",
+        "consumableFamily",
+        "effects",
+        "appliedAt",
+        "remainingEncounters",
+        "originalDurationKind",
+        "originalDurationValue",
+        "createdAt",
+        "updatedAt"
+      ) VALUES (
+        ${`pac_test_${Math.random().toString(36).slice(2, 10)}`},
+        ${guest.body.playerId},
+        ${tonicDefinition!.itemCode},
+        ${tonicDefinition!.type},
+        ${tonicDefinition!.family},
+        ${JSON.stringify(tonicDefinition!.effects)}::jsonb,
+        NOW(),
+        1,
+        ${tonicDefinition!.durationKind},
+        ${tonicDefinition!.durationValue},
+        NOW(),
+        NOW()
+      )
+    `;
+
+    const boardResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/contracts/board",
+      headers
+    });
+    expect(boardResponse.statusCode).toBe(200);
+    const availableSlot = boardResponse.json().slots.find((slot: { state: string }) => slot.state === "available");
+    expect(availableSlot).toBeTruthy();
+
+    const startResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/slots/${availableSlot.slotId}/start`,
+      headers,
+      payload: {}
+    });
+    expect(startResponse.statusCode).toBe(200);
+
+    const startedRun = startResponse.json() as { runId: string };
+    await context.prisma.contractRun.update({
+      where: { id: startedRun.runId },
+      data: {
+        travelEndsAt: new Date(Date.now() - 5_000)
+      }
+    });
+
+    const claimResponse = await context.app.inject({
+      method: "POST",
+      url: `/v1/contracts/runs/${startedRun.runId}/claim-result`,
+      headers,
+      payload: {}
+    });
+    expect(claimResponse.statusCode).toBe(200);
+
+    const persistedActiveConsumables = await context.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "player_active_consumables"
+      WHERE "playerId" = ${guest.body.playerId}
+    `;
+    expect(persistedActiveConsumables).toHaveLength(0);
   });
 
   it("allows only one active run when start requests race for the same player", async () => {
