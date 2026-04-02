@@ -118,7 +118,8 @@ type ItemAffixDefinition = {
     | "max_hitpoints_primary"
     | "crit_chance"
     | "crit_damage"
-    | "double_attack_chance";
+    | "double_attack_chance"
+    | "threat_bps";
   statKey: PlayerStatKey;
   unit: "flat" | "basis_points";
   prefixNames: readonly [string, string, string];
@@ -245,7 +246,8 @@ const STAT_POWER_WEIGHT: Partial<Record<PlayerStatKey, number>> = {
   critChance: 0.02,
   critMultiplier: 0.01,
   dodgeChance: 0.02,
-  extraAttackChance: 0.02
+  extraAttackChance: 0.02,
+  threat: 0
 } as const;
 const WEAPON_RARITY_MULTIPLIER: Record<ItemRarity, number> = {
   common: 1,
@@ -366,6 +368,13 @@ const ITEM_AFFIX_DEFINITIONS: Partial<Record<PlayerStatKey, ItemAffixDefinition>
     unit: "basis_points",
     prefixNames: ["Opportunistic", "Relentless", "Frenzied"],
     affixNames: ["of Momentum", "of the Second Strike", "of Endless Assault"]
+  },
+  threat: {
+    scaleKey: "threat_bps",
+    statKey: "threat",
+    unit: "basis_points",
+    prefixNames: ["Provoking", "Challenger's", "Dreadbound"],
+    affixNames: ["of Veiled Presence", "of Silent Footing", "of Fading Echoes"]
   }
 };
 
@@ -375,43 +384,43 @@ const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, Arm
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["strength", "vitality", "armor", "initiative", "luck"]
+      eligibleAffixKeys: ["strength", "vitality", "armor", "initiative", "luck", "threat"]
     },
     upperArmor: {
       baseStatBonuses: {},
       basePower: 8,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "initiative", "luck"]
+      eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "initiative", "luck", "threat"]
     },
     belt: {
       baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "initiative", "luck"]
+      eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "initiative", "luck", "threat"]
     },
     pauldrons: {
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["strength", "armor", "missileResistance", "vitality", "luck"]
+      eligibleAffixKeys: ["strength", "armor", "missileResistance", "vitality", "luck", "threat"]
     },
     gloves: {
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["strength", "armor", "accuracy", "initiative", "luck"]
+      eligibleAffixKeys: ["strength", "armor", "accuracy", "initiative", "luck", "threat"]
     },
     lowerArmor: {
       baseStatBonuses: {},
       basePower: 7,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "luck"]
+      eligibleAffixKeys: ["strength", "vitality", "armor", "maxHitpoints", "luck", "threat"]
     },
     boots: {
       baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["vitality", "armor", "initiative", "luck", "maxHitpoints"]
+      eligibleAffixKeys: ["vitality", "armor", "initiative", "luck", "maxHitpoints", "threat"]
     }
   },
   light: {
@@ -419,43 +428,43 @@ const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, Arm
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "initiative", "dodgeChance", "luck", "accuracy"]
+      eligibleAffixKeys: ["dexterity", "initiative", "dodgeChance", "luck", "accuracy", "threat"]
     },
     upperArmor: {
       baseStatBonuses: {},
       basePower: 9,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "vitality", "missileResistance", "dodgeChance", "initiative", "luck"]
+      eligibleAffixKeys: ["dexterity", "vitality", "missileResistance", "dodgeChance", "initiative", "luck", "threat"]
     },
     belt: {
       baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "initiative", "accuracy", "luck", "dodgeChance"]
+      eligibleAffixKeys: ["dexterity", "initiative", "accuracy", "luck", "dodgeChance", "threat"]
     },
     pauldrons: {
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "missileResistance", "dodgeChance", "initiative", "luck"]
+      eligibleAffixKeys: ["dexterity", "missileResistance", "dodgeChance", "initiative", "luck", "threat"]
     },
     gloves: {
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "accuracy", "initiative", "luck", "critChance"]
+      eligibleAffixKeys: ["dexterity", "accuracy", "initiative", "luck", "critChance", "threat"]
     },
     lowerArmor: {
       baseStatBonuses: {},
       basePower: 7,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "vitality", "missileResistance", "dodgeChance", "luck"]
+      eligibleAffixKeys: ["dexterity", "vitality", "missileResistance", "dodgeChance", "luck", "threat"]
     },
     boots: {
       baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["dexterity", "initiative", "dodgeChance", "luck", "extraAttackChance"]
+      eligibleAffixKeys: ["dexterity", "initiative", "dodgeChance", "luck", "extraAttackChance", "threat"]
     }
   },
   robe: {
@@ -463,43 +472,43 @@ const ARMOR_PROFILES: Record<ArmorArchetype, Partial<Record<EquipmentSlotId, Arm
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "initiative", "spellShield", "luck", "accuracy"]
+      eligibleAffixKeys: ["intelligence", "initiative", "spellShield", "luck", "accuracy", "threat"]
     },
     upperArmor: {
       baseStatBonuses: {},
       basePower: 9,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "vitality", "spellShield", "maxHitpoints", "initiative", "luck"]
+      eligibleAffixKeys: ["intelligence", "vitality", "spellShield", "maxHitpoints", "initiative", "luck", "threat"]
     },
     belt: {
       baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "spellShield", "maxHitpoints", "initiative", "luck"]
+      eligibleAffixKeys: ["intelligence", "spellShield", "maxHitpoints", "initiative", "luck", "threat"]
     },
     pauldrons: {
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "spellShield", "initiative", "luck", "accuracy"]
+      eligibleAffixKeys: ["intelligence", "spellShield", "initiative", "luck", "accuracy", "threat"]
     },
     gloves: {
       baseStatBonuses: {},
       basePower: 6,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "accuracy", "critChance", "initiative", "luck"]
+      eligibleAffixKeys: ["intelligence", "accuracy", "critChance", "initiative", "luck", "threat"]
     },
     lowerArmor: {
       baseStatBonuses: {},
       basePower: 7,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "vitality", "spellShield", "maxHitpoints", "luck"]
+      eligibleAffixKeys: ["intelligence", "vitality", "spellShield", "maxHitpoints", "luck", "threat"]
     },
     boots: {
       baseStatBonuses: {},
       basePower: 5,
       powerPerLevel: 2,
-      eligibleAffixKeys: ["intelligence", "initiative", "extraAttackChance", "luck", "maxHitpoints"]
+      eligibleAffixKeys: ["intelligence", "initiative", "extraAttackChance", "luck", "maxHitpoints", "threat"]
     }
   }
 };
@@ -511,7 +520,7 @@ const JEWELRY_PROFILES: Record<JewelryCsvRow["slotFamily"], JewelryProfile> = {
     baseStatBonuses: {},
     basePower: 5,
     powerPerLevel: 2,
-    eligibleAffixKeys: ["vitality", "luck", "maxHitpoints", "critChance"]
+    eligibleAffixKeys: ["vitality", "luck", "maxHitpoints", "critChance", "threat"]
   },
   ring: {
     allowedSlotIds: ["ringLeft", "ringRight"],
@@ -519,7 +528,7 @@ const JEWELRY_PROFILES: Record<JewelryCsvRow["slotFamily"], JewelryProfile> = {
     baseStatBonuses: {},
     basePower: 4,
     powerPerLevel: 2,
-    eligibleAffixKeys: ["initiative", "luck", "critChance", "critMultiplier"]
+    eligibleAffixKeys: ["initiative", "luck", "critChance", "critMultiplier", "threat"]
   }
 };
 
@@ -534,7 +543,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
       minGrowthPerLevel: 1,
       maxGrowthPerLevel: 2
     },
-    eligibleAffixKeys: ["strength", "vitality", "damage", "accuracy", "critChance", "critMultiplier", "luck"]
+    eligibleAffixKeys: ["strength", "vitality", "damage", "accuracy", "critChance", "critMultiplier", "luck", "threat"]
   },
   axe: {
     baseStatBonuses: {},
@@ -546,7 +555,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
       minGrowthPerLevel: 1,
       maxGrowthPerLevel: 2
     },
-    eligibleAffixKeys: ["strength", "vitality", "damage", "critChance", "critMultiplier", "luck"]
+    eligibleAffixKeys: ["strength", "vitality", "damage", "critChance", "critMultiplier", "luck", "threat"]
   },
   wand: {
     baseStatBonuses: {},
@@ -558,7 +567,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
       minGrowthPerLevel: 1,
       maxGrowthPerLevel: 2
     },
-    eligibleAffixKeys: ["intelligence", "initiative", "luck", "damage", "accuracy", "critChance", "critMultiplier"]
+    eligibleAffixKeys: ["intelligence", "initiative", "luck", "damage", "accuracy", "critChance", "critMultiplier", "threat"]
   },
   staff: {
     baseStatBonuses: {},
@@ -570,7 +579,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
       minGrowthPerLevel: 1,
       maxGrowthPerLevel: 2
     },
-    eligibleAffixKeys: ["intelligence", "spellShield", "initiative", "damage", "critChance", "critMultiplier", "luck"]
+    eligibleAffixKeys: ["intelligence", "spellShield", "initiative", "damage", "critChance", "critMultiplier", "luck", "threat"]
   },
   sling: {
     baseStatBonuses: {},
@@ -582,7 +591,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
       minGrowthPerLevel: 1,
       maxGrowthPerLevel: 2
     },
-    eligibleAffixKeys: ["dexterity", "initiative", "luck", "damage", "accuracy", "critChance", "extraAttackChance"]
+    eligibleAffixKeys: ["dexterity", "initiative", "luck", "damage", "accuracy", "critChance", "extraAttackChance", "threat"]
   },
   bow: {
     baseStatBonuses: {},
@@ -594,7 +603,7 @@ const WEAPON_PROFILES: Record<WeaponFamily, WeaponProfile> = {
       minGrowthPerLevel: 1,
       maxGrowthPerLevel: 2
     },
-    eligibleAffixKeys: ["dexterity", "initiative", "luck", "damage", "accuracy", "critChance", "extraAttackChance"]
+    eligibleAffixKeys: ["dexterity", "initiative", "luck", "damage", "accuracy", "critChance", "extraAttackChance", "threat"]
   }
 };
 
@@ -1208,6 +1217,10 @@ function pickEligibleAffixDefinitions(template: ItemTemplate): ItemAffixDefiniti
     .filter((definition): definition is ItemAffixDefinition => definition !== undefined);
 }
 
+function getModifierSign(definition: ItemAffixDefinition, kind: ItemModifier["kind"]): number {
+  return definition.statKey === "threat" && kind === "affix" ? -1 : 1;
+}
+
 function buildModifier(
   definition: ItemAffixDefinition,
   kind: ItemModifier["kind"],
@@ -1225,7 +1238,7 @@ function buildModifier(
     tier,
     name: kind === "prefix" ? definition.prefixNames[tierIndex] : definition.affixNames[tierIndex],
     statKey: definition.statKey,
-    value: randomInt(scalingRow.rollMin, scalingRow.rollMax),
+    value: randomInt(scalingRow.rollMin, scalingRow.rollMax) * getModifierSign(definition, kind),
     unit: scalingRow.unit
   };
 }
@@ -1268,30 +1281,31 @@ function buildExpectedModifierBonuses(
   }
 
   const totals: PlayerStatBonuses = {};
-  const addExpectedDefinitionValue = (definition: ItemAffixDefinition, weight: number) => {
+  const addExpectedDefinitionValue = (definition: ItemAffixDefinition, kind: ItemModifier["kind"], weight: number) => {
     addStatBonus(
       totals,
       definition.statKey,
-      getExpectedScalingValue(definition.scaleKey, itemLevel) * weight
+      getExpectedScalingValue(definition.scaleKey, itemLevel) * getModifierSign(definition, kind) * weight
     );
   };
 
   if (rarity === "uncommon") {
     const definitionWeight = 1 / eligibleDefinitions.length;
     for (const definition of eligibleDefinitions) {
-      addExpectedDefinitionValue(definition, definitionWeight);
+      addExpectedDefinitionValue(definition, "prefix", definitionWeight * 0.5);
+      addExpectedDefinitionValue(definition, "affix", definitionWeight * 0.5);
     }
     return totals;
   }
 
   const definitionWeight = 1 / eligibleDefinitions.length;
   for (const prefixDefinition of eligibleDefinitions) {
-    addExpectedDefinitionValue(prefixDefinition, definitionWeight);
+    addExpectedDefinitionValue(prefixDefinition, "prefix", definitionWeight);
     const affixPool = eligibleDefinitions.filter((definition) => definition.statKey !== prefixDefinition.statKey);
     const normalizedAffixPool = affixPool.length > 0 ? affixPool : [eligibleDefinitions[0]!];
     const affixWeight = definitionWeight / normalizedAffixPool.length;
     for (const affixDefinition of normalizedAffixPool) {
-      addExpectedDefinitionValue(affixDefinition, affixWeight);
+      addExpectedDefinitionValue(affixDefinition, "affix", affixWeight);
     }
   }
 

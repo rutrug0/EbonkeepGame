@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { PlayerClass } from "@ebonkeep/shared/core";
+import { COMBAT_TOP_TARGET_THREAT_POOL_SIZE } from "@ebonkeep/shared/combat";
 
 import { CombatActorFrame } from "../combat";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
@@ -15,12 +16,14 @@ type MissionResolutionState = "playing" | "summarizing" | "awaiting_return";
 type MissionView = "board" | "active" | "history";
 type MemberClass = PlayerClass;
 
-type MissionBattleActor = {
+export type MissionBattleActor = {
   id: string;
   side: "player" | "enemy";
+  encounterOrder: number;
   name: string;
   maxHp: number;
   power: number;
+  threat: number;
   combatStat: "strength" | "dexterity" | "intelligence";
   avatarPath?: string;
   usesSilhouetteFallback?: boolean;
@@ -244,6 +247,46 @@ function mitigateMissionDamage(rawDamage: number, attackType: MissionAttackType,
   return Math.max(0, rawDamage - reduction);
 }
 
+function compareMissionThreatPriority(left: MissionBattleActor, right: MissionBattleActor): number {
+  if (left.threat !== right.threat) {
+    return right.threat - left.threat;
+  }
+  if (left.encounterOrder !== right.encounterOrder) {
+    return left.encounterOrder - right.encounterOrder;
+  }
+  return left.id.localeCompare(right.id);
+}
+
+function pickMissionThreatTarget(
+  candidates: MissionBattleActor[],
+  hpByActorId: Record<string, number>,
+  rng: () => number
+): MissionBattleActor | null {
+  const topThreatPool = candidates
+    .filter((candidate) => hpByActorId[candidate.id] > 0)
+    .sort(compareMissionThreatPriority)
+    .slice(0, COMBAT_TOP_TARGET_THREAT_POOL_SIZE);
+  if (topThreatPool.length === 0) {
+    return null;
+  }
+
+  const totalThreat = topThreatPool.reduce((sum, candidate) => sum + Math.max(0, candidate.threat), 0);
+  if (totalThreat <= 0) {
+    return topThreatPool[Math.floor(rng() * topThreatPool.length)] ?? null;
+  }
+
+  const roll = rng() * totalThreat;
+  let runningTotal = 0;
+  for (const candidate of topThreatPool) {
+    runningTotal += Math.max(0, candidate.threat);
+    if (roll < runningTotal) {
+      return candidate;
+    }
+  }
+
+  return topThreatPool[topThreatPool.length - 1] ?? null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mission templates  (2 easy · 2 medium · 2 hard)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -414,11 +457,11 @@ function pickKillLine(rng: () => number, killer: string, target: string): string
 // Combat simulation engine
 //
 // Turn order: each round, all alive actors are sorted by power (desc) and act
-// in that order. Players focus-fire the lowest-HP enemy; enemies hit a random
-// alive player.  Max 200 global actions to prevent infinite loops.
+// in that order. Targets are selected from the top-threat pool via weighted
+// randomness. Max 200 global actions to prevent infinite loops.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function generateMissionTimeline(
+export function generateMissionTimeline(
   encounterId: string,
   players: MissionBattleActor[],
   enemies: MissionBattleActor[],
@@ -464,13 +507,20 @@ function generateMissionTimeline(
       let direction: "left-to-right" | "right-to-left";
 
       if (actor.side === "player") {
-        // Focus lowest-HP enemy (smart play)
-        const target = curAliveEnemies.reduce((min, e) => (hp[e.id] < hp[min.id] ? e : min));
+        const target = pickMissionThreatTarget(curAliveEnemies, hp, rng);
+        if (!target) {
+          roundEndedEarly = true;
+          break;
+        }
         targetId = target.id;
         direction = "left-to-right";
       } else {
-        // Enemies attack a random alive player (spread damage)
-        targetId = curAlivePlayers[Math.floor(rng() * curAlivePlayers.length)].id;
+        const target = pickMissionThreatTarget(curAlivePlayers, hp, rng);
+        if (!target) {
+          roundEndedEarly = true;
+          break;
+        }
+        targetId = target.id;
         direction = "right-to-left";
       }
 
@@ -631,24 +681,28 @@ function buildTravelState(prev: ActiveMissionState, now: number): ActiveMissionS
   const travelImagePath = getMissionStageAssetPath("travel_stage", familyId);
   const combatBackgroundPath = getMissionStageAssetPath("combat_stage", familyId);
 
-  const allPlayers: MissionBattleActor[] = allMembers.map((m) => ({
+  const allPlayers: MissionBattleActor[] = allMembers.map((m, index) => ({
     id: `player-${m.playerId}`,
     side: "player" as const,
+    encounterOrder: index,
     name: m.name,
     maxHp: CLASS_BASE_HP[m.playerClass],
     power: m.power,
+    threat: Math.max(0, Math.round(m.power * 0.5)),
     combatStat: CLASS_COMBAT_STAT[m.playerClass],
     usesSilhouetteFallback: true,
   }));
 
-  const allEnemies: MissionBattleActor[] = prev.template.enemies.map((e) => {
+  const allEnemies: MissionBattleActor[] = prev.template.enemies.map((e, index) => {
     const avatarPath = e.monsterKey ? GENERATED_ITEM_ICON_PATHS[e.monsterKey] : undefined;
     return {
       id: `enemy-${e.id}`,
       side: "enemy" as const,
+      encounterOrder: index,
       name: e.name,
       maxHp: e.maxHp,
       power: e.power,
+      threat: Math.max(0, Math.round(e.power * 0.5)),
       combatStat: e.combatStat,
       avatarPath,
       usesSilhouetteFallback: !avatarPath,

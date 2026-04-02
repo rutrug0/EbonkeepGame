@@ -9,6 +9,8 @@ craft_consumable_bulwark_tonic,craft,bulwark_tonic,base,ingredient_ironbloom,1,i
 craft_consumable_wardwash_tonic,craft,wardwash_tonic,base,ingredient_duskmint,1,ingredient_kingsfoil,1,reagent_ward_resin,1,1100,2400,15
 craft_consumable_travelers_elixir,craft,travelers_elixir,base,ingredient_fenroot,1,ingredient_kingsfoil,1,reagent_ward_resin,1,1300,3600,15
 craft_consumable_deadeye_elixir,craft,deadeye_elixir,base,ingredient_duskmint,1,ingredient_kingsfoil,1,reagent_ward_resin,1,1400,3600,15
+craft_consumable_wardens_challenge_elixir,craft,wardens_challenge_elixir,base,ingredient_ironbloom,1,ingredient_kingsfoil,1,reagent_ward_resin,1,1500,3600,15
+craft_consumable_shadowveil_elixir,craft,shadowveil_elixir,base,ingredient_duskmint,1,ingredient_kingsfoil,1,reagent_ward_resin,1,1500,3600,15
 craft_consumable_contractors_resolve_elixir,craft,contractors_resolve_elixir,base,ingredient_kingsfoil,1,ingredient_emberbud,1,reagent_ward_resin,1,1500,3600,15
 craft_consumable_sunspike_elixir,craft,sunspike_elixir,base,ingredient_emberbud,1,ingredient_sunspike,1,reagent_aether_catalyst,1,2500,7200,30
 craft_consumable_graveward_elixir,craft,graveward_elixir,base,ingredient_ironbloom,1,ingredient_gravebloom,1,reagent_black_ichor,1,2600,7200,30
@@ -40,6 +42,10 @@ distill_consumable_graveward_elixir_d1,distill,graveward_elixir,d1,consumable_gr
 distill_consumable_graveward_elixir_d2,distill,graveward_elixir,d2,consumable_graveward_elixir_d1,3,,,,,0,10800,30
 distill_consumable_deadeye_elixir_d1,distill,deadeye_elixir,d1,consumable_deadeye_elixir,3,,,,,0,4500,15
 distill_consumable_deadeye_elixir_d2,distill,deadeye_elixir,d2,consumable_deadeye_elixir_d1,3,,,,,0,9000,15
+distill_consumable_wardens_challenge_elixir_d1,distill,wardens_challenge_elixir,d1,consumable_wardens_challenge_elixir,3,,,,,0,4500,15
+distill_consumable_wardens_challenge_elixir_d2,distill,wardens_challenge_elixir,d2,consumable_wardens_challenge_elixir_d1,3,,,,,0,9000,15
+distill_consumable_shadowveil_elixir_d1,distill,shadowveil_elixir,d1,consumable_shadowveil_elixir,3,,,,,0,4500,15
+distill_consumable_shadowveil_elixir_d2,distill,shadowveil_elixir,d2,consumable_shadowveil_elixir_d1,3,,,,,0,9000,15
 distill_consumable_travelers_elixir_d1,distill,travelers_elixir,d1,consumable_travelers_elixir,3,,,,,0,4500,15
 distill_consumable_travelers_elixir_d2,distill,travelers_elixir,d2,consumable_travelers_elixir_d1,3,,,,,0,9000,15
 distill_consumable_contractors_resolve_elixir_d1,distill,contractors_resolve_elixir,d1,consumable_contractors_resolve_elixir,3,,,,,0,4500,15

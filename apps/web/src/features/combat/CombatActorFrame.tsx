@@ -123,7 +123,10 @@ export function CombatActorFrame({
             { label: t("profile.accuracy"), value: rollStats.accuracy.toString() },
             { label: t("profile.critChance"), value: formatBasisPoints(rollStats.critChance) },
             { label: t("profile.critDamage"), value: formatBasisPoints(rollStats.critMultiplier) },
-            { label: t("profile.chanceToExtraAttack"), value: formatBasisPoints(rollStats.extraAttackChance) }
+            { label: t("profile.chanceToExtraAttack"), value: formatBasisPoints(rollStats.extraAttackChance) },
+            ...(typeof rollStats.threat === "number"
+              ? [{ label: "Threat", value: rollStats.threat.toString() }]
+              : [])
           ]
         },
         {

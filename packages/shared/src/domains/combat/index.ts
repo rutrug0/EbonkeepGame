@@ -86,6 +86,8 @@ export const COMBAT_MITIGATION_MAX_BPS = 7500;
 export const COMBAT_MITIGATION_SCALE_MULTIPLIER = 1.5;
 export const PVE_LEVEL_DELTA_THRESHOLD = 4;
 export const PVE_LEVEL_DELTA_MODIFIER_BPS = 1000;
+export const COMBAT_BASE_THREAT_BPS = 5000;
+export const COMBAT_TOP_TARGET_THREAT_POOL_SIZE = 3;
 
 export type CombatMitigationInput = {
   rawDamage: number;
@@ -136,7 +138,20 @@ export function getCombatMitigationStats(args: {
 }
 
 export function calculateCombatAttackerPower(attacker: Pick<CombatActorSnapshot, "minDamage" | "maxDamage">): number {
-  return Math.max(1, Math.round((Math.max(0, attacker.minDamage) + Math.max(0, attacker.maxDamage)) / 2));
+  return Math.max(1, calculateCombatOffensivePower(attacker));
+}
+
+export function calculateCombatOffensivePower(attacker: Pick<CombatActorSnapshot, "minDamage" | "maxDamage">): number {
+  return Math.max(0, Math.round((Math.max(0, attacker.minDamage) + Math.max(0, attacker.maxDamage)) / 2));
+}
+
+export function calculateCombatThreat(
+  attacker: Pick<CombatActorSnapshot, "minDamage" | "maxDamage">,
+  threatModifierBps = 0
+): number {
+  const offensivePower = calculateCombatOffensivePower(attacker);
+  const adjustedThreat = Math.round((offensivePower * (COMBAT_BASE_THREAT_BPS + Math.round(threatModifierBps))) / 10_000);
+  return Math.max(0, adjustedThreat);
 }
 
 export function calculateCombatMitigation(input: CombatMitigationInput): CombatMitigationResult {
@@ -216,6 +231,7 @@ export const combatActorSnapshotSchema = z.object({
   magicDefense: z.number().int().min(0),
   minDamage: z.number().int().min(0),
   maxDamage: z.number().int().min(0),
+  threat: z.number().int().min(0).optional(),
   damageKind: combatDamageKindSchema,
   avatarPath: z.string().nullable().optional(),
   combatBackgroundPath: z.string().nullable().optional(),
@@ -505,7 +521,8 @@ export const combatPlaybackRollStatsSchema = z.object({
   spellShield: z.number().int().min(0),
   missileResistance: z.number().int().min(0),
   physicalDefense: z.number().int().min(0),
-  magicDefense: z.number().int().min(0)
+  magicDefense: z.number().int().min(0),
+  threat: z.number().int().min(0).optional()
 });
 export type CombatPlaybackRollStats = z.infer<typeof combatPlaybackRollStatsSchema>;
 
@@ -560,6 +577,7 @@ export const combatPlaybackActorSchema = z.object({
   name: z.string(),
   maxHp: z.number().int().min(1),
   power: z.number().int().min(0).optional(),
+  threat: z.number().int().min(0).optional(),
   combatStat: z.enum(["strength", "dexterity", "intelligence"]).optional(),
   rollStats: combatPlaybackRollStatsSchema.optional(),
   avatarPath: z.string().optional(),

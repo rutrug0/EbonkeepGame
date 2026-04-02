@@ -522,6 +522,7 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
       critChance: t("profile.critChance"),
       critDamage: t("profile.critDamage"),
       extraAttackChance: t("profile.extraAttackChance"),
+      threat: "Threat",
       maxHitpoints: t("profile.maxHitpoints"),
       healingPower: t("profile.healingPower"),
       lifeOnHit: t("profile.lifeOnHit"),
@@ -535,9 +536,9 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
 
   const formatModifierValue = (value: number, unit: ItemModifier["unit"]): string => {
     if (unit === "basis_points") {
-      return `+${formatOneDecimal(value / 100)}%`;
+      return `${value >= 0 ? "+" : ""}${formatOneDecimal(value / 100)}%`;
     }
-    return `+${value}`;
+    return `${value >= 0 ? "+" : ""}${value}`;
   };
 
   const formatArchetypeLabel = (value: string): string => {

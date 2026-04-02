@@ -26,7 +26,12 @@ import {
   type ArenaProfile,
   type ArenaStateResponse
 } from "@ebonkeep/shared/arena";
-import { combatActorSnapshotSchema, type CombatActorSnapshot, type CombatEvent } from "@ebonkeep/shared/combat";
+import {
+  calculateCombatThreat,
+  combatActorSnapshotSchema,
+  type CombatActorSnapshot,
+  type CombatEvent
+} from "@ebonkeep/shared/combat";
 import { allPlayerClasses, classToStatTree, playerClassSchema, type PlayerClass } from "@ebonkeep/shared/core";
 
 import {
@@ -162,6 +167,8 @@ export function buildMockCombatSnapshot(args: {
   const missileResistance = Math.max(0, Math.round(playerStats.missileResistance * (0.78 + Math.random() * 0.28) * (classTree === "dexterity" ? 1.18 : 0.94)));
   const physicalDefense = Math.max(0, Math.round(playerStats.physicalDefense * (0.8 + Math.random() * 0.24)));
   const magicDefense = Math.max(0, Math.round(playerStats.magicDefense * (0.8 + Math.random() * 0.24)));
+  const minDamage = Math.max(1, Math.floor(averageDamage * 0.88));
+  const maxDamage = Math.max(1, Math.ceil(averageDamage * 1.12));
 
   return combatActorSnapshotSchema.parse({
     id: `arena:mock:${args.entryId}`,
@@ -184,8 +191,9 @@ export function buildMockCombatSnapshot(args: {
     missileResistance,
     physicalDefense,
     magicDefense,
-    minDamage: Math.max(1, Math.floor(averageDamage * 0.88)),
-    maxDamage: Math.max(1, Math.ceil(averageDamage * 1.12)),
+    minDamage,
+    maxDamage,
+    threat: calculateCombatThreat({ minDamage, maxDamage }),
     damageKind: damageKindForClass(selectedClass),
     usesSilhouetteFallback: true,
     avatarPath: undefined

@@ -17,6 +17,7 @@ import {
   rollContractEncounterLevel
 } from "../../src/modules/contracts/data.js";
 import {
+  buildPlayerActorSnapshot,
   buildMonsterActorSnapshots,
   rollRewardItemSpec,
   simulateCombat
@@ -44,6 +45,7 @@ function actor(overrides: Partial<ReturnType<typeof combatActorSnapshotSchema.pa
     magicDefense: 0,
     minDamage: 10,
     maxDamage: 10,
+    threat: 5,
     damageKind: "melee",
     ...overrides
   });
@@ -101,6 +103,7 @@ function createPlayerState(): PlayerState {
         extraAttackChance: 250
       }
     } as PlayerState["statSnapshot"],
+    activeConsumables: [],
     inventory: [],
     equipment: createEmptyEquipmentState(),
     currency: {
@@ -190,6 +193,7 @@ describe("contracts simulator", () => {
       side: "enemy",
       name: "Enemy A",
       encounterOrder: 0,
+      threat: 100,
       maxHp: 1,
       currentHp: 1
     });
@@ -198,6 +202,7 @@ describe("contracts simulator", () => {
       side: "enemy",
       name: "Enemy B",
       encounterOrder: 1,
+      threat: 1,
       maxHp: 10,
       currentHp: 10
     });
@@ -218,6 +223,205 @@ describe("contracts simulator", () => {
       killed: true
     });
     expect(firstAction?.strikes[1]?.targetId).toBe("enemy-b");
+  });
+
+  it("enforces top-3 threat targeting and ignores lower-threat candidates", () => {
+    const player = actor({
+      id: "player",
+      side: "player",
+      name: "Player",
+      combatSpeed: 200,
+      minDamage: 1,
+      maxDamage: 1,
+      threat: 100
+    });
+    const enemies = [
+      actor({ id: "enemy-1", side: "enemy", encounterOrder: 0, maxHp: 100, currentHp: 100, threat: 500 }),
+      actor({ id: "enemy-2", side: "enemy", encounterOrder: 1, maxHp: 100, currentHp: 100, threat: 250 }),
+      actor({ id: "enemy-3", side: "enemy", encounterOrder: 2, maxHp: 100, currentHp: 100, threat: 250 }),
+      actor({ id: "enemy-4", side: "enemy", encounterOrder: 3, maxHp: 100, currentHp: 100, threat: 1 })
+    ];
+
+    const selectedTargets = new Set<string>();
+    for (let index = 0; index < 150; index += 1) {
+      const events = simulateCombat({
+        player,
+        enemies,
+        seed: `threat-top3-${index}`
+      });
+      const firstTurn = events.find(
+        (event): event is Extract<(typeof events)[number], { type: "CombatTurnStarted" }> =>
+          event.type === "CombatTurnStarted" && event.actorId === "player"
+      );
+      if (firstTurn?.targetId) {
+        selectedTargets.add(firstTurn.targetId);
+      }
+    }
+
+    expect(selectedTargets.has("enemy-4")).toBe(false);
+    expect(selectedTargets.has("enemy-1")).toBe(true);
+    expect(selectedTargets.has("enemy-2")).toBe(true);
+    expect(selectedTargets.has("enemy-3")).toBe(true);
+  });
+
+  it("weights threat targeting around 50/25/25 for a 500/250/250 threat split", () => {
+    const player = actor({
+      id: "player",
+      side: "player",
+      name: "Player",
+      combatSpeed: 220,
+      minDamage: 1,
+      maxDamage: 1,
+      threat: 100
+    });
+    const enemies = [
+      actor({ id: "enemy-1", side: "enemy", encounterOrder: 0, maxHp: 100, currentHp: 100, threat: 500 }),
+      actor({ id: "enemy-2", side: "enemy", encounterOrder: 1, maxHp: 100, currentHp: 100, threat: 250 }),
+      actor({ id: "enemy-3", side: "enemy", encounterOrder: 2, maxHp: 100, currentHp: 100, threat: 250 }),
+      actor({ id: "enemy-4", side: "enemy", encounterOrder: 3, maxHp: 100, currentHp: 100, threat: 0 })
+    ];
+
+    const counts = {
+      "enemy-1": 0,
+      "enemy-2": 0,
+      "enemy-3": 0,
+      "enemy-4": 0
+    };
+
+    for (let index = 0; index < 300; index += 1) {
+      const events = simulateCombat({
+        player,
+        enemies,
+        seed: `threat-weighted-${index}`
+      });
+      const firstTurn = events.find(
+        (event): event is Extract<(typeof events)[number], { type: "CombatTurnStarted" }> =>
+          event.type === "CombatTurnStarted" && event.actorId === "player"
+      );
+      if (firstTurn?.targetId && firstTurn.targetId in counts) {
+        counts[firstTurn.targetId as keyof typeof counts] += 1;
+      }
+    }
+
+    expect(counts["enemy-4"]).toBe(0);
+    expect(counts["enemy-1"]).toBeGreaterThan(120);
+    expect(counts["enemy-1"]).toBeLessThan(180);
+    expect(counts["enemy-2"]).toBeGreaterThan(45);
+    expect(counts["enemy-2"]).toBeLessThan(105);
+    expect(counts["enemy-3"]).toBeGreaterThan(45);
+    expect(counts["enemy-3"]).toBeLessThan(105);
+  });
+
+  it("uses uniform top-pool selection when summed threat is zero", () => {
+    const player = actor({
+      id: "player",
+      side: "player",
+      name: "Player",
+      combatSpeed: 240,
+      minDamage: 1,
+      maxDamage: 1
+    });
+    const enemies = [
+      actor({ id: "enemy-1", side: "enemy", encounterOrder: 0, maxHp: 100, currentHp: 100, threat: 0 }),
+      actor({ id: "enemy-2", side: "enemy", encounterOrder: 1, maxHp: 100, currentHp: 100, threat: 0 }),
+      actor({ id: "enemy-3", side: "enemy", encounterOrder: 2, maxHp: 100, currentHp: 100, threat: 0 }),
+      actor({ id: "enemy-4", side: "enemy", encounterOrder: 3, maxHp: 100, currentHp: 100, threat: 0 })
+    ];
+
+    const selectedTargets = new Set<string>();
+    for (let index = 0; index < 150; index += 1) {
+      const events = simulateCombat({
+        player,
+        enemies,
+        seed: `threat-zero-${index}`
+      });
+      const firstTurn = events.find(
+        (event): event is Extract<(typeof events)[number], { type: "CombatTurnStarted" }> =>
+          event.type === "CombatTurnStarted" && event.actorId === "player"
+      );
+      if (firstTurn?.targetId) {
+        selectedTargets.add(firstTurn.targetId);
+      }
+    }
+
+    expect(selectedTargets.has("enemy-4")).toBe(false);
+    expect(selectedTargets.has("enemy-1")).toBe(true);
+    expect(selectedTargets.has("enemy-2")).toBe(true);
+    expect(selectedTargets.has("enemy-3")).toBe(true);
+  });
+
+  it("applies threat modifiers from equipped items and active consumables", () => {
+    const playerState = createPlayerState();
+    playerState.equipment.weapon = {
+      id: "weapon_threat",
+      itemCode: "weapon_threat",
+      itemName: "Threat Blade",
+      rarity: "common",
+      category: "Weapon",
+      equipable: true,
+      levelRequirement: 1,
+      allowedSlotIds: ["weapon"],
+      equipSlotId: "weapon",
+      baseLevel: 1,
+      power: 1,
+      archetype: {
+        majorCategory: "weapon",
+        weaponArchetype: "melee",
+        weaponFamily: "sword"
+      },
+      statBonuses: { threat: 1000 },
+      damageRoll: {
+        minRollRange: [100, 100],
+        rolledMin: 100,
+        rolledMax: 140,
+        maxRollRange: [140, 140],
+        averageDamage: 120
+      },
+      description: "threat test weapon"
+    };
+    playerState.equipment.ringLeft = {
+      id: "ring_threat",
+      itemCode: "ring_threat",
+      itemName: "Threat Ring",
+      rarity: "common",
+      category: "Ring",
+      equipable: true,
+      levelRequirement: 1,
+      allowedSlotIds: ["ringLeft", "ringRight"],
+      equipSlotId: "ringLeft",
+      baseLevel: 1,
+      power: 1,
+      archetype: {
+        majorCategory: "jewelry"
+      },
+      statBonuses: { threat: -500 },
+      description: "threat test ring"
+    };
+    playerState.activeConsumables = [
+      {
+        id: "active-threat-elixir",
+        itemCode: "consumable_wardens_challenge_elixir",
+        type: "elixir",
+        family: "bulwark",
+        effects: [{ type: "stat_bps", target: "threat", value: 800 }],
+        appliedAt: new Date("2026-04-02T00:00:00.000Z").toISOString(),
+        expiresAt: null,
+        remainingEncounters: null,
+        originalDuration: {
+          kind: "hours",
+          value: 8
+        }
+      }
+    ];
+
+    const snapshot = buildPlayerActorSnapshot({
+      playerState,
+      playerName: "Threat Tester"
+    });
+
+    expect(snapshot.minDamage).toBe(100);
+    expect(snapshot.maxDamage).toBe(140);
+    expect(snapshot.threat).toBe(76);
   });
 
   it("skips the PvE level modifier when combat is simulated in neutral mode", () => {

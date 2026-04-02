@@ -155,7 +155,8 @@ const playerStatKeys = [
   "critChance",
   "critMultiplier",
   "accuracy",
-  "extraAttackChance"
+  "extraAttackChance",
+  "threat"
 ] as const;
 
 export const playerStatKeySchema = z.enum(playerStatKeys);
@@ -225,7 +226,8 @@ export const playerStatBonusesSchema = z.object({
   critChance: z.number().int().optional(),
   critMultiplier: z.number().int().optional(),
   accuracy: z.number().int().optional(),
-  extraAttackChance: z.number().int().optional()
+  extraAttackChance: z.number().int().optional(),
+  threat: z.number().int().optional()
 });
 export type PlayerStatBonuses = z.infer<typeof playerStatBonusesSchema>;
 

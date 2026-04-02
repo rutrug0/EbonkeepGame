@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "player_active_consumables_playerId_consumableType_consumableFam" RENAME TO "player_active_consumables_playerId_consumableType_consumabl_idx";

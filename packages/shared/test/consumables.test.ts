@@ -24,6 +24,8 @@ describe("consumables catalog", () => {
       "ravagers_tonic",
       "sunspike_elixir",
       "graveward_elixir",
+      "wardens_challenge_elixir",
+      "shadowveil_elixir",
       "deadeye_elixir",
       "travelers_elixir",
       "contractors_resolve_elixir",

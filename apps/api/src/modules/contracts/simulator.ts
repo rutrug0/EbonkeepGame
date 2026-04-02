@@ -1,4 +1,6 @@
 import {
+  COMBAT_TOP_TARGET_THREAT_POOL_SIZE,
+  calculateCombatThreat,
   calculateCombatMitigation,
   combatActorSnapshotSchema,
   combatEventSchema,
@@ -42,6 +44,7 @@ export type StoredRewardSpec = {
 export type RewardItemRollSpec = NonNullable<StoredRewardSpec["item"]>;
 
 type RuntimeActor = CombatActorSnapshot & {
+  threat: number;
   currentHp: number;
   nextActionAt: number;
   defeated: boolean;
@@ -55,6 +58,26 @@ export function getWeaponDamageKind(playerState: PlayerState): CombatDamageKind 
   return "melee";
 }
 
+function getEquippedThreatModifierBps(playerState: PlayerState): number {
+  return Object.values(playerState.equipment).reduce((sum, item) => sum + (item?.statBonuses?.threat ?? 0), 0);
+}
+
+function getActiveConsumableThreatModifierBps(playerState: PlayerState): number {
+  return playerState.activeConsumables.reduce((consumableSum, consumable) => {
+    const effectThreatBps = consumable.effects.reduce((effectSum, effect) => {
+      if (effect.type !== "stat_bps" || effect.target !== "threat") {
+        return effectSum;
+      }
+      return effectSum + effect.value;
+    }, 0);
+    return consumableSum + effectThreatBps;
+  }, 0);
+}
+
+function getPlayerThreatModifierBps(playerState: PlayerState): number {
+  return getEquippedThreatModifierBps(playerState) + getActiveConsumableThreatModifierBps(playerState);
+}
+
 export function buildPlayerActorSnapshot(args: {
   playerState: PlayerState;
   playerName: string;
@@ -63,6 +86,9 @@ export function buildPlayerActorSnapshot(args: {
   const flatDamage = Math.max(0, args.playerState.statSnapshot.total.damage - weaponAverageDamage);
   const weaponMin = args.playerState.equipment.weapon?.damageRoll?.rolledMin ?? args.playerState.statSnapshot.total.damage;
   const weaponMax = args.playerState.equipment.weapon?.damageRoll?.rolledMax ?? args.playerState.statSnapshot.total.damage;
+  const minDamage = Math.max(0, weaponMin + flatDamage);
+  const maxDamage = Math.max(0, weaponMax + flatDamage);
+  const threatModifierBps = getPlayerThreatModifierBps(args.playerState);
 
   return combatActorSnapshotSchema.parse({
     id: `player:${args.playerState.playerId}`,
@@ -85,8 +111,9 @@ export function buildPlayerActorSnapshot(args: {
     missileResistance: Math.max(0, args.playerState.statSnapshot.total.missileResistance),
     physicalDefense: Math.max(0, args.playerState.statSnapshot.total.physicalDefense),
     magicDefense: Math.max(0, args.playerState.statSnapshot.total.magicDefense),
-    minDamage: Math.max(0, weaponMin + flatDamage),
-    maxDamage: Math.max(0, weaponMax + flatDamage),
+    minDamage,
+    maxDamage,
+    threat: calculateCombatThreat({ minDamage, maxDamage }, threatModifierBps),
     damageKind: getWeaponDamageKind(args.playerState)
   });
 }
@@ -142,6 +169,8 @@ export function buildMonsterActorSnapshots(args: {
       0,
       Math.round(curve.bonusDefense * defenseShare * role.defense * bossDefenseMultiplier)
     );
+    const minDamage = Math.max(1, Math.round(averageDamage * 0.85));
+    const maxDamage = Math.max(1, Math.round(averageDamage * 1.15));
 
     return combatActorSnapshotSchema.parse({
       id: `enemy:${args.encounter.family.familyId}:${member.sequence}:${index}`,
@@ -168,8 +197,9 @@ export function buildMonsterActorSnapshots(args: {
       missileResistance: Math.max(0, Math.round(typedDefense * getBiasMultiplier(member.missileResistBias))),
       physicalDefense: bonusDefense,
       magicDefense: bonusDefense,
-      minDamage: Math.max(1, Math.round(averageDamage * 0.85)),
-      maxDamage: Math.max(1, Math.round(averageDamage * 1.15)),
+      minDamage,
+      maxDamage,
+      threat: calculateCombatThreat({ minDamage, maxDamage }),
       damageKind: member.damageKind
     });
   });
@@ -276,8 +306,10 @@ export function rollRewardItemSpec(args: {
 }
 
 function createRuntimeActor(snapshot: CombatActorSnapshot, rng: () => number): RuntimeActor {
+  const threat = Math.max(0, snapshot.threat ?? calculateCombatThreat(snapshot));
   return {
     ...snapshot,
+    threat,
     currentHp: snapshot.currentHp,
     nextActionAt: ACTION_COST / snapshot.combatSpeed,
     defeated: false,
@@ -293,15 +325,37 @@ function sortForTurn(left: RuntimeActor, right: RuntimeActor): number {
   return left.id.localeCompare(right.id);
 }
 
-function pickTarget(actor: RuntimeActor, actors: RuntimeActor[]): RuntimeActor | null {
+function compareThreatPriority(left: RuntimeActor, right: RuntimeActor): number {
+  if (left.threat !== right.threat) return right.threat - left.threat;
+  if (left.encounterOrder !== right.encounterOrder) return left.encounterOrder - right.encounterOrder;
+  return left.id.localeCompare(right.id);
+}
+
+function pickTarget(actor: RuntimeActor, actors: RuntimeActor[], rng: () => number): RuntimeActor | null {
   const targetSide = actor.side === "player" ? "enemy" : "player";
-  return actors
+  const topThreatPool = actors
     .filter((candidate) => candidate.side === targetSide && !candidate.defeated && candidate.currentHp > 0)
-    .sort((left, right) => {
-      if (left.currentHp !== right.currentHp) return left.currentHp - right.currentHp;
-      if (left.encounterOrder !== right.encounterOrder) return left.encounterOrder - right.encounterOrder;
-      return left.id.localeCompare(right.id);
-    })[0] ?? null;
+    .sort(compareThreatPriority)
+    .slice(0, COMBAT_TOP_TARGET_THREAT_POOL_SIZE);
+  if (topThreatPool.length === 0) {
+    return null;
+  }
+
+  const totalThreat = topThreatPool.reduce((sum, candidate) => sum + Math.max(0, candidate.threat), 0);
+  if (totalThreat <= 0) {
+    return topThreatPool[Math.floor(rng() * topThreatPool.length)] ?? null;
+  }
+
+  const roll = rng() * totalThreat;
+  let runningTotal = 0;
+  for (const candidate of topThreatPool) {
+    runningTotal += Math.max(0, candidate.threat);
+    if (roll < runningTotal) {
+      return candidate;
+    }
+  }
+
+  return topThreatPool[topThreatPool.length - 1] ?? null;
 }
 
 function applyMitigation(rawDamage: number, actor: RuntimeActor, target: RuntimeActor): number {
@@ -317,7 +371,9 @@ function applyMitigation(rawDamage: number, actor: RuntimeActor, target: Runtime
 }
 
 function snapshotActors(actors: RuntimeActor[]): CombatActorSnapshot[] {
-  return actors.map((actor) => combatActorSnapshotSchema.parse({ ...actor, currentHp: actor.currentHp }));
+  return actors.map((actor) =>
+    combatActorSnapshotSchema.parse({ ...actor, currentHp: actor.currentHp, threat: Math.max(0, actor.threat) })
+  );
 }
 
 export function simulateCombat(args: {
@@ -358,7 +414,7 @@ export function simulateCombat(args: {
     }
 
     const timelineTime = Number(actor.nextActionAt.toFixed(6));
-    let target = pickTarget(actor, actors);
+    let target = pickTarget(actor, actors, rng);
     events.push(combatEventSchema.parse({
       type: "CombatTurnStarted",
       sequence: sequence++,
@@ -386,7 +442,7 @@ export function simulateCombat(args: {
 
     for (let strikeIndex = 1; strikeIndex <= MAX_CHAIN_STRIKES; strikeIndex += 1) {
       if (target.defeated || target.currentHp <= 0) {
-        target = pickTarget(actor, actors);
+        target = pickTarget(actor, actors, rng);
         if (!target) break;
       }
 

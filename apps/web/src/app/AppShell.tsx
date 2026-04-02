@@ -71,6 +71,7 @@ import {
   type GardenStateResponse
 } from "@ebonkeep/shared/garden";
 import { getConsumableDefinition, type ConsumableEffect, type ConsumableType } from "@ebonkeep/shared/consumables";
+import { calculateCombatThreat } from "@ebonkeep/shared/combat";
 import {
   PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE,
   type ActiveConsumable,
@@ -747,6 +748,7 @@ function formatModifierStatLabel(stat: string): string {
     critChance: i18n.t("profile.critChance"),
     critMultiplier: i18n.t("profile.critDamage"),
     accuracy: "Accuracy",
+    threat: "Threat",
     extraAttackChance: i18n.t("profile.extraAttackChance"),
     melee_damage: i18n.t("profile.meleeDamage"),
     ranged_damage: i18n.t("profile.rangedDamage"),
@@ -769,9 +771,9 @@ function formatModifierStatLabel(stat: string): string {
 
 function formatModifierValue(value: number, unit: "flat" | "basis_points"): string {
   if (unit === "basis_points") {
-    return `+${formatOneDecimal(value / 100)}%`;
+    return `${value >= 0 ? "+" : ""}${formatOneDecimal(value / 100)}%`;
   }
-  return `+${value}`;
+  return `${value >= 0 ? "+" : ""}${value}`;
 }
 
 function toWeaponFamily(weaponArchetype: WeaponArchetype): WeaponFamily {
@@ -812,6 +814,7 @@ function localizeKnownLabel(label: string): string {
     "Spell Damage": "profile.spellDamage",
     "Crit Damage": "profile.critDamage",
     "Crit Chance": "profile.critChance",
+    "Threat": "profile.threat",
     "Extra Attack Chance": "profile.extraAttackChance",
     "Armor": "profile.armor",
     "Spell Shield": "profile.spellShield",
@@ -824,7 +827,8 @@ function localizeKnownLabel(label: string): string {
   };
   const key = keyByLabel[label];
   if (key) {
-    return i18n.t(key);
+    const translated = i18n.t(key);
+    return translated === key ? label : translated;
   }
   return label;
 }
@@ -977,6 +981,7 @@ function getConsumableStatLabel(stat: string): string {
     critChance: i18n.t("profile.critChance"),
     critMultiplier: i18n.t("profile.critDamage"),
     extraAttackChance: i18n.t("profile.extraAttackChance"),
+    threat: "Threat",
     initiative: i18n.t("profile.initiative")
   };
   return labels[stat] ?? stat;
@@ -999,21 +1004,21 @@ function formatConsumableEffectLine(effect: ConsumableEffect): string {
         value: `${effect.value >= 0 ? "+" : ""}${formatBasisPoints(effect.value)}`
       });
     case "contract_xp_percent":
-      return i18n.t("refineryPanel.tooltip.increaseContractXp", { value: `+${effect.value}%` });
+      return i18n.t("refineryPanel.tooltip.increaseContractXp", { value: `${effect.value >= 0 ? "+" : ""}${effect.value}%` });
     case "contract_ducats_percent":
-      return i18n.t("refineryPanel.tooltip.increaseContractDucats", { value: `+${effect.value}%` });
+      return i18n.t("refineryPanel.tooltip.increaseContractDucats", { value: `${effect.value >= 0 ? "+" : ""}${effect.value}%` });
     case "contract_replenish_percent":
-      return i18n.t("refineryPanel.tooltip.increaseContractReplenish", { value: `+${effect.value}%` });
+      return i18n.t("refineryPanel.tooltip.increaseContractReplenish", { value: `${effect.value >= 0 ? "+" : ""}${effect.value}%` });
     case "contract_stamina_cost_percent":
       return i18n.t("refineryPanel.tooltip.reduceContractStaminaCost", { value: `-${effect.value}%` });
     case "contract_travel_duration_percent":
       return i18n.t("refineryPanel.tooltip.reduceTravelDuration", { value: `-${effect.value}%` });
     case "contract_item_drop_bps":
-      return i18n.t("refineryPanel.tooltip.increaseItemDrop", { value: `+${formatBasisPoints(effect.value)}` });
+      return i18n.t("refineryPanel.tooltip.increaseItemDrop", { value: `${effect.value >= 0 ? "+" : ""}${formatBasisPoints(effect.value)}` });
     case "clear_affliction":
       return i18n.t("refineryPanel.tooltip.clearAffliction", { count: effect.value });
     case "affliction_resist_bps":
-      return i18n.t("refineryPanel.tooltip.increaseAfflictionResist", { value: `+${formatBasisPoints(effect.value)}` });
+      return i18n.t("refineryPanel.tooltip.increaseAfflictionResist", { value: `${effect.value >= 0 ? "+" : ""}${formatBasisPoints(effect.value)}` });
   }
 }
 
@@ -5942,6 +5947,32 @@ export function AppShell() {
           ? i18n.t("profile.rangedAttackDamage")
           : i18n.t("profile.meleeDamage");
     const flatBonusDamage = Math.floor(mainOffenseStat * 0.1).toFixed(1);
+    const weaponAverageDamage = playerState.equipment.weapon?.damageRoll?.averageDamage ?? totalStats.damage;
+    const flatDamage = Math.max(0, totalStats.damage - weaponAverageDamage);
+    const weaponMinDamage = playerState.equipment.weapon?.damageRoll?.rolledMin ?? totalStats.damage;
+    const weaponMaxDamage = playerState.equipment.weapon?.damageRoll?.rolledMax ?? totalStats.damage;
+    const effectiveMinDamage = Math.max(0, Math.round(weaponMinDamage + flatDamage));
+    const effectiveMaxDamage = Math.max(0, Math.round(weaponMaxDamage + flatDamage));
+    const equippedThreatModifierBps = Object.values(playerState.equipment ?? {}).reduce(
+      (sum, item) => sum + (item?.statBonuses?.threat ?? 0),
+      0
+    );
+    const activeConsumableThreatModifierBps = (playerState.activeConsumables ?? []).reduce((consumableSum, consumable) => {
+      const consumableThreatBps = consumable.effects.reduce((effectSum, effect) => {
+        if (effect.type !== "stat_bps" || effect.target !== "threat") {
+          return effectSum;
+        }
+        return effectSum + effect.value;
+      }, 0);
+      return consumableSum + consumableThreatBps;
+    }, 0);
+    const threatValue = calculateCombatThreat(
+      {
+        minDamage: effectiveMinDamage,
+        maxDamage: effectiveMaxDamage
+      },
+      equippedThreatModifierBps + activeConsumableThreatModifierBps
+    );
 
     const groupedStats: Array<{
       title: string;
@@ -5967,6 +5998,7 @@ export function AppShell() {
           { label: i18n.t("profile.critChance"), value: formatBasisPoints(totalStats.critChance) },
           { label: i18n.t("profile.critDamage"), value: formatBasisPoints(totalStats.critMultiplier) },
           { label: i18n.t("profile.chanceToExtraAttack"), value: formatBasisPoints(totalStats.extraAttackChance) },
+          { label: "Threat", value: threatValue },
           { label: i18n.t("profile.flatBonusMainStat"), value: flatBonusDamage }
         ]
       }

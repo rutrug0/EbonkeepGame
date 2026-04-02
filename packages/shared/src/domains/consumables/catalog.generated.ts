@@ -357,6 +357,54 @@ export const GENERATED_CONSUMABLE_CATALOG = [
     ]
   },
   {
+    "consumableId": "wardens_challenge_elixir",
+    "itemCode": "consumable_wardens_challenge_elixir",
+    "displayName": "Warden's Challenge Elixir",
+    "type": "elixir",
+    "family": "bulwark",
+    "rarity": "uncommon",
+    "unlockBand": "medium",
+    "craftingTier": "t2",
+    "durationKind": "hours",
+    "durationValue": 8,
+    "distillGroup": "wardens_challenge",
+    "distillTier": "base",
+    "legacyReplaces": [],
+    "iconKey": "consumable_wardens_challenge_elixir",
+    "description": "Call hostile focus and hold the line for the next encounters",
+    "effects": [
+      {
+        "type": "stat_bps",
+        "target": "threat",
+        "value": 1800
+      }
+    ]
+  },
+  {
+    "consumableId": "shadowveil_elixir",
+    "itemCode": "consumable_shadowveil_elixir",
+    "displayName": "Shadowveil Elixir",
+    "type": "elixir",
+    "family": "precision",
+    "rarity": "uncommon",
+    "unlockBand": "medium",
+    "craftingTier": "t2",
+    "durationKind": "hours",
+    "durationValue": 8,
+    "distillGroup": "shadowveil",
+    "distillTier": "base",
+    "legacyReplaces": [],
+    "iconKey": "consumable_shadowveil_elixir",
+    "description": "Suppress combat presence to keep pressure off fragile damage dealers",
+    "effects": [
+      {
+        "type": "stat_bps",
+        "target": "threat",
+        "value": -1800
+      }
+    ]
+  },
+  {
     "consumableId": "deadeye_elixir",
     "itemCode": "consumable_deadeye_elixir",
     "displayName": "Deadeye Elixir",
@@ -1204,6 +1252,102 @@ export const GENERATED_CONSUMABLE_CATALOG = [
     ]
   },
   {
+    "consumableId": "wardens_challenge_elixir",
+    "itemCode": "consumable_wardens_challenge_elixir_d1",
+    "displayName": "Potent Warden's Challenge Elixir",
+    "type": "elixir",
+    "family": "bulwark",
+    "rarity": "rare",
+    "unlockBand": "medium",
+    "craftingTier": "t2",
+    "durationKind": "hours",
+    "durationValue": 8,
+    "distillGroup": "wardens_challenge",
+    "distillTier": "d1",
+    "legacyReplaces": [],
+    "iconKey": "consumable_wardens_challenge_elixir",
+    "description": "Potent refinement of Warden's Challenge Elixir.",
+    "effects": [
+      {
+        "type": "stat_bps",
+        "target": "threat",
+        "value": 2400
+      }
+    ]
+  },
+  {
+    "consumableId": "wardens_challenge_elixir",
+    "itemCode": "consumable_wardens_challenge_elixir_d2",
+    "displayName": "Mythic Warden's Challenge Elixir",
+    "type": "elixir",
+    "family": "bulwark",
+    "rarity": "epic",
+    "unlockBand": "medium",
+    "craftingTier": "t2",
+    "durationKind": "hours",
+    "durationValue": 8,
+    "distillGroup": "wardens_challenge",
+    "distillTier": "d2",
+    "legacyReplaces": [],
+    "iconKey": "consumable_wardens_challenge_elixir",
+    "description": "Mythic refinement of Warden's Challenge Elixir.",
+    "effects": [
+      {
+        "type": "stat_bps",
+        "target": "threat",
+        "value": 3000
+      }
+    ]
+  },
+  {
+    "consumableId": "shadowveil_elixir",
+    "itemCode": "consumable_shadowveil_elixir_d1",
+    "displayName": "Potent Shadowveil Elixir",
+    "type": "elixir",
+    "family": "precision",
+    "rarity": "rare",
+    "unlockBand": "medium",
+    "craftingTier": "t2",
+    "durationKind": "hours",
+    "durationValue": 8,
+    "distillGroup": "shadowveil",
+    "distillTier": "d1",
+    "legacyReplaces": [],
+    "iconKey": "consumable_shadowveil_elixir",
+    "description": "Potent refinement of Shadowveil Elixir.",
+    "effects": [
+      {
+        "type": "stat_bps",
+        "target": "threat",
+        "value": -2400
+      }
+    ]
+  },
+  {
+    "consumableId": "shadowveil_elixir",
+    "itemCode": "consumable_shadowveil_elixir_d2",
+    "displayName": "Mythic Shadowveil Elixir",
+    "type": "elixir",
+    "family": "precision",
+    "rarity": "epic",
+    "unlockBand": "medium",
+    "craftingTier": "t2",
+    "durationKind": "hours",
+    "durationValue": 8,
+    "distillGroup": "shadowveil",
+    "distillTier": "d2",
+    "legacyReplaces": [],
+    "iconKey": "consumable_shadowveil_elixir",
+    "description": "Mythic refinement of Shadowveil Elixir.",
+    "effects": [
+      {
+        "type": "stat_bps",
+        "target": "threat",
+        "value": -3000
+      }
+    ]
+  },
+  {
     "consumableId": "deadeye_elixir",
     "itemCode": "consumable_deadeye_elixir_d1",
     "displayName": "Potent Deadeye Elixir",
@@ -1727,6 +1871,58 @@ export const GENERATED_CONSUMABLE_RECIPES = [
     "outputRarity": "uncommon",
     "outputCraftingTier": "t2",
     "ducatCost": 1400,
+    "craftingTimeSec": 3600,
+    "requiredLevel": 15,
+    "ingredients": [
+      {
+        "itemCode": "ingredient_duskmint",
+        "quantity": 1
+      },
+      {
+        "itemCode": "ingredient_kingsfoil",
+        "quantity": 1
+      },
+      {
+        "itemCode": "reagent_ward_resin",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "recipeId": "craft_consumable_wardens_challenge_elixir",
+    "recipeKind": "craft",
+    "outputConsumableId": "wardens_challenge_elixir",
+    "outputTier": "base",
+    "outputItemCode": "consumable_wardens_challenge_elixir",
+    "outputRarity": "uncommon",
+    "outputCraftingTier": "t2",
+    "ducatCost": 1500,
+    "craftingTimeSec": 3600,
+    "requiredLevel": 15,
+    "ingredients": [
+      {
+        "itemCode": "ingredient_ironbloom",
+        "quantity": 1
+      },
+      {
+        "itemCode": "ingredient_kingsfoil",
+        "quantity": 1
+      },
+      {
+        "itemCode": "reagent_ward_resin",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "recipeId": "craft_consumable_shadowveil_elixir",
+    "recipeKind": "craft",
+    "outputConsumableId": "shadowveil_elixir",
+    "outputTier": "base",
+    "outputItemCode": "consumable_shadowveil_elixir",
+    "outputRarity": "uncommon",
+    "outputCraftingTier": "t2",
+    "ducatCost": 1500,
     "craftingTimeSec": 3600,
     "requiredLevel": 15,
     "ingredients": [
@@ -2354,6 +2550,78 @@ export const GENERATED_CONSUMABLE_RECIPES = [
     "ingredients": [
       {
         "itemCode": "consumable_deadeye_elixir_d1",
+        "quantity": 3
+      }
+    ]
+  },
+  {
+    "recipeId": "distill_consumable_wardens_challenge_elixir_d1",
+    "recipeKind": "distill",
+    "outputConsumableId": "wardens_challenge_elixir",
+    "outputTier": "d1",
+    "outputItemCode": "consumable_wardens_challenge_elixir_d1",
+    "outputRarity": "rare",
+    "outputCraftingTier": "t2",
+    "ducatCost": 0,
+    "craftingTimeSec": 4500,
+    "requiredLevel": 15,
+    "ingredients": [
+      {
+        "itemCode": "consumable_wardens_challenge_elixir",
+        "quantity": 3
+      }
+    ]
+  },
+  {
+    "recipeId": "distill_consumable_wardens_challenge_elixir_d2",
+    "recipeKind": "distill",
+    "outputConsumableId": "wardens_challenge_elixir",
+    "outputTier": "d2",
+    "outputItemCode": "consumable_wardens_challenge_elixir_d2",
+    "outputRarity": "epic",
+    "outputCraftingTier": "t2",
+    "ducatCost": 0,
+    "craftingTimeSec": 9000,
+    "requiredLevel": 15,
+    "ingredients": [
+      {
+        "itemCode": "consumable_wardens_challenge_elixir_d1",
+        "quantity": 3
+      }
+    ]
+  },
+  {
+    "recipeId": "distill_consumable_shadowveil_elixir_d1",
+    "recipeKind": "distill",
+    "outputConsumableId": "shadowveil_elixir",
+    "outputTier": "d1",
+    "outputItemCode": "consumable_shadowveil_elixir_d1",
+    "outputRarity": "rare",
+    "outputCraftingTier": "t2",
+    "ducatCost": 0,
+    "craftingTimeSec": 4500,
+    "requiredLevel": 15,
+    "ingredients": [
+      {
+        "itemCode": "consumable_shadowveil_elixir",
+        "quantity": 3
+      }
+    ]
+  },
+  {
+    "recipeId": "distill_consumable_shadowveil_elixir_d2",
+    "recipeKind": "distill",
+    "outputConsumableId": "shadowveil_elixir",
+    "outputTier": "d2",
+    "outputItemCode": "consumable_shadowveil_elixir_d2",
+    "outputRarity": "epic",
+    "outputCraftingTier": "t2",
+    "ducatCost": 0,
+    "craftingTimeSec": 9000,
+    "requiredLevel": 15,
+    "ingredients": [
+      {
+        "itemCode": "consumable_shadowveil_elixir_d1",
         "quantity": 3
       }
     ]
