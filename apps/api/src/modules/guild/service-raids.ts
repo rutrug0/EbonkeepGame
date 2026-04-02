@@ -12,6 +12,7 @@ import { normalizePlayerClass, type PlayerClass } from "@ebonkeep/shared/core";
 
 import { GUILD_RAID_BOSS_CHAIN, GUILD_RAID_LABEL, getGuildRaidBossDefinition } from "./raid-config.js";
 import { getUnlockedGuildRaidBonuses } from "./raid-effects.js";
+import { decrementEncounterBasedConsumablesForPlayers } from "../player/active-consumables-service.js";
 
 type GuildRaidDbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -545,6 +546,13 @@ async function resolveLobbyRaid(
       activeRaidInstanceId: outcome === "defeat" ? activeEncounter.id : null
     }
   });
+
+  await decrementEncounterBasedConsumablesForPlayers(
+    tx,
+    participants.map((participant) => participant.playerId),
+    1,
+    now
+  );
 }
 
 async function syncGuildRaidState(

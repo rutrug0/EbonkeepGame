@@ -29,6 +29,11 @@ import { mergePlayerStatBonuses } from "../academy/effects.js";
 import { getCombinedGuildEffectTotals } from "../guild/raid-effects.js";
 import { markWeaponTemperingFailed, parseStoredInventoryItem } from "../inventory/item-service.js";
 import { loadPersistedForgeState } from "../forge/state.js";
+import {
+  aggregateActiveConsumableEffects,
+  applyActiveConsumableStatEffectsToSnapshot,
+  getPlayerActiveConsumables
+} from "./active-consumables-service.js";
 import { resolveHealthState, syncPlayerProgress } from "./progression-service.js";
 
 const BASE_ACCURACY = 75;
@@ -421,7 +426,9 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
 
   const normalizedPlayerClass = normalizePlayerClass(profile.class);
   const academyEffects = await getCombinedGuildEffectTotals(prisma, profile.guildMembership?.guildId);
-  const statSnapshot = buildPlayerStatSnapshot({
+  const activeConsumables = await getPlayerActiveConsumables(prisma, playerId, now);
+  const activeConsumableTotals = aggregateActiveConsumableEffects(activeConsumables);
+  const baseStatSnapshot = buildPlayerStatSnapshot({
     playerClass: normalizedPlayerClass,
     level: progress.experience.level,
     baseStats: {
@@ -435,6 +442,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
     equipment: resolvedEquipment,
     guildBonuses: academyEffects.statBonuses
   });
+  const statSnapshot = applyActiveConsumableStatEffectsToSnapshot(baseStatSnapshot, activeConsumableTotals);
   const resolvedHealth = resolveHealthState({
     current: profile.hitpointsCurrent,
     max: statSnapshot.total.maxHitpoints,
@@ -524,6 +532,7 @@ export async function loadPlayerState(prisma: PlayerStateDbClient, playerId: str
       luck: statSnapshot.total.luck
     },
     statSnapshot,
+    activeConsumables,
     inventory: resolvedInventory,
     equipment: resolvedEquipment,
     currency: {

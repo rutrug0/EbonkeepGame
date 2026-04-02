@@ -253,3 +253,23 @@ export const inventoryMoveResponseSchema = z.object({
   playerState: z.lazy(() => playerStateSchema)
 });
 export type InventoryMoveResponse = z.infer<typeof inventoryMoveResponseSchema>;
+
+export const inventoryConsumeBodySchema = z.object({
+  itemId: z.string().min(1)
+});
+export type InventoryConsumeBody = z.infer<typeof inventoryConsumeBodySchema>;
+
+export const inventoryConsumeResponseSchema = z.object({
+  playerState: z.lazy(() => playerStateSchema),
+  consumedItem: z.object({
+    itemId: z.string(),
+    itemCode: z.string(),
+    itemName: z.string(),
+    consumedQuantity: z.number().int().positive(),
+    remainingQuantity: z.number().int().min(0),
+    consumableType: z.enum(["potion", "tonic", "elixir"]),
+    instantResolved: z.boolean(),
+    activated: z.boolean()
+  })
+});
+export type InventoryConsumeResponse = z.infer<typeof inventoryConsumeResponseSchema>;

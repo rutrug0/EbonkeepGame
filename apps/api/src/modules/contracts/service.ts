@@ -36,6 +36,15 @@ import { getPlayerCombinedGuildEffectTotals } from "../guild/raid-effects.js";
 import { rollMaterialDrops } from "../combat/material-drops.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { assertJobsActivityIdle } from "../jobs/service.js";
+import {
+  aggregateActiveConsumableEffects,
+  applyActiveConsumableContractModifiers,
+  applyActiveConsumableTravelDuration,
+  decrementEncounterBasedConsumables,
+  getPlayerActiveConsumableEffectTotals,
+  getPlayerActiveConsumables,
+  type ActiveConsumableEffectTotals
+} from "../player/active-consumables-service.js";
 import { grantPlayerExperience, resolveHealthState, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
@@ -122,8 +131,19 @@ function parseStoredRewards(value: Prisma.JsonValue): StoredRewardSpec {
   };
 }
 
-function mapBoardSlot(slot: BoardSlotRecord, academyEffects?: AcademyEffectTotals): ContractBoardSlotView {
-  const rewardsPreview = parseRewardPreview(slot.rewardsPreview);
+function mapBoardSlot(
+  slot: BoardSlotRecord,
+  academyEffects?: AcademyEffectTotals,
+  activeConsumableEffects?: ActiveConsumableEffectTotals
+): ContractBoardSlotView {
+  const parsedRewardPreview = parseRewardPreview(slot.rewardsPreview);
+  let rewardsPreview = parsedRewardPreview;
+  if (rewardsPreview && academyEffects) {
+    rewardsPreview = applyAcademyBonusesToContractRewardPreview(rewardsPreview, academyEffects);
+  }
+  if (rewardsPreview && activeConsumableEffects) {
+    rewardsPreview = applyActiveConsumableContractModifiers(rewardsPreview, activeConsumableEffects);
+  }
   return contractBoardSlotViewSchema.parse({
     slotId: slot.slotIndex,
     state: slot.state as ContractBoardSlotState,
@@ -137,10 +157,7 @@ function mapBoardSlot(slot: BoardSlotRecord, academyEffects?: AcademyEffectTotal
     expiresAt: slot.expiresAt?.toISOString() ?? null,
     replenishAt: slot.replenishAt?.toISOString() ?? null,
     startedRunId: slot.activeRunId,
-    rewardsPreview:
-      rewardsPreview && academyEffects
-        ? applyAcademyBonusesToContractRewardPreview(rewardsPreview, academyEffects)
-        : rewardsPreview
+    rewardsPreview
   });
 }
 
@@ -451,7 +468,8 @@ function resolvePlayerCurrentHpFromEvents(run: {
 function coerceEncounterForRun(
   slot: BoardSlotRecord,
   playerLevel: number,
-  academyEffects?: AcademyEffectTotals
+  academyEffects?: AcademyEffectTotals,
+  activeConsumableEffects?: ActiveConsumableEffectTotals
 ): EncounterDefinition {
   const rng = createSeededRng(`${slot.familyId}:${slot.slotIndex}:${slot.encounterLevel}`);
   const storedRewardPreview = parseRewardPreview(slot.rewardsPreview);
@@ -463,6 +481,15 @@ function coerceEncounterForRun(
       playerLevel,
       "standard_cost"
     );
+
+  const academyAdjustedRewardPreview =
+    academyEffects
+      ? applyAcademyBonusesToContractRewardPreview(rewardPreviewBase, academyEffects)
+      : rewardPreviewBase;
+  const rewardPreview =
+    activeConsumableEffects
+      ? applyActiveConsumableContractModifiers(academyAdjustedRewardPreview, activeConsumableEffects)
+      : academyAdjustedRewardPreview;
 
   return {
     contractName: slot.contractName ?? "Contract",
@@ -476,17 +503,17 @@ function coerceEncounterForRun(
     members: pickEncounterMembers(rng, slot.familyId ?? "")
       .slice(0, slot.enemyCount ?? undefined),
     encounterLevel: slot.encounterLevel ?? playerLevel,
-    rewardPreview:
-      academyEffects
-        ? applyAcademyBonusesToContractRewardPreview(rewardPreviewBase, academyEffects)
-        : rewardPreviewBase
+    rewardPreview
   };
 }
 
 export async function getContractBoard(prisma: PrismaClient, playerId: string): Promise<ContractBoardResponse> {
   const now = new Date();
   await refreshBoardState(prisma, playerId, now);
-  const academyEffects = await getPlayerCombinedGuildEffectTotals(prisma, playerId);
+  const [academyEffects, activeConsumableEffects] = await Promise.all([
+    getPlayerCombinedGuildEffectTotals(prisma, playerId),
+    getPlayerActiveConsumableEffectTotals(prisma, playerId, now)
+  ]);
   const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
   const slots = await prisma.contractBoardSlot.findMany({
     where: {
@@ -506,7 +533,9 @@ export async function getContractBoard(prisma: PrismaClient, playerId: string): 
 
   return contractBoardResponseSchema.parse({
     serverTime: now.toISOString(),
-    slots: visibleSlots.map((slot) => mapBoardSlot(slot as BoardSlotRecord, academyEffects))
+    slots: visibleSlots.map((slot) =>
+      mapBoardSlot(slot as BoardSlotRecord, academyEffects, activeConsumableEffects)
+    )
   });
 }
 
@@ -551,6 +580,8 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
     }
 
     const academyEffects = await getPlayerCombinedGuildEffectTotals(tx, playerId);
+    const activeConsumables = await getPlayerActiveConsumables(tx, playerId, now);
+    const activeConsumableEffects = aggregateActiveConsumableEffects(activeConsumables);
     const slotCount = getEffectiveContractSlotCount(CONTRACT_SLOT_COUNT, academyEffects);
     if (slotId < 1 || slotId > slotCount) {
       throw new Error("Contract slot is not available.");
@@ -578,7 +609,12 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
       throw new Error("Player profile not found.");
     }
 
-    const encounter = coerceEncounterForRun(slot as BoardSlotRecord, playerState.level, academyEffects);
+    const encounter = coerceEncounterForRun(
+      slot as BoardSlotRecord,
+      playerState.level,
+      academyEffects,
+      activeConsumableEffects
+    );
     runId = `ctr_${randomUUID().replaceAll("-", "")}`;
     const simulationPlayerState = playerState.cheatSettings.invincibilityEnabled
       ? {
@@ -596,7 +632,10 @@ export async function startContractRun(prisma: PrismaClient, playerId: string, s
       runId
     });
     const efficiencyTier = encounter.rewardPreview.efficiencyTier;
-    travelDurationSeconds = resolveContractTravelDurationSeconds(playerState.level, efficiencyTier);
+    travelDurationSeconds = applyActiveConsumableTravelDuration(
+      resolveContractTravelDurationSeconds(playerState.level, efficiencyTier),
+      activeConsumableEffects
+    );
     travelEndsAt = new Date(now.getTime() + travelDurationSeconds * 1000);
 
     await spendPlayerStamina(tx, playerId, encounter.rewardPreview.staminaCost, now);
@@ -855,6 +894,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
         hitpointsUpdatedAt: resolvedClaimHealth.updatedAt
       }
     });
+    await decrementEncounterBasedConsumables(tx, playerId, 1, now);
 
     snapshot = await loadRunSnapshotFromRecord(run);
   });

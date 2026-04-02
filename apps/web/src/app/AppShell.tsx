@@ -70,8 +70,13 @@ import {
   type GardenInventoryEntry,
   type GardenStateResponse
 } from "@ebonkeep/shared/garden";
-import { getConsumableDefinition, type ConsumableType } from "@ebonkeep/shared/consumables";
-import { PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE, type PlayerState, type RenownState } from "@ebonkeep/shared/player";
+import { getConsumableDefinition, type ConsumableEffect, type ConsumableType } from "@ebonkeep/shared/consumables";
+import {
+  PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE,
+  type ActiveConsumable,
+  type PlayerState,
+  type RenownState
+} from "@ebonkeep/shared/player";
 
 import {
   forgotPassword,
@@ -85,6 +90,7 @@ import {
 } from "../features/auth";
 import {
   devGuestLogin,
+  consumeInventoryItem,
   fetchPlayerState,
   generateEquipmentCheats,
   grantCurrencyCheats,
@@ -249,6 +255,16 @@ type InventoryItem = {
   damagePenaltyBps?: number;
   profileSideSubtype?: ProfileSideSubtype;
   profileSideSource?: ProfileSideSource;
+};
+
+type ActiveConsumableDisplayEntry = {
+  id: string;
+  itemCode: string;
+  itemName: string;
+  rarity: Rarity;
+  iconAssetPath?: string;
+  effectLines: string[];
+  durationLabel: string;
 };
 
 type ItemModifier = {
@@ -945,6 +961,96 @@ function isMaterialInventoryItem(item: InventoryItem): boolean {
     || item.itemCode?.startsWith("mat_") === true
     || item.itemCode?.startsWith("reagent_") === true
     || item.itemCode?.startsWith("forge_catalyst") === true;
+}
+
+function getConsumableStatLabel(stat: string): string {
+  const labels: Partial<Record<string, string>> = {
+    armor: i18n.t("profile.armor"),
+    spellShield: i18n.t("profile.spellShield"),
+    missileResistance: i18n.t("profile.missileResistance"),
+    physicalDefense: i18n.t("profile.physicalDefense"),
+    magicDefense: i18n.t("profile.magicDefense"),
+    maxHitpoints: i18n.t("profile.maxHitpoints"),
+    accuracy: i18n.t("profile.accuracy"),
+    dodgeChance: i18n.t("profile.dodgeChance"),
+    damage: i18n.t("profile.mainDamage"),
+    critChance: i18n.t("profile.critChance"),
+    critMultiplier: i18n.t("profile.critDamage"),
+    extraAttackChance: i18n.t("profile.extraAttackChance"),
+    initiative: i18n.t("profile.initiative")
+  };
+  return labels[stat] ?? stat;
+}
+
+function formatConsumableEffectLine(effect: ConsumableEffect): string {
+  switch (effect.type) {
+    case "restore_health_pct_max":
+      return i18n.t("refineryPanel.tooltip.restoreHealth", { value: `${effect.value}%` });
+    case "restore_stamina_pct_max":
+      return i18n.t("refineryPanel.tooltip.restoreStamina", { value: `${effect.value}%` });
+    case "stat_flat":
+      return i18n.t("refineryPanel.tooltip.increaseStat", {
+        stat: getConsumableStatLabel(effect.target),
+        value: `${effect.value >= 0 ? "+" : ""}${effect.value}`
+      });
+    case "stat_bps":
+      return i18n.t("refineryPanel.tooltip.increaseStat", {
+        stat: getConsumableStatLabel(effect.target),
+        value: `${effect.value >= 0 ? "+" : ""}${formatBasisPoints(effect.value)}`
+      });
+    case "contract_xp_percent":
+      return i18n.t("refineryPanel.tooltip.increaseContractXp", { value: `+${effect.value}%` });
+    case "contract_ducats_percent":
+      return i18n.t("refineryPanel.tooltip.increaseContractDucats", { value: `+${effect.value}%` });
+    case "contract_replenish_percent":
+      return i18n.t("refineryPanel.tooltip.increaseContractReplenish", { value: `+${effect.value}%` });
+    case "contract_stamina_cost_percent":
+      return i18n.t("refineryPanel.tooltip.reduceContractStaminaCost", { value: `-${effect.value}%` });
+    case "contract_travel_duration_percent":
+      return i18n.t("refineryPanel.tooltip.reduceTravelDuration", { value: `-${effect.value}%` });
+    case "contract_item_drop_bps":
+      return i18n.t("refineryPanel.tooltip.increaseItemDrop", { value: `+${formatBasisPoints(effect.value)}` });
+    case "clear_affliction":
+      return i18n.t("refineryPanel.tooltip.clearAffliction", { count: effect.value });
+    case "affliction_resist_bps":
+      return i18n.t("refineryPanel.tooltip.increaseAfflictionResist", { value: `+${formatBasisPoints(effect.value)}` });
+  }
+}
+
+function getActiveConsumableDurationLabel(activeConsumable: ActiveConsumable, nowMs: number): string {
+  if (activeConsumable.remainingEncounters !== null) {
+    return i18n.t("refineryPanel.tooltip.encounterDuration", {
+      count: Math.max(0, activeConsumable.remainingEncounters)
+    });
+  }
+
+  if (activeConsumable.expiresAt) {
+    const remainingMs = Date.parse(activeConsumable.expiresAt) - nowMs;
+    if (remainingMs <= 0) {
+      return "Expired";
+    }
+    return `${formatDurationFromMs(remainingMs)} remaining`;
+  }
+
+  if (activeConsumable.originalDuration.kind === "hours") {
+    return i18n.t("refineryPanel.tooltip.hourDuration", { count: activeConsumable.originalDuration.value });
+  }
+
+  if (activeConsumable.originalDuration.kind === "encounters") {
+    return i18n.t("refineryPanel.tooltip.encounterDuration", { count: activeConsumable.originalDuration.value });
+  }
+
+  return i18n.t("refineryPanel.tooltip.instantDuration");
+}
+
+function isActiveConsumableExpired(activeConsumable: ActiveConsumable, nowMs: number): boolean {
+  if (activeConsumable.remainingEncounters !== null && activeConsumable.remainingEncounters <= 0) {
+    return true;
+  }
+  if (activeConsumable.expiresAt && Date.parse(activeConsumable.expiresAt) <= nowMs) {
+    return true;
+  }
+  return false;
 }
 
 function toProfileGardenInventoryItem(entry: GardenInventoryEntry): InventoryItem {
@@ -1741,6 +1847,7 @@ export function InventoryCardGrid(props: InventoryCardGridProps): ReactElement {
               : " dropCueAfter"
             : "";
         const canUseItem = canPlayerUseItem(item, props.playerState);
+        const canTriggerEquipAction = props.allowDrag && item.equipable;
 
         return (
           <article
@@ -1751,9 +1858,9 @@ export function InventoryCardGrid(props: InventoryCardGridProps): ReactElement {
             onDragStart={props.allowDrag ? (event) => props.onInventoryCardDragStart(event, item.id) : undefined}
             onDragOver={props.allowDrag ? (event) => props.onInventoryCardDragOver(event, item.id) : undefined}
             onDrop={props.allowDrag ? (event) => props.onInventoryCardDrop(event) : undefined}
-            onDoubleClick={props.allowDrag ? () => props.onInventoryCardDoubleClick(item.id) : undefined}
+            onDoubleClick={canTriggerEquipAction ? () => props.onInventoryCardDoubleClick(item.id) : undefined}
             onContextMenu={
-              props.allowDrag
+              canTriggerEquipAction
                 ? (event) => {
                     event.preventDefault();
                     void props.onInventoryCardDoubleClick(item.id);
@@ -2001,6 +2108,7 @@ export function AppShell() {
   } | null>(null);
   const chatMessagesScrollRef = useRef<HTMLDivElement | null>(null);
   const panelTransitionTimeoutIdsRef = useRef<number[]>([]);
+  const portraitConsumePulseTimeoutRef = useRef<number | null>(null);
   const preloadRenownViewportRef = useRef<HTMLDivElement | null>(null);
   const [token, setToken] = useState<string | null>(
     () => window.localStorage.getItem("ebonkeep.dev.token")
@@ -2076,6 +2184,8 @@ export function AppShell() {
   const [activeMaterialFilter, setActiveMaterialFilter] = useState<ProfileSideMaterialFilter | null>(null);
   const [draggingInventoryCardId, setDraggingInventoryCardId] = useState<string | null>(null);
   const [draggingEquipmentSlotId, setDraggingEquipmentSlotId] = useState<EquipmentSlotId | null>(null);
+  const [portraitDropState, setPortraitDropState] = useState<"valid" | "invalid" | null>(null);
+  const [isPortraitConsumePulseActive, setIsPortraitConsumePulseActive] = useState(false);
   const [dropTargetInventoryCardId, setDropTargetInventoryCardId] = useState<string | null>(null);
   const [dropInsertPosition, setDropInsertPosition] = useState<InventoryInsertPosition>("before");
   const [equipmentDropTargetSlotId, setEquipmentDropTargetSlotId] = useState<EquipmentSlotId | null>(null);
@@ -2122,6 +2232,13 @@ export function AppShell() {
     }
     panelTransitionTimeoutIdsRef.current = [];
   }
+
+  useEffect(() => () => {
+    if (portraitConsumePulseTimeoutRef.current !== null) {
+      window.clearTimeout(portraitConsumePulseTimeoutRef.current);
+      portraitConsumePulseTimeoutRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (!token || !playerState) {
@@ -2524,6 +2641,26 @@ export function AppShell() {
 
     return materialProfileItems.filter((item) => item.profileSideSubtype === activeMaterialFilter);
   }, [activeMaterialFilter, materialProfileItems]);
+  const activeConsumableEntries = useMemo<ActiveConsumableDisplayEntry[]>(() => {
+    if (!playerState) {
+      return [];
+    }
+
+    return playerState.activeConsumables
+      .filter((activeConsumable) => !isActiveConsumableExpired(activeConsumable, nowMs))
+      .map((activeConsumable) => {
+        const consumableDefinition = getConsumableDefinition(activeConsumable.itemCode);
+        return {
+          id: activeConsumable.id,
+          itemCode: activeConsumable.itemCode,
+          itemName: consumableDefinition?.displayName ?? activeConsumable.itemCode,
+          rarity: (consumableDefinition?.rarity ?? "common") as Rarity,
+          iconAssetPath: getUploadedItemIconPathByItemCode(activeConsumable.itemCode),
+          effectLines: activeConsumable.effects.map((effect) => formatConsumableEffectLine(effect)),
+          durationLabel: getActiveConsumableDurationLabel(activeConsumable, nowMs)
+        };
+      });
+  }, [nowMs, playerState]);
   const activeChatMessages = chatMessagesByChannel[activeChatChannel];
   const isInventoryChatVisible = canDockInventoryChat ? isInventoryChatDockedVisible : isInventoryChatOverlayOpen;
 
@@ -2681,6 +2818,24 @@ export function AppShell() {
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : i18n.t("errors.invalidItem"));
+    } finally {
+      setIsInventoryMutating(false);
+    }
+  }
+
+  async function handleConsumeInventoryItem(itemId: string) {
+    if (!token || isInventoryMutating) {
+      return;
+    }
+
+    try {
+      setIsInventoryMutating(true);
+      const response = await consumeInventoryItem(token, itemId);
+      applyAuthoritativePlayerState(response.playerState);
+      triggerPortraitConsumePulse();
+      setError(null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Consume item failed");
     } finally {
       setIsInventoryMutating(false);
     }
@@ -3484,6 +3639,71 @@ export function AppShell() {
       active = false;
     };
   }, [activeTab, token, playerState?.playerId]);
+
+  useEffect(() => {
+    if (!token || activeTab !== "inventory") {
+      return;
+    }
+
+    let cancelled = false;
+    void fetchPlayerState(token)
+      .then((state) => {
+        if (!cancelled) {
+          applyAuthoritativePlayerState(state);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : i18n.t("errors.stateLoadFailed"));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, token]);
+
+  useEffect(() => {
+    if (!token || activeTab !== "inventory" || !playerState || playerState.activeConsumables.length === 0) {
+      return;
+    }
+
+    const now = Date.now();
+    const nextExpiryMs = playerState.activeConsumables
+      .map((activeConsumable) => (activeConsumable.expiresAt ? Date.parse(activeConsumable.expiresAt) : Number.NaN))
+      .filter((expiresAtMs) => Number.isFinite(expiresAtMs) && expiresAtMs > now)
+      .reduce<number | null>((lowest, expiresAtMs) => {
+        if (lowest === null) {
+          return expiresAtMs;
+        }
+        return Math.min(lowest, expiresAtMs);
+      }, null);
+
+    if (nextExpiryMs === null) {
+      return;
+    }
+
+    const timeoutMs = Math.max(250, nextExpiryMs - now + 250);
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      void fetchPlayerState(token)
+        .then((state) => {
+          if (!cancelled) {
+            applyAuthoritativePlayerState(state);
+          }
+        })
+        .catch((err: unknown) => {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : i18n.t("errors.stateLoadFailed"));
+          }
+        });
+    }, timeoutMs);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeTab, playerState, token]);
 
   useEffect(() => {
     // Clear form fields when switching between login and register
@@ -4591,6 +4811,7 @@ export function AppShell() {
     setDropInsertPosition,
     setEquipmentDropTargetSlotId,
     setEquipmentDropState,
+    onClearDragState: () => setPortraitDropState(null),
     clearInventoryComparisonHover: () => setInventoryComparisonHover(null),
     getItemById,
     getEquipValidationError,
@@ -4598,6 +4819,77 @@ export function AppShell() {
     handleMerchantPlayerItemInteract,
     handleMerchantOfferInteract
   });
+
+  function clearInventoryDragAndDropState() {
+    setDraggingInventoryCardId(null);
+    setDraggingEquipmentSlotId(null);
+    setDraggingMerchantOfferId(null);
+    setDropTargetInventoryCardId(null);
+    setEquipmentDropTargetSlotId(null);
+    setEquipmentDropState(null);
+    setPortraitDropState(null);
+    setInventoryComparisonHover(null);
+  }
+
+  function triggerPortraitConsumePulse() {
+    if (portraitConsumePulseTimeoutRef.current !== null) {
+      window.clearTimeout(portraitConsumePulseTimeoutRef.current);
+      portraitConsumePulseTimeoutRef.current = null;
+    }
+    setIsPortraitConsumePulseActive(false);
+    window.requestAnimationFrame(() => {
+      setIsPortraitConsumePulseActive(true);
+      portraitConsumePulseTimeoutRef.current = window.setTimeout(() => {
+        setIsPortraitConsumePulseActive(false);
+        portraitConsumePulseTimeoutRef.current = null;
+      }, 520);
+    });
+  }
+
+  function isValidPortraitConsumableDropPayload(payload: ReturnType<typeof readDragPayload>): payload is { source: "inventory"; itemId: string } {
+    if (!payload || payload.source !== "inventory") {
+      return false;
+    }
+
+    const item = getItemById(payload.itemId);
+    if (!item) {
+      return false;
+    }
+
+    return isConsumableInventoryItem(item) && item.profileSideSource !== "garden";
+  }
+
+  function handleCharacterPortraitDragOver(event: ReactDragEvent<HTMLElement>) {
+    const payload = readDragPayload(event);
+    if (!payload) {
+      return;
+    }
+
+    event.preventDefault();
+    const isValidDrop = isValidPortraitConsumableDropPayload(payload);
+    event.dataTransfer.dropEffect = isValidDrop ? "move" : "none";
+    setPortraitDropState(isValidDrop ? "valid" : "invalid");
+  }
+
+  function handleCharacterPortraitDragLeave(event: ReactDragEvent<HTMLElement>) {
+    const relatedTarget = event.relatedTarget as Node | null;
+    if (relatedTarget && event.currentTarget.contains(relatedTarget)) {
+      return;
+    }
+    setPortraitDropState(null);
+  }
+
+  async function handleCharacterPortraitDrop(event: ReactDragEvent<HTMLElement>) {
+    event.preventDefault();
+    const payload = readDragPayload(event);
+    if (!isValidPortraitConsumableDropPayload(payload)) {
+      clearInventoryDragAndDropState();
+      return;
+    }
+
+    await handleConsumeInventoryItem(payload.itemId);
+    clearInventoryDragAndDropState();
+  }
 
   function toggleInventoryPowerSort() {
     const nextDirection = powerSortDirection === "asc" ? "desc" : "asc";
@@ -5251,6 +5543,9 @@ export function AppShell() {
               profileName={profileName}
               activeCharacterVisualPath={activeCharacterVisualPath}
               activeCharacterVisualName={activeCharacterVisualName}
+              activeConsumables={activeConsumableEntries}
+              portraitDropState={portraitDropState}
+              isPortraitConsumePulseActive={isPortraitConsumePulseActive}
               canCycleCharacterVisuals={canCycleCharacterVisuals}
               equipmentLeftSlots={EQUIPMENT_LEFT_SLOTS}
               equipmentRightSlots={EQUIPMENT_RIGHT_SLOTS}
@@ -5295,6 +5590,9 @@ export function AppShell() {
                 setActiveBackgroundId(newBg.id);
                 if (token) void updatePortrait(token, { backgroundId: newBg.id }).catch(() => {});
               }}
+              onPortraitDragOver={handleCharacterPortraitDragOver}
+              onPortraitDragLeave={handleCharacterPortraitDragLeave}
+              onPortraitDrop={handleCharacterPortraitDrop}
               onStartStatTraining={startStatTraining}
               getTrainingCost={getTrainingCost}
               getStatContributionLines={getStatContributionLines}

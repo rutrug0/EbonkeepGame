@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { DragEventHandler, ReactElement } from "react";
 
 import type { EquipmentSlotId } from "@ebonkeep/shared/core";
 import type { PlayerState } from "@ebonkeep/shared/player";
@@ -30,6 +30,16 @@ type MainStatColumn = {
   iconPath: string;
 };
 
+type ActiveConsumableDisplayEntry = {
+  id: string;
+  itemCode: string;
+  itemName: string;
+  rarity: "common" | "uncommon" | "rare" | "epic";
+  iconAssetPath?: string;
+  effectLines: string[];
+  durationLabel: string;
+};
+
 export type InventoryManagementPanelProps = {
   embedded?: boolean;
   isLoadingState: boolean;
@@ -46,6 +56,9 @@ export type InventoryManagementPanelProps = {
   profileName: string;
   activeCharacterVisualPath: string | null;
   activeCharacterVisualName: string | null;
+  activeConsumables: ActiveConsumableDisplayEntry[];
+  portraitDropState: "valid" | "invalid" | null;
+  isPortraitConsumePulseActive: boolean;
   canCycleCharacterVisuals: boolean;
   equipmentLeftSlots: EquipmentSlotId[];
   equipmentRightSlots: EquipmentSlotId[];
@@ -61,6 +74,9 @@ export type InventoryManagementPanelProps = {
   activeBackgroundPath: string | null;
   onShowPreviousBackground: () => void;
   onShowNextBackground: () => void;
+  onPortraitDragOver: DragEventHandler<HTMLElement>;
+  onPortraitDragLeave: DragEventHandler<HTMLElement>;
+  onPortraitDrop: DragEventHandler<HTMLElement>;
   onStartStatTraining: (stat: TrainableStatKey) => void;
   getTrainingCost: (baseValue: number) => number;
   getStatContributionLines: (
@@ -159,7 +175,19 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
 
           <div className="equipmentCenterColumn">
             <div className="characterVisual">
-              <div className="characterVisualFrame">
+              <div
+                className={`characterVisualFrame${
+                  props.portraitDropState === "valid"
+                    ? " portraitDropValid"
+                    : props.portraitDropState === "invalid"
+                      ? " portraitDropInvalid"
+                      : ""
+                }${props.isPortraitConsumePulseActive ? " portraitConsumePulse" : ""}`}
+                data-testid="character-portrait-drop-target"
+                onDragOver={props.onPortraitDragOver}
+                onDragLeave={props.onPortraitDragLeave}
+                onDrop={props.onPortraitDrop}
+              >
                 {props.activeBackgroundPath ? (
                   <img
                     src={props.activeBackgroundPath}
@@ -215,7 +243,50 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
                     </button>
                   </>
                 ) : null}
-                <p className="characterVisualLabel">{props.profileName}</p>
+                <div className="characterActiveConsumablesStrip" aria-label="Active consumables">
+                  {props.activeConsumables.length > 0 ? (
+                    props.activeConsumables.map((activeConsumable) => (
+                      <div
+                        key={activeConsumable.id}
+                        className={`equipmentCell equipmentCellIconOnly hasItem activeConsumableCell rarity-${activeConsumable.rarity}`}
+                        aria-label={`${activeConsumable.itemName}: ${activeConsumable.durationLabel}`}
+                      >
+                        <div className="inventoryCardVisual equipmentSlotVisual">
+                          {activeConsumable.iconAssetPath ? (
+                            <img
+                              className="itemVisualImage itemVisualImageCard"
+                              src={activeConsumable.iconAssetPath}
+                              alt=""
+                              loading="lazy"
+                              draggable={false}
+                            />
+                          ) : (
+                            <span className="activeConsumableFallbackLabel" aria-hidden="true">
+                              CO
+                            </span>
+                          )}
+                        </div>
+                        <div className="equipmentItemTooltip tooltip-bottom" role="tooltip">
+                          <article className={`inventoryDetailCard inventoryHoverDetailCard equipmentTooltipCard rarity-${activeConsumable.rarity}`}>
+                            <div className="activeConsumableTooltipHeader">
+                              <h4>{activeConsumable.itemName}</h4>
+                              <p>{activeConsumable.durationLabel}</p>
+                            </div>
+                            <div className="activeConsumableTooltipEffects">
+                              {activeConsumable.effectLines.map((effectLine, effectIndex) => (
+                                <p key={`${activeConsumable.id}-${effectIndex}`} className="inventoryCardModifierLine">
+                                  {effectLine}
+                                </p>
+                              ))}
+                            </div>
+                          </article>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="characterActiveConsumablesEmpty">No active effects</span>
+                  )}
+                </div>
                 {props.renderEquipmentSlotCell("weapon", "equipmentWeaponCell equipmentWeaponOverlay", "top")}
                 <div className="vestigeRack vestigeRackOverlay">
                   {props.equipmentVestigeSlots.map((slotId) => props.renderEquipmentSlotCell(slotId, "vestigeCell", "top"))}

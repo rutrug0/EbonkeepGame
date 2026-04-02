@@ -1,5 +1,6 @@
 import type { InventoryMoveResponse } from "@ebonkeep/shared/inventory";
-import { inventoryMoveResponseSchema } from "@ebonkeep/shared/inventory";
+import type { InventoryConsumeResponse } from "@ebonkeep/shared/inventory";
+import { inventoryConsumeResponseSchema, inventoryMoveResponseSchema } from "@ebonkeep/shared/inventory";
 import type {
   DevGuestLoginResponse,
   PlayerCheatActionResponse,
@@ -103,6 +104,26 @@ export async function moveInventoryItem(
   }
 
   return inventoryMoveResponseSchema.parse(await response.json());
+}
+
+export async function consumeInventoryItem(
+  token: string,
+  itemId: string
+): Promise<InventoryConsumeResponse> {
+  const response = await fetch(`${API_URL}/v1/inventory/consume-item`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token)
+    },
+    body: JSON.stringify({ itemId })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Consume item failed"));
+  }
+
+  return inventoryConsumeResponseSchema.parse(await response.json());
 }
 
 export async function updatePortrait(

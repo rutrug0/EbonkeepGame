@@ -376,6 +376,7 @@ export function createExpectedPlayerState(args: {
       luck: statSnapshot.total.luck
     },
     statSnapshot,
+    activeConsumables: [],
     inventory: [],
     equipment: loadout.equipment,
     currency: {
@@ -389,6 +390,7 @@ export function createExpectedPlayerState(args: {
       fastContractReplenishEnabled: false,
       fastArenaReplenishEnabled: false,
       fastTrainTimeEnabled: false,
+      fastCraftTimeEnabled: false,
       unlimitedAcademyDonationsEnabled: false,
       unlimitedForgeConsumablesEnabled: false,
       unlimitedRefineryMaterialsEnabled: false

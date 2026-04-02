@@ -37,6 +37,7 @@ type CreateInventoryInteractionsArgs<SlotId extends string, Item extends Invento
   setDropInsertPosition: (value: InventoryInsertPosition) => void;
   setEquipmentDropTargetSlotId: (value: SlotId | null) => void;
   setEquipmentDropState: (value: EquipmentDropState) => void;
+  onClearDragState?: () => void;
   clearInventoryComparisonHover: () => void;
   getItemById: (itemId: string) => Item | null;
   getEquipValidationError: (item: Item, targetSlotId: SlotId) => string | null;
@@ -130,6 +131,7 @@ export function createInventoryInteractions<
     args.setDropTargetInventoryCardId(null);
     args.setEquipmentDropTargetSlotId(null);
     args.setEquipmentDropState(null);
+    args.onClearDragState?.();
     args.clearInventoryComparisonHover();
   }
 

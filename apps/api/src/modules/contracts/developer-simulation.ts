@@ -434,6 +434,7 @@ function createSyntheticPlayerState(args: {
       luck: statSnapshot.total.luck
     },
     statSnapshot,
+    activeConsumables: [],
     inventory: [],
     equipment: args.equipment,
     currency: {
@@ -447,6 +448,7 @@ function createSyntheticPlayerState(args: {
         fastArenaReplenishEnabled: false,
         invincibilityEnabled: false,
         fastTrainTimeEnabled: false,
+        fastCraftTimeEnabled: false,
         unlimitedAcademyDonationsEnabled: false,
         unlimitedForgeConsumablesEnabled: false,
         unlimitedRefineryMaterialsEnabled: false

@@ -7,9 +7,31 @@ import {
   statBlockSchema,
   supportedLocaleSchema
 } from "../../core/index.js";
+import {
+  consumableDurationKindSchema,
+  consumableEffectSchema,
+  consumableFamilySchema,
+  consumableTypeSchema
+} from "../consumables/index.js";
 import { equipmentStateSchema, inventoryItemSchema } from "../inventory/index.js";
 
 export const PASSIVE_HEALTH_REGEN_PERCENT_PER_MINUTE = 1;
+
+export const activeConsumableSchema = z.object({
+  id: z.string(),
+  itemCode: z.string().min(1),
+  type: consumableTypeSchema,
+  family: consumableFamilySchema,
+  effects: z.array(consumableEffectSchema),
+  appliedAt: z.string(),
+  expiresAt: z.string().nullable(),
+  remainingEncounters: z.number().int().min(0).nullable(),
+  originalDuration: z.object({
+    kind: consumableDurationKindSchema,
+    value: z.number().int().min(0)
+  })
+});
+export type ActiveConsumable = z.infer<typeof activeConsumableSchema>;
 
 export const playerCheatSettingsSchema = z.object({
   fastTravelEnabled: z.boolean().default(false),
@@ -48,6 +70,7 @@ export const playerStateSchema = z.object({
   }),
   stats: statBlockSchema,
   statSnapshot: playerStatSnapshotSchema,
+  activeConsumables: z.array(activeConsumableSchema).default([]),
   inventory: z.array(z.lazy(() => inventoryItemSchema)),
   equipment: z.lazy(() => equipmentStateSchema),
   currency: currencyBalanceSchema,

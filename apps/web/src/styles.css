@@ -4332,6 +4332,12 @@ button:focus-visible {
   transform: translate(-50%, 4px);
 }
 
+.equipmentItemTooltip.tooltip-bottom {
+  left: 50%;
+  top: calc(100% + var(--space-2));
+  transform: translate(-50%, -4px);
+}
+
 .equipmentCellIconOnly.hasItem:hover .equipmentItemTooltip,
 .equipmentCellIconOnly.hasItem:focus-within .equipmentItemTooltip {
   opacity: 1;
@@ -4349,6 +4355,11 @@ button:focus-visible {
 
 .equipmentCellIconOnly.hasItem:hover .equipmentItemTooltip.tooltip-top,
 .equipmentCellIconOnly.hasItem:focus-within .equipmentItemTooltip.tooltip-top {
+  transform: translate(-50%, 0);
+}
+
+.equipmentCellIconOnly.hasItem:hover .equipmentItemTooltip.tooltip-bottom,
+.equipmentCellIconOnly.hasItem:focus-within .equipmentItemTooltip.tooltip-bottom {
   transform: translate(-50%, 0);
 }
 
@@ -4394,6 +4405,41 @@ button:focus-visible {
   align-content: center;
   gap: 0;
   overflow: hidden;
+}
+
+.characterVisualFrame.portraitDropValid {
+  border-color: color-mix(in srgb, var(--accent-success) 72%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-success) 46%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--accent-success) 38%, transparent);
+}
+
+.characterVisualFrame.portraitDropInvalid {
+  border-color: color-mix(in srgb, var(--accent-danger) 76%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-danger) 52%, transparent),
+    0 0 0 2px color-mix(in srgb, var(--accent-danger) 36%, transparent);
+}
+
+.characterVisualFrame.portraitConsumePulse::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in srgb, var(--accent-success) 72%, transparent);
+  pointer-events: none;
+  animation: characterPortraitConsumePulse 520ms ease-out;
+}
+
+@keyframes characterPortraitConsumePulse {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+  }
 }
 
 .characterVisualBackground {
@@ -4502,20 +4548,87 @@ button:focus-visible {
   right: var(--space-2);
 }
 
-.characterVisualLabel {
+.characterActiveConsumablesStrip {
   position: absolute;
-  left: 50%;
+  left: var(--space-2);
+  right: var(--space-2);
   top: var(--space-2);
-  transform: translateX(-50%);
-  font-size: 1rem;
-  font-weight: 500;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.characterActiveConsumablesEmpty {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--text-soft) 70%, transparent);
+  letter-spacing: 0.03em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-solid) 72%, transparent);
+}
+
+.activeConsumableCell {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 10px;
+  cursor: default;
+  box-shadow:
+    inset 0 1px 0 rgba(236, 220, 190, 0.08),
+    0 5px 12px rgba(5, 8, 12, 0.32);
+}
+
+.activeConsumableCell .inventoryCardVisual {
+  border-radius: 8px;
+}
+
+.activeConsumableCell .equipmentItemTooltip {
+  z-index: 200;
+}
+
+.activeConsumableCell .itemVisualImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.activeConsumableFallbackLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+}
+
+.activeConsumableTooltipHeader {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.activeConsumableTooltipHeader h4 {
+  margin: 0;
+  font-size: 0.96rem;
+  line-height: 1.2;
+}
+
+.activeConsumableTooltipHeader p {
+  margin: 0;
+  font-size: 0.78rem;
   line-height: 1.3;
   color: var(--text-soft);
-  letter-spacing: 0.03em;
-  z-index: 4;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel-solid) 74%, transparent);
+}
+
+.activeConsumableTooltipEffects {
+  display: grid;
+  gap: 4px;
+}
+
+.activeConsumableTooltipEffects .inventoryCardModifierLine {
+  margin: 0;
 }
 
 .equipmentSlot {
