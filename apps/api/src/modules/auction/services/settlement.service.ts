@@ -1,5 +1,8 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { createSystemRewardMessage } from "../../messages/service.js";
 import { AuctionConfigService } from "./config.service.js";
+import { buildAuctionWonMailboxMessage } from "./mailbox-message.service.js";
+import { buildMailboxRewardItemFromAuctionPayload } from "./item-payload.service.js";
 
 export class AuctionSettlementService {
   private config = AuctionConfigService.getInstance().getConfig();
@@ -8,9 +11,9 @@ export class AuctionSettlementService {
 
   /**
    * Settle all completed auctions
-   * - Award items to winners
+   * - Award items to winners through mailbox rewards
    * - Pay sellers (minus auction house fee)
-   * - Create pending rewards
+   * - Keep legacy pending rewards only for unsold seller returns
    */
   async settleAuctions(): Promise<{
     settledCount: number;
@@ -58,13 +61,12 @@ export class AuctionSettlementService {
             if (winningBid) {
               const reservedAmount = this.getReservedAmount(winningBid);
               const refundAmount = Math.max(0, reservedAmount - item.currentBid);
-
-              if (refundAmount > 0) {
-                await tx.currencyBalance.update({
-                  where: { playerId: item.currentWinnerId },
-                  data: { ducats: { increment: refundAmount } }
-                });
-              }
+              const mailboxMessage = buildAuctionWonMailboxMessage({
+                storedItemCode: item.itemCode,
+                levelBracketMin: item.auctionInstance.levelBracketMin,
+                levelBracketMax: item.auctionInstance.levelBracketMax,
+                refundedDucats: refundAmount
+              });
 
               await tx.auctionBid.update({
                 where: { id: winningBid.id },
@@ -73,20 +75,22 @@ export class AuctionSettlementService {
                   status: "won"
                 }
               });
-            }
 
-            await tx.auctionPendingReward.create({
-              data: {
-                playerId: item.currentWinnerId,
-                itemId: item.id,
-                itemCode: item.itemCode,
-                auctionId: item.auctionInstanceId,
-                winningBid: item.currentBid,
-                expiresAt: new Date(
-                  Date.now() + this.config.rewards.pendingRewardExpiryDays * 24 * 60 * 60 * 1000
-                )
-              }
-            });
+              await createSystemRewardMessage(tx, {
+                recipients: [item.currentWinnerId],
+                subject: mailboxMessage.subject,
+                body: mailboxMessage.body,
+                sourceType: "auction",
+                sourceRefId: `auction-win:${item.id}`,
+                rewards: {
+                  experience: 0,
+                  ducats: refundAmount,
+                  imperials: 0,
+                  renown: 0,
+                  items: [buildMailboxRewardItemFromAuctionPayload(item.itemCode)]
+                }
+              });
+            }
 
             if (item.isPlayerSubmitted && item.sellerId) {
               const { fee, sellerProceeds } = this.calculateSellerProceeds(

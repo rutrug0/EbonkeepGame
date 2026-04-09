@@ -657,7 +657,9 @@ export function CombatEncounterTurnTrackPanel({
   type RenderedTurnChip = ProjectedTurnChip & {
     state: "steady" | "entering" | "exiting";
   };
-  const TURN_TRACK_VISIBLE_COUNT = 14;
+    const TURN_TRACK_FALLBACK_VISIBLE_COUNT = 14;
+    const turnTrackRowRef = useRef<HTMLDivElement | null>(null);
+    const [visibleTurnCount, setVisibleTurnCount] = useState(TURN_TRACK_FALLBACK_VISIBLE_COUNT);
   const allies = getEncounterAllies(encounter);
   const actorById = new Map<string, CombatPlaybackActor>([
     ...allies.map((ally) => [ally.id, ally] as const),
@@ -694,7 +696,7 @@ export function CombatEncounterTurnTrackPanel({
   const projectedStartIndex = currentActionIndex >= 0 ? currentActionIndex : resolvedActionCount;
   const projectedActions: ProjectedTurnChip[] =
     projectedSourceEvents.length > 0
-      ? Array.from({ length: TURN_TRACK_VISIBLE_COUNT }, (_, offset) => {
+        ? Array.from({ length: visibleTurnCount }, (_, offset) => {
           const wrappedIndex = (projectedStartIndex + offset) % projectedSourceEvents.length;
           const actor = actorById.get(projectedSourceEvents[wrappedIndex].actorId);
           if (!actor) {
@@ -714,10 +716,40 @@ export function CombatEncounterTurnTrackPanel({
   const [isAnimatingShift, setIsAnimatingShift] = useState(false);
   const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (shiftTimeoutRef.current !== null) {
-        clearTimeout(shiftTimeoutRef.current);
+    useEffect(() => {
+      const trackRow = turnTrackRowRef.current;
+      if (!trackRow || typeof ResizeObserver === "undefined") {
+        return;
+      }
+
+      const updateVisibleTurnCount = () => {
+        const computedStyle = window.getComputedStyle(trackRow);
+        const chipSize = Number.parseFloat(computedStyle.getPropertyValue("--combat-turn-chip-size")) || 54;
+        const chipGap = Number.parseFloat(computedStyle.getPropertyValue("--combat-turn-chip-gap")) || 4;
+        const availableWidth = trackRow.clientWidth;
+        const nextVisibleCount = Math.max(1, Math.floor((availableWidth + chipGap) / (chipSize + chipGap)));
+
+        setVisibleTurnCount((currentCount) =>
+          currentCount === nextVisibleCount ? currentCount : nextVisibleCount
+        );
+      };
+
+      updateVisibleTurnCount();
+
+      const resizeObserver = new ResizeObserver(() => {
+        updateVisibleTurnCount();
+      });
+      resizeObserver.observe(trackRow);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }, []);
+
+    useEffect(() => {
+      return () => {
+        if (shiftTimeoutRef.current !== null) {
+          clearTimeout(shiftTimeoutRef.current);
       }
     };
   }, []);
@@ -767,7 +799,7 @@ export function CombatEncounterTurnTrackPanel({
     <section className="contentShell combatTurnTrackShell">
       <section className="contentStack">
         <article className="contentCard combatTurnTrackCard">
-          <div className="combatTurnTrackRow">
+            <div className="combatTurnTrackRow" ref={turnTrackRowRef}>
             <div className={`combatTurnTrackTrack${isAnimatingShift ? " isShifting" : ""}`}>
               {visibleChips.map((chip, index) => {
               return (

@@ -154,6 +154,7 @@ import { RefineryPanel } from "../features/refinery";
 import { JobsPanel, fetchJobsState, getStoredJobsLockReleaseAtMs } from "../features/jobs";
 import { GuildPanel } from "../features/guild";
 import { Leaderboard } from "../features/leaderboard";
+import { MessagesPanel, fetchMailboxUnreadCount } from "../features/messages";
 import {
   DEFAULT_RENOWN_NODE_ID,
   EncyclopediaPanel,
@@ -204,6 +205,15 @@ type InventoryStatFlashKey = TrainableStatKey | "gearScore";
 type InventoryStatFlashDirection = "positive" | "negative";
 type InventoryStatFlash = {
   direction: InventoryStatFlashDirection;
+};
+type CurrencyTotals = {
+  ducats: number;
+  imperials: number;
+};
+type CurrencyGainAnimationState = {
+  displayed: CurrencyTotals | null;
+  target: CurrencyTotals | null;
+  activeKinds: Array<keyof CurrencyTotals>;
 };
 type InventoryCategoryFilter = "weapon" | "armor" | "jewelry";
 type LedgerZoneGroup = {
@@ -439,6 +449,8 @@ function getPanelRouteBackgroundNames(route: PanelRoute): ViewBackgroundName[] {
   switch (route.landingTab) {
     case "inventory":
       return route.characterHubTab === "character" ? ["character"] : [];
+    case "messages":
+      return [];
     case "contracts":
       return ["contracts"];
     case "merchant":
@@ -466,6 +478,7 @@ function getPanelRouteBackgroundNames(route: PanelRoute): ViewBackgroundName[] {
 
 function requiresServerSettledResponse(route: PanelRoute): boolean {
   return route.landingTab === "jobs"
+    || route.landingTab === "messages"
     || route.landingTab === "garden"
     || route.landingTab === "refinery"
     || route.landingTab === "forge"
@@ -2215,6 +2228,12 @@ export function AppShell() {
   const [hoveredCombatActorId, setHoveredCombatActorId] = useState<string | null>(null);
   const [baseStats, setBaseStats] = useState<Record<TrainableStatKey, number> | null>(null);
   const [currencies, setCurrencies] = useState<{ ducats: number; imperials: number } | null>(null);
+  const [playerCardCurrencyGain, setPlayerCardCurrencyGain] = useState<CurrencyGainAnimationState>({
+    displayed: null,
+    target: null,
+    activeKinds: []
+  });
+  const [mailboxUnreadCount, setMailboxUnreadCount] = useState(0);
   const [activeStatTraining, setActiveStatTraining] = useState<{
     stat: TrainableStatKey;
     startedAt: number;
@@ -2230,12 +2249,69 @@ export function AppShell() {
   const visibleActiveTab = presentedPanelRoute.landingTab;
   const visibleCharacterHubTab = presentedPanelRoute.characterHubTab;
   const isPanelTransitionActive = panelTransitionPhase !== "idle";
+  const playerCardCurrencyGainFrameRef = useRef<number | null>(null);
 
   function clearPanelTransitionTimers() {
     for (const timeoutId of panelTransitionTimeoutIdsRef.current) {
       window.clearTimeout(timeoutId);
     }
     panelTransitionTimeoutIdsRef.current = [];
+  }
+
+  function stopPlayerCardCurrencyGainAnimation() {
+    if (playerCardCurrencyGainFrameRef.current !== null) {
+      window.cancelAnimationFrame(playerCardCurrencyGainFrameRef.current);
+      playerCardCurrencyGainFrameRef.current = null;
+    }
+  }
+
+  function startPlayerCardCurrencyGainAnimation(gain: CurrencyTotals, from: CurrencyTotals) {
+    const normalizedGain = {
+      ducats: Math.max(0, Math.trunc(gain.ducats)),
+      imperials: Math.max(0, Math.trunc(gain.imperials))
+    };
+    const activeKinds = (["ducats", "imperials"] as const).filter((kind) => normalizedGain[kind] > 0);
+
+    if (activeKinds.length === 0) {
+      return;
+    }
+
+    stopPlayerCardCurrencyGainAnimation();
+
+    const target = {
+      ducats: from.ducats + normalizedGain.ducats,
+      imperials: from.imperials + normalizedGain.imperials
+    };
+    const startedAtMs = performance.now();
+
+    setPlayerCardCurrencyGain({
+      displayed: from,
+      target,
+      activeKinds: [...activeKinds]
+    });
+
+    const tick = (nowMs: number) => {
+      const progress = Math.min(1, (nowMs - startedAtMs) / 2000);
+      const displayed = {
+        ducats: Math.round(from.ducats + (target.ducats - from.ducats) * progress),
+        imperials: Math.round(from.imperials + (target.imperials - from.imperials) * progress)
+      };
+
+      setPlayerCardCurrencyGain({
+        displayed,
+        target,
+        activeKinds: progress < 1 ? [...activeKinds] : []
+      });
+
+      if (progress < 1) {
+        playerCardCurrencyGainFrameRef.current = window.requestAnimationFrame(tick);
+        return;
+      }
+
+      playerCardCurrencyGainFrameRef.current = null;
+    };
+
+    playerCardCurrencyGainFrameRef.current = window.requestAnimationFrame(tick);
   }
 
   useEffect(() => () => {
@@ -2345,6 +2421,8 @@ export function AppShell() {
           && hasLoadedContractsBoard;
       case "jobs":
         return Boolean(featureFirstPaintReadyByTab.jobs);
+      case "messages":
+        return Boolean(featureFirstPaintReadyByTab.messages);
       case "merchant":
         return !isMerchantLoading && Boolean(playerState) && Boolean(merchantState);
       case "garden":
@@ -2366,6 +2444,7 @@ export function AppShell() {
   function resetPanelFirstPaintReadiness(nextTab: LandingTab) {
     if (
       nextTab === "jobs"
+      || nextTab === "messages"
       || nextTab === "garden"
       || nextTab === "refinery"
       || nextTab === "forge"
@@ -2789,6 +2868,29 @@ export function AppShell() {
     );
   }
 
+  async function refreshAuthoritativePlayerState() {
+    if (!token) {
+      return;
+    }
+
+    const nextState = await fetchPlayerState(token);
+    applyAuthoritativePlayerState(nextState);
+  }
+
+  async function refreshMailboxUnreadCount(nextToken = token) {
+    if (!nextToken) {
+      setMailboxUnreadCount(0);
+      return;
+    }
+
+    try {
+      const response = await fetchMailboxUnreadCount(nextToken);
+      setMailboxUnreadCount(response.unreadCount);
+    } catch {
+      setMailboxUnreadCount(0);
+    }
+  }
+
   function applyMerchantTransaction(response: MerchantTransactionResponse) {
     applyAuthoritativePlayerState(response.playerState);
     setMerchantState(toLocalMerchantState(response.merchantState));
@@ -3016,10 +3118,35 @@ export function AppShell() {
       }
     };
   }, [playerState]);
-  const playerCardCurrencies = currencies ?? {
+  const basePlayerCardCurrencies = currencies ?? {
     ducats: Math.max(playerState?.currency.ducats ?? 0, TEST_MIN_DUCATS),
     imperials: playerState?.currency.imperials ?? 0
   };
+  const playerCardCurrencies = playerCardCurrencyGain.displayed ?? basePlayerCardCurrencies;
+  const isDucatsGainAnimating = playerCardCurrencyGain.activeKinds.includes("ducats");
+  const isImperialsGainAnimating = playerCardCurrencyGain.activeKinds.includes("imperials");
+
+  useEffect(() => {
+    if (
+      playerCardCurrencyGain.target === null
+      || playerCardCurrencyGain.activeKinds.length > 0
+      || basePlayerCardCurrencies.ducats !== playerCardCurrencyGain.target.ducats
+      || basePlayerCardCurrencies.imperials !== playerCardCurrencyGain.target.imperials
+    ) {
+      return;
+    }
+
+    setPlayerCardCurrencyGain({
+      displayed: null,
+      target: null,
+      activeKinds: []
+    });
+  }, [
+    basePlayerCardCurrencies.ducats,
+    basePlayerCardCurrencies.imperials,
+    playerCardCurrencyGain.activeKinds.length,
+    playerCardCurrencyGain.target
+  ]);
 
   const equipmentStatBonuses = useMemo(() => {
     const totals: Record<TrainableStatKey, number> = {
@@ -3605,6 +3732,22 @@ export function AppShell() {
   }, [token]);
 
   useEffect(() => {
+    if (!token) {
+      setMailboxUnreadCount(0);
+      return;
+    }
+
+    void refreshMailboxUnreadCount(token);
+    const intervalId = window.setInterval(() => {
+      void refreshMailboxUnreadCount(token);
+    }, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [token, playerState?.playerId]);
+
+  useEffect(() => {
     let active = true;
 
     if (!token) {
@@ -3727,6 +3870,12 @@ export function AppShell() {
 
   useEffect(() => {
     if (!playerState) {
+      stopPlayerCardCurrencyGainAnimation();
+      setPlayerCardCurrencyGain({
+        displayed: null,
+        target: null,
+        activeKinds: []
+      });
       setBaseStats(null);
       setCurrencies(null);
       setActiveStatTraining(null);
@@ -3803,6 +3952,10 @@ export function AppShell() {
     });
   }, [playerState?.currency.ducats, playerState?.currency.imperials]);
 
+  useEffect(() => () => {
+    stopPlayerCardCurrencyGainAnimation();
+  }, []);
+
   useEffect(() => {
     let active = true;
 
@@ -3870,6 +4023,10 @@ export function AppShell() {
           return;
         }
 
+        if (result.rewardMessageId) {
+          void refreshMailboxUnreadCount(token);
+        }
+
         setPendingContractResultPlayerState(result.playerState ?? null);
 
         setActiveContractRunId(null);
@@ -3919,6 +4076,10 @@ export function AppShell() {
         const result = await claimContractRun(token, activeContractRunId);
         if (!active) {
           return;
+        }
+
+        if (result.rewardMessageId) {
+          void refreshMailboxUnreadCount(token);
         }
 
         setPendingContractResultPlayerState(result.playerState ?? null);
@@ -6470,6 +6631,14 @@ export function AppShell() {
     );
   }
 
+  async function handleMailboxRewardsClaimed(rewards: CurrencyTotals) {
+    if (rewards.ducats > 0 || rewards.imperials > 0) {
+      startPlayerCardCurrencyGainAnimation(rewards, playerCardCurrencies);
+    }
+
+    await refreshAuthoritativePlayerState();
+  }
+
   function renderActivePanel(route = requestedPanelRoute, options?: { preload?: boolean }) {
     const guildPanelProps = {
       token,
@@ -6486,6 +6655,17 @@ export function AppShell() {
     switch (route.landingTab) {
       case "inventory":
         return renderCharacterHubActivePanel(route.characterHubTab, options);
+      case "messages":
+        return (
+          <MessagesPanel
+            token={token}
+            playerState={playerState}
+            playerAvatarPath={activeCharacterVisualPath}
+            onUnreadCountChange={setMailboxUnreadCount}
+            onRewardsClaimed={handleMailboxRewardsClaimed}
+            onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("messages", ready)}
+          />
+        );
       case "encyclopedia":
         return renderEncyclopediaPanel();
       case "contracts":
@@ -6525,6 +6705,9 @@ export function AppShell() {
             playerLevel={playerState?.level ?? null}
             developerToolsEnabled={Boolean(accountInfo?.developerToolsEnabled)}
             onGrantDucats={handleJobsDucatsGain}
+            onMailboxRewardCreated={() => {
+              void refreshMailboxUnreadCount(token);
+            }}
             onLockReleaseAtChange={setJobsLockReleaseAtMs}
             onFirstPaintReadyChange={(ready) => setFeatureFirstPaintReady("jobs", ready)}
           />
@@ -7144,7 +7327,9 @@ export function AppShell() {
                     title={i18n.t("currencies.ducats")}
                     className="playerCardCurrencyPair"
                   >
-                    <strong className="playerCardCurrencyValue ducats">{playerCardCurrencies.ducats.toLocaleString()}</strong>
+                    <strong className={`playerCardCurrencyValue ducats${isDucatsGainAnimating ? " isGainAnimating" : ""}`}>
+                      {playerCardCurrencies.ducats.toLocaleString()}
+                    </strong>
                     <span className="currencyIcon ducatIcon ducatCurrencyIcon playerCardCurrencyIcon" aria-hidden="true">
                       <img className="currencyIconImage" src={DUCATS_ICON_PATH} alt="" />
                     </span>
@@ -7154,10 +7339,33 @@ export function AppShell() {
                     title={i18n.t("currencies.imperials")}
                     className="playerCardCurrencyPair"
                   >
-                    <strong className="playerCardCurrencyValue imperials">{playerCardCurrencies.imperials.toLocaleString()}</strong>
+                    <strong className={`playerCardCurrencyValue imperials${isImperialsGainAnimating ? " isGainAnimating" : ""}`}>
+                      {playerCardCurrencies.imperials.toLocaleString()}
+                    </strong>
                     <span className="currencyIcon imperialIcon imperialCurrencyIcon playerCardCurrencyIcon" aria-hidden="true">
                       <img className="currencyIconImage" src={IMPERIALS_ICON_PATH} alt="" />
                     </span>
+                  </HoverTooltip>
+                  <HoverTooltip
+                    tooltipId="menu-messages-tooltip"
+                    title={i18n.t("menu.messages")}
+                    className="playerCardCurrencyPair"
+                  >
+                    <button
+                      type="button"
+                      className={`playerCardMailboxButton${activeTab === "messages" ? " active" : ""}`}
+                      onClick={() => selectLandingTab("messages")}
+                      aria-label={i18n.t("menu.messages")}
+                    >
+                      <span className="playerCardMailboxIcon" aria-hidden="true">
+                        {renderMenuIcon("messages")}
+                      </span>
+                      {mailboxUnreadCount > 0 ? (
+                        <span className="playerCardMailboxBadge">
+                          {mailboxUnreadCount > 99 ? "99+" : mailboxUnreadCount}
+                        </span>
+                      ) : null}
+                    </button>
                   </HoverTooltip>
                 </div>
               </section>

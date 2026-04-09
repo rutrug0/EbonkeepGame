@@ -6,7 +6,6 @@ import {
   HOUR_MS,
   JOB_BOARD_REFRESH_MS,
   JOB_TEMPLATES_BY_ID,
-  addRewardBundles,
   buildJobBoardState,
   buildRunReleaseAtMs,
   getCompletedHours,
@@ -21,6 +20,9 @@ import {
   type JobsStateResponse,
   type RewardBundle
 } from "@ebonkeep/shared/jobs";
+import { type MailboxRewardAttachment } from "@ebonkeep/shared/messages";
+
+import { buildMailboxJobResourceItem, createSystemRewardMessage } from "../messages/service.js";
 
 export type JobsDbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -277,6 +279,24 @@ function assertBoardHasJob(state: PersistedJobsState, now: Date, jobId: string) 
   }
 }
 
+function buildJobsRewardAttachment(rewards: RewardBundle): MailboxRewardAttachment {
+  const items = [
+    rewards.ironOre > 0 ? buildMailboxJobResourceItem({ resource: "ironOre", quantity: rewards.ironOre }) : null,
+    rewards.charcoal > 0 ? buildMailboxJobResourceItem({ resource: "charcoal", quantity: rewards.charcoal }) : null,
+    rewards.supplyCrates > 0 ? buildMailboxJobResourceItem({ resource: "supplyCrates", quantity: rewards.supplyCrates }) : null,
+    rewards.seedBundles > 0 ? buildMailboxJobResourceItem({ resource: "seedBundles", quantity: rewards.seedBundles }) : null,
+    rewards.herbs > 0 ? buildMailboxJobResourceItem({ resource: "herbs", quantity: rewards.herbs }) : null
+  ].filter((item): item is NonNullable<typeof item> => item !== null);
+
+  return {
+    experience: 0,
+    ducats: rewards.ducats,
+    imperials: 0,
+    renown: 0,
+    items
+  };
+}
+
 export async function assertJobsActivityIdle(prisma: JobsDbClient, playerId: string, now = new Date()): Promise<void> {
   const state = await loadPersistedState(prisma, playerId, now);
   if (!state.activeRun) {
@@ -434,14 +454,18 @@ export async function claimJobsRun(
       nowMs: now.getTime(),
       claimType
     });
-
-    await tx.currencyBalance.upsert({
-      where: { playerId },
-      update: { ducats: { increment: rewards.ducats } },
-      create: { playerId, ducats: rewards.ducats, imperials: 0, renown: 0 }
+    const rewardMessageId = await createSystemRewardMessage(tx, {
+      recipients: [playerId],
+      subject: claimType === "completed" ? `${state.activeRun.jobName} completed` : `${state.activeRun.jobName} interrupted`,
+      body:
+        claimType === "completed"
+          ? `Your ${state.activeRun.jobName} shift has concluded. Claim the attached delivery from your messages.`
+          : `Your ${state.activeRun.jobName} shift was interrupted. A partial reward package has been attached to this message.`,
+      sourceType: "jobs",
+      sourceRefId: state.activeRun.runId,
+      rewards: buildJobsRewardAttachment(rewards)
     });
 
-    state.stash = addRewardBundles(state.stash, rewards);
     state.history = [
       {
         runId: state.activeRun.runId,
@@ -460,7 +484,8 @@ export async function claimJobsRun(
 
     return jobsMutationResponseSchema.parse({
       jobs: buildJobsStateResponse(now, state),
-      ducatsGranted: rewards.ducats
+      ducatsGranted: 0,
+      rewardMessageId
     });
   });
 }

@@ -221,7 +221,8 @@ export type AdvanceJobsDebugBody = z.infer<typeof advanceJobsDebugBodySchema>;
 
 export const jobsMutationResponseSchema = z.object({
   jobs: jobsStateResponseSchema,
-  ducatsGranted: z.number().int().min(0).default(0)
+  ducatsGranted: z.number().int().min(0).default(0),
+  rewardMessageId: z.string().nullable().optional()
 });
 export type JobsMutationResponse = z.infer<typeof jobsMutationResponseSchema>;
 

@@ -1,4 +1,6 @@
-import { inventoryItemSchema, type InventoryItem } from "@ebonkeep/shared";
+import { randomUUID } from "node:crypto";
+
+import { inventoryItemSchema, type InventoryItem } from "@ebonkeep/shared/inventory";
 
 type LegacyAuctionItemData = {
   itemCode?: string;
@@ -183,4 +185,37 @@ export function buildInventoryItemRecordFromAuctionPayload(args: {
     itemCode: args.storedItemCode,
     quantity: 1
   };
+}
+
+export function buildMailboxRewardItemFromAuctionPayload(storedItemCode: string): InventoryItem {
+  const parsedItem = parseAuctionStoredItem(storedItemCode);
+
+  if (parsedItem.inventoryItem) {
+    return inventoryItemSchema.parse({
+      ...parsedItem.inventoryItem,
+      id: `itm_${randomUUID().replaceAll("-", "")}`,
+      quantity: 1
+    });
+  }
+
+  return inventoryItemSchema.parse({
+    id: `itm_${randomUUID().replaceAll("-", "")}`,
+    itemCode: parsedItem.viewData.itemCode,
+    itemName: parsedItem.viewData.itemName,
+    rarity: parsedItem.viewData.rarity,
+    category: parsedItem.viewData.category,
+    equipable: parsedItem.viewData.equipable,
+    allowedSlotIds: parsedItem.viewData.allowedSlotIds ?? [],
+    levelRequirement: Math.max(1, parsedItem.viewData.levelRequirement),
+    baseLevel: parsedItem.viewData.baseLevel ?? Math.max(1, parsedItem.viewData.levelRequirement),
+    power: Math.max(0, parsedItem.viewData.power),
+    quantity: 1,
+    archetype: parsedItem.viewData.archetype ?? { majorCategory: "consumable" },
+    statBonuses: parsedItem.viewData.statBonuses,
+    damageRoll: parsedItem.viewData.damageRoll,
+    prefix: parsedItem.viewData.prefix,
+    affix: parsedItem.viewData.affix,
+    description: parsedItem.viewData.description,
+    iconAssetPath: parsedItem.viewData.iconAssetPath
+  });
 }

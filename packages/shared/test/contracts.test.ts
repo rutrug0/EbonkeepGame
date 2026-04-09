@@ -15,6 +15,12 @@ import {
   validateVestigeLoadout
 } from "../src/index.js";
 import { leaderboardTypeSchema } from "../src/domains/leaderboard/index.js";
+import {
+  mailboxInboxResponseSchema,
+  mailboxMessageMutationResponseSchema,
+  mailboxReplayResponseSchema,
+  sendDirectMailboxMessageBodySchema
+} from "../src/domains/messages/index.js";
 import { supportedLocaleSchema } from "../src/core/index.js";
 
 describe("shared contracts", () => {
@@ -317,5 +323,126 @@ describe("shared contracts", () => {
         ]
       }).inventory[0].kind
     ).toBe("seed");
+  });
+
+  it("parses mailbox inbox entries and replay payloads", () => {
+    expect(sendDirectMailboxMessageBodySchema.parse({
+      recipient: "warden",
+      subject: "Supplies delivered",
+      body: "Report to the quartermaster."
+    }).recipient).toBe("warden");
+
+    expect(mailboxInboxResponseSchema.parse({
+      entries: [
+        {
+          messageId: "msg_1",
+          kind: "system_reward",
+          sourceType: "auction",
+          subject: "Contract complete",
+          previewText: "Rewards are ready to claim.",
+          senderName: null,
+          createdAt: new Date().toISOString(),
+          isRead: false,
+          hasRewards: true,
+          rewardsClaimed: false,
+          hasReplay: true
+        }
+      ],
+      unreadCount: 1,
+      capabilities: {
+        canSendDirect: true,
+        canSendGuild: false,
+        guildId: null,
+        guildName: null
+      }
+    }).entries[0]?.sourceType).toBe("auction");
+
+    expect(mailboxReplayResponseSchema.parse({
+      kind: "combat",
+      encounter: {
+        encounterId: "enc_1",
+        contractInstanceId: "contract_1",
+        contractName: "Ashfen Sweep",
+        contractLevel: 12,
+        levelBand: "on_level",
+        familyId: "ashfen_hounds_01",
+        locationName: "Ashfen",
+        player: {
+          id: "player_1",
+          side: "player",
+          name: "Warden",
+          maxHp: 120,
+          power: 90,
+          combatStat: "strength",
+          avatarPath: "/portrait.png",
+          usesSilhouetteFallback: false
+        },
+        enemies: [
+          {
+            id: "enemy_1",
+            side: "enemy",
+            name: "Ash Hound",
+            maxHp: 80,
+            power: 65,
+            combatStat: "strength",
+            avatarPath: "/enemy.png",
+            usesSilhouetteFallback: false
+          }
+        ]
+      },
+      timeline: [
+        {
+          type: "CombatPlaybackStarted",
+          eventId: "evt_start",
+          encounterId: "enc_1"
+        },
+        {
+          type: "CombatPlaybackEnded",
+          eventId: "evt_end",
+          encounterId: "enc_1",
+          winnerSide: "player",
+          summaryLine: "Ash Hound was defeated."
+        }
+      ]
+    }).kind).toBe("combat");
+
+    expect(mailboxInboxResponseSchema.parse({
+      entries: [],
+      unreadCount: 0,
+      capabilities: {
+        canSendDirect: true,
+        canSendGuild: false,
+        guildId: null,
+        guildName: null
+      }
+    }).entries).toHaveLength(0);
+  });
+
+  it("parses mailbox mutation responses for updates and deletions", () => {
+    expect(mailboxMessageMutationResponseSchema.parse({
+      message: {
+        messageId: "msg_1",
+        kind: "direct",
+        sourceType: "player",
+        subject: "Quartermaster notice",
+        body: "Supplies are waiting.",
+        senderName: "Sender",
+        senderPlayerId: "player_sender",
+        guildId: null,
+        createdAt: new Date().toISOString(),
+        readAt: null,
+        claimedAt: null,
+        rewards: null,
+        hasReplay: false
+      },
+      deletedMessageId: null,
+      unreadCount: 1
+    }).message?.subject).toBe("Quartermaster notice");
+
+    expect(mailboxMessageMutationResponseSchema.parse({
+      message: null,
+      deletedMessageId: "msg_1",
+      unreadCount: 0
+    }).deletedMessageId).toBe("msg_1");
   });
 });

@@ -31,11 +31,15 @@ import {
   getEffectiveContractSlotCount,
   type AcademyEffectTotals
 } from "../academy/effects.js";
-import { grantCraftingStackableItem } from "../crafting/service.js";
 import { getPlayerCombinedGuildEffectTotals } from "../guild/raid-effects.js";
 import { rollMaterialDrops } from "../combat/material-drops.js";
 import { rollInventoryItem } from "../inventory/item-service.js";
 import { assertJobsActivityIdle } from "../jobs/service.js";
+import { buildContractMailboxReplay } from "../messages/replay-builders.js";
+import {
+  buildMailboxCraftingMaterialItem,
+  createSystemRewardMessage
+} from "../messages/service.js";
 import {
   aggregateActiveConsumableEffects,
   applyActiveConsumableContractModifiers,
@@ -45,7 +49,7 @@ import {
   getPlayerActiveConsumables,
   type ActiveConsumableEffectTotals
 } from "../player/active-consumables-service.js";
-import { grantPlayerExperience, resolveHealthState, spendPlayerStamina } from "../player/progression-service.js";
+import { resolveHealthState, spendPlayerStamina } from "../player/progression-service.js";
 import { loadPlayerState } from "../player/state-service.js";
 import {
   CONTRACT_AVAILABILITY_WINDOW,
@@ -62,6 +66,7 @@ import {
   type EncounterDefinition
 } from "./data.js";
 import { simulateEncounter, type StoredRewardSpec } from "./simulator.js";
+import type { MailboxRewardAttachment } from "@ebonkeep/shared/messages";
 
 const FAST_TRAVEL_CHEAT_DURATION_MS = 2_000;
 const FAST_CONTRACT_REPLENISH_CHEAT_DURATION_MS = 3_000;
@@ -465,6 +470,24 @@ function resolvePlayerCurrentHpFromEvents(run: {
   return Math.max(0, Math.min(player.maxHp, currentHp));
 }
 
+function buildContractRewardAttachment(args: {
+  experience: number;
+  ducats: number;
+  rewardItem: ReturnType<typeof rollInventoryItem> | null;
+  materialDrops: Array<{ itemCode: string; quantity: number }>;
+}): MailboxRewardAttachment {
+  return {
+    experience: args.experience,
+    ducats: args.ducats,
+    imperials: 0,
+    renown: 0,
+    items: [
+      ...(args.rewardItem ? [args.rewardItem] : []),
+      ...args.materialDrops.map((drop) => buildMailboxCraftingMaterialItem(drop.itemCode, drop.quantity))
+    ]
+  };
+}
+
 function coerceEncounterForRun(
   slot: BoardSlotRecord,
   playerLevel: number,
@@ -746,6 +769,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
   let events = combatEventSchema.array().parse([]);
   let winnerSide: "player" | "enemy" = "enemy";
   let snapshot: ContractRunSnapshot | null = null;
+  let rewardMessageId: string | null = null;
   let rewardOutcome: {
     experience: number;
     ducats: number;
@@ -780,49 +804,18 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       playerSnapshot: run.playerSnapshot,
       events: run.events
     });
+    const runSnapshot = await loadRunSnapshotFromRecord(run);
+    snapshot = runSnapshot;
+
     if (winnerSide === "player" && !run.rewardsGranted) {
-      await grantPlayerExperience(tx, playerId, rewards.experience);
-      await tx.currencyBalance.upsert({
-        where: { playerId },
-        update: { ducats: { increment: rewards.ducats } },
-        create: { playerId, ducats: rewards.ducats, imperials: 0 }
-      });
-
-      if (rewards.item) {
-        const item = rollInventoryItem({
-          playerId,
-          templateId: rewards.item.templateId,
-          rarity: rewards.item.rarity,
-          itemLevel: rewards.item.itemLevel
-        });
-        await tx.inventoryItem.create({
-          data: {
-            id: item.id,
+      const rewardItem = rewards.item
+        ? rollInventoryItem({
             playerId,
-            itemCode: item.itemCode,
-            slotKey: "inventory",
-            quantity: 1,
-            itemData: item
-          }
-        });
-        rewardOutcome = {
-          experience: rewards.experience,
-          ducats: rewards.ducats,
-          item: {
-            itemId: item.id,
-            itemCode: item.itemCode,
-            itemName: item.itemName,
-            rarity: item.rarity
-          }
-        };
-      } else {
-        rewardOutcome = {
-          experience: rewards.experience,
-          ducats: rewards.ducats,
-          item: null
-        };
-      }
-
+            templateId: rewards.item.templateId,
+            rarity: rewards.item.rarity,
+            itemLevel: rewards.item.itemLevel
+          })
+        : null;
       const materialDropProfile = await tx.playerProfile.findUnique({
         where: { id: playerId },
         select: { level: true }
@@ -833,9 +826,35 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
 
       const materialDropRng = createSeededRng(`${run.id}:crafting_materials`);
       const materialDrops = rollMaterialDrops(materialDropProfile.level, materialDropRng);
-      for (const materialDrop of materialDrops) {
-        await grantCraftingStackableItem(tx, playerId, materialDrop.itemCode, materialDrop.quantity, "material");
-      }
+      rewardOutcome = {
+        experience: rewards.experience,
+        ducats: rewards.ducats,
+        item: rewardItem
+          ? {
+              itemId: rewardItem.id,
+              itemCode: rewardItem.itemCode,
+              itemName: rewardItem.itemName,
+              rarity: rewardItem.rarity
+            }
+          : null
+      };
+      rewardMessageId = await createSystemRewardMessage(tx, {
+        recipients: [playerId],
+        subject: `Contract rewards: ${run.contractName}`,
+        body: `Your ${run.contractName} report is complete. Claim the attached spoils from the encounter ledger.`,
+        sourceType: "contracts",
+        sourceRefId: run.id,
+        rewards: buildContractRewardAttachment({
+          experience: rewards.experience,
+          ducats: rewards.ducats,
+          rewardItem,
+          materialDrops
+        }),
+        replay: buildContractMailboxReplay({
+          run: runSnapshot,
+          events
+        })
+      });
     }
 
     const resolvedClaimHealth = resolveHealthState({
@@ -895,8 +914,6 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
       }
     });
     await decrementEncounterBasedConsumables(tx, playerId, 1, now);
-
-    snapshot = await loadRunSnapshotFromRecord(run);
   });
   const updatedPlayerState = await loadPlayerState(prisma, playerId);
   if (!updatedPlayerState) {
@@ -910,6 +927,7 @@ export async function claimContractRunResult(prisma: PrismaClient, playerId: str
     winnerSide,
     rewards: rewardOutcome,
     events,
+    rewardMessageId,
     playerState: {
       level: updatedPlayerState.level,
       experience: updatedPlayerState.experience,

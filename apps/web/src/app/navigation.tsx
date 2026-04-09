@@ -4,6 +4,7 @@ import i18n from "../i18n";
 
 export type LandingTab =
   | "inventory"
+  | "messages"
   | "encyclopedia"
   | "contracts"
   | "missions"
@@ -67,6 +68,7 @@ export const MENU_GROUPS: MenuGroup[] = [
 
 const MENU_GROUP_BY_TAB: Record<LandingTab, MenuGroupId> = {
   inventory: "profile",
+  messages: "profile",
   encyclopedia: "profile",
   leaderboards: "profile",
   settings: "profile",
@@ -111,6 +113,14 @@ export function renderMenuIcon(tab: LandingTab): ReactElement | null {
         <svg {...iconProps}>
           <circle cx="12" cy="8" r="3" />
           <path d="M5.5 20c1.8-3.3 4.2-5 6.5-5s4.7 1.7 6.5 5" />
+        </svg>
+      );
+    case "messages":
+      return (
+        <svg {...iconProps}>
+          <path d="M4 7h16v10H4z" />
+          <path d="m5 8 7 5 7-5" />
+          <path d="M8 5h8" />
         </svg>
       );
     case "encyclopedia":

@@ -4,14 +4,18 @@ import {
   guildRaidStateResponseSchema,
   type GuildRaidBossDefinition,
   type GuildRaidBonus,
+  type GuildRaidEncounter,
   type GuildRaidReport,
   type GuildRaidStateResponse,
   type GuildRole
 } from "@ebonkeep/shared/guild";
 import { normalizePlayerClass, type PlayerClass } from "@ebonkeep/shared/core";
+import type { MailboxRewardAttachment } from "@ebonkeep/shared/messages";
 
 import { GUILD_RAID_BOSS_CHAIN, GUILD_RAID_LABEL, getGuildRaidBossDefinition } from "./raid-config.js";
 import { getUnlockedGuildRaidBonuses } from "./raid-effects.js";
+import { buildGuildRaidMailboxReplay } from "../messages/replay-builders.js";
+import { createSystemRewardMessage } from "../messages/service.js";
 import { decrementEncounterBasedConsumablesForPlayers } from "../player/active-consumables-service.js";
 
 type GuildRaidDbClient = PrismaClient | Prisma.TransactionClient;
@@ -426,6 +430,62 @@ function buildEncounterPayload(args: {
   };
 }
 
+function buildGuildRaidRewardAttachment(args: {
+  boss: GuildRaidBossDefinition;
+  outcome: "victory" | "defeat";
+  firstClear: boolean;
+}): MailboxRewardAttachment {
+  const orderScalar = args.boss.orderIndex + 1;
+  return {
+    experience: 0,
+    ducats: args.outcome === "victory" ? 150 + orderScalar * 85 : 60 + orderScalar * 30,
+    imperials: args.outcome === "victory" && args.firstClear ? 1 : 0,
+    renown: args.outcome === "victory" ? 2 + orderScalar : orderScalar,
+    items: []
+  };
+}
+
+function buildResolvedReplayEncounter(args: {
+  instance: EncounterInstanceWithParticipants;
+  boss: GuildRaidBossDefinition;
+  report: GuildRaidReport;
+  summonerRole: GuildRole | null;
+  joinedPower: number;
+  joinCount: number;
+}): GuildRaidEncounter {
+  return {
+    instanceId: args.instance.id,
+    state: "resolved",
+    boss: args.boss,
+    summonedBy: {
+      playerId: args.instance.summonedById,
+      playerName: getDisplayName(args.instance.summonedBy.account.username, args.instance.summonedBy.id),
+      role: args.summonerRole ?? "leader"
+    },
+    summonedAt: args.instance.summonedAt.toISOString(),
+    lobbyEndsAt: args.instance.lobbyEndsAt.toISOString(),
+    lockEndsAt: args.instance.lockEndsAt?.toISOString() ?? null,
+    joinedPower: args.joinedPower,
+    joinCount: args.joinCount,
+    currentUserJoined: false,
+    canJoin: false,
+    canLeave: false,
+    canCommenceNow: false,
+    joinBlockedReason: null,
+    participants: args.instance.participants.map((participant) => ({
+      playerId: participant.playerId,
+      playerName: participant.playerName,
+      playerClass: normalizePlayerClass(participant.playerClass),
+      role: participant.role as GuildRole,
+      level: participant.level,
+      power: participant.power,
+      joinedAt: participant.joinedAt.toISOString(),
+      isCurrentUser: false
+    })),
+    report: args.report
+  };
+}
+
 async function resolveLobbyRaid(
   tx: GuildRaidDbClient,
   progress: Awaited<ReturnType<typeof ensureGuildRaidProgress>>,
@@ -545,6 +605,41 @@ async function resolveLobbyRaid(
       lastResolvedAt: now,
       activeRaidInstanceId: outcome === "defeat" ? activeEncounter.id : null
     }
+  });
+
+  const summonerMembership = await tx.guildMember.findFirst({
+    where: {
+      guildId: activeEncounter.guildId,
+      playerId: activeEncounter.summonedById
+    },
+    select: {
+      role: true
+    }
+  });
+  const replayEncounter = buildResolvedReplayEncounter({
+    instance: activeEncounter,
+    boss,
+    report,
+    summonerRole: (summonerMembership?.role as GuildRole | null | undefined) ?? null,
+    joinedPower,
+    joinCount: participantCount
+  });
+  await createSystemRewardMessage(tx, {
+    recipients: participants.map((participant) => participant.playerId),
+    subject: `${boss.bossName} raid report`,
+    body: report.summary,
+    sourceType: "guild_raid",
+    sourceRefId: activeEncounter.id,
+    guildId: activeEncounter.guildId,
+    rewards: buildGuildRaidRewardAttachment({
+      boss,
+      outcome,
+      firstClear
+    }),
+    replay: buildGuildRaidMailboxReplay({
+      boss,
+      encounter: replayEncounter
+    })
   });
 
   await decrementEncounterBasedConsumablesForPlayers(

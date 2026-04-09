@@ -355,6 +355,7 @@ export const contractRunResultSchema = z.object({
   winnerSide: combatActorSideSchema,
   rewards: contractRewardOutcomeSchema,
   events: z.array(combatEventSchema).min(1),
+  rewardMessageId: z.string().nullable().optional(),
   playerState: z
     .object({
       level: z.number().int().min(1),
@@ -591,6 +592,7 @@ export const combatPlaybackEncounterSchema = z.object({
   contractName: z.string(),
   contractLevel: z.number().int().min(1),
   levelBand: contractLevelBandSchema,
+  familyId: z.string().optional(),
   locationName: z.string(),
   travelImagePath: z.string().optional(),
   travelFocusImagePath: z.string().optional(),

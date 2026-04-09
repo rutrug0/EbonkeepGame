@@ -307,6 +307,7 @@ function buildEncounter(args: {
     contractName: args.run.contractName,
     contractLevel: args.run.encounterLevel,
     levelBand: args.run.levelBand,
+    familyId: args.run.familyId,
     locationName: args.run.locationName,
     travelImagePath,
     combatBackgroundPath: enemyBackdrop,
@@ -316,6 +317,40 @@ function buildEncounter(args: {
       usesSilhouetteFallback: !args.playerAvatarPath
     }),
     enemies: args.run.enemies.map((enemy) => toPlaybackActor(enemy))
+  };
+}
+
+export function hydratePlaybackEncounterAssets(args: {
+  encounter: CombatPlaybackEncounter;
+  playerAvatarPath?: string | null;
+}): CombatPlaybackEncounter {
+  const familyId = args.encounter.familyId;
+  const combatBackgroundPath =
+    args.encounter.combatBackgroundPath
+    ?? (familyId ? findGeneratedAsset(`combat_stage:${familyId}:`, `combat_stage:${familyId}`) : undefined);
+  const travelImagePath =
+    args.encounter.travelImagePath
+    ?? (familyId ? findGeneratedAsset(`travel_stage:${familyId}:default`, `travel_stage:${familyId}`) : undefined);
+  const playerAvatarPath = args.encounter.player.avatarPath ?? args.playerAvatarPath ?? undefined;
+
+  return {
+    ...args.encounter,
+    combatBackgroundPath,
+    travelImagePath,
+    travelImageMode: travelImagePath ? "image" : args.encounter.travelImageMode,
+    player: {
+      ...args.encounter.player,
+      avatarPath: playerAvatarPath,
+      usesSilhouetteFallback: playerAvatarPath ? false : (args.encounter.player.usesSilhouetteFallback ?? true)
+    },
+    enemies: args.encounter.enemies.map((enemy) => {
+      const enemyAvatarPath = enemy.avatarPath ?? (familyId ? getMonsterAvatarPath(familyId, enemy.name) : undefined);
+      return {
+        ...enemy,
+        avatarPath: enemyAvatarPath,
+        usesSilhouetteFallback: enemyAvatarPath ? false : (enemy.usesSilhouetteFallback ?? true)
+      };
+    })
   };
 }
 

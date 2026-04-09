@@ -54,6 +54,10 @@
       "types": "./src/domains/jobs/index.ts",
       "default": "./src/domains/jobs/index.ts"
     },
+    "./messages": {
+      "types": "./src/domains/messages/index.ts",
+      "default": "./src/domains/messages/index.ts"
+    },
     "./forge": {
       "types": "./src/domains/forge/index.ts",
       "default": "./src/domains/forge/index.ts"

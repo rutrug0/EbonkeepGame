@@ -90,6 +90,8 @@ model PlayerProfile {
   summonedGuildRaids   GuildRaidInstance[]  @relation("GuildRaidSummonedBy")
   guildRaidParticipations GuildRaidParticipant[]
   activeConsumables   PlayerActiveConsumable[]
+  sentMailboxMessages Message[]         @relation("MailboxSender")
+  mailboxDeliveries   MessageDelivery[] @relation("MailboxRecipient")
 
   @@index([accountId])
   @@map("player_profiles")
@@ -616,6 +618,7 @@ model Guild {
   academyDonations GuildAcademyDonation[]
   raidProgress    GuildRaidProgress?
   raidInstances   GuildRaidInstance[]
+  mailboxMessages Message[]
   
   @@index([name])
   @@index([tag])
@@ -623,6 +626,73 @@ model Guild {
   @@index([totalPower])
   @@index([createdAt])
   @@map("guilds")
+}
+
+model Message {
+  id             String                  @id @default(cuid())
+  kind           String
+  sourceType     String?
+  sourceRefId    String?
+  senderPlayerId String?
+  senderName     String?
+  guildId        String?
+  subject        String
+  body           String
+  replayId       String?
+  createdAt      DateTime                @default(now())
+  sender         PlayerProfile?          @relation("MailboxSender", fields: [senderPlayerId], references: [id], onDelete: SetNull)
+  guild          Guild?                  @relation(fields: [guildId], references: [id], onDelete: SetNull)
+  replay         CombatReplayRecord?     @relation(fields: [replayId], references: [id], onDelete: SetNull)
+  deliveries     MessageDelivery[]
+  rewardAttachment MessageRewardAttachment?
+
+  @@index([sourceType, sourceRefId])
+  @@index([senderPlayerId])
+  @@index([guildId])
+  @@index([createdAt(sort: Desc)])
+  @@map("messages")
+}
+
+model MessageDelivery {
+  id                String        @id @default(cuid())
+  messageId         String
+  recipientPlayerId String
+  readAt            DateTime?
+  claimedAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  message           Message       @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  recipient         PlayerProfile @relation("MailboxRecipient", fields: [recipientPlayerId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, recipientPlayerId])
+  @@index([recipientPlayerId, createdAt(sort: Desc)])
+  @@index([recipientPlayerId, readAt])
+  @@index([recipientPlayerId, claimedAt])
+  @@map("message_deliveries")
+}
+
+model MessageRewardAttachment {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  payload   Json
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_reward_attachments")
+}
+
+model CombatReplayRecord {
+  id         String    @id @default(cuid())
+  kind       String
+  sourceType String
+  sourceRefId String
+  payload    Json
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+
+  @@unique([sourceType, sourceRefId, kind])
+  @@index([createdAt(sort: Desc)])
+  @@map("combat_replay_records")
 }
 
 model GuildMember {

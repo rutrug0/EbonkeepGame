@@ -790,6 +790,64 @@ button:focus-visible {
   min-height: 30px;
 }
 
+.playerCardMailboxButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent-info) 34%, transparent);
+  background:
+    linear-gradient(180deg, rgba(55, 74, 90, 0.94), rgba(29, 39, 48, 0.98)),
+    linear-gradient(145deg, rgba(114, 151, 178, 0.12), transparent 72%);
+  color: color-mix(in srgb, var(--accent-warn) 72%, var(--text-main) 28%);
+  box-shadow: 0 12px 20px rgba(4, 8, 12, 0.22);
+  transition: transform 140ms ease, border-color 140ms ease, filter 140ms ease;
+}
+
+.playerCardMailboxButton:hover,
+.playerCardMailboxButton:focus-visible,
+.playerCardMailboxButton.active {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, #dcbf8e 44%, transparent);
+  filter: brightness(1.06);
+}
+
+.playerCardMailboxIcon {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.playerCardMailboxIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.playerCardMailboxBadge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.45rem;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #edf7ff;
+  background: linear-gradient(180deg, #5e98cf, #35688f);
+  box-shadow: 0 0 0 0 rgba(126, 188, 239, 0.35);
+  animation: playerCardMailboxBadgePulse 2.1s ease-out infinite;
+}
+
 .playerCardCurrencyValue {
   display: inline-flex;
   align-items: center;
@@ -801,12 +859,32 @@ button:focus-visible {
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.28);
 }
 
+.playerCardCurrencyValue.isGainAnimating {
+  animation: playerCardCurrencyGainPulse 320ms ease-out;
+  transform-origin: center;
+  will-change: transform;
+}
+
 .playerCardCurrencyValue.ducats {
   color: color-mix(in srgb, var(--accent-info) 42%, #f1f4fb 58%);
 }
 
 .playerCardCurrencyValue.imperials {
   color: color-mix(in srgb, var(--accent-warn) 76%, #f3e2bf 24%);
+}
+
+@keyframes playerCardCurrencyGainPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.16);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .ducatsAmount {
@@ -819,6 +897,18 @@ button:focus-visible {
 .playerCardCurrencyIcon {
   font-size: 1.42rem;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.28));
+}
+
+@keyframes playerCardMailboxBadgePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(126, 188, 239, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(126, 188, 239, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(126, 188, 239, 0);
+  }
 }
 
 .barBlock {

@@ -1,0 +1,461 @@
+.messagesShell {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 0;
+  min-height: 100%;
+  height: 100%;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--soft-radius);
+  overflow: hidden;
+}
+
+.messagesColumn {
+  min-height: 0;
+}
+
+.messagesColumn + .messagesColumn {
+  border-left: 1px solid var(--border);
+}
+
+.messagesCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--border-soft);
+  border-radius: 0;
+  background: var(--panel);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.07),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.22);
+}
+
+.messagesInboxCard,
+.messagesDetailCard {
+  overflow: hidden;
+  border: none;
+}
+
+.messagesListHeader,
+.messagesDetailHeader,
+.messagesReplayHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.messagesEyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.messagesTitle {
+  margin: 0.2rem 0 0;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
+.messagesUnreadCount {
+  margin: 0.35rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
+
+.messagesHeaderActions,
+.messagesComposeActions,
+.messagesDetailActions,
+.messagesReplayActions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.messagesButton {
+  border-color: var(--border);
+}
+
+.messagesButton.secondary {
+  border-color: color-mix(in srgb, var(--accent-warn) 45%, transparent);
+  background:
+    linear-gradient(180deg, rgba(74, 61, 39, 0.88), rgba(38, 31, 22, 0.96)),
+    linear-gradient(130deg, rgba(110, 87, 49, 0.14), rgba(47, 40, 29, 0.08));
+}
+
+.messagesButton.ghost {
+  border-color: rgba(186, 166, 131, 0.18);
+  background: rgba(24, 31, 39, 0.66);
+}
+
+.messagesButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.messagesError,
+.messagesStatus,
+.messagesEmptyState {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-radius: var(--soft-radius);
+  font-size: 0.92rem;
+}
+
+.messagesError {
+  color: #e8a8a3;
+  background: rgba(151, 80, 74, 0.2);
+  border: 1px solid rgba(151, 80, 74, 0.4);
+}
+
+.messagesStatus {
+  color: var(--text-soft);
+  background: rgba(24, 31, 39, 0.66);
+  border: 1px solid var(--border-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.05),
+    inset 0 -10px 18px rgba(8, 11, 15, 0.12);
+}
+
+.messagesEmptyState {
+  color: var(--text-muted);
+  background: rgba(24, 31, 39, 0.66);
+  border: 1px dashed rgba(173, 156, 126, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.05),
+    inset 0 -10px 18px rgba(8, 11, 15, 0.12);
+}
+
+.messagesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  overflow-y: auto;
+  padding-right: 0.1rem;
+}
+
+.messagesListItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid var(--border-soft);
+  background: rgba(24, 31, 39, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.05),
+    inset 0 -10px 18px rgba(8, 11, 15, 0.12);
+  text-align: left;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 180ms ease;
+}
+
+.messagesListItem:hover,
+.messagesListItem:focus-visible {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent-focus) 34%, var(--border-soft));
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.06),
+    inset 0 -14px 24px rgba(8, 11, 15, 0.18),
+    0 10px 18px rgba(4, 8, 12, 0.18);
+}
+
+.messagesListItem.isSelected {
+  border-color: color-mix(in srgb, var(--accent-focus) 42%, var(--border-soft));
+  background:
+    linear-gradient(180deg, rgba(36, 44, 53, 0.92), rgba(18, 24, 30, 0.98)),
+    linear-gradient(140deg, rgba(109, 88, 54, 0.08), rgba(36, 46, 59, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(246, 230, 198, 0.04),
+    inset 0 -8px 16px rgba(7, 10, 14, 0.18);
+}
+
+.messagesListItem.isSettled:not(.isSelected) {
+  border-color: rgba(186, 166, 131, 0.1);
+  background:
+    linear-gradient(180deg, rgba(20, 25, 31, 0.72), rgba(14, 18, 23, 0.82));
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.02),
+    inset 0 -8px 14px rgba(8, 11, 15, 0.12);
+}
+
+.messagesListItem.isUnread::before {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  top: 0.95rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #8ac8ff;
+  box-shadow: 0 0 0 0 rgba(138, 200, 255, 0.4);
+  animation: messagesUnreadPulse 2.1s ease-out infinite;
+}
+
+.messagesListItemHeader,
+.messagesMetaRow,
+.messagesRewardsList {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.messagesListItemHeader {
+  justify-content: flex-start;
+  padding-left: 0.8rem;
+}
+
+.messagesListItem.isRead .messagesListItemHeader {
+  padding-left: 0;
+}
+
+.messagesListType {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.messagesBody,
+.messagesMetaText {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.messagesListItem .messagesMetaText {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.messagesListItem.isSettled .messagesListType,
+.messagesListItem.isSettled .messagesMetaText {
+  color: color-mix(in srgb, var(--text-muted) 86%, rgba(255, 255, 255, 0.04));
+}
+
+.messagesMetaRow {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.messagesDetailBody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow-y: auto;
+}
+
+.messagesDetailBody.isTransitioning {
+  pointer-events: none;
+}
+
+.messagesDetailBody.isTransitioning > :not(.messagesDetailTransitionOverlay) {
+  filter: blur(9px);
+  opacity: 0.42;
+  transform: scale(0.992);
+}
+
+.messagesDetailTransitionOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--soft-radius);
+  background:
+    linear-gradient(180deg, rgba(24, 31, 39, 0.16), rgba(11, 15, 19, 0.28)),
+    radial-gradient(circle at 50% 24%, rgba(223, 198, 143, 0.08), transparent 48%);
+  box-shadow: inset 0 0 0 1px rgba(186, 166, 131, 0.08);
+  pointer-events: none;
+}
+
+.messagesRewardsSection,
+.messagesComposeForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid var(--border-soft);
+  background: rgba(24, 31, 39, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.05),
+    inset 0 -10px 18px rgba(8, 11, 15, 0.12);
+}
+
+.messagesRewardsList {
+  gap: 0.65rem;
+}
+
+.messagesRewardBlocks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.messagesRewardActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+
+.messagesRewardCurrencyRow {
+  justify-content: flex-start;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.messagesRewardInventoryGrid {
+  justify-content: flex-start;
+}
+
+.messagesRewardInventoryGrid.inventoryCards {
+  --inventory-compact-card-width: 101px;
+  --inventory-compact-card-height: 101px;
+}
+
+.messagesRewardChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.36rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(24, 31, 39, 0.66);
+  border: 1px solid rgba(186, 166, 131, 0.18);
+  font-size: 0.88rem;
+}
+
+.messagesComposeForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.messagesComposeForm input,
+.messagesComposeForm textarea {
+  width: 100%;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--soft-radius);
+  border: 1px solid var(--border);
+  background: rgba(18, 24, 30, 0.92);
+  color: var(--text-main);
+  font: inherit;
+}
+
+.messagesComposeForm input:focus,
+.messagesComposeForm textarea:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent-focus) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-focus) 24%, transparent);
+}
+
+.messagesComposeForm textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+.messagesReplayShell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 100%;
+}
+
+.messagesReplayCombatShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-3);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.messagesReplayCombatMain,
+.messagesReplayCombatSide {
+  min-height: 0;
+}
+
+.messagesReplayGuildWrap {
+  min-height: 0;
+  overflow: auto;
+}
+
+.messagesReplayLogToggle {
+  align-self: flex-start;
+}
+
+@keyframes messagesClaimFlight {
+  0% {
+    transform: translate3d(0, 14px, 0) scale(0.82);
+    opacity: 0;
+    filter: saturate(1) blur(0);
+  }
+  24% {
+    transform: translate3d(0, -12px, 0) scale(1.08);
+    opacity: 1;
+    filter: saturate(1.08) blur(0);
+  }
+  58% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--messages-claim-flight-x), var(--messages-claim-flight-y), 0) scale(0.38);
+    opacity: 0;
+    filter: saturate(0.92) blur(1px);
+  }
+}
+
+@keyframes messagesUnreadPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(138, 200, 255, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(138, 200, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(138, 200, 255, 0);
+  }
+}
+
+.messagesClaimFlightLayer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1400;
+}
+
+.messagesClaimFlightItem {
+  position: fixed;
+  margin: 0;
+  transform-origin: center center;
+  will-change: transform, opacity, filter;
+  box-shadow:
+    inset 0 1px 0 rgba(243, 227, 193, 0.06),
+    0 12px 28px rgba(6, 9, 12, 0.3);
+  animation: messagesClaimFlight 760ms cubic-bezier(0.22, 0.9, 0.18, 1) forwards;
+  animation-delay: var(--messages-claim-flight-delay, 0ms);
+}
+
+@media (max-width: 1180px) {
+  .messagesShell,
+  .messagesReplayCombatShell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .messagesRewardCurrencyRow {
+    justify-content: center;
+  }
+}

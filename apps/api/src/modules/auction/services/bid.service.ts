@@ -1,5 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import type { Redis } from "ioredis";
+import { createSystemRewardMessage } from "../../messages/service.js";
+import { buildAuctionOutbidMailboxMessage } from "./mailbox-message.service.js";
 import { AuctionConfigService } from "./config.service.js";
 
 type ActiveAuctionBidRecord = {
@@ -191,15 +193,43 @@ export class AuctionBidService {
             continue;
           }
 
-          await tx.currencyBalance.update({
-            where: { playerId: affectedPlayerId },
-            data: {
-              ducats:
-                balanceDelta > 0
-                  ? { increment: balanceDelta }
-                  : { decrement: Math.abs(balanceDelta) }
+          if (balanceDelta < 0) {
+            await tx.currencyBalance.update({
+              where: { playerId: affectedPlayerId },
+              data: {
+                ducats: { decrement: Math.abs(balanceDelta) }
+              }
+            });
+          }
+
+          if (balanceDelta > 0 && affectedPlayerId !== newLeader.playerId) {
+            const outbidBid = activeBidByPlayer.get(affectedPlayerId);
+            if (!outbidBid) {
+              continue;
             }
-          });
+
+            const mailboxMessage = buildAuctionOutbidMailboxMessage({
+              storedItemCode: item.itemCode,
+              levelBracketMin: item.auctionInstance.levelBracketMin,
+              levelBracketMax: item.auctionInstance.levelBracketMax,
+              refundedDucats: balanceDelta
+            });
+
+            await createSystemRewardMessage(tx, {
+              recipients: [affectedPlayerId],
+              subject: mailboxMessage.subject,
+              body: mailboxMessage.body,
+              sourceType: "auction",
+              sourceRefId: `auction-outbid:${outbidBid.id}`,
+              rewards: {
+                experience: 0,
+                ducats: balanceDelta,
+                imperials: 0,
+                renown: 0,
+                items: []
+              }
+            });
+          }
         }
 
         const losingActiveBidIds = activeBids

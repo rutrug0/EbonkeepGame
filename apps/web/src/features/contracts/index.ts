@@ -38,6 +38,7 @@ export {
   asPlaybackAction,
   buildOfferFromRun,
   buildResolvedEncounterState,
+  hydratePlaybackEncounterAssets,
   buildTravelEncounterState,
   mapBoardSlotsToUi
 } from "./serverPlayback";

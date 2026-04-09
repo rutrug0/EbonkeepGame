@@ -35,6 +35,7 @@ type JobsPanelProps = {
   playerLevel: number | null;
   developerToolsEnabled: boolean;
   onGrantDucats: (amount: number) => void;
+  onMailboxRewardCreated?: (messageId: string | null | undefined) => void;
   onLockReleaseAtChange: (releaseAtMs: number | null) => void;
   onFirstPaintReadyChange?: (ready: boolean) => void;
 };
@@ -271,6 +272,7 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
     playerLevel,
     developerToolsEnabled,
     onGrantDucats,
+    onMailboxRewardCreated,
     onLockReleaseAtChange,
     onFirstPaintReadyChange
   } = props;
@@ -442,7 +444,10 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
   const isRunComplete = activeRunRuntime ? activeCompletedHours >= activeRunRuntime.durationHours : false;
   const canInterruptActiveRun = Boolean(activeRunRuntime) && !isRunComplete;
 
-  async function runMutation(action: () => Promise<{ jobs: JobsStateResponse; ducatsGranted: number }>, successMessage?: string) {
+  async function runMutation(
+    action: () => Promise<{ jobs: JobsStateResponse; ducatsGranted: number; rewardMessageId?: string | null }>,
+    successMessage?: string
+  ) {
     if (!token) {
       return;
     }
@@ -456,8 +461,15 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
       if (response.ducatsGranted > 0) {
         onGrantDucats(response.ducatsGranted);
       }
+      if (response.rewardMessageId) {
+        onMailboxRewardCreated?.(response.rewardMessageId);
+      }
       if (successMessage) {
-        setStatusMessage(successMessage);
+        setStatusMessage(
+          response.rewardMessageId
+            ? `${successMessage} Rewards were sent to your mailbox.`
+            : successMessage
+        );
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Jobs action failed.");
@@ -797,17 +809,11 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
         <div className="jobsHistoryCard">
           <details className="jobsFoldout jobsHistoryFoldout">
             <summary className="jobsFoldoutSummary">
-              <span>History &amp; Stash</span>
+              <span>History &amp; Mail</span>
               <span className="jobsFoldoutHint">{jobsState?.history.length ?? 0} recent runs</span>
             </summary>
             <div className="jobsFoldoutBody">
               <div className="jobsStashGrid">
-                {rewardBundleToChips(jobsState?.stash ?? { ...EMPTY_BUNDLE }).map((chip) => (
-                  <div key={chip.key} className="jobsStashCard">
-                    <span>{chip.label}</span>
-                    <strong>{chip.value.toLocaleString()}</strong>
-                  </div>
-                ))}
                 <div className="jobsStashCard">
                   <span>Live Ducats</span>
                   <strong>{currentDucats.toLocaleString()}</strong>
@@ -846,8 +852,8 @@ export function JobsPanel(props: JobsPanelProps): ReactElement {
                   <strong>Materials</strong>
                 </div>
                 <p className="jobsStatusMessage">
-                  Jobs resources are now persisted on the backend. Ducats are granted live, while ore, charcoal, crates, seeds,
-                  and herbs stay in the Jobs stash until we wire them into Workshop and Garden.
+                  Completed and interrupted jobs now arrive as claimable mail. Open Messages from the player card to collect
+                  ducats, ore, charcoal, crates, seeds, and herbs.
                 </p>
               </div>
             </div>

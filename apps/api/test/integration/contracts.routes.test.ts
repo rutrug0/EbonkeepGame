@@ -138,10 +138,12 @@ describe("contracts routes", () => {
     if (claimBody.winnerSide === "player") {
       expect(claimBody.rewards.experience).toBeGreaterThan(0);
       expect(claimBody.rewards.ducats).toBeGreaterThan(0);
+      expect(claimBody.rewardMessageId).toBeTruthy();
     } else {
       expect(claimBody.rewards.experience).toBe(0);
       expect(claimBody.rewards.ducats).toBe(0);
       expect(claimBody.rewards.item).toBeNull();
+      expect(claimBody.rewardMessageId ?? null).toBeNull();
     }
 
     const secondClaim = await context.app.inject({
@@ -161,11 +163,38 @@ describe("contracts routes", () => {
 
     const initialBody = initialPlayerState.json();
     const finalBody = finalPlayerStateResponse.json();
-    expect(finalBody.currency.ducats).toBe(initialBody.currency.ducats + claimBody.rewards.ducats);
-    expect(finalBody.experience).toBe(initialBody.experience + claimBody.rewards.experience);
+    expect(finalBody.currency.ducats).toBe(initialBody.currency.ducats);
+    expect(finalBody.experience).toBe(
+      claimBody.winnerSide === "player"
+        ? initialBody.experience + claimBody.rewards.experience
+        : initialBody.experience
+    );
     expect(finalBody.health.current).toBe(claimBody.playerState.health.current);
     expect(finalBody.health.max).toBe(claimBody.playerState.health.max);
     expect(finalBody.stamina.current).toBeLessThan(initialBody.stamina.current);
+
+    if (claimBody.rewardMessageId) {
+      const inboxResponse = await context.app.inject({
+        method: "GET",
+        url: "/v1/messages",
+        headers
+      });
+      expect(inboxResponse.statusCode).toBe(200);
+      expect(
+        inboxResponse.json().entries.some((entry: { messageId: string; hasReplay: boolean }) =>
+          entry.messageId === claimBody.rewardMessageId && entry.hasReplay
+        )
+      ).toBe(true);
+
+      const replayResponse = await context.app.inject({
+        method: "GET",
+        url: `/v1/messages/${claimBody.rewardMessageId}/replay`,
+        headers
+      });
+      expect(replayResponse.statusCode).toBe(200);
+      expect(replayResponse.json().kind).toBe("combat");
+      expect(replayResponse.json().encounter.familyId).toBeTruthy();
+    }
 
     const refreshedBoard = await context.app.inject({
       method: "GET",
@@ -443,8 +472,19 @@ describe("contracts routes", () => {
     expect(finalPlayerStateResponse.statusCode).toBe(200);
 
     const finalPlayerState = finalPlayerStateResponse.json();
-    expect(finalPlayerState.currency.ducats).toBe(initialPlayerState.currency.ducats + claimBody.rewards.ducats);
+    expect(finalPlayerState.currency.ducats).toBe(initialPlayerState.currency.ducats);
     expect(finalPlayerState.experience).toBe(initialPlayerState.experience + claimBody.rewards.experience);
+    expect(claimBody.rewardMessageId).toBeTruthy();
+
+    const inboxResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/messages",
+      headers
+    });
+    expect(inboxResponse.statusCode).toBe(200);
+    expect(
+      inboxResponse.json().entries.some((entry: { messageId: string }) => entry.messageId === claimBody.rewardMessageId)
+    ).toBe(true);
 
     const runRecord = await context.prisma.contractRun.findUniqueOrThrow({
       where: { id: startedRun.runId },
@@ -596,7 +636,7 @@ describe("contracts routes", () => {
     );
   });
 
-  it("uses pre-reward max health when a claim levels the player up", async () => {
+  it("uses pre-reward max health before mailbox rewards level the player up", async () => {
     const guest = await loginAsGuest(context.app);
     const headers = authHeaders(guest.body.accessToken);
     const playerLevel = 25;
@@ -674,9 +714,16 @@ describe("contracts routes", () => {
 
     const claimBody = claimResponse.json();
     const expectedCurrentHp = Math.min(preRewardMaxHp, postFightHp + Math.floor(preRewardMaxHp * 0.05));
-    expect(claimBody.playerState.level).toBe(playerLevel + 1);
-    expect(claimBody.playerState.health.max).toBeGreaterThan(preRewardMaxHp);
     expect(claimBody.playerState.health.current).toBe(expectedCurrentHp);
+    expect(claimBody.rewardMessageId).toBeTruthy();
+
+    const leveledPlayerStateResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/player/state",
+      headers
+    });
+    expect(leveledPlayerStateResponse.statusCode).toBe(200);
+    expect(leveledPlayerStateResponse.json().level).toBe(playerLevel + 1);
   });
 
   it("blocks contract starts while the player is at zero health", async () => {

@@ -164,7 +164,7 @@ describe("auction routes and services", () => {
     await expect(bidService.placeBid(firstBidder.body.playerId, item.id, 130)).rejects.toThrow(/Rate limit exceeded/);
   });
 
-  it("treats standard bids as reserved proxy bids and refunds the losing reserve", async () => {
+  it("sends mailbox refunds when active bidders are outbid", async () => {
     const incumbent = await loginAsGuest(context.app, { guestId: "proxy-incumbent" });
     const proxyBidder = await loginAsGuest(context.app, { guestId: "proxy-bidder" });
     const challenger = await loginAsGuest(context.app, { guestId: "proxy-challenger" });
@@ -221,7 +221,18 @@ describe("auction routes and services", () => {
     const incumbentBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: incumbent.body.playerId }
     });
-    expect(incumbentBalance.ducats).toBe(10_000);
+    expect(incumbentBalance.ducats).toBe(9_970);
+
+    const incumbentMailboxResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/messages",
+      headers: authHeaders(incumbent.body.accessToken)
+    });
+    expect(incumbentMailboxResponse.statusCode).toBe(200);
+    expect(incumbentMailboxResponse.json().entries).toHaveLength(1);
+    expect(incumbentMailboxResponse.json().entries[0].sourceType).toBe("auction");
+    expect(incumbentMailboxResponse.json().entries[0].subject).toContain("Proxy Crown");
+    expect(incumbentMailboxResponse.json().entries[0].subject).toContain("Auction House Wing Lv 1-10");
 
     const secondBid = await bidService.placeBid(challenger.body.playerId, item.id, 100);
     expect(secondBid.remainingDucats).toBe(10_000);
@@ -259,7 +270,28 @@ describe("auction routes and services", () => {
     const proxyBidderBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: proxyBidder.body.playerId }
     });
-    expect(proxyBidderBalance.ducats).toBe(10_000);
+    expect(proxyBidderBalance.ducats).toBe(9_700);
+
+    const proxyMailboxResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/messages",
+      headers: authHeaders(proxyBidder.body.accessToken)
+    });
+    expect(proxyMailboxResponse.statusCode).toBe(200);
+    expect(proxyMailboxResponse.json().entries).toHaveLength(1);
+    expect(proxyMailboxResponse.json().entries[0].sourceType).toBe("auction");
+    expect(proxyMailboxResponse.json().entries[0].subject).toContain("Outbid:");
+
+    const proxyMessageId = proxyMailboxResponse.json().entries[0].messageId as string;
+    const proxyMessageResponse = await context.app.inject({
+      method: "GET",
+      url: `/v1/messages/${proxyMessageId}`,
+      headers: authHeaders(proxyBidder.body.accessToken)
+    });
+    expect(proxyMessageResponse.statusCode).toBe(200);
+    expect(proxyMessageResponse.json().rewards.ducats).toBe(300);
+    expect(proxyMessageResponse.json().body).toContain("Auction House Wing Lv 1-10");
+    expect(proxyMessageResponse.json().body).toContain("Proxy Crown");
 
     const overbidderBidRecord = await context.prisma.auctionBid.findFirstOrThrow({
       where: {
@@ -317,11 +349,17 @@ describe("auction routes and services", () => {
     expect(secondWave).toHaveLength(3);
   });
 
-  it("settles auctions idempotently and lets winners claim pending rewards", async () => {
+  it("settles auctions idempotently and sends winner rewards to the mailbox", async () => {
     const winner = await loginAsGuest(context.app, { guestId: "auction-winner" });
     const seller = await loginAsGuest(context.app, { guestId: "auction-seller" });
     const rewardItem = await createInventoryItemForPlayer(context.prisma, winner.body.playerId, {
       itemName: "Pending Reward Sword"
+    });
+    const initialWinnerItemCount = await context.prisma.inventoryItem.count({
+      where: {
+        playerId: winner.body.playerId,
+        itemCode: rewardItem.itemCode
+      }
     });
     await setPlayerDucats(context.prisma, winner.body.playerId, 9_400);
 
@@ -359,12 +397,12 @@ describe("auction routes and services", () => {
         playerId: winner.body.playerId
       }
     });
-    expect(pendingRewards).toHaveLength(1);
+    expect(pendingRewards).toHaveLength(0);
 
     const winnerBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: winner.body.playerId }
     });
-    expect(winnerBalance.ducats).toBe(9_690);
+    expect(winnerBalance.ducats).toBe(9_400);
 
     const winningBid = await context.prisma.auctionBid.findFirstOrThrow({
       where: {
@@ -381,31 +419,50 @@ describe("auction routes and services", () => {
       headers: authHeaders(winner.body.accessToken)
     });
     expect(pendingRewardsResponse.statusCode).toBe(200);
-    expect(pendingRewardsResponse.json().rewards).toHaveLength(1);
+    expect(pendingRewardsResponse.json().rewards).toHaveLength(0);
 
     const sellerBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
       where: { playerId: seller.body.playerId }
     });
     expect(sellerBalance.ducats).toBeGreaterThan(100_000);
 
+    const mailboxResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/messages",
+      headers: authHeaders(winner.body.accessToken)
+    });
+    expect(mailboxResponse.statusCode).toBe(200);
+    expect(mailboxResponse.json().entries).toHaveLength(1);
+    expect(mailboxResponse.json().entries[0].sourceType).toBe("auction");
+    expect(mailboxResponse.json().entries[0].subject).toContain("Pending Reward Sword");
+    expect(mailboxResponse.json().entries[0].subject).toContain("Auction House Wing Lv 1-10");
+
+    const mailboxMessageId = mailboxResponse.json().entries[0].messageId as string;
+    const mailboxDetailResponse = await context.app.inject({
+      method: "GET",
+      url: `/v1/messages/${mailboxMessageId}`,
+      headers: authHeaders(winner.body.accessToken)
+    });
+    expect(mailboxDetailResponse.statusCode).toBe(200);
+    expect(mailboxDetailResponse.json().rewards.ducats).toBe(290);
+    expect(mailboxDetailResponse.json().rewards.items).toHaveLength(1);
+
     const claimResponse = await context.app.inject({
       method: "POST",
-      url: "/v1/auction/rewards/claim",
-      headers: authHeaders(winner.body.accessToken),
-      payload: {
-        rewardId: pendingRewards[0].id
-      }
+      url: `/v1/messages/${mailboxMessageId}/claim`,
+      headers: authHeaders(winner.body.accessToken)
     });
     expect(claimResponse.statusCode).toBe(200);
+    expect(claimResponse.json().deletedMessageId).toBe(mailboxMessageId);
 
     await expect
       .poll(async () => {
-        const claimedReward = await context.prisma.auctionPendingReward.findUniqueOrThrow({
-          where: { id: pendingRewards[0].id }
+        const refreshedBalance = await context.prisma.currencyBalance.findUniqueOrThrow({
+          where: { playerId: winner.body.playerId }
         });
-        return claimedReward.claimed;
+        return refreshedBalance.ducats;
       })
-      .toBe(true);
+      .toBe(9_690);
 
     await expect
       .poll(async () =>
@@ -416,6 +473,6 @@ describe("auction routes and services", () => {
           }
         })
       )
-      .toBeGreaterThan(0);
+      .toBeGreaterThan(initialWinnerItemCount);
   });
 });
