@@ -52,6 +52,16 @@ interface AuctionItem {
   itemData?: ParsedItemData;
 }
 
+type AuctionItemModifier = {
+  name: string;
+  tier: string;
+  statKey?: string;
+  value?: number;
+  unit?: string;
+  bonusLabel?: string;
+  bonusValue?: string;
+};
+
 interface ParsedItemData {
   itemCode?: string;
   itemName: string;
@@ -72,21 +82,11 @@ interface ParsedItemData {
   };
   description?: string;
   iconAssetPath?: string;
-  prefix?: {
-    name: string;
-    tier: string;
-    statKey: string;
-    value: number;
-    unit: string;
-  };
-  affix?: {
-    name: string;
-    tier: string;
-    statKey: string;
-    value: number;
-    unit: string;
-  };
+  prefix?: AuctionItemModifier;
+  affix?: AuctionItemModifier;
   enchanting?: InventoryItem["enchanting"];
+  temperingFailed?: boolean;
+  damagePenaltyBps?: number;
   archetype?: {
     majorCategory?: string;
     weaponArchetype?: string;
@@ -113,6 +113,11 @@ type ComparableInventoryItem = {
   statBonuses?: Partial<Record<string, number>>;
   damageRoll?: ParsedItemData["damageRoll"];
   description?: string;
+  prefix?: AuctionItemModifier;
+  affix?: AuctionItemModifier;
+  enchanting?: ParsedItemData["enchanting"];
+  temperingFailed?: boolean;
+  damagePenaltyBps?: number;
   archetype?: ParsedItemData["archetype"];
 };
 
@@ -243,6 +248,11 @@ function sanitizeParsedItemData(input: Partial<ParsedItemData> & { itemCode?: st
     enchanting:
       input.enchanting && typeof input.enchanting === "object" && !Array.isArray(input.enchanting)
         ? input.enchanting
+        : undefined,
+    temperingFailed: input.temperingFailed === true,
+    damagePenaltyBps:
+      typeof input.damagePenaltyBps === "number" && Number.isFinite(input.damagePenaltyBps)
+        ? input.damagePenaltyBps
         : undefined,
     archetype:
       input.archetype && typeof input.archetype === "object" && !Array.isArray(input.archetype)
@@ -969,6 +979,8 @@ export function AuctionHouse({
             parsed.enchanting && typeof parsed.enchanting === "object" && !Array.isArray(parsed.enchanting)
               ? (parsed.enchanting as ParsedItemData["enchanting"])
               : undefined,
+          temperingFailed: parsed.temperingFailed === true,
+          damagePenaltyBps: typeof parsed.damagePenaltyBps === "number" ? parsed.damagePenaltyBps : undefined,
           archetype:
             parsed.archetype && typeof parsed.archetype === "object" && !Array.isArray(parsed.archetype)
               ? (parsed.archetype as ParsedItemData["archetype"])
@@ -1036,55 +1048,175 @@ export function AuctionHouse({
     return undefined;
   };
 
-  const formatLabel = (value: string): string => {
-    return value
-      .replace(/[/_,-]+/g, " ")
-      .replace(/([a-z])([A-Z])/g, "$1 $2")
-      .replace(/\b\w/g, (match) => match.toUpperCase())
-      .trim();
+  const formatOneDecimal = (value: number): string => {
+    const rounded = Math.round(value * 10) / 10;
+    return Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1);
+  };
+
+  const formatModifierStatLabel = (stat: string): string => {
+    const keyByStat: Record<string, string> = {
+      meleeDamage: "profile.meleeDamage",
+      rangedDamage: "profile.rangedDamage",
+      spellDamage: "profile.spellDamage",
+      critDamage: "profile.critDamage",
+      critChance: "profile.critChance",
+      threat: "profile.threat",
+      extraAttackChance: "profile.extraAttackChance",
+      armor: "profile.armor",
+      spellShield: "profile.spellShield",
+      missileResistance: "profile.missileResistance",
+      physicalDefense: "profile.physicalDefense",
+      magicDefense: "profile.magicDefense",
+      maxHitpoints: "profile.maxHitpoints"
+    };
+
+    const key = keyByStat[stat];
+    return key ? t(key) : stat;
+  };
+
+  const formatModifierValue = (value: number, unit: "flat" | "basis_points"): string => {
+    if (unit === "basis_points") {
+      return `${value >= 0 ? "+" : ""}${formatOneDecimal(value / 100)}%`;
+    }
+    return `${value >= 0 ? "+" : ""}${value}`;
+  };
+
+  const localizeKnownLabel = (label: string): string => {
+    const keyByLabel: Record<string, string> = {
+      "Melee Damage": "profile.meleeDamage",
+      "Ranged Damage": "profile.rangedDamage",
+      "Spell Damage": "profile.spellDamage",
+      "Crit Damage": "profile.critDamage",
+      "Crit Chance": "profile.critChance",
+      Threat: "profile.threat",
+      "Extra Attack Chance": "profile.extraAttackChance",
+      Armor: "profile.armor",
+      "Spell Shield": "profile.spellShield",
+      "Missile Resistance": "profile.missileResistance",
+      "Physical Defense": "profile.physicalDefense",
+      "P.Def": "profile.physicalDefense",
+      "Magic Defense": "profile.magicDefense",
+      "M.Def": "profile.magicDefense",
+      "Max Hitpoints": "profile.maxHitpoints"
+    };
+
+    const key = keyByLabel[label];
+    if (!key) {
+      return label;
+    }
+
+    const translated = t(key);
+    return translated === key ? label : translated;
+  };
+
+  const formatRarityLabel = (rarity: string): string => {
+    const translated = t(`rarity.${rarity}`);
+    return translated === `rarity.${rarity}` ? rarity : translated;
+  };
+
+  const formatArchetypeLabel = (value: string): string => {
+    const translated = t(`archetype.${value}`);
+    return translated !== `archetype.${value}` ? translated : `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+  };
+
+  const renderItemDisplayName = (itemData: ParsedItemData) => {
+    return (
+      <>
+        {itemData.enchanting?.level ? <span>{`+${itemData.enchanting.level} `}</span> : null}
+        {itemData.prefix ? <>{itemData.prefix.name} </> : null}
+        <span>{itemData.itemName}</span>
+        {itemData.affix ? <> {itemData.affix.name}</> : null}
+      </>
+    );
   };
 
   const getItemSubtypeLabel = (itemData: ParsedItemData): string => {
     if (itemData.archetype?.majorCategory === "armor" && itemData.archetype.armorArchetype) {
-      return `${formatLabel(itemData.archetype.armorArchetype)} Armor`;
+      return `${formatArchetypeLabel(itemData.archetype.armorArchetype)} ${t("profile.armor")}`;
     }
-    if (itemData.archetype?.majorCategory === "weapon" && itemData.archetype.weaponFamily) {
-      return formatLabel(itemData.archetype.weaponFamily);
+    if (itemData.archetype?.majorCategory === "weapon" && itemData.archetype.weaponArchetype) {
+      return `${formatArchetypeLabel(itemData.archetype.weaponArchetype)} ${t("slots.weapon")}`;
     }
-    if (itemData.archetype?.majorCategory === "jewelry") {
-      return itemData.jewelryType ? formatLabel(itemData.jewelryType) : formatLabel(itemData.category);
-    }
-    if (itemData.weaponType) {
-      return formatLabel(itemData.weaponType);
-    }
-    if (itemData.armorType) {
-      return `${formatLabel(itemData.armorType)} Armor`;
-    }
-    return formatLabel(itemData.category);
+    return itemData.category;
   };
 
-  const getDisplayStatBonuses = (itemData: ParsedItemData): Array<{ key: string; value: number }> => {
-    return Object.entries(itemData.statBonuses ?? {})
-      .map(([key, value]) => ({ key, value: typeof value === "number" ? value : 0 }))
-      .filter((entry) => entry.value !== 0);
+  type AuctionItemModifierLine = {
+    id: string;
+    tier: string;
+    label: string;
+    value: string;
   };
 
-  const formatStatValue = (statKey: string, value: number): string => {
-    if (/chance|multiplier/i.test(statKey)) {
-      return `${value > 0 ? "+" : ""}${(value / 100).toFixed(1).replace(/\.0$/, "")}%`;
+  const getItemModifierStatLines = (itemData: ParsedItemData): AuctionItemModifierLine[] => {
+    const lines: AuctionItemModifierLine[] = [];
+
+    if (itemData.prefix) {
+      lines.push({
+        id: `${itemData.itemCode ?? itemData.itemName}-prefix`,
+        tier: itemData.prefix.tier,
+        label: itemData.prefix.bonusLabel ?? formatModifierStatLabel(itemData.prefix.statKey ?? ""),
+        value: itemData.prefix.bonusValue ?? formatModifierValue(itemData.prefix.value ?? 0, (itemData.prefix.unit as "flat" | "basis_points" | undefined) ?? "flat")
+      });
     }
-    return `${value > 0 ? "+" : ""}${value}`;
+
+    if (itemData.affix) {
+      lines.push({
+        id: `${itemData.itemCode ?? itemData.itemName}-affix`,
+        tier: itemData.affix.tier,
+        label: itemData.affix.bonusLabel ?? formatModifierStatLabel(itemData.affix.statKey ?? ""),
+        value: itemData.affix.bonusValue ?? formatModifierValue(itemData.affix.value ?? 0, (itemData.affix.unit as "flat" | "basis_points" | undefined) ?? "flat")
+      });
+    }
+
+    return lines;
   };
 
-  const getDamageSummary = (itemData: ParsedItemData) => {
+  const getWeaponDamageSummary = (itemData: ParsedItemData): { damageLine: string; rollLine: string } | null => {
     if (!itemData.damageRoll) {
       return null;
     }
 
+    const { minRollRange, maxRollRange, rolledMin, rolledMax, averageDamage } = itemData.damageRoll;
+    let damageLine: string;
+    if (itemData.temperingFailed && itemData.damagePenaltyBps && itemData.damagePenaltyBps > 0) {
+      const penaltyAmount = Math.round((averageDamage * itemData.damagePenaltyBps / (10_000 - itemData.damagePenaltyBps)) * 10) / 10;
+      damageLine = t("item.damageWithPenalty", {
+        value: formatOneDecimal(averageDamage),
+        penalty: formatOneDecimal(penaltyAmount)
+      });
+    } else {
+      damageLine = t("item.damage", { value: formatOneDecimal(averageDamage) });
+    }
+
     return {
-      damageLine: `${itemData.damageRoll.rolledMin}-${itemData.damageRoll.rolledMax} damage`,
-      rollLine: `Roll range ${itemData.damageRoll.minRollRange[0]}-${itemData.damageRoll.maxRollRange[1]}`
+      damageLine,
+      rollLine: t("item.roll", {
+        minLow: minRollRange[0],
+        minHigh: minRollRange[1],
+        rolledMin,
+        rolledMax,
+        maxLow: maxRollRange[0],
+        maxHigh: maxRollRange[1]
+      })
     };
+  };
+
+  const getDefenseSummary = (itemData: ParsedItemData): { primaryLine: string; secondaryLine?: string } | null => {
+    const physicalDefense = itemData.statBonuses?.physicalDefense;
+    if (typeof physicalDefense === "number" && physicalDefense > 0) {
+      return {
+        primaryLine: `${t("profile.physicalDefense")}: ${physicalDefense}`
+      };
+    }
+
+    const magicDefense = itemData.statBonuses?.magicDefense;
+    if (typeof magicDefense === "number" && magicDefense > 0) {
+      return {
+        primaryLine: `${t("profile.magicDefense")}: ${magicDefense}`
+      };
+    }
+
+    return null;
   };
 
   const resolveAuctionItemIconPath = (itemData: ParsedItemData): string | undefined => {
@@ -1133,6 +1265,11 @@ export function AuctionHouse({
       statBonuses: item.statBonuses,
       damageRoll: item.damageRoll,
       description: item.description,
+      prefix: item.prefix,
+      affix: item.affix,
+      enchanting: item.enchanting,
+      temperingFailed: item.temperingFailed,
+      damagePenaltyBps: item.damagePenaltyBps,
       archetype: item.archetype,
       weaponType: item.archetype?.weaponFamily,
       armorType: item.archetype?.armorArchetype,
@@ -1181,23 +1318,29 @@ export function AuctionHouse({
     }
   ) => {
     const canUseItem = canPlayerUseAuctionItem(itemData);
-    const damageSummary = getDamageSummary(itemData);
+    const weaponDamageSummary = getWeaponDamageSummary(itemData);
+    const defenseSummary = getDefenseSummary(itemData);
     const iconAssetPath = resolveAuctionItemIconPath(itemData);
-    const statBonuses = getDisplayStatBonuses(itemData);
+    const modifierLines = getItemModifierStatLines(itemData);
+    const showPowerFooter = itemData.equipable || (itemData.power ?? 0) > 0;
+    const showLevelFooter = itemData.equipable || itemData.levelRequirement > 1;
 
     return (
       <>
         <div className="inventoryCardTop">
           <div className="inventoryCardMeta">
-            <h4>{itemData.itemName}</h4>
+            <h4>{renderItemDisplayName(itemData)}</h4>
             <p className="inventoryCardCategory">{getItemSubtypeLabel(itemData)}</p>
           </div>
           <div className="inventoryCardTopAside">
-            <span className="inventoryCardRarity">{formatLabel(itemData.rarity)}</span>
+            <span className="inventoryCardRarity">{formatRarityLabel(itemData.rarity)}</span>
             {options?.asideNote ? <span className="inventoryCardTopAsideNote">{options.asideNote}</span> : null}
           </div>
         </div>
-        <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}`}>
+        <div className={`inventoryCardVisual${canUseItem ? "" : " isRestricted"}${itemData.temperingFailed ? " isTemperingFailed" : ""}`}>
+          {itemData.temperingFailed ? (
+            <span className="inventoryTemperingFailedBadge" aria-label={t("forge.instabilityTitle")}>!</span>
+          ) : null}
           {renderItemIcon({
             majorCategory: getItemMajorCategory(itemData),
             category: itemData.category,
@@ -1209,35 +1352,58 @@ export function AuctionHouse({
           })}
         </div>
         <div className="inventoryCardContent">
-          {damageSummary ? (
-            <div className="inventoryCardDamageBlock">
-              <p className="inventoryCardDamagePrimary">{damageSummary.damageLine}</p>
-              <p className="inventoryCardDamageRollMeta">{damageSummary.rollLine}</p>
+          {weaponDamageSummary ? (
+            <div className={`inventoryCardDamageBlock${itemData.temperingFailed ? " isTemperingFailed" : ""}`}>
+              <p className="inventoryCardDamagePrimary">{weaponDamageSummary.damageLine}</p>
+              <p className="inventoryCardDamageRollMeta">{weaponDamageSummary.rollLine}</p>
             </div>
           ) : null}
-          {statBonuses.length > 0 ? (
+          {defenseSummary ? (
+            <div className="inventoryCardDamageBlock">
+              <p className="inventoryCardDamagePrimary">{defenseSummary.primaryLine}</p>
+              {defenseSummary.secondaryLine ? (
+                <p className="inventoryCardDamageRollMeta">{defenseSummary.secondaryLine}</p>
+              ) : null}
+            </div>
+          ) : null}
+          {modifierLines.length > 0 ? (
             <div className="inventoryCardModifierList">
-              {statBonuses.map((entry) => (
-                <p key={entry.key} className="inventoryCardModifierLine">
-                  <span>{formatLabel(entry.key)}</span>
-                  <span> {formatStatValue(entry.key, entry.value)}</span>
+              {modifierLines.map((line) => (
+                <p key={line.id} className="inventoryCardModifierLine">
+                  <span className={`inventoryModifierTier modifierTier-${line.tier.toLowerCase()}`}>({line.tier})</span>{" "}
+                  <span>
+                    {localizeKnownLabel(line.label)} {line.value}
+                  </span>
                 </p>
               ))}
             </div>
           ) : null}
+          {itemData.temperingFailed ? (
+            <div className="inventoryCardTemperingFailedWarning">
+              <span>! {t("forge.instabilityTitle")}</span>
+              <span>{t("forge.temperingFailedCardNote")}</span>
+            </div>
+          ) : null}
         </div>
         <div className="inventoryCardDetails">
-          <p className="inventoryCardDescription inventoryCardFlavor">{itemData.description || " "}</p>
+          <p className="inventoryCardDescription inventoryCardFlavor">{itemData.description}</p>
           <div className="inventoryCardFooter">
-            <span className="inventoryCardPower">
-              {t("inventory.power", { value: itemData.power ?? 0 })}
-              {typeof options?.powerDelta === "number" && options.powerDelta !== 0 ? (
-                <span className={`inventoryCardPowerDelta ${options.powerDelta > 0 ? "positive" : "negative"}`}>
-                  {` (${options.powerDelta > 0 ? `+${options.powerDelta}` : options.powerDelta})`}
-                </span>
-              ) : null}
-            </span>
-            <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>{t("inventory.requiredLevel", { value: itemData.levelRequirement })}</span>
+            {showPowerFooter ? (
+              <span className="inventoryCardPower">
+                {t("inventory.power", { value: itemData.power ?? 0 })}
+                {typeof options?.powerDelta === "number" && options.powerDelta !== 0 ? (
+                  <span className={`inventoryCardPowerDelta ${options.powerDelta > 0 ? "positive" : "negative"}`}>
+                    {" "}
+                    ({options.powerDelta > 0 ? `+${options.powerDelta}` : options.powerDelta})
+                  </span>
+                ) : null}
+              </span>
+            ) : <span />}
+            {showLevelFooter ? (
+              <span className={`inventoryCardLevel${canUseItem ? "" : " isRestricted"}`}>
+                {t("inventory.requiredLevel", { value: itemData.levelRequirement })}
+              </span>
+            ) : null}
           </div>
         </div>
       </>
