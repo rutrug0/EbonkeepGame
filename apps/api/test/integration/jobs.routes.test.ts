@@ -176,4 +176,27 @@ describe("jobs routes", () => {
     });
     expect(completedClaim.statusCode).toBe(200);
   });
+
+  it("does not create mailbox reward mail for zero-payout interrupted runs", async () => {
+    const guest = await loginAsGuest(context.app);
+    const headers = authHeaders(guest.body.accessToken);
+    await startFirstBoardJob(context, headers, 3);
+
+    const interruptedClaim = await context.app.inject({
+      method: "POST",
+      url: "/v1/jobs/claim",
+      headers,
+      payload: { claimType: "interrupted" }
+    });
+    expect(interruptedClaim.statusCode).toBe(200);
+    expect(interruptedClaim.json().rewardMessageId).toBeNull();
+
+    const mailboxResponse = await context.app.inject({
+      method: "GET",
+      url: "/v1/messages",
+      headers
+    });
+    expect(mailboxResponse.statusCode).toBe(200);
+    expect(mailboxResponse.json().entries).toHaveLength(0);
+  });
 });

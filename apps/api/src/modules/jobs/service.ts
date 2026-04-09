@@ -297,6 +297,15 @@ function buildJobsRewardAttachment(rewards: RewardBundle): MailboxRewardAttachme
   };
 }
 
+function hasClaimableJobsRewards(rewards: RewardBundle): boolean {
+  return rewards.ducats > 0
+    || rewards.ironOre > 0
+    || rewards.charcoal > 0
+    || rewards.supplyCrates > 0
+    || rewards.seedBundles > 0
+    || rewards.herbs > 0;
+}
+
 export async function assertJobsActivityIdle(prisma: JobsDbClient, playerId: string, now = new Date()): Promise<void> {
   const state = await loadPersistedState(prisma, playerId, now);
   if (!state.activeRun) {
@@ -454,17 +463,19 @@ export async function claimJobsRun(
       nowMs: now.getTime(),
       claimType
     });
-    const rewardMessageId = await createSystemRewardMessage(tx, {
-      recipients: [playerId],
-      subject: claimType === "completed" ? `${state.activeRun.jobName} completed` : `${state.activeRun.jobName} interrupted`,
-      body:
-        claimType === "completed"
-          ? `Your ${state.activeRun.jobName} shift has concluded. Claim the attached delivery from your messages.`
-          : `Your ${state.activeRun.jobName} shift was interrupted. A partial reward package has been attached to this message.`,
-      sourceType: "jobs",
-      sourceRefId: state.activeRun.runId,
-      rewards: buildJobsRewardAttachment(rewards)
-    });
+    const rewardMessageId = hasClaimableJobsRewards(rewards)
+      ? await createSystemRewardMessage(tx, {
+          recipients: [playerId],
+          subject: claimType === "completed" ? `${state.activeRun.jobName} completed` : `${state.activeRun.jobName} interrupted`,
+          body:
+            claimType === "completed"
+              ? `Your ${state.activeRun.jobName} shift has concluded. Claim the attached delivery from your messages.`
+              : `Your ${state.activeRun.jobName} shift was interrupted. A partial reward package has been attached to this message.`,
+          sourceType: "jobs",
+          sourceRefId: state.activeRun.runId,
+          rewards: buildJobsRewardAttachment(rewards)
+        })
+      : null;
 
     state.history = [
       {

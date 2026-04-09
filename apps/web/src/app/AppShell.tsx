@@ -6636,7 +6636,11 @@ export function AppShell() {
       startPlayerCardCurrencyGainAnimation(rewards, playerCardCurrencies);
     }
 
-    await refreshAuthoritativePlayerState();
+    try {
+      await refreshAuthoritativePlayerState();
+    } catch (error) {
+      console.error("Mailbox claim refresh failed", error);
+    }
   }
 
   function renderActivePanel(route = requestedPanelRoute, options?: { preload?: boolean }) {
