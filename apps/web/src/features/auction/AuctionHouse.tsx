@@ -1053,6 +1053,21 @@ export function AuctionHouse({
     return Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1);
   };
 
+  const formatTokenLabel = (value: string): string => {
+    const normalized = value.trim();
+    if (!normalized) {
+      return value;
+    }
+
+    return normalized
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/[/_,-]+/g, " ")
+      .split(/\s+/)
+      .filter((part) => part.length > 0)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  };
+
   const formatModifierStatLabel = (stat: string): string => {
     const keyByStat: Record<string, string> = {
       meleeDamage: "profile.meleeDamage",
@@ -1071,7 +1086,12 @@ export function AuctionHouse({
     };
 
     const key = keyByStat[stat];
-    return key ? t(key) : stat;
+    if (!key) {
+      return formatTokenLabel(stat);
+    }
+
+    const translated = t(key);
+    return translated === key ? formatTokenLabel(stat) : translated;
   };
 
   const formatModifierValue = (value: number, unit: "flat" | "basis_points"): string => {
@@ -1147,22 +1167,28 @@ export function AuctionHouse({
     value: string;
   };
 
+  const normalizeModifierTier = (tier: string | undefined): string => {
+    return tier === "T1" || tier === "T2" || tier === "T3" ? tier : "T1";
+  };
+
   const getItemModifierStatLines = (itemData: ParsedItemData): AuctionItemModifierLine[] => {
     const lines: AuctionItemModifierLine[] = [];
 
     if (itemData.prefix) {
+      const tier = normalizeModifierTier(itemData.prefix.tier);
       lines.push({
         id: `${itemData.itemCode ?? itemData.itemName}-prefix`,
-        tier: itemData.prefix.tier,
+        tier,
         label: itemData.prefix.bonusLabel ?? formatModifierStatLabel(itemData.prefix.statKey ?? ""),
         value: itemData.prefix.bonusValue ?? formatModifierValue(itemData.prefix.value ?? 0, (itemData.prefix.unit as "flat" | "basis_points" | undefined) ?? "flat")
       });
     }
 
     if (itemData.affix) {
+      const tier = normalizeModifierTier(itemData.affix.tier);
       lines.push({
         id: `${itemData.itemCode ?? itemData.itemName}-affix`,
-        tier: itemData.affix.tier,
+        tier,
         label: itemData.affix.bonusLabel ?? formatModifierStatLabel(itemData.affix.statKey ?? ""),
         value: itemData.affix.bonusValue ?? formatModifierValue(itemData.affix.value ?? 0, (itemData.affix.unit as "flat" | "basis_points" | undefined) ?? "flat")
       });
