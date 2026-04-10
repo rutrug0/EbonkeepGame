@@ -23,6 +23,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { ClassIcon } from "./ClassIcon";
 import { createInventoryInteractions, type InventoryInsertPosition } from "./inventoryInteractions";
 import { createInitialChatMessages, type ChatMessage } from "./chat";
+import { useHoverOverlayPresence } from "../lib/useHoverOverlayPresence";
 import {
   formatMenuLabel,
   formatMenuGroupLabel,
@@ -2208,7 +2209,13 @@ export function AppShell() {
   const [dropInsertPosition, setDropInsertPosition] = useState<InventoryInsertPosition>("before");
   const [equipmentDropTargetSlotId, setEquipmentDropTargetSlotId] = useState<EquipmentSlotId | null>(null);
   const [equipmentDropState, setEquipmentDropState] = useState<"valid" | "invalid" | null>(null);
-  const [inventoryComparisonHover, setInventoryComparisonHover] = useState<InventoryComparisonHoverState | null>(null);
+  const {
+    hoverState: inventoryComparisonHover,
+    isClosing: isInventoryComparisonOverlayClosing,
+    showHoverOverlay: showInventoryComparisonHover,
+    beginHideHoverOverlay: beginHideInventoryComparisonHover,
+    clearHoverOverlay: clearInventoryComparisonHover
+  } = useHoverOverlayPresence<InventoryComparisonHoverState>();
   const [showOnlyWeapons, setShowOnlyWeapons] = useState(false);
   const [showOnlyArmor, setShowOnlyArmor] = useState(false);
   const [showOnlyJewelry, setShowOnlyJewelry] = useState(false);
@@ -3404,7 +3411,7 @@ export function AppShell() {
       setDropTargetInventoryCardId(null);
       setEquipmentDropTargetSlotId(null);
       setEquipmentDropState(null);
-      setInventoryComparisonHover(null);
+      clearInventoryComparisonHover();
     }
     if (activeTab !== "inventory") {
       setCanDockInventoryChat(false);
@@ -3419,7 +3426,7 @@ export function AppShell() {
       setDropTargetInventoryCardId(null);
       setEquipmentDropTargetSlotId(null);
       setEquipmentDropState(null);
-      setInventoryComparisonHover(null);
+      clearInventoryComparisonHover();
     }
   }, [profileSideTab]);
 
@@ -4583,7 +4590,7 @@ export function AppShell() {
     setDropTargetInventoryCardId(null);
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
-    setInventoryComparisonHover(null);
+    clearInventoryComparisonHover();
     setActiveChatChannel("world");
     setChatMessagesByChannel(createInitialChatMessages());
     setChatDraft("");
@@ -4913,7 +4920,7 @@ export function AppShell() {
     if (!item) {
       return;
     }
-    setInventoryComparisonHover(null);
+    clearInventoryComparisonHover();
     const targetSlotId = getPreferredEquipSlot(item);
     if (!targetSlotId) {
       setError(i18n.t("errors.invalidItem"));
@@ -4978,7 +4985,7 @@ export function AppShell() {
     setEquipmentDropTargetSlotId,
     setEquipmentDropState,
     onClearDragState: () => setPortraitDropState(null),
-    clearInventoryComparisonHover: () => setInventoryComparisonHover(null),
+    clearInventoryComparisonHover,
     getItemById,
     getEquipValidationError,
     performInventoryMove,
@@ -4994,7 +5001,7 @@ export function AppShell() {
     setEquipmentDropTargetSlotId(null);
     setEquipmentDropState(null);
     setPortraitDropState(null);
-    setInventoryComparisonHover(null);
+    clearInventoryComparisonHover();
   }
 
   function triggerPortraitConsumePulse() {
@@ -5206,7 +5213,7 @@ export function AppShell() {
       Math.max(viewportPadding, Math.min(rect.top, window.innerHeight - viewportPadding - estimatedPanelHeight))
     );
 
-    setInventoryComparisonHover({
+    showInventoryComparisonHover({
       hoverKey,
       sourceItem: item,
       comparisonSlotId,
@@ -5218,9 +5225,7 @@ export function AppShell() {
   }
 
   function handleInventoryCardMouseLeave(hoverKey: string) {
-    setInventoryComparisonHover((previousHover) =>
-      previousHover?.hoverKey === hoverKey ? null : previousHover
-    );
+    beginHideInventoryComparisonHover((currentHover) => currentHover.hoverKey === hoverKey);
   }
 
   function renderInventoryComparisonOverlay(): ReactElement | null {
@@ -5250,7 +5255,7 @@ export function AppShell() {
 
     return createPortal(
       <div
-        className="inventoryComparisonOverlay"
+        className={`inventoryComparisonOverlay${isInventoryComparisonOverlayClosing ? " isClosing" : " isVisible"}`}
         style={{
           top: inventoryComparisonHover.top,
           left: inventoryComparisonHover.left,
@@ -6073,7 +6078,7 @@ export function AppShell() {
           activeMaterialFilter={activeMaterialFilter}
           groupedStats={[]}
           onTabChange={setProfileSideTab}
-          onInventoryScroll={() => setInventoryComparisonHover(null)}
+          onInventoryScroll={clearInventoryComparisonHover}
           onInventoryDragOver={handleInventoryListDragOver}
           onInventoryDrop={handleInventoryListDrop}
           onToggleInventoryPowerSort={toggleInventoryPowerSort}
@@ -6183,7 +6188,7 @@ export function AppShell() {
         activeMaterialFilter={activeMaterialFilter}
         groupedStats={groupedStats}
         onTabChange={setProfileSideTab}
-        onInventoryScroll={() => setInventoryComparisonHover(null)}
+        onInventoryScroll={clearInventoryComparisonHover}
         onInventoryDragOver={handleInventoryListDragOver}
         onInventoryDrop={handleInventoryListDrop}
         onToggleInventoryPowerSort={toggleInventoryPowerSort}
@@ -6803,6 +6808,10 @@ export function AppShell() {
     }
   }
 
+  function selectInventoryCharacterPanel() {
+    selectLandingTab("inventory");
+  }
+
   function selectCharacterHubTab(nextTab: CharacterHubTab) {
     if (nextTab === characterHubTab) {
       return;
@@ -7178,7 +7187,7 @@ export function AppShell() {
         >
           <aside className="leftPanel" ref={leftPanelRef}>
             <div className="leftPanelShell">
-              <section className="playerCard">
+              <section className="playerCard" onClick={selectInventoryCharacterPanel}>
                 <div className="identityRow">
                   <div className="avatar" aria-hidden="true">
                     {playerState ? (
@@ -7358,7 +7367,10 @@ export function AppShell() {
                     <button
                       type="button"
                       className={`playerCardMailboxButton${activeTab === "messages" ? " active" : ""}`}
-                      onClick={() => selectLandingTab("messages")}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectLandingTab("messages");
+                      }}
                       aria-label={i18n.t("menu.messages")}
                     >
                       <span className="playerCardMailboxIcon" aria-hidden="true">

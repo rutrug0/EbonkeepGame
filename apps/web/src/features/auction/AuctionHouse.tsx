@@ -6,6 +6,7 @@ import { isItemUsableByClass, type InventoryItem } from "@ebonkeep/shared/invent
 import { DUCATS_ICON_PATH } from "../../constants/uiAssets";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import { getUploadedItemIconPathByItemCode } from "../../lib/itemIcons";
+import { useHoverOverlayPresence } from "../../lib/useHoverOverlayPresence";
 import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 
 type ItemMajorCategory = "weapon" | "armor" | "jewelry" | "vestige" | "consumable" | "material";
@@ -344,7 +345,13 @@ export function AuctionHouse({
   const [enablingAutoBid, setEnablingAutoBid] = useState<string | null>(null);
   const [showAutoBidDisableModal, setShowAutoBidDisableModal] = useState(false);
   const [autoBidDisableTargetId, setAutoBidDisableTargetId] = useState<string | null>(null);
-  const [auctionHover, setAuctionHover] = useState<AuctionHoverState | null>(null);
+  const {
+    hoverState: auctionHover,
+    isClosing: isAuctionHoverClosing,
+    showHoverOverlay: showAuctionHover,
+    beginHideHoverOverlay: beginHideAuctionHover,
+    clearHoverOverlay: clearAuctionHover
+  } = useHoverOverlayPresence<AuctionHoverState>();
   const activeAuctionsRequestIdRef = useRef(0);
 
   const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
@@ -585,7 +592,7 @@ export function AuctionHouse({
     );
 
     setRerollingAuctions(true);
-    setAuctionHover(null);
+    clearAuctionHover();
     setError(null);
 
     try {
@@ -1452,7 +1459,7 @@ export function AuctionHouse({
     const placeOnRight = rightSpace >= panelWidth || rightSpace >= leftSpace;
     const unclampedLeft = placeOnRight ? rect.right + gapPx : rect.left - panelWidth - gapPx;
 
-    setAuctionHover({
+    showAuctionHover({
       itemId: item.id,
       itemData: {
         ...itemData,
@@ -1471,7 +1478,7 @@ export function AuctionHouse({
   };
 
   const handleAuctionItemMouseLeave = (itemId: string) => {
-    setAuctionHover((previousHover: AuctionHoverState | null) => (previousHover?.itemId === itemId ? null : previousHover));
+    beginHideAuctionHover((currentHover) => currentHover.itemId === itemId);
   };
 
   const renderAuctionHoverOverlay = () => {
@@ -1488,7 +1495,7 @@ export function AuctionHouse({
 
     return (
       <div
-        className="inventoryComparisonOverlay"
+        className={`inventoryComparisonOverlay${isAuctionHoverClosing ? " isClosing" : " isVisible"}`}
         style={{
           top: auctionHover.top,
           left: auctionHover.left,
@@ -1820,7 +1827,7 @@ export function AuctionHouse({
               selectedAuction?.id === auction.id ? " auctionBrowseAuctionButtonActive" : ""
             }`}
             onClick={() => {
-              setAuctionHover(null);
+              clearAuctionHover();
               setSelectedAuction(auction);
             }}
           >
