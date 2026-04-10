@@ -246,4 +246,4 @@ export const currencyBalanceSchema = z.object({
 });
 export type CurrencyBalance = z.infer<typeof currencyBalanceSchema>;
 
-export const mainStatToFlatDamageRatio = 0.1;
+export const mainStatToFlatDamageRatio = 0.05;

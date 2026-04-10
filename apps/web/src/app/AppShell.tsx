@@ -40,8 +40,10 @@ import {
 } from "./navigation";
 import {
   classToStatTree,
+  classToWeaponStat,
   mainStatToFlatDamageRatio,
   type ArmorArchetype,
+  type CoreStatKey,
   type EquipmentGroup,
   type EquipmentSlotId as SharedEquipmentSlotId,
   type ItemMajorCategory,
@@ -433,6 +435,18 @@ const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
 const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
+const BASE_ACCURACY = 75;
+const BASE_CRIT_CHANCE = 500;
+const BASE_CRIT_MULTIPLIER = 15000;
+const HP_PER_VITALITY = 16;
+const CHANCE_PER_STAT = 10;
+const CRIT_CHANCE_CAP = 6000;
+const CRIT_MULTIPLIER_CAP = 45000;
+const DODGE_CHANCE_CAP = 3500;
+const EXTRA_ATTACK_CHANCE_CAP = 3500;
+const LEVEL_HP_BONUS = 40;
+const LEVEL_DAMAGE_BONUS = 0.8;
+const LEVEL_ARMOR_BONUS = 1.4;
 
 function createPanelRoute(landingTab: LandingTab, characterHubTab: CharacterHubTab): PanelRoute {
   const normalizedLandingTab = landingTab === "crafting" ? "refinery" : landingTab;
@@ -1935,11 +1949,116 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
-  const tree = classToStatTree(playerClass);
+function clampInt(value: number, max: number): number {
+  return Math.max(0, Math.min(max, Math.round(value)));
+}
+
+function roundStat(value: number): number {
+  return Math.round(value);
+}
+
+function getLevelGrowthMultiplier(level: number): number {
+  return Math.max(0, Math.floor(level) - 1);
+}
+
+function getMainOffenseStatKey(playerClass: PlayerClass): CoreStatKey {
+  const tree = classToWeaponStat(playerClass);
   if (tree === "intelligence") return "intelligence";
   if (tree === "dexterity") return "dexterity";
   return "strength";
+}
+
+function buildPreviewTotalStats(
+  playerState: PlayerState,
+  previewBaseStats: Record<TrainableStatKey, number> | null
+): PlayerState["statSnapshot"]["total"] {
+  if (!previewBaseStats) {
+    return playerState.statSnapshot.total;
+  }
+
+  const currentBaseStats = playerState.statSnapshot.base;
+  const currentTotalStats = playerState.statSnapshot.total;
+  const levelGrowth = getLevelGrowthMultiplier(playerState.level);
+  const mainOffenseStatKey = getMainOffenseStatKey(playerState.class);
+  const weaponDamage = Math.round(playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0);
+
+  const previewTotalCoreStats: Record<TrainableStatKey, number> = {
+    strength: previewBaseStats.strength + (currentTotalStats.strength - currentBaseStats.strength),
+    intelligence: previewBaseStats.intelligence + (currentTotalStats.intelligence - currentBaseStats.intelligence),
+    dexterity: previewBaseStats.dexterity + (currentTotalStats.dexterity - currentBaseStats.dexterity),
+    vitality: previewBaseStats.vitality + (currentTotalStats.vitality - currentBaseStats.vitality),
+    initiative: previewBaseStats.initiative + (currentTotalStats.initiative - currentBaseStats.initiative),
+    luck: previewBaseStats.luck + (currentTotalStats.luck - currentBaseStats.luck)
+  };
+
+  const armorBonus = currentTotalStats.armor - roundStat(currentTotalStats.strength + (levelGrowth * LEVEL_ARMOR_BONUS));
+  const spellShieldBonus = currentTotalStats.spellShield - currentTotalStats.intelligence;
+  const missileResistanceBonus = currentTotalStats.missileResistance - currentTotalStats.dexterity;
+  const maxHitpointsBonus =
+    currentTotalStats.maxHitpoints - roundStat((currentTotalStats.vitality * HP_PER_VITALITY) + (levelGrowth * LEVEL_HP_BONUS));
+  const dodgeChanceBonus =
+    currentTotalStats.dodgeChance - clampInt(currentTotalStats.dexterity * CHANCE_PER_STAT, DODGE_CHANCE_CAP);
+  const damageBonus =
+    currentTotalStats.damage -
+    roundStat(
+      weaponDamage +
+      (currentTotalStats[mainOffenseStatKey] * mainStatToFlatDamageRatio) +
+      (levelGrowth * LEVEL_DAMAGE_BONUS)
+    );
+  const critChanceBonus =
+    currentTotalStats.critChance -
+    clampInt(BASE_CRIT_CHANCE + (currentTotalStats.luck * CHANCE_PER_STAT), CRIT_CHANCE_CAP);
+  const critMultiplierBonus =
+    currentTotalStats.critMultiplier -
+    clampInt(BASE_CRIT_MULTIPLIER + (currentTotalStats.luck * CHANCE_PER_STAT), CRIT_MULTIPLIER_CAP);
+  const accuracyBonus = currentTotalStats.accuracy - BASE_ACCURACY;
+  const extraAttackChanceBonus =
+    currentTotalStats.extraAttackChance -
+    clampInt(currentTotalStats.initiative * CHANCE_PER_STAT, EXTRA_ATTACK_CHANCE_CAP);
+
+  return {
+    strength: previewTotalCoreStats.strength,
+    intelligence: previewTotalCoreStats.intelligence,
+    dexterity: previewTotalCoreStats.dexterity,
+    vitality: previewTotalCoreStats.vitality,
+    initiative: previewTotalCoreStats.initiative,
+    luck: previewTotalCoreStats.luck,
+    armor: roundStat(previewTotalCoreStats.strength + armorBonus + (levelGrowth * LEVEL_ARMOR_BONUS)),
+    spellShield: previewTotalCoreStats.intelligence + spellShieldBonus,
+    missileResistance: previewTotalCoreStats.dexterity + missileResistanceBonus,
+    physicalDefense: Math.max(0, currentTotalStats.physicalDefense),
+    magicDefense: Math.max(0, currentTotalStats.magicDefense),
+    maxHitpoints: Math.max(
+      0,
+      roundStat((previewTotalCoreStats.vitality * HP_PER_VITALITY) + maxHitpointsBonus + (levelGrowth * LEVEL_HP_BONUS))
+    ),
+    dodgeChance: clampInt(
+      (previewTotalCoreStats.dexterity * CHANCE_PER_STAT) + dodgeChanceBonus,
+      DODGE_CHANCE_CAP
+    ),
+    damage: Math.max(
+      0,
+      roundStat(
+        weaponDamage +
+        (previewTotalCoreStats[mainOffenseStatKey] * mainStatToFlatDamageRatio) +
+        damageBonus +
+        (levelGrowth * LEVEL_DAMAGE_BONUS)
+      )
+    ),
+    critChance: clampInt(
+      BASE_CRIT_CHANCE + (previewTotalCoreStats.luck * CHANCE_PER_STAT) + critChanceBonus,
+      CRIT_CHANCE_CAP
+    ),
+    critMultiplier: clampInt(
+      BASE_CRIT_MULTIPLIER + (previewTotalCoreStats.luck * CHANCE_PER_STAT) + critMultiplierBonus,
+      CRIT_MULTIPLIER_CAP
+    ),
+    accuracy: Math.max(0, BASE_ACCURACY + accuracyBonus),
+    extraAttackChance: clampInt(
+      (previewTotalCoreStats.initiative * CHANCE_PER_STAT) + extraAttackChanceBonus,
+      EXTRA_ATTACK_CHANCE_CAP
+    )
+  };
 }
 
 function getStatContributionLines(
@@ -1950,46 +2069,57 @@ function getStatContributionLines(
   const mainOffenseStat = getMainOffenseStatKey(playerClass);
 
   switch (stat) {
-    case "strength":
-      return [
-        {
-          label: mainOffenseStat === "strength" ? i18n.t("profile.mainDamage") : i18n.t("profile.meleeDamage"),
-          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
-          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
-        },
+    case "strength": {
+      const lines: StatContributionLine[] = [
         {
           label: i18n.t("profile.armor"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
       ];
-    case "intelligence":
-      return [
-        {
-          label:
-            mainOffenseStat === "intelligence" ? i18n.t("profile.mainDamage") : i18n.t("profile.spellDamage"),
+      if (mainOffenseStat === "strength") {
+        lines.unshift({
+          label: i18n.t("profile.mainDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
-        },
+        });
+      }
+      return lines;
+    }
+    case "intelligence": {
+      const lines: StatContributionLine[] = [
         {
           label: i18n.t("profile.spellShield"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
       ];
-    case "dexterity":
-      return [
-        {
-          label: mainOffenseStat === "dexterity" ? i18n.t("profile.mainDamage") : i18n.t("profile.rangedDamage"),
+      if (mainOffenseStat === "intelligence") {
+        lines.unshift({
+          label: i18n.t("profile.mainDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
-        },
+        });
+      }
+      return lines;
+    }
+    case "dexterity": {
+      const lines: StatContributionLine[] = [
         {
           label: i18n.t("profile.missileResistance"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
       ];
+      if (mainOffenseStat === "dexterity") {
+        lines.unshift({
+          label: i18n.t("profile.mainDamage"),
+          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
+          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
+        });
+      }
+      return lines;
+    }
     case "luck":
       return [
         {
@@ -3048,8 +3178,12 @@ export function AppShell() {
   const staminaLabel = playerState
     ? `${playerState.stamina.current}/${playerState.stamina.max}`
     : "0/0";
+  const previewTotalStats = useMemo(
+    () => (playerState ? buildPreviewTotalStats(playerState, baseStats) : null),
+    [baseStats, playerState]
+  );
   const playerCardScoreSummary = useMemo(() => {
-    if (!playerState) {
+    if (!playerState || !previewTotalStats) {
       return {
         gear: 0,
         offense: 0,
@@ -3076,9 +3210,9 @@ export function AppShell() {
       } satisfies PlayerCardScoreBreakdown;
     }
 
-    const totalStats = playerState.statSnapshot.total;
+    const totalStats = previewTotalStats;
     const mainStatKey = getMainOffenseStatKey(playerState.class);
-    const mainStatBonus = Math.floor(totalStats[mainStatKey] * 0.1);
+    const mainStatBonus = totalStats[mainStatKey] * mainStatToFlatDamageRatio;
     const weaponDamage = Math.round(playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0);
     const baseOffense = totalStats.damage;
     const itemDamageBonus = Math.max(0, baseOffense - weaponDamage - mainStatBonus);
@@ -3124,7 +3258,7 @@ export function AppShell() {
         dodgeFactor
       }
     };
-  }, [playerState]);
+  }, [playerState, previewTotalStats]);
   const basePlayerCardCurrencies = currencies ?? {
     ducats: Math.max(playerState?.currency.ducats ?? 0, TEST_MIN_DUCATS),
     imperials: playerState?.currency.imperials ?? 0
@@ -6098,21 +6232,16 @@ export function AppShell() {
       );
     }
 
-    const totalStats = playerState.statSnapshot.total;
-    const playerStatTree = classToStatTree(playerState.class);
-    const mainOffenseStat =
-      playerStatTree === "intelligence"
-        ? playerState.stats.intelligence
-        : playerStatTree === "dexterity"
-          ? playerState.stats.dexterity
-          : playerState.stats.strength;
+    const totalStats = previewTotalStats ?? playerState.statSnapshot.total;
+    const mainOffenseStatKey = getMainOffenseStatKey(playerState.class);
+    const mainOffenseStat = totalStats[mainOffenseStatKey];
     const mainOffenseTypeLabel =
-      playerStatTree === "intelligence"
+      mainOffenseStatKey === "intelligence"
         ? i18n.t("profile.spellDamage")
-        : playerStatTree === "dexterity"
+        : mainOffenseStatKey === "dexterity"
           ? i18n.t("profile.rangedAttackDamage")
           : i18n.t("profile.meleeDamage");
-    const flatBonusDamage = Math.floor(mainOffenseStat * 0.1).toFixed(1);
+    const flatBonusDamage = formatOneDecimal(mainOffenseStat * mainStatToFlatDamageRatio);
     const weaponAverageDamage = playerState.equipment.weapon?.damageRoll?.averageDamage ?? totalStats.damage;
     const flatDamage = Math.max(0, totalStats.damage - weaponAverageDamage);
     const weaponMinDamage = playerState.equipment.weapon?.damageRoll?.rolledMin ?? totalStats.damage;
@@ -7235,7 +7364,7 @@ export function AppShell() {
                           <strong>Weapon Damage:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.weaponDamage)}
                         </p>
                         <p className="uiHoverTooltipLine">
-                          <strong>Item Damage Bonus:</strong> {playerCardScoreSummary.offenseParts.itemDamageBonus}
+                          <strong>Item Damage Bonus:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.itemDamageBonus)}
                         </p>
                         <p className="uiHoverTooltipLine">
                           <strong>Main Stat Bonus:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.mainStatBonus)}
