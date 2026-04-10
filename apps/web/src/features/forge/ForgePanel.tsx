@@ -1169,10 +1169,13 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
     {forgeHover && createPortal(
       <div
         className={`inventoryComparisonOverlay${isForgeHoverClosing ? " isClosing" : " isVisible"}`}
-        style={forgeHover.style}
+        style={{ ...forgeHover.style, width: undefined }}
       >
         {forgeHover.kind === "weapon" && selectedWeapon ? (
-        <article className={`inventoryDetailCard inventoryHoverDetailCard rarity-${selectedWeapon.rarity}`}>
+        <article
+          className={`inventoryDetailCard inventoryHoverDetailCard rarity-${selectedWeapon.rarity}`}
+          style={forgeHover.style.width ? { width: forgeHover.style.width, maxWidth: forgeHover.style.width } : undefined}
+        >
           {(() => {
             const canUseItem = canUseForgeItem(selectedWeapon);
             const displayItemName = getItemDisplayName(selectedWeapon);
@@ -1252,7 +1255,10 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
           })()}
         </article>
       ) : forgeHover.kind === "enchant" && catalystRarity && nextEnchantLevel ? (
-        <article className={`inventoryDetailCard rarity-${catalystRarity}`}>
+        <article
+          className={`inventoryDetailCard rarity-${catalystRarity}`}
+          style={forgeHover.style.width ? { width: forgeHover.style.width, maxWidth: forgeHover.style.width } : undefined}
+        >
           <div className="inventoryCardTop">
             <div className="inventoryCardMeta">
               <h4>{formatRarityLabel(catalystRarity)} {t("forge.weaponCatalyst")}</h4>
