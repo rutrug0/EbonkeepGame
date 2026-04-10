@@ -23,6 +23,7 @@ import { isItemUsableByClass, type InventoryItem, type ItemModifier, type Modifi
 import type { PlayerState } from "@ebonkeep/shared/player";
 
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
+import { useHoverOverlayPresence } from "../../lib/useHoverOverlayPresence";
 import { getViewBackgroundStyle } from "../../lib/viewBackgrounds";
 import { attemptForgeEnchant, mendForgeWeapon, fetchForgeState } from "./api";
 
@@ -224,7 +225,12 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
   const [showWeaponPicker, setShowWeaponPicker] = useState(false);
   const [showEnchantPicker, setShowEnchantPicker] = useState(false);
   const [showRulesPanel, setShowRulesPanel] = useState(false);
-  const [forgeHover, setForgeHover] = useState<{ kind: "weapon" | "enchant"; style: CSSProperties } | null>(null);
+  const {
+    hoverState: forgeHover,
+    isClosing: isForgeHoverClosing,
+    showHoverOverlay: showForgeHover,
+    beginHideHoverOverlay: beginHideForgeHover
+  } = useHoverOverlayPresence<{ kind: "weapon" | "enchant"; style: CSSProperties }>();
   const resolveTimeoutsRef = useRef<number[]>([]);
   const activeResolveRunRef = useRef(0);
   const pendingPlayerStateRef = useRef<PlayerState | null>(null);
@@ -730,9 +736,9 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
                 const w = 300;
                 const spaceRight = window.innerWidth - rect.right;
                 const left = spaceRight >= w + 16 ? rect.right + 12 : rect.left - w - 12;
-                setForgeHover({ kind: "weapon", style: { position: "fixed", top: Math.max(8, Math.min(rect.top, window.innerHeight - 480)), left: Math.max(8, left), width: w, zIndex: 9999, pointerEvents: "none" } });
+                showForgeHover({ kind: "weapon", style: { position: "fixed", top: Math.max(8, Math.min(rect.top, window.innerHeight - 480)), left: Math.max(8, left), width: w, zIndex: 9999, pointerEvents: "none" } });
               }}
-              onMouseLeave={() => setForgeHover(null)}
+              onMouseLeave={() => beginHideForgeHover((currentHover) => currentHover.kind === "weapon")}
             >
               {selectedWeapon ? (
                 <>
@@ -995,9 +1001,9 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
                   const rect = e.currentTarget.getBoundingClientRect();
                   const w = 280;
                   const left = rect.left >= w + 16 ? rect.left - w - 12 : rect.right + 12;
-                  setForgeHover({ kind: "enchant", style: { position: "fixed", top: Math.max(8, Math.min(rect.top, window.innerHeight - 360)), left: Math.max(8, left), width: w, zIndex: 9999, pointerEvents: "none" } });
-                }}
-                onMouseLeave={() => setForgeHover(null)}
+                showForgeHover({ kind: "enchant", style: { position: "fixed", top: Math.max(8, Math.min(rect.top, window.innerHeight - 360)), left: Math.max(8, left), width: w, zIndex: 9999, pointerEvents: "none" } });
+              }}
+              onMouseLeave={() => beginHideForgeHover((currentHover) => currentHover.kind === "enchant")}
               >
                 {catalystRarity && nextEnchantLevel ? (
                   <>
@@ -1161,8 +1167,15 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
 
     {/* ── Item hover card portal ───────────────────── */}
     {forgeHover && createPortal(
-      forgeHover.kind === "weapon" && selectedWeapon ? (
-        <article className={`inventoryDetailCard inventoryHoverDetailCard rarity-${selectedWeapon.rarity}`} style={forgeHover.style}>
+      <div
+        className={`inventoryComparisonOverlay${isForgeHoverClosing ? " isClosing" : " isVisible"}`}
+        style={{ ...forgeHover.style, width: undefined }}
+      >
+        {forgeHover.kind === "weapon" && selectedWeapon ? (
+        <article
+          className={`inventoryDetailCard inventoryHoverDetailCard rarity-${selectedWeapon.rarity}`}
+          style={forgeHover.style.width ? { width: forgeHover.style.width, maxWidth: forgeHover.style.width } : undefined}
+        >
           {(() => {
             const canUseItem = canUseForgeItem(selectedWeapon);
             const displayItemName = getItemDisplayName(selectedWeapon);
@@ -1242,7 +1255,10 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
           })()}
         </article>
       ) : forgeHover.kind === "enchant" && catalystRarity && nextEnchantLevel ? (
-        <article className={`inventoryDetailCard rarity-${catalystRarity}`} style={forgeHover.style}>
+        <article
+          className={`inventoryDetailCard rarity-${catalystRarity}`}
+          style={forgeHover.style.width ? { width: forgeHover.style.width, maxWidth: forgeHover.style.width } : undefined}
+        >
           <div className="inventoryCardTop">
             <div className="inventoryCardMeta">
               <h4>{formatRarityLabel(catalystRarity)} {t("forge.weaponCatalyst")}</h4>
@@ -1264,7 +1280,8 @@ export function ForgePanel({ token, playerState, onPlayerStateChange, onFirstPai
             </div>
           </div>
         </article>
-      ) : null,
+      ) : null}
+      </div>,
       document.body
     )}
   </>

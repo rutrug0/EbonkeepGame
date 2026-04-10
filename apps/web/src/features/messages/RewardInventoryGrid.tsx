@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
@@ -15,6 +15,7 @@ import type { PlayerState } from "@ebonkeep/shared/player";
 import { GENERATED_WEAPON_ICON_PATHS_BY_NAME } from "../profile/mockInventoryData";
 import { GENERATED_ITEM_ICON_PATHS } from "../../generated/itemArtManifest";
 import { getUploadedItemIconPathByItemCode } from "../../lib/itemIcons";
+import { useHoverOverlayPresence } from "../../lib/useHoverOverlayPresence";
 
 type RewardInventoryGridProps = {
   items: InventoryItem[];
@@ -580,7 +581,12 @@ function renderInventoryItemDetailCardBody(
 
 export function RewardInventoryGrid(props: RewardInventoryGridProps): ReactElement | null {
   const { t } = useTranslation();
-  const [hoverState, setHoverState] = useState<HoverState | null>(null);
+  const {
+    hoverState,
+    isClosing: isHoverClosing,
+    showHoverOverlay,
+    beginHideHoverOverlay
+  } = useHoverOverlayPresence<HoverState>();
   const itemCardAttributeName = props.itemCardAttributeName ?? "data-message-reward-item";
 
   if (props.items.length === 0) {
@@ -619,7 +625,7 @@ export function RewardInventoryGrid(props: RewardInventoryGridProps): ReactEleme
       Math.max(viewportPadding, Math.min(rect.top, window.innerHeight - viewportPadding - estimatedPanelHeight))
     );
 
-    setHoverState({
+    showHoverOverlay({
       hoverKey,
       sourceItem: item,
       comparisonItem: comparisonItem && comparisonItem.id !== item.id ? comparisonItem : null,
@@ -631,7 +637,7 @@ export function RewardInventoryGrid(props: RewardInventoryGridProps): ReactEleme
   }
 
   function handleMouseLeave(hoverKey: string) {
-    setHoverState((current) => (current?.hoverKey === hoverKey ? null : current));
+    beginHideHoverOverlay((currentHover) => currentHover.hoverKey === hoverKey);
   }
 
   return (
@@ -656,7 +662,7 @@ export function RewardInventoryGrid(props: RewardInventoryGridProps): ReactEleme
       {hoverState
         ? createPortal(
             <div
-              className="inventoryComparisonOverlay"
+              className={`inventoryComparisonOverlay${isHoverClosing ? " isClosing" : " isVisible"}`}
               style={{
                 top: hoverState.top,
                 left: hoverState.left,
