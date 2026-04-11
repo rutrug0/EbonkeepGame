@@ -28,7 +28,12 @@ test("dragging a consumable onto portrait consumes stack and activates effect @s
 
   const portraitDropTarget = page.getByTestId("character-portrait-drop-target");
   await expect(portraitDropTarget).toBeVisible();
-  await consumableCard.dragTo(portraitDropTarget);
+  const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
+  await consumableCard.dispatchEvent("dragstart", { dataTransfer });
+  await portraitDropTarget.dispatchEvent("dragenter", { dataTransfer });
+  await portraitDropTarget.dispatchEvent("dragover", { dataTransfer });
+  await portraitDropTarget.dispatchEvent("drop", { dataTransfer });
+  await consumableCard.dispatchEvent("dragend", { dataTransfer });
 
   const activeConsumableCells = page.locator(".activeConsumableCell");
   await expect(activeConsumableCells).toHaveCount(1);

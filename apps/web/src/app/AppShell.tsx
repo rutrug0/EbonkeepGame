@@ -40,12 +40,16 @@ import {
 } from "./navigation";
 import {
   classToStatTree,
+  classToWeaponStat,
   mainStatToFlatDamageRatio,
   type ArmorArchetype,
+  type CoreStatKey,
   type EquipmentGroup,
   type EquipmentSlotId as SharedEquipmentSlotId,
   type ItemMajorCategory,
   type PlayerClass,
+  type PlayerStatBlock,
+  type PlayerStatBonuses,
   type SupportedLocale,
   type WeaponArchetype,
   type WeaponFamily,
@@ -433,6 +437,38 @@ const LUCK_CRIT_DAMAGE_PERCENT_PER_POINT = 0.2;
 const INITIATIVE_COMBAT_SPEED_PERCENT_PER_POINT = 0.1;
 const INITIATIVE_EXTRA_ATTACK_PERCENT_PER_POINT = 0.2;
 const VITALITY_MAX_HP_PER_POINT = 10;
+const BASE_ACCURACY = 75;
+const BASE_CRIT_CHANCE = 500;
+const BASE_CRIT_MULTIPLIER = 15000;
+const HP_PER_VITALITY = 16;
+const CHANCE_PER_STAT = 10;
+const CRIT_CHANCE_CAP = 6000;
+const CRIT_MULTIPLIER_CAP = 45000;
+const DODGE_CHANCE_CAP = 3500;
+const EXTRA_ATTACK_CHANCE_CAP = 3500;
+const LEVEL_HP_BONUS = 40;
+const LEVEL_DAMAGE_BONUS = 0.8;
+const LEVEL_ARMOR_BONUS = 1.4;
+const RESOLVED_STAT_KEYS: Array<keyof PlayerStatBlock> = [
+  "strength",
+  "intelligence",
+  "dexterity",
+  "vitality",
+  "initiative",
+  "luck",
+  "armor",
+  "spellShield",
+  "missileResistance",
+  "physicalDefense",
+  "magicDefense",
+  "maxHitpoints",
+  "dodgeChance",
+  "damage",
+  "critChance",
+  "critMultiplier",
+  "accuracy",
+  "extraAttackChance"
+];
 
 function createPanelRoute(landingTab: LandingTab, characterHubTab: CharacterHubTab): PanelRoute {
   const normalizedLandingTab = landingTab === "crafting" ? "refinery" : landingTab;
@@ -1935,11 +1971,297 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function getMainOffenseStatKey(playerClass: PlayerClass): TrainableStatKey {
-  const tree = classToStatTree(playerClass);
+function clampInt(value: number, max: number): number {
+  return Math.max(0, Math.min(max, Math.round(value)));
+}
+
+function roundStat(value: number): number {
+  return Math.round(value);
+}
+
+function getLevelGrowthMultiplier(level: number): number {
+  return Math.max(0, Math.floor(level) - 1);
+}
+
+function addRawStatBonus(
+  bonuses: PlayerStatBonuses,
+  key: keyof PlayerStatBonuses,
+  value: number
+): PlayerStatBonuses {
+  return {
+    ...bonuses,
+    [key]: Math.round((bonuses[key] ?? 0) + value)
+  };
+}
+
+function sumEquipmentStatBonuses(equipment: PlayerState["equipment"]): PlayerStatBonuses {
+  let totals: PlayerStatBonuses = {};
+
+  for (const item of Object.values(equipment)) {
+    if (!item?.statBonuses) {
+      continue;
+    }
+
+    for (const [statKey, value] of Object.entries(item.statBonuses)) {
+      if (typeof value !== "number") {
+        continue;
+      }
+      totals = addRawStatBonus(totals, statKey as keyof PlayerStatBonuses, value);
+    }
+  }
+
+  return totals;
+}
+
+type ActiveConsumableStatTotals = {
+  flatBonuses: PlayerStatBonuses;
+  percentBonusesBps: PlayerStatBonuses;
+};
+
+function aggregateActiveConsumableStatTotals(
+  consumables: readonly ActiveConsumable[]
+): ActiveConsumableStatTotals {
+  let flatBonuses: PlayerStatBonuses = {};
+  let percentBonusesBps: PlayerStatBonuses = {};
+
+  for (const consumable of consumables) {
+    for (const effect of consumable.effects) {
+      if (effect.type !== "stat_flat" && effect.type !== "stat_bps") {
+        continue;
+      }
+      const target = effect.target as keyof PlayerStatBonuses;
+      if (!RESOLVED_STAT_KEYS.includes(target as keyof PlayerStatBlock)) {
+        continue;
+      }
+      if (effect.type === "stat_flat") {
+        flatBonuses = addRawStatBonus(flatBonuses, target, effect.value);
+        continue;
+      }
+      percentBonusesBps = addRawStatBonus(percentBonusesBps, target, effect.value);
+    }
+  }
+
+  return {
+    flatBonuses,
+    percentBonusesBps
+  };
+}
+
+function applyActiveConsumableStatTotals(
+  stats: PlayerStatBlock,
+  totals: ActiveConsumableStatTotals
+): PlayerStatBlock {
+  const nextStats = { ...stats };
+
+  for (const statKey of RESOLVED_STAT_KEYS) {
+    const flatBonus = totals.flatBonuses[statKey] ?? 0;
+    const percentBonusBps = totals.percentBonusesBps[statKey] ?? 0;
+    if (flatBonus === 0 && percentBonusBps === 0) {
+      continue;
+    }
+
+    const currentValue = nextStats[statKey];
+    const percentDelta = Math.round((currentValue * percentBonusBps) / 10_000);
+    nextStats[statKey] = Math.max(0, currentValue + flatBonus + percentDelta);
+  }
+
+  return nextStats;
+}
+
+function removeActiveConsumableStatTotals(
+  currentValue: number,
+  flatBonus: number,
+  percentBonusBps: number
+): number {
+  if (flatBonus === 0 && percentBonusBps === 0) {
+    return currentValue;
+  }
+
+  const ratio = 1 + (percentBonusBps / 10_000);
+  const estimate = Math.round((currentValue - flatBonus) / Math.max(0.0001, ratio));
+  let bestCandidate = Math.max(0, estimate);
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (let candidate = Math.max(0, estimate - 64); candidate <= Math.max(0, estimate + 64); candidate += 1) {
+    const resolved = Math.max(0, candidate + flatBonus + Math.round((candidate * percentBonusBps) / 10_000));
+    const distance = Math.abs(resolved - currentValue);
+    if (distance < bestDistance || (distance === bestDistance && Math.abs(candidate - estimate) < Math.abs(bestCandidate - estimate))) {
+      bestCandidate = candidate;
+      bestDistance = distance;
+    }
+    if (distance === 0 && candidate <= currentValue) {
+      bestCandidate = candidate;
+      break;
+    }
+  }
+
+  return bestCandidate;
+}
+
+function getMainOffenseStatKey(playerClass: PlayerClass): CoreStatKey {
+  const tree = classToWeaponStat(playerClass);
   if (tree === "intelligence") return "intelligence";
   if (tree === "dexterity") return "dexterity";
   return "strength";
+}
+
+function buildPreviewTotalStats(
+  playerState: PlayerState,
+  previewBaseStats: Record<TrainableStatKey, number> | null
+): PlayerState["statSnapshot"]["total"] {
+  if (!previewBaseStats) {
+    return playerState.statSnapshot.total;
+  }
+
+  const equipmentBonuses = sumEquipmentStatBonuses(playerState.equipment);
+  const activeConsumableTotals = aggregateActiveConsumableStatTotals(playerState.activeConsumables ?? []);
+  const currentBaseStats = playerState.statSnapshot.base;
+  const currentTotalStats = playerState.statSnapshot.total;
+  const levelGrowth = getLevelGrowthMultiplier(playerState.level);
+  const mainOffenseStatKey = getMainOffenseStatKey(playerState.class);
+  const weaponDamage = Math.round(playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0);
+  const currentPreConsumableTotal = RESOLVED_STAT_KEYS.reduce<PlayerStatBlock>(
+    (totals, statKey) => {
+      totals[statKey] = removeActiveConsumableStatTotals(
+        currentTotalStats[statKey],
+        activeConsumableTotals.flatBonuses[statKey] ?? 0,
+        activeConsumableTotals.percentBonusesBps[statKey] ?? 0
+      );
+      return totals;
+    },
+    { ...currentTotalStats }
+  );
+
+  const currentCoreGuildBonuses: Record<TrainableStatKey, number> = {
+    strength: currentPreConsumableTotal.strength - currentBaseStats.strength - (equipmentBonuses.strength ?? 0),
+    intelligence: currentPreConsumableTotal.intelligence - currentBaseStats.intelligence - (equipmentBonuses.intelligence ?? 0),
+    dexterity: currentPreConsumableTotal.dexterity - currentBaseStats.dexterity - (equipmentBonuses.dexterity ?? 0),
+    vitality: currentPreConsumableTotal.vitality - currentBaseStats.vitality - (equipmentBonuses.vitality ?? 0),
+    initiative: currentPreConsumableTotal.initiative - currentBaseStats.initiative - (equipmentBonuses.initiative ?? 0),
+    luck: currentPreConsumableTotal.luck - currentBaseStats.luck - (equipmentBonuses.luck ?? 0)
+  };
+
+  const previewPreConsumableCore: Record<TrainableStatKey, number> = {
+    strength: previewBaseStats.strength + currentCoreGuildBonuses.strength + (equipmentBonuses.strength ?? 0),
+    intelligence: previewBaseStats.intelligence + currentCoreGuildBonuses.intelligence + (equipmentBonuses.intelligence ?? 0),
+    dexterity: previewBaseStats.dexterity + currentCoreGuildBonuses.dexterity + (equipmentBonuses.dexterity ?? 0),
+    vitality: previewBaseStats.vitality + currentCoreGuildBonuses.vitality + (equipmentBonuses.vitality ?? 0),
+    initiative: previewBaseStats.initiative + currentCoreGuildBonuses.initiative + (equipmentBonuses.initiative ?? 0),
+    luck: previewBaseStats.luck + currentCoreGuildBonuses.luck + (equipmentBonuses.luck ?? 0)
+  };
+
+  const armorBonus = currentPreConsumableTotal.armor
+    - roundStat(currentPreConsumableTotal.strength + (levelGrowth * LEVEL_ARMOR_BONUS))
+    - (equipmentBonuses.armor ?? 0);
+  const spellShieldBonus = currentPreConsumableTotal.spellShield
+    - currentPreConsumableTotal.intelligence
+    - (equipmentBonuses.spellShield ?? 0);
+  const missileResistanceBonus = currentPreConsumableTotal.missileResistance
+    - currentPreConsumableTotal.dexterity
+    - (equipmentBonuses.missileResistance ?? 0);
+  const physicalDefenseBonus = currentPreConsumableTotal.physicalDefense - (equipmentBonuses.physicalDefense ?? 0);
+  const magicDefenseBonus = currentPreConsumableTotal.magicDefense - (equipmentBonuses.magicDefense ?? 0);
+  const maxHitpointsBonus =
+    currentPreConsumableTotal.maxHitpoints
+    - roundStat((currentPreConsumableTotal.vitality * HP_PER_VITALITY) + (levelGrowth * LEVEL_HP_BONUS))
+    - (equipmentBonuses.maxHitpoints ?? 0);
+  const damageBonus =
+    currentPreConsumableTotal.damage
+    - roundStat(
+      weaponDamage +
+      (currentPreConsumableTotal[mainOffenseStatKey] * mainStatToFlatDamageRatio) +
+      (equipmentBonuses.damage ?? 0) +
+      (levelGrowth * LEVEL_DAMAGE_BONUS)
+    );
+  const accuracyBonus = currentPreConsumableTotal.accuracy - BASE_ACCURACY - (equipmentBonuses.accuracy ?? 0);
+  const dodgeChanceBonus =
+    currentPreConsumableTotal.dodgeChance
+    - clampInt(
+      (currentPreConsumableTotal.dexterity * CHANCE_PER_STAT) + (equipmentBonuses.dodgeChance ?? 0),
+      DODGE_CHANCE_CAP
+    );
+  const critChanceBonus =
+    currentPreConsumableTotal.critChance
+    - clampInt(
+      BASE_CRIT_CHANCE + (currentPreConsumableTotal.luck * CHANCE_PER_STAT) + (equipmentBonuses.critChance ?? 0),
+      CRIT_CHANCE_CAP
+    );
+  const critMultiplierBonus =
+    currentPreConsumableTotal.critMultiplier
+    - clampInt(
+      BASE_CRIT_MULTIPLIER + (currentPreConsumableTotal.luck * CHANCE_PER_STAT) + (equipmentBonuses.critMultiplier ?? 0),
+      CRIT_MULTIPLIER_CAP
+    );
+  const extraAttackChanceBonus =
+    currentPreConsumableTotal.extraAttackChance
+    - clampInt(
+      (currentPreConsumableTotal.initiative * CHANCE_PER_STAT) + (equipmentBonuses.extraAttackChance ?? 0),
+      EXTRA_ATTACK_CHANCE_CAP
+    );
+
+  const previewPreConsumableTotal: PlayerStatBlock = {
+    strength: previewPreConsumableCore.strength,
+    intelligence: previewPreConsumableCore.intelligence,
+    dexterity: previewPreConsumableCore.dexterity,
+    vitality: previewPreConsumableCore.vitality,
+    initiative: previewPreConsumableCore.initiative,
+    luck: previewPreConsumableCore.luck,
+    armor: roundStat(
+      previewPreConsumableCore.strength + (equipmentBonuses.armor ?? 0) + armorBonus + (levelGrowth * LEVEL_ARMOR_BONUS)
+    ),
+    spellShield: previewPreConsumableCore.intelligence + (equipmentBonuses.spellShield ?? 0) + spellShieldBonus,
+    missileResistance: previewPreConsumableCore.dexterity + (equipmentBonuses.missileResistance ?? 0) + missileResistanceBonus,
+    physicalDefense: Math.max(0, (equipmentBonuses.physicalDefense ?? 0) + physicalDefenseBonus),
+    magicDefense: Math.max(0, (equipmentBonuses.magicDefense ?? 0) + magicDefenseBonus),
+    maxHitpoints: Math.max(
+      0,
+      roundStat(
+        (previewPreConsumableCore.vitality * HP_PER_VITALITY)
+        + (equipmentBonuses.maxHitpoints ?? 0)
+        + maxHitpointsBonus
+        + (levelGrowth * LEVEL_HP_BONUS)
+      )
+    ),
+    dodgeChance: clampInt(
+      (previewPreConsumableCore.dexterity * CHANCE_PER_STAT)
+      + (equipmentBonuses.dodgeChance ?? 0)
+      + dodgeChanceBonus,
+      DODGE_CHANCE_CAP
+    ),
+    damage: Math.max(
+      0,
+      roundStat(
+        weaponDamage
+        + (previewPreConsumableCore[mainOffenseStatKey] * mainStatToFlatDamageRatio)
+        + (equipmentBonuses.damage ?? 0)
+        + damageBonus
+        + (levelGrowth * LEVEL_DAMAGE_BONUS)
+      )
+    ),
+    critChance: clampInt(
+      BASE_CRIT_CHANCE
+      + (previewPreConsumableCore.luck * CHANCE_PER_STAT)
+      + (equipmentBonuses.critChance ?? 0)
+      + critChanceBonus,
+      CRIT_CHANCE_CAP
+    ),
+    critMultiplier: clampInt(
+      BASE_CRIT_MULTIPLIER
+      + (previewPreConsumableCore.luck * CHANCE_PER_STAT)
+      + (equipmentBonuses.critMultiplier ?? 0)
+      + critMultiplierBonus,
+      CRIT_MULTIPLIER_CAP
+    ),
+    accuracy: Math.max(0, BASE_ACCURACY + (equipmentBonuses.accuracy ?? 0) + accuracyBonus),
+    extraAttackChance: clampInt(
+      (previewPreConsumableCore.initiative * CHANCE_PER_STAT)
+      + (equipmentBonuses.extraAttackChance ?? 0)
+      + extraAttackChanceBonus,
+      EXTRA_ATTACK_CHANCE_CAP
+    )
+  };
+
+  return applyActiveConsumableStatTotals(previewPreConsumableTotal, activeConsumableTotals);
 }
 
 function getStatContributionLines(
@@ -1950,46 +2272,57 @@ function getStatContributionLines(
   const mainOffenseStat = getMainOffenseStatKey(playerClass);
 
   switch (stat) {
-    case "strength":
-      return [
-        {
-          label: mainOffenseStat === "strength" ? i18n.t("profile.mainDamage") : i18n.t("profile.meleeDamage"),
-          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
-          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
-        },
+    case "strength": {
+      const lines: StatContributionLine[] = [
         {
           label: i18n.t("profile.armor"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
       ];
-    case "intelligence":
-      return [
-        {
-          label:
-            mainOffenseStat === "intelligence" ? i18n.t("profile.mainDamage") : i18n.t("profile.spellDamage"),
+      if (mainOffenseStat === "strength") {
+        lines.unshift({
+          label: i18n.t("profile.mainDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
-        },
+        });
+      }
+      return lines;
+    }
+    case "intelligence": {
+      const lines: StatContributionLine[] = [
         {
           label: i18n.t("profile.spellShield"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
       ];
-    case "dexterity":
-      return [
-        {
-          label: mainOffenseStat === "dexterity" ? i18n.t("profile.mainDamage") : i18n.t("profile.rangedDamage"),
+      if (mainOffenseStat === "intelligence") {
+        lines.unshift({
+          label: i18n.t("profile.mainDamage"),
           ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
           valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
-        },
+        });
+      }
+      return lines;
+    }
+    case "dexterity": {
+      const lines: StatContributionLine[] = [
         {
           label: i18n.t("profile.missileResistance"),
           ratioLabel: formatPercentRatio(MAIN_STAT_DEFENSE_RATIO),
           valueLabel: formatDerivedFlat(statValue * MAIN_STAT_DEFENSE_RATIO)
         }
       ];
+      if (mainOffenseStat === "dexterity") {
+        lines.unshift({
+          label: i18n.t("profile.mainDamage"),
+          ratioLabel: formatPercentRatio(mainStatToFlatDamageRatio),
+          valueLabel: formatDerivedFlat(statValue * mainStatToFlatDamageRatio)
+        });
+      }
+      return lines;
+    }
     case "luck":
       return [
         {
@@ -3048,8 +3381,12 @@ export function AppShell() {
   const staminaLabel = playerState
     ? `${playerState.stamina.current}/${playerState.stamina.max}`
     : "0/0";
+  const previewTotalStats = useMemo(
+    () => (playerState ? buildPreviewTotalStats(playerState, baseStats) : null),
+    [baseStats, playerState]
+  );
   const playerCardScoreSummary = useMemo(() => {
-    if (!playerState) {
+    if (!playerState || !previewTotalStats) {
       return {
         gear: 0,
         offense: 0,
@@ -3076,9 +3413,9 @@ export function AppShell() {
       } satisfies PlayerCardScoreBreakdown;
     }
 
-    const totalStats = playerState.statSnapshot.total;
+    const totalStats = previewTotalStats;
     const mainStatKey = getMainOffenseStatKey(playerState.class);
-    const mainStatBonus = Math.floor(totalStats[mainStatKey] * 0.1);
+    const mainStatBonus = totalStats[mainStatKey] * mainStatToFlatDamageRatio;
     const weaponDamage = Math.round(playerState.equipment.weapon?.damageRoll?.averageDamage ?? 0);
     const baseOffense = totalStats.damage;
     const itemDamageBonus = Math.max(0, baseOffense - weaponDamage - mainStatBonus);
@@ -3124,7 +3461,7 @@ export function AppShell() {
         dodgeFactor
       }
     };
-  }, [playerState]);
+  }, [playerState, previewTotalStats]);
   const basePlayerCardCurrencies = currencies ?? {
     ducats: Math.max(playerState?.currency.ducats ?? 0, TEST_MIN_DUCATS),
     imperials: playerState?.currency.imperials ?? 0
@@ -6098,21 +6435,16 @@ export function AppShell() {
       );
     }
 
-    const totalStats = playerState.statSnapshot.total;
-    const playerStatTree = classToStatTree(playerState.class);
-    const mainOffenseStat =
-      playerStatTree === "intelligence"
-        ? playerState.stats.intelligence
-        : playerStatTree === "dexterity"
-          ? playerState.stats.dexterity
-          : playerState.stats.strength;
+    const totalStats = previewTotalStats ?? playerState.statSnapshot.total;
+    const mainOffenseStatKey = getMainOffenseStatKey(playerState.class);
+    const mainOffenseStat = totalStats[mainOffenseStatKey];
     const mainOffenseTypeLabel =
-      playerStatTree === "intelligence"
+      mainOffenseStatKey === "intelligence"
         ? i18n.t("profile.spellDamage")
-        : playerStatTree === "dexterity"
+        : mainOffenseStatKey === "dexterity"
           ? i18n.t("profile.rangedAttackDamage")
           : i18n.t("profile.meleeDamage");
-    const flatBonusDamage = Math.floor(mainOffenseStat * 0.1).toFixed(1);
+    const flatBonusDamage = formatOneDecimal(mainOffenseStat * mainStatToFlatDamageRatio);
     const weaponAverageDamage = playerState.equipment.weapon?.damageRoll?.averageDamage ?? totalStats.damage;
     const flatDamage = Math.max(0, totalStats.damage - weaponAverageDamage);
     const weaponMinDamage = playerState.equipment.weapon?.damageRoll?.rolledMin ?? totalStats.damage;
@@ -7235,7 +7567,7 @@ export function AppShell() {
                           <strong>Weapon Damage:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.weaponDamage)}
                         </p>
                         <p className="uiHoverTooltipLine">
-                          <strong>Item Damage Bonus:</strong> {playerCardScoreSummary.offenseParts.itemDamageBonus}
+                          <strong>Item Damage Bonus:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.itemDamageBonus)}
                         </p>
                         <p className="uiHoverTooltipLine">
                           <strong>Main Stat Bonus:</strong> {formatOneDecimal(playerCardScoreSummary.offenseParts.mainStatBonus)}

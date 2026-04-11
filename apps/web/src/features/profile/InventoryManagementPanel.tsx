@@ -150,13 +150,14 @@ export function InventoryManagementPanel(props: InventoryManagementPanelProps): 
 
   const playerState = props.playerState;
   const activeStatTraining = props.activeStatTraining;
+  const snapshotBaseStats = playerState.statSnapshot?.base;
   const effectiveBaseStats: Record<TrainableStatKey, number> = props.baseStats ?? {
-    strength: playerState.stats.strength,
-    intelligence: playerState.stats.intelligence,
-    dexterity: playerState.stats.dexterity,
-    vitality: playerState.stats.vitality,
-    initiative: playerState.stats.initiative,
-    luck: playerState.stats.luck
+    strength: snapshotBaseStats?.strength ?? playerState.stats.strength,
+    intelligence: snapshotBaseStats?.intelligence ?? playerState.stats.intelligence,
+    dexterity: snapshotBaseStats?.dexterity ?? playerState.stats.dexterity,
+    vitality: snapshotBaseStats?.vitality ?? playerState.stats.vitality,
+    initiative: snapshotBaseStats?.initiative ?? playerState.stats.initiative,
+    luck: snapshotBaseStats?.luck ?? playerState.stats.luck
   };
   const effectiveCurrencies = props.currencies ?? {
     ducats: Math.max(playerState.currency.ducats, props.minimumPreviewDucats),

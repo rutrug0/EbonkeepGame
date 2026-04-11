@@ -4,6 +4,7 @@ import {
   allEquipmentSlotIds,
   classToWeaponStat,
   equipmentSlotIdSchema,
+  mainStatToFlatDamageRatio,
   normalizePlayerClass,
   type CoreStatKey,
   type PlayerClass,
@@ -40,7 +41,6 @@ const BASE_ACCURACY = 75;
 const BASE_CRIT_CHANCE = 500;
 const BASE_CRIT_MULTIPLIER = 15000;
 const HP_PER_VITALITY = 16;
-const mainStatToFlatDamageRatio = 0.05;
 const CHANCE_PER_STAT = 10;
 const CRIT_CHANCE_CAP = 6000;
 const CRIT_MULTIPLIER_CAP = 45000;
