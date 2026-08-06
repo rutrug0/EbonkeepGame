@@ -48,3 +48,6 @@ tools/.cache/
 
 # Local Copilot instructions (not shared with other contributors)
 .github/copilot-instructions.md
+
+# Local Claude Code launch config (machine-specific ports and commands)
+.claude/

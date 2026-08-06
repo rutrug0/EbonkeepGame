@@ -50,6 +50,90 @@ On Windows use `npm.cmd`.
 
 **There is no repo-wide typecheck script** — use a workspace `build`.
 
+## Verifying UI work in a real browser
+
+Unit tests are not sufficient evidence that a UI change works. Any change that affects
+rendering, layout, or interaction must be verified by driving the running app in a browser,
+**and must be checked at both mobile and desktop resolutions.**
+
+**Launch.** Start Docker Desktop, then launch the `ebonkeep` config from `.claude/launch.json`. It
+runs `npm run dev:browser`, which is `local:prepare` followed by `npm run dev` (API + web, client
+on `http://localhost:5173`). Wait for `http://localhost:4000/health` to return 200 before driving
+the UI. Use `ebonkeep-web-only` when an API is already running.
+
+`.claude/` is gitignored, so a fresh clone has no launch config. Create `.claude/launch.json`:
+
+```json
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "ebonkeep", "runtimeExecutable": "npm.cmd", "runtimeArgs": ["run", "dev:browser"], "port": 5173 },
+    { "name": "ebonkeep-web-only", "runtimeExecutable": "npm.cmd", "runtimeArgs": ["run", "dev:web"], "port": 5173 }
+  ]
+}
+```
+
+Running `npm run dev:browser` directly works too and needs no config file.
+
+`npm run local:prepare` (`tools/dev/prepare-local.mjs`) makes the environment correct before the
+servers start, and is safe to re-run:
+
+- Picks a usable Postgres host port. Windows commonly reserves the preferred `55432`, which makes
+  `docker compose up` fail with a socket permission error; the existing
+  `scripts/windows/sync-local-postgres-port.ps1` selects a free one.
+- Copies the root `.env` to `apps/api/.env` and `apps/web/.env`. **These are three separate
+  files** and each workspace reads its own. Updating only the root leaves Prisma pointed at a
+  stale port, which fails as though the database were down.
+- Starts Postgres and Redis (`up -d --wait`) and applies migrations.
+
+It deliberately does not start the observability stack, reset data, or spawn windows.
+`run-local.bat` remains the full-stack path for manual work, but it launches the dev servers in a
+separate window, so it is not usable for browser-driven testing.
+
+**Authenticate.** Do not hand-register an account. The auth screen has a **"Login as Guest"**
+button (`data-testid="guest-login-button"`) — click it. It calls `devGuestLogin()`, stores the
+token, and drops you on the inventory tab. Requires `DEV_GUEST_AUTH=true` in `.env`.
+
+Only when you need a specific class or a stable identity across reloads, use the API path the
+Playwright suite uses (`tests/e2e/utils/auth.ts`): `POST /v1/dev/guest-login` with
+`{ guestId, class }`, write the returned `accessToken` to `localStorage` under
+`ebonkeep.dev.token`, then reload. The nine valid class values are in `packages/shared/src/core`.
+
+**Resolutions to check.** The client switches layout at hard breakpoints defined by
+`getLayoutMode` in `apps/web/src/app/navigation.tsx`:
+
+| Mode | Viewport width | Test at |
+| --- | --- | --- |
+| `compact` | `< 960` | 375x812 (mobile preset) |
+| `standard` | `960`–`1399` | 1280x800 |
+| `wide` | `>= 1400` | 1440x900 |
+
+Mobile and desktop are both mandatory; `wide` is worth a look whenever the change touches
+multi-column layout. Reload after resizing so any load-time layout decisions re-run.
+
+**Prefer the accessibility tree** (`read_page`, `find`) over screenshots for locating elements
+and asserting text — it is faster and more reliable. Use screenshots to judge visual layout,
+spacing, and overflow, which the tree cannot show.
+
+**Synthesized input is unreliable in the in-app Browser pane.** Clicking and typing time out after
+30s whenever the hosted page reports `document.visibilityState === "hidden"`, which it does even
+when the pane is displayed, fronted via `tabs_select`, and sized normally. Screenshots and all
+reads (`read_page`, `get_page_text`, `javascript_tool`, `read_console_messages`) keep working, and
+the page's main thread stays responsive — so a timeout here means input dispatch, not a hung app.
+Check `document.visibilityState` before concluding anything else. Verification that depends on
+multi-step interaction may need Playwright (`tests/e2e`) instead.
+
+A quick overflow check that needs no screenshot:
+`document.body.scrollWidth > window.innerWidth` — run it at each viewport.
+
+Check the browser console for errors before calling a change verified. `ws://localhost:5173`
+WebSocket failures are Vite HMR under the preview proxy, not the game socket
+(`ws://localhost:4000/ws`) — ignore them.
+
+Navigation elements carry `data-testid` (for example `menu-inventory`); most feature panels do
+not. Add a `data-testid` when an element is genuinely hard to address semantically — not as a
+routine habit.
+
 ## Architecture essentials
 
 - **The server is the source of truth.** `PlayerState` is fetched and re-fetched after mutations.
@@ -99,3 +183,5 @@ of `docs/`.
 2. Simplest solution first. Always implement the simplest thing that could work. Do not add abstractions or flexibility that weren't explicitly requested.
 3. Don't touch unrelated code. If a file or function is not directly part of the current task, do not modify it, even if you think it could be improved.
 4. Flag uncertainty explicitly. If you are not confident about an approach or technical detail, say so before proceeding. Confidence without certainty causes more damage than admitting a gap.
+5. Test the real UI, always. Any change touching the client must be verified by driving the running app in the browser, not by unit tests alone. See "Verifying UI work in a real browser" above.
+6. Test mobile and desktop, always. Every UI change is checked at a mobile viewport and a desktop viewport before it is called done. A change that only works at one width is not done.

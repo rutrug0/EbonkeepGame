@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:browser": "npm run local:prepare && npm run dev",
+    "local:prepare": "node ./tools/dev/prepare-local.mjs",
     "dev:api": "npm --workspace @ebonkeep/api run dev",
     "dev:web": "npm --workspace @ebonkeep/web run dev",
     "dev:desktop": "npm --workspace @ebonkeep/desktop run dev",
