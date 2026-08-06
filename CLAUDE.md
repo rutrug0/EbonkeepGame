@@ -144,6 +144,15 @@ Navigation elements carry `data-testid` (for example `menu-inventory`); most fea
 not. Add a `data-testid` when an element is genuinely hard to address semantically — not as a
 routine habit.
 
+`read_page` sometimes prints a control as bare `button [ref_N]` even though it has a perfectly
+good accessible name, and `find` will not match it by label. The main menu group buttons do this
+despite rendering visible text. Check the DOM before treating it as an accessibility bug — these
+buttons are correctly labelled and need no `aria-label`. Address them by `data-testid` instead:
+
+```js
+document.querySelector('[data-testid="menu-group-adventures"]').textContent  // "Campaigns"
+```
+
 ## Architecture essentials
 
 - **The server is the source of truth.** `PlayerState` is fetched and re-fetched after mutations.
