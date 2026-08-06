@@ -115,13 +115,23 @@ multi-column layout. Reload after resizing so any load-time layout decisions re-
 and asserting text — it is faster and more reliable. Use screenshots to judge visual layout,
 spacing, and overflow, which the tree cannot show.
 
-**Synthesized input is unreliable in the in-app Browser pane.** Clicking and typing time out after
-30s whenever the hosted page reports `document.visibilityState === "hidden"`, which it does even
-when the pane is displayed, fronted via `tabs_select`, and sized normally. Screenshots and all
-reads (`read_page`, `get_page_text`, `javascript_tool`, `read_console_messages`) keep working, and
-the page's main thread stays responsive — so a timeout here means input dispatch, not a hung app.
-Check `document.visibilityState` before concluding anything else. Verification that depends on
-multi-step interaction may need Playwright (`tests/e2e`) instead.
+**Click in a tab you created, not the `preview_start` tab.** Input dispatch behaves differently per
+tab, and the split is consistent:
+
+| Tab | Clicks / scroll | Screenshots |
+| --- | --- | --- |
+| `seed` (opened by `preview_start`) | time out after 30s | work |
+| created via `tabs_create` + `navigate` | work | time out |
+
+So for interaction, call `tabs_create`, `navigate` to `http://localhost:5173`, then click. Use
+**ref-based** clicks from `read_page` — coordinate clicks need a cached screenshot, which that tab
+cannot produce. Confirm the result with `read_page` or `javascript_tool` (assert on the `active`
+class or the controls that appear) rather than a screenshot. Switch to the `seed` tab when you
+need to see the pixels.
+
+`document.visibilityState` is `"hidden"` in both tabs, including when clicks succeed — it is not
+the cause and not worth diagnosing. A 30s input timeout means the wrong tab, not a hung app; the
+main thread stays responsive throughout.
 
 A quick overflow check that needs no screenshot:
 `document.body.scrollWidth > window.innerWidth` — run it at each viewport.
